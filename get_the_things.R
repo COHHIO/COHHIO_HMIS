@@ -382,7 +382,7 @@ cols <- c(
   "hud_subsidyinfoable"
 )
 # run function to get xml to a dataframe
-assessment_data <- xml_to_df(y, "//records/clientRecords/Clients/assessmentData", cols)
+assessment_data <- xml_to_df(y, "//records/clientRecords/Client/assessmentData", cols)
 
 # clean up column names
 
@@ -477,9 +477,9 @@ cols <- c(
   "hud_impairabilityliveind"
 )
 # run function to get xml to a dataframe
-disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes']", cols)
+disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
 # get ids
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes']/@system_id"))
+ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id"))
 # add id column
 disabilities$system_id <- ids
 # clean up column names
