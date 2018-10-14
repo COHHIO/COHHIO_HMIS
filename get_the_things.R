@@ -2,14 +2,14 @@ library("xml2")
 library("tidyverse")
 library("lubridate")
 print(now())
-y <- read_xml("data/Bowman_Payload_40.xml")
+y <- read_xml("data/Bowman_Payload_41.xml")
 
 # LIST OF THINGS
-# how do I run this in Terminal so I can do other things in R while this runs? (saw a blog about it)
-# will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
 # unable to connect assessment data to a client
-# can we get the perl script to also de-identify the data after checking for some things? Like incorrect SSN, Anonymous fname..?
 # also assessment data is creating duplicate columns across the top for stacked answers. :(
+# will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
+# how do I run this in Terminal so I can do other things in R while this runs? (saw a blog about it)
+# can we get the perl script to also de-identify the data after checking for some things? Like incorrect SSN, Anonymous fname..?
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
@@ -19,7 +19,7 @@ xml_to_df <- function(xml, path_name, cols) {
     data = xml_text(child_)
     names(data) <- xml_name(child_)
     data = data[names(data) %in% cols]
-    df <- dplyr::bind_rows(df, data.frame(as.list(data)))
+    df <- bind_rows(df, data.frame(as.list(data)))
   }
   return(df)
 }
@@ -46,12 +46,9 @@ cols <- c(
 # run function to get xml data to a data frame
 providers <- xml_to_df(y, "//*/Provider", cols)
 
-# get ids
-ids <- xml_text(xml_find_all(y, "//records/providerRecords/Provider/@record_id"))
-# strip out non-numeric characters using regex
-ids <- as.numeric(str_extract(ids, "[0-9]+"))
-# add id column
-providers$record_id <- ids
+# get ids, add them to the data frame
+providers$record_id <- parse_number(xml_text(xml_find_all(y, "//records/providerRecords/Provider/@record_id")))
+
 # clean up column names
 colnames(providers) <- c(
   "record_id" = "Provider_ID",
@@ -122,7 +119,6 @@ providers <- providers %>% mutate(
     is.na(Principal_Site) ~ 99
   )
 )
-#rm(providers, cols, ids)
 # Provider CoC records ----------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -231,16 +227,9 @@ cols <- c(
 )
 # run function to get xml to a dataframe
 entry_exits <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']", cols)
-# get attributes
-system_ids <- xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@system_id"))
-date_addeds <- xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@date_added"))
-# strip out non-numeric characters for the id
-system_ids <- as.numeric(str_extract(system_ids, "[0-9]+"))
-# add id columns
-entry_exits$system_id <- system_ids
-entry_exits$date_added <- date_addeds
-# clean up environment
-rm(system_ids, date_addeds)
+# get attributes to the data frame
+entry_exits$system_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@system_id")))
+entry_exits$date_added <- xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@date_added"))
 # clean up column names
 colnames(entry_exits) <- c(
   "system_id" = "EE_ID",
@@ -338,9 +327,7 @@ cols <- c(
 # run function to get xml to a dataframe
 clients <- xml_to_df(y, "//records/clientRecords/Client", cols)
 # get ids
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id"))
-# add id column
-clients$record_id <- ids
+clients$record_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
 # clean up column names
 colnames(clients) <- c(
   "record_id" = "Client_ID",
@@ -351,7 +338,15 @@ colnames(clients) <- c(
   "veteranStatus" = "Veteran_Status"  
 )
 # clean up data to match with HUD CSV specs and make id field numeric
-
+clients <- clients %>% mutate(
+  nameDataQualityValue = case_when(
+    nameDataQualityValue == "Full name reported (hud)" ~ 1,
+    nameDataQualityValue == "Partial, street name, or code name reported (hud)" ~ 2,
+    nameDataQualityValue == "Client doesn't know (hud)" ~ 8,
+    nameDataQualityValue == "Client refused (hud)" ~ 9,
+    !is.na(nameDataQualityValue) | nameDataQualityValue == "Data not collected (hud)" ~ 99
+  )
+)
 
 # Assessment Records ------------------------------------------------------
 # name nodes we want to pull in
@@ -384,8 +379,7 @@ cols <- c(
 # run function to get xml to a dataframe
 assessment_data <- xml_to_df(y, "//records/clientRecords/Client/assessmentData", cols)
 
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id"))
-ids <- as.numeric(str_extract(ids, "[0-9]+"))
+ids <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
 
 # records <- xml_find_all(y, xpath = "//records/clientRecords/Client")
 # 
@@ -437,11 +431,8 @@ cols <- c(
 )
 # run function to get xml to a dataframe
 needs <- xml_to_df(y, "//records/needRecords/Need", cols)
-# get Need IDs
-ids <- xml_text(xml_find_all(y, "//records/needRecords/Need/@record_id"))
-ids <- as.numeric(str_extract(ids, "[0-9]+"))
-# add id column
-needs$record_id <- ids
+# get Need IDs to data frame
+needs$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/@record_id")))
 # make the Client IDs and Provider IDs numeric
 needs <- mutate(needs, 
                 client = as.numeric(str_extract(client, "[0-9]+")),
@@ -484,17 +475,11 @@ cols <- c(
 services_referrals <- xml_to_df(y, "//records/needRecords/Need/childService/Service", cols)
 
 # clean up column names
-ids <- xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id"))
-ids <- as.numeric(str_extract(ids, "[0-9]+"))
-
-# add id column
-services_referrals$record_id <- ids
-
+services_referrals$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id")))
 # make the Client IDs and Provider IDs numeric
 needs <- mutate(needs, 
                 client = as.numeric(str_extract(client, "[0-9]+")),
                 provider = as.numeric(str_extract(provider, "[0-9]+")))
-
 # clean up column names
 colnames(services_referrals) <- c(
   "record_id" = "Service_Referral_ID",
@@ -520,12 +505,7 @@ cols <- c(
 # run function to get xml to a dataframe
 income <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']", cols)
 # get ids
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']/@system_id"))
-ids <- as.numeric(str_extract(ids, "[0-9]+"))
-
-# add id column
-income$system_id <- ids
-
+income$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']/@system_id")))
 # clean up column names
 colnames(income) <- c(
   "system_id" = "Income_ID",
@@ -545,11 +525,8 @@ cols <- c(
 )
 # run function to get xml to a dataframe
 noncash <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']", cols)
-# get ids
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']/@system_id"))
-# add id column
-noncash$system_id <- ids
-
+# get ids to data frame
+noncash$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']/@system_id")))
 # clean up column names
 
 # clean up data to match with HUD CSV specs and make id field numeric
@@ -565,12 +542,8 @@ cols <- c(
 )
 # run function to get xml to a dataframe
 disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
-# get ids
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id"))
-# add id column
-disabilities$system_id <- ids
-# clean up column names
-
+# get ids to data frame
+disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
 # clean up data to match with HUD CSV specs and make id field numeric
 
 # Health Insurance -------------------------------------------------------
@@ -583,14 +556,11 @@ cols <- c(
 )
 # run function to get xml to a dataframe
 health_insurance <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']", cols)
-# get ids
-ids <- xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']/@system_id"))
-# add id column
-health_insurance$system_id <- ids
+# get ids to data frame
+health_insurance$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']/@system_id")))
 # clean up column names
 
 # clean up data to match with HUD CSV specs and make id field numeric
-
 
 rm(cols,ids, y)
 print(now())
