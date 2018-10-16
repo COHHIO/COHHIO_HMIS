@@ -15,10 +15,10 @@ xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
   df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
   for(child in records){
-    child_ = xml_children(child)
-    data = xml_text(child_)
+    child_ <-  xml_children(child)
+    data  <-  xml_text(child_)
     names(data) <- xml_name(child_)
-    data = data[names(data) %in% cols]
+    data  <- data[names(data) %in% cols]
     df <- bind_rows(df, data.frame(as.list(data)))
   }
   return(df)
@@ -328,6 +328,30 @@ cols <- c(
 clients <- xml_to_df(y, "//records/clientRecords/Client", cols)
 # get ids
 clients$record_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
+# clean up data to match with HUD CSV specs and make id field numeric
+clients <- clients %>% mutate(
+  nameDataQualityValue = case_when(
+    nameDataQualityValue == "full name reported" ~ 1,
+    nameDataQualityValue == "partial, street name, or code name reported" ~ 2,
+    nameDataQualityValue == "client doesn't know" ~ 8,
+    nameDataQualityValue == "client refused" ~ 9,
+    is.na(nameDataQualityValue) | nameDataQualityValue == "data not collected (hud)" ~ 99
+  ),
+  ssnDataQualityValue = case_when(
+    ssnDataQualityValue == "full ssn reported (hud)" ~ 1,
+    ssnDataQualityValue == "approximate or partial ssn reported (hud)" ~ 2,
+    ssnDataQualityValue == "client doesn't know (hud)" ~ 8,
+    ssnDataQualityValue == "client refused" ~ 9,
+    ssnDataQualityValue == "data not collected (hud)"| is.na(ssnDataQualityValue) ~ 99
+  ),
+  veteranStatus = case_when(
+    veteranStatus == "yes (hud)" ~ 1,
+    veteranStatus == "no (hud)" ~ 0,
+    veteranStatus == "client doesn't know (hud)" ~ 8,
+    veteranStatus == "client refused (hud)" ~ 9,
+    veteranStatus == "data not collected (hud)" | is.na(veteranStatus) ~ 99
+  )
+)
 # clean up column names
 colnames(clients) <- c(
   "record_id" = "Client_ID",
@@ -337,17 +361,6 @@ colnames(clients) <- c(
   "nameDataQualityValue" = "Name_DQ",
   "veteranStatus" = "Veteran_Status"  
 )
-# clean up data to match with HUD CSV specs and make id field numeric
-clients <- clients %>% mutate(
-  nameDataQualityValue = case_when(
-    nameDataQualityValue == "Full name reported (hud)" ~ 1,
-    nameDataQualityValue == "Partial, street name, or code name reported (hud)" ~ 2,
-    nameDataQualityValue == "Client doesn't know (hud)" ~ 8,
-    nameDataQualityValue == "Client refused (hud)" ~ 9,
-    !is.na(nameDataQualityValue) | nameDataQualityValue == "Data not collected (hud)" ~ 99
-  )
-)
-
 # Assessment Records ------------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -377,39 +390,39 @@ cols <- c(
   "hud_subsidyinfoable"
 )
 # run function to get xml to a dataframe
-assessment_data <- xml_to_df(y, "//records/clientRecords/Client/assessmentData", cols)
+# assessment_data <- xml_to_df(y, "//records/clientRecords/Client/assessmentData", cols)
 
 ids <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
 
-# records <- xml_find_all(y, xpath = "//records/clientRecords/Client")
-# 
-# df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
-# i <- 1
-# for(child in records){
-#   child_ = xml_children(child)
-#   assessment <- child_[length(child_)]
-#   df2 <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
-#   idx <- c()
-#   effective_dates <- xml_text(xml_find_all(xml_children(assessment), "@date_effective"))
-#   for(child2 in assessment) {
-#     child__ <- xml_children(child2)
-#     data = xml_text(child__)
-#     names(data) <- xml_name(child__)
-#     idx <- which(names(data) %in% cols)
-#     data = data[idx]
-#     effective_dates <- effective_dates[idx]
-#     for(i in 1:length(data)) {
-#       names(effective_dates)[i] <- paste0(names(data)[i], ".effective")
-#     }
-#     data <- c(data, effective_dates)
-#     df2 <- dplyr::bind_rows(df2, data.frame(as.list(data)))
-#   }
-#   df2$record_id = rep(ids[i], nrow(df2))
-#   df <- dplyr::bind_rows(df, df2)
-#   print(i)
-#   i <- i + 1
-# }
-# assessment_data <- df
+records <- xml_find_all(y, xpath = "//records/clientRecords/Client")
+
+df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
+i <- 1
+for(child in records){
+  child_ = xml_children(child)
+  assessment <- child_[length(child_)]
+  df2 <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
+  idx <- c()
+  effective_dates <- xml_text(xml_find_all(xml_children(assessment), "@date_effective"))
+  for(child2 in assessment) {
+    child__ <- xml_children(child2)
+    data = xml_text(child__)
+    names(data) <- xml_name(child__)
+    idx <- which(names(data) %in% cols)
+    data = data[idx]
+    effective_dates <- effective_dates[idx]
+    for(i in 1:length(data)) {
+      names(effective_dates)[i] <- paste0(names(data)[i], ".effective")
+    }
+    data <- c(data, effective_dates)
+    df2 <- dplyr::bind_rows(df2, data.frame(as.list(data)))
+  }
+  df2$record_id = rep(ids[i], nrow(df2))
+  df <- dplyr::bind_rows(df, df2)
+  print(i)
+  i <- i + 1
+}
+assessment_data <- df
 # clean up column names
 
 # clean up data to match with HUD CSV specs and make id field numeric
@@ -452,8 +465,6 @@ colnames(needs) <- c(
   "code" = "Need_Code"
 )
 
-# clean up data to match with HUD CSV specs and make id field numeric
-
 # Services and Referrals ---------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -471,15 +482,14 @@ cols <- c(
   "household",
   "serviceNote"
 )
-# run function to get xml to a dataframe
+# run function to get xml to a dataframe (I think there are no inactive records coming in)
 services_referrals <- xml_to_df(y, "//records/needRecords/Need/childService/Service", cols)
-
 # clean up column names
 services_referrals$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id")))
 # make the Client IDs and Provider IDs numeric
 needs <- mutate(needs, 
-                client = as.numeric(str_extract(client, "[0-9]+")),
-                provider = as.numeric(str_extract(provider, "[0-9]+")))
+                client = parse_number(client),
+                provider = parse_number(provider))
 # clean up column names
 colnames(services_referrals) <- c(
   "record_id" = "Service_Referral_ID",
@@ -528,8 +538,12 @@ noncash <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/svp_nonca
 # get ids to data frame
 noncash$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']/@system_id")))
 # clean up column names
-
-# clean up data to match with HUD CSV specs and make id field numeric
+colnames(noncash) <- c(
+  "system_id" = "NCB_ID",
+  "svp_noncashbenefitssource" = "NCB_Source",
+  "svp_noncashbenefitsstart" = "NCB_Start_Date",
+  "svp_noncashbenefitsend" = "NCB_End_Date"
+)
 
 # Disabilities -----------------------------------------------------------
 # name nodes we want to pull in
@@ -544,8 +558,25 @@ cols <- c(
 disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
 # get ids to data frame
 disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
-# clean up data to match with HUD CSV specs and make id field numeric
-
+# rename columns
+colnames(disabilities) <- c(
+  "system_id" = "Disability_ID",
+  "disabilities_1start" = "Disability_Start_Date",
+  "disabilities_1end" = "Disability_End_Date",
+  "disabilitytype" = "Disability_Type",
+  "hud_impairabilityliveind" = "Long_Duration"
+)
+# clean up data to match with HUD CSV specs 
+disabilities <- mutate(
+  Long_Duration = case_when(
+    Long_Duration == "yes (hud)" ~ 1,
+    Long_Duration == "no (hud)" ~ 0,
+    Long_Duration == "client doesn't know (hud)" ~ 8,
+    Long_Duration == "client refused (hud)" ~ 9,
+    Long_Duration == "data not collected (hud)" |
+      is.na(Long_Duration) ~ 99
+  )
+)
 # Health Insurance -------------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -559,8 +590,25 @@ health_insurance <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/
 # get ids to data frame
 health_insurance$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']/@system_id")))
 # clean up column names
-
+colnames(health_insurance) <- c(
+  "system_id" = "Health_Insurance_ID",
+  "hudhealthinsurancesubastart" = "Health_Insurance_Start_Date",
+  "hudhealthinsurancesubaend" = "Health_Insurance_End_Date",
+  "svphudhealthinsurancetype" = "Health_Insurance_Type"
+)
 # clean up data to match with HUD CSV specs and make id field numeric
-
+health_insurance <- mutate(health_insurance,
+                           Health_Insurance_Type = case_when(
+                             Health_Insurance_Type == "employer - provided health insurance" ~ 1,
+                             Health_Insurance_Type == "health insurance obtained through cobra" ~ 1,
+                             Health_Insurance_Type == "indian health services program" ~ 1,
+                             Health_Insurance_Type == "medicaid" ~ 1,
+                             Health_Insurance_Type == "medicare" ~ 1,
+                             Health_Insurance_Type == "other" ~ 1,
+                             Health_Insurance_Type == "private pay health insurance" ~ 1,
+                             Health_Insurance_Type == "state children's health insurance program" ~ 1,
+                             Health_Insurance_Type == "state health insurance for adults" ~ 1,
+                             Health_Insurance_Type == "veteran's administration (va) medical services" ~ 1
+                           ))
 rm(cols,ids, y)
 print(now())
