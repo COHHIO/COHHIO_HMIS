@@ -391,8 +391,6 @@ cols <- c(
   # "hud_inpermhousing",
   # "hud_subsidyinfoable"
 )
-# run function to get xml to a dataframe
-# assessment_data <- xml_to_df(y, "//records/clientRecords/Client/assessmentData", cols)
 
 print(now())
 move_in_date_nodes <-
@@ -406,7 +404,7 @@ move_in_dates <- c(client_ids, add_dates, eff_dates, data)
 df <-
   as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
 x <-
-  bind_rows(df, data.frame(as.list(move_in_dates))) #this does the wrong thing!
+  bind_rows(df, data_frame(client_ids, data, add_dates, eff_dates)) 
 print(now())
 
 
@@ -432,7 +430,7 @@ for(child in records){
       names(effective_dates)[i] <- paste0(names(data)[i], ".effective")
     }
     data <- c(data, effective_dates)
-    df2 <- bind_rows(df, data.frame(as.list(data)))
+    df2 <- bind_rows(df2, data.frame(as.list(data)))
   }
   df2$record_id = rep(ids[i], nrow(df2))
   df <- bind_rows(df, df2)
