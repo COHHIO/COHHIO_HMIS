@@ -366,41 +366,58 @@ colnames(clients) <- c(
 cols <- c(
   "record_id",
   "hud_housingmoveindate",
-  "hud_relationtohoh",
-  "svpprofdob",
-  "svpprofdobtype",
-  "svpprofrace",
-  "svpprofgender",
-  "svpprofeth",
-  "domesticviolencevictim",
-  "hud_disablingcondition",
-  "svp_anysource30dayincome",
-  "hud_totalmonthlyincome",
-  "svp_anysource30daynoncash",
-  "hud_coveredbyhlthins",
-  "hud_cocclientlocation",
-  "typeoflivingsituation",
-  "hud_lengthofstay",
-  "hud_lengthstay_less90days",
-  "hud_lengthstay_less7nights",
-  "hud_nightbeforestreetessh",
-  "hud_nomonthstreetesshin3yrs",
-  "hud_housingassessexit",
-  "hud_inpermhousing",
-  "hud_subsidyinfoable"
+  "date_added",
+  "date_effective"#,
+  # "hud_relationtohoh",
+  # "svpprofdob",
+  # "svpprofdobtype",
+  # "svpprofrace",
+  # "svpprofgender",
+  # "svpprofeth",
+  # "domesticviolencevictim",
+  # "hud_disablingcondition",
+  # "svp_anysource30dayincome",
+  # "hud_totalmonthlyincome",
+  # "svp_anysource30daynoncash",
+  # "hud_coveredbyhlthins",
+  # "hud_cocclientlocation",
+  # "typeoflivingsituation",
+  # "hud_lengthofstay",
+  # "hud_lengthstay_less90days",
+  # "hud_lengthstay_less7nights",
+  # "hud_nightbeforestreetessh",
+  # "hud_nomonthstreetesshin3yrs",
+  # "hud_housingassessexit",
+  # "hud_inpermhousing",
+  # "hud_subsidyinfoable"
 )
 # run function to get xml to a dataframe
 # assessment_data <- xml_to_df(y, "//records/clientRecords/Client/assessmentData", cols)
 
-ids <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
+print(now())
+move_in_date_nodes <-
+  xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/hud_housingmoveindate")
+client_ids <-
+  parse_number(xml_attr(xml_parent(xml_parent(move_in_date_nodes)), "record_id"))
+eff_dates <- xml_attr(move_in_date_nodes, "date_effective")
+add_dates <- xml_attr(move_in_date_nodes, "date_added")
+data <- xml_text(move_in_date_nodes)
+move_in_dates <- c(client_ids, add_dates, eff_dates, data)
+df <-
+  as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
+x <-
+  bind_rows(df, data.frame(as.list(move_in_dates))) #this does the wrong thing!
+print(now())
 
-records <- xml_find_all(y, xpath = "//records/clientRecords/Client")
+
+ rm(dates, x, df, move_in_dates, move_in_date_nodes, add_dates, eff_dates, client_ids, data) 
+  
 
 df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
 i <- 1
 for(child in records){
-  child_ = xml_children(child)
-  assessment <- child_[length(child_)]
+  child_ = xml_children(child) #this is too slow
+  assessment <- child_[length(child_)] # this is also slow
   df2 <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
   idx <- c()
   effective_dates <- xml_text(xml_find_all(xml_children(assessment), "@date_effective"))
@@ -415,10 +432,10 @@ for(child in records){
       names(effective_dates)[i] <- paste0(names(data)[i], ".effective")
     }
     data <- c(data, effective_dates)
-    df2 <- dplyr::bind_rows(df2, data.frame(as.list(data)))
+    df2 <- bind_rows(df, data.frame(as.list(data)))
   }
   df2$record_id = rep(ids[i], nrow(df2))
-  df <- dplyr::bind_rows(df, df2)
+  df <- bind_rows(df, df2)
   print(i)
   i <- i + 1
 }
