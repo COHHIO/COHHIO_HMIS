@@ -6,6 +6,7 @@ y <- read_xml("data/Bowman_Payload_41.xml")
 
 # LIST OF THINGS
 # unable to connect assessment data to a client
+# add ee_id to interims
 # also assessment data is creating duplicate columns across the top for stacked answers. :(
 # will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
 # how do I run this in Terminal so I can do other things in R while this runs? (saw a blog about it)
@@ -222,8 +223,7 @@ cols <- c(
   "provider",
   "entryDate",
   "exitDate",
-  "destinationValue",
-  "childEntryExitReview"
+  "destinationValue"
 )
 # run function to get xml to a dataframe
 entry_exits <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']", cols)
@@ -241,8 +241,7 @@ colnames(entry_exits) <- c(
   "provider" = "Provider_ID",
   "entryDate" = "Entry_Date",
   "exitDate" = "Exit_Date",
-  "destinationValue" = "Destination",
-  "childEntryExitReview" = "EE_Review_Date"
+  "destinationValue" = "Destination"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
 entry_exits <- entry_exits %>% mutate(
@@ -314,6 +313,28 @@ entry_exits <- entry_exits %>% mutate(
   )
 )
 
+
+# Interims ----------------------------------------------------------------
+cols <- c(
+  "reviewDate",
+  "reviewType",
+  "active",
+  "review_id",
+  "ee_id"
+)
+
+interims <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview", cols)
+# getting record id's of the interim records
+interims$review_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview/@system_id")))
+# establishing the node we're counting up from
+interim_node <- xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview")
+# going up the tree from there, stopping at ee's
+ee_as_gparent <- xml_parent(xml_parent(interim_node))
+# grabbing the attribute that's at those particular ee's
+interims$ee_id <- parse_number(xml_attr(ee_as_gparent, "record_id"))
+# clean up the house
+rm(interim_node, ee_as_gparent)
+
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -367,49 +388,28 @@ cols <- c(
   "record_id",
   "hud_housingmoveindate",
   "date_added",
-  "date_effective"#,
-  # "hud_relationtohoh",
-  # "svpprofdob",
-  # "svpprofdobtype",
-  # "svpprofrace",
-  # "svpprofgender",
-  # "svpprofeth",
-  # "domesticviolencevictim",
-  # "hud_disablingcondition",
-  # "svp_anysource30dayincome",
-  # "hud_totalmonthlyincome",
-  # "svp_anysource30daynoncash",
-  # "hud_coveredbyhlthins",
-  # "hud_cocclientlocation",
-  # "typeoflivingsituation",
-  # "hud_lengthofstay",
-  # "hud_lengthstay_less90days",
-  # "hud_lengthstay_less7nights",
-  # "hud_nightbeforestreetessh",
-  # "hud_nomonthstreetesshin3yrs",
-  # "hud_housingassessexit",
-  # "hud_inpermhousing",
-  # "hud_subsidyinfoable"
+  "date_effective"
 )
 
 print(now())
+#returning 0 records
+move_in_date <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/hud_housingmoveindate", cols)
+
 move_in_date_nodes <-
   xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/hud_housingmoveindate")
-client_ids <-
-  parse_number(xml_attr(xml_parent(xml_parent(move_in_date_nodes)), "record_id"))
-eff_dates <- xml_attr(move_in_date_nodes, "date_effective")
-add_dates <- xml_attr(move_in_date_nodes, "date_added")
-data <- xml_text(move_in_date_nodes)
-move_in_dates <- c(client_ids, add_dates, eff_dates, data)
-df <-
-  as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
-x <-
-  bind_rows(df, data_frame(client_ids, data, add_dates, eff_dates)) 
+df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
+dates <- as.data.frame(xml_text(move_in_date_nodes), col.names = "hud_housingmoveindate")
+
+#adding an extra column with a garbage name
+df <- bind_rows(df, dates)
+
+client_as_gparent <- xml_parent(xml_parent(move_in_date_nodes))
+#move_in_date$hud_housingmoveindate <- xml_text(move_in_date_nodes)
+move_in_date$record_id <- parse_number(xml_attr(client_as_gparent, "record_id"))
+move_in_date$date_added <- xml_text(xml_find_all(y, "//records/clientRecords/Client/hud_housingmoveindate/@date_added"))
+move_in_date$date_effective <- xml_text(xml_find_all(y, "//records/clientRecords/Client/hud_housingmoveindate/@date_effective"))
+
 print(now())
-
-
- rm(dates, x, df, move_in_dates, move_in_date_nodes, add_dates, eff_dates, client_ids, data) 
-  
 
 df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
 i <- 1
@@ -441,7 +441,7 @@ assessment_data <- df
 # clean up column names
 
 # clean up data to match with HUD CSV specs and make id field numeric
-
+z <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData")
 
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
@@ -627,3 +627,9 @@ health_insurance <- mutate(health_insurance,
                            ))
 rm(cols,ids, y)
 print(now())
+
+
+a <- 1:5
+tibble(a, b = a * 2)
+tibble(a, b = a * 2, c = 1)
+tibble(x = runif(10), y = x * 2)
