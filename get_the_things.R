@@ -2,7 +2,7 @@ library("xml2")
 library("tidyverse")
 library("lubridate")
 print(now())
-y <- read_xml("data/Bowman_Payload_41.xml")
+y <- read_xml("data/Bowman_Payload_40.xml")
 
 # LIST OF THINGS
 # unable to connect assessment data to a client
@@ -383,6 +383,24 @@ colnames(clients) <- c(
   "veteranStatus" = "Veteran_Status"  
 )
 # Assessment Records ------------------------------------------------------
+# THE PLAN WITH ALL THIS IS GETTING ONE GIANT TINY TABLE
+cols <- c(
+  "record_id",
+  "data_element",
+  "value",
+  "date_added",
+  "date_effective"
+)
+# 
+x <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData")
+client_id <- xml_attr(xml_parent(x), "record_id")
+
+#this returns all names of each node under assessmentData, 
+#including subassessment nodes which need to be removed
+xml_name(xml_children(x))
+
+
+# THE PLAN WITH ALL THIS IS BREAKING EACH DE INTO A SEPARATE TABLE
 # name nodes we want to pull in
 cols <- c(
   "record_id",
@@ -391,7 +409,6 @@ cols <- c(
   "date_effective"
 )
 
-print(now())
 #returning 0 records
 move_in_date <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/hud_housingmoveindate", cols)
 
@@ -399,7 +416,7 @@ move_in_date_nodes <-
   xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/hud_housingmoveindate")
 df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
 dates <- as.data.frame(xml_text(move_in_date_nodes), col.names = "hud_housingmoveindate")
-
+#getting fewer client ids than i am move in dates, probably because a client can have more than 1
 #adding an extra column with a garbage name
 df <- bind_rows(df, dates)
 
@@ -409,7 +426,7 @@ move_in_date$record_id <- parse_number(xml_attr(client_as_gparent, "record_id"))
 move_in_date$date_added <- xml_text(xml_find_all(y, "//records/clientRecords/Client/hud_housingmoveindate/@date_added"))
 move_in_date$date_effective <- xml_text(xml_find_all(y, "//records/clientRecords/Client/hud_housingmoveindate/@date_effective"))
 
-print(now())
+# THE IDEA HERE IS JUST WALKING THROUGH THE OLD FOR LOOP, TIMING THINGS
 
 df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
 i <- 1
