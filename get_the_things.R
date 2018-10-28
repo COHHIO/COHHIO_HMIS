@@ -2,15 +2,13 @@ library("xml2")
 library("tidyverse")
 library("lubridate")
 print(now())
-y <- read_xml("data/Bowman_Payload_40.xml")
+#change to ..._41 when at home, ..._40 at work
+y <- read_xml("data/Bowman_Payload_41.xml")
 
 # LIST OF THINGS
-# unable to connect assessment data to a client
-# add ee_id to interims
-# also assessment data is creating duplicate columns across the top for stacked answers. :(
+# interims suddenly not working
 # will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
 # how do I run this in Terminal so I can do other things in R while this runs? (saw a blog about it)
-# can we get the perl script to also de-identify the data after checking for some things? Like incorrect SSN, Anonymous fname..?
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
@@ -321,7 +319,7 @@ cols <- c(
   "review_id",
   "ee_id"
 )
-
+#NOT WORKING
 interims <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview", cols)
 # getting record id's of the interim records
 interims$review_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview/@system_id")))
@@ -448,65 +446,6 @@ rm(assessmentData_child_nodes,
    i,
    length_assessments, 
    ids)
-# # THE PLAN WITH ALL THIS IS BREAKING EACH DE INTO A SEPARATE TABLE
-# # name nodes we want to pull in
-# cols <- c(
-#   "record_id",
-#   "hud_housingmoveindate",
-#   "date_added",
-#   "date_effective"
-# )
-# 
-# #returning 0 records
-# move_in_date <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/hud_housingmoveindate", cols)
-# 
-# move_in_date_nodes <-
-#   xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/hud_housingmoveindate")
-# df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
-# dates <- as.data.frame(xml_text(move_in_date_nodes), col.names = "hud_housingmoveindate")
-# #getting fewer client ids than i am move in dates, probably because a client can have more than 1
-# #adding an extra column with a garbage name
-# df <- bind_rows(df, dates)
-# 
-# client_as_gparent <- xml_parent(xml_parent(move_in_date_nodes))
-# #move_in_date$hud_housingmoveindate <- xml_text(move_in_date_nodes)
-# move_in_date$record_id <- parse_number(xml_attr(client_as_gparent, "record_id"))
-# move_in_date$date_added <- xml_text(xml_find_all(y, "//records/clientRecords/Client/hud_housingmoveindate/@date_added"))
-# move_in_date$date_effective <- xml_text(xml_find_all(y, "//records/clientRecords/Client/hud_housingmoveindate/@date_effective"))
-# 
-# # THE IDEA HERE IS JUST WALKING THROUGH THE OLD FOR LOOP, TIMING THINGS
-# 
-# df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
-# i <- 1
-# for(child in records){
-#   child_ = xml_children(child) #this is too slow
-#   assessment <- child_[length(child_)] # this is also slow
-#   df2 <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
-#   idx <- c()
-#   effective_dates <- xml_text(xml_find_all(xml_children(assessment), "@date_effective"))
-#   for(child2 in assessment) {
-#     child__ <- xml_children(child2)
-#     data = xml_text(child__)
-#     names(data) <- xml_name(child__)
-#     idx <- which(names(data) %in% cols)
-#     data = data[idx]
-#     effective_dates <- effective_dates[idx]
-#     for(i in 1:length(data)) {
-#       names(effective_dates)[i] <- paste0(names(data)[i], ".effective")
-#     }
-#     data <- c(data, effective_dates)
-#     df2 <- bind_rows(df2, data.frame(as.list(data)))
-#   }
-#   df2$record_id = rep(ids[i], nrow(df2))
-#   df <- bind_rows(df, df2)
-#   print(i)
-#   i <- i + 1
-# }
-# assessment_data <- df
-# # clean up column names
-# 
-# # clean up data to match with HUD CSV specs and make id field numeric
-# z <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData")
 
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
@@ -528,8 +467,8 @@ needs <- xml_to_df(y, "//records/needRecords/Need", cols)
 needs$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/@record_id")))
 # make the Client IDs and Provider IDs numeric
 needs <- mutate(needs, 
-                client = as.numeric(str_extract(client, "[0-9]+")),
-                provider = as.numeric(str_extract(provider, "[0-9]+")))
+                client = parse_number(client),
+                provider = parse_number(provider))
 
 # clean up column names
 colnames(needs) <- c(
@@ -690,11 +629,6 @@ health_insurance <- mutate(health_insurance,
                              Health_Insurance_Type == "state health insurance for adults" ~ 1,
                              Health_Insurance_Type == "veteran's administration (va) medical services" ~ 1
                            ))
-rm(cols,ids, y)
+rm(cols,ids)
 print(now())
 
-
-a <- 1:5
-tibble(a, b = a * 2)
-tibble(a, b = a * 2, c = 1)
-tibble(x = runif(10), y = x * 2)
