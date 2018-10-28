@@ -1,12 +1,15 @@
 library("xml2")
 library("tidyverse")
 library("lubridate")
-print(now())
+t <- print(now())
 #change to ..._41 when at home, ..._40 at work
 y <- read_xml("data/Bowman_Payload_41.xml")
 
 # LIST OF THINGS
-# interims suddenly not working
+# ees needs the id fields mutated
+# disabilities still needs some hud csv mutate code
+# add code at the end that replaces the PII with "what we need to know" about names and ssns so that you can base
+#     your reporting on that. 
 # will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
 # how do I run this in Terminal so I can do other things in R while this runs? (saw a blog about it)
 
@@ -14,9 +17,9 @@ xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
   df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
   for(child in records){
-    child_ <-  xml_children(child)
-    data  <-  xml_text(child_)
-    names(data) <- xml_name(child_)
+    gchild <-  xml_children(child)
+    data  <-  xml_text(gchild)
+    names(data) <- xml_name(gchild)
     data  <- data[names(data) %in% cols]
     df <- bind_rows(df, data.frame(as.list(data)))
   }
@@ -319,7 +322,7 @@ cols <- c(
   "review_id",
   "ee_id"
 )
-#NOT WORKING
+# this throws warnings but it's ok
 interims <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview", cols)
 # getting record id's of the interim records
 interims$review_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview/@system_id")))
@@ -577,6 +580,17 @@ cols <- c(
 disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
 # get ids to data frame
 disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
+# clean up data to match with HUD CSV specs 
+disabilities <- mutate(disabilities,
+  hud_impairabilityliveind = case_when(
+    hud_impairabilityliveind == "yes (hud)" ~ 1,
+    hud_impairabilityliveind == "no (hud)" ~ 0,
+    hud_impairabilityliveind == "client doesn't know (hud)" ~ 8,
+    hud_impairabilityliveind == "client refused (hud)" ~ 9,
+    hud_impairabilityliveind == "data not collected (hud)" |
+      is.na(hud_impairabilityliveind) ~ 99
+  )
+)
 # rename columns
 colnames(disabilities) <- c(
   "system_id" = "Disability_ID",
@@ -585,17 +599,7 @@ colnames(disabilities) <- c(
   "disabilitytype" = "Disability_Type",
   "hud_impairabilityliveind" = "Long_Duration"
 )
-# clean up data to match with HUD CSV specs 
-disabilities <- mutate(
-  Long_Duration = case_when(
-    Long_Duration == "yes (hud)" ~ 1,
-    Long_Duration == "no (hud)" ~ 0,
-    Long_Duration == "client doesn't know (hud)" ~ 8,
-    Long_Duration == "client refused (hud)" ~ 9,
-    Long_Duration == "data not collected (hud)" |
-      is.na(Long_Duration) ~ 99
-  )
-)
+
 # Health Insurance -------------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -630,5 +634,6 @@ health_insurance <- mutate(health_insurance,
                              Health_Insurance_Type == "veteran's administration (va) medical services" ~ 1
                            ))
 rm(cols,ids)
-print(now())
+t2 <- print(now())
+print(t2 - t)
 
