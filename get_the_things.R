@@ -3,11 +3,9 @@ library("tidyverse")
 library("lubridate")
 t <- print(now())
 #change to ..._41 when at home, ..._40 at work
-y <- read_xml("data/Bowman_Payload_41.xml")
+y <- read_xml("data/Bowman_Payload_40.xml")
 
 # LIST OF THINGS
-# ees needs the id fields mutated
-# disabilities still needs some hud csv mutate code
 # add code at the end that replaces the PII with "what we need to know" about names and ssns so that you can base
 #     your reporting on that. 
 # will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
@@ -311,7 +309,10 @@ entry_exits <- entry_exits %>% mutate(
       !is.na(Exit_Date) ~ 31,
     Destination == "data not collected (hud)" &
       !is.na(Exit_Date) ~ 99 
-  )
+  ),
+  Client_ID = parse_number(Client_ID),
+  Household_ID = parse_number(Household_ID),
+  Provider_ID = parse_number(Provider_ID)
 )
 
 
@@ -394,7 +395,6 @@ colnames(clients) <- c(
   "veteranStatus" = "Veteran_Status"  
 )
 # Assessment Records ------------------------------------------------------
-# THE PLAN WITH ALL THIS IS GETTING ONE GIANT TINY TABLE
 cols <- c(
   "client_id",
   "data_element",
@@ -449,6 +449,14 @@ rm(assessmentData_child_nodes,
    i,
    length_assessments, 
    ids)
+# delete records we don't want
+duplicates <- assessment_data %>%
+  group_by(Client_ID, Data_Element, Value, Date_Effective) %>% 
+  filter(n() > 1) %>% 
+  summarize(n = n())
+assessment_data <- assessment_data %>% filter(
+  
+)
 
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
@@ -472,7 +480,6 @@ needs$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/
 needs <- mutate(needs, 
                 client = parse_number(client),
                 provider = parse_number(provider))
-
 # clean up column names
 colnames(needs) <- c(
   "record_id" = "Need_ID",
@@ -503,15 +510,19 @@ cols <- c(
   "provideEndDate",
   "household",
   "serviceNote"
-)
+) 
 # run function to get xml to a dataframe (I think there are no inactive records coming in)
 services_referrals <- xml_to_df(y, "//records/needRecords/Need/childService/Service", cols)
 # clean up column names
 services_referrals$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id")))
 # make the Client IDs and Provider IDs numeric
-needs <- mutate(needs, 
-                client = parse_number(client),
-                provider = parse_number(provider))
+services_referrals <- mutate(services_referrals, 
+                "client" = parse_number(client),
+                "referfromProvider" = parse_number(referfromProvider),
+                "needServiceGroup" = parse_number(needServiceGroup),
+                "need" = parse_number(need),
+                "provideProvider" = parse_number(provideProvider),
+                "household" = parse_number(household))
 # clean up column names
 colnames(services_referrals) <- c(
   "record_id" = "Service_Referral_ID",
@@ -527,26 +538,51 @@ colnames(services_referrals) <- c(
 )
 # Income ------------------------------------------------------------------
 # name nodes we want to pull in
+t <- print(now())
 cols <- c(
+  "client_id",
   "system_id",
   "amountmonthlyincome",
   "monthlyincomestart",
   "monthlyincomeend",
   "sourceofincome"
 )
+# income node to count up from
+income_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']")
 # run function to get xml to a dataframe
 income <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']", cols)
-# get ids
-income$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']/@system_id")))
+# get sub ids
+income$system_id <- parse_number(xml_attr(income_node, "system_id"))
+# client
+Client_ID_as_gparent <- xml_attr(xml_parent(xml_parent(income_node)),"record_id")
+# get Client IDs
+client_ids <- parse_number(Client_ID_as_gparent)
+# count number of monthly income records per client
+length_income <- sapply(xml_parent(xml_parent(income_node)), function(x) length(xml_children(x)))
+# create a data frame with the client ids and how many income records each has
+ids <- data.frame(length_income, client_ids)
+# create an empty table
+a <- c()
+# populate the empty table with the right number of client ids
+for(i in 1:nrow(ids)) {
+  a <- c(a, rep(ids[i,]$client_ids, ids[i,]$length_income))
+}
+# add this column into the larger object
+income$client_id <- a
+# clean up the house
+rm(income_node, Client_ID_as_gparent, length_income, client_ids, ids, a)
 # clean up column names
 colnames(income) <- c(
+  "client_id" = "Client_ID",
   "system_id" = "Income_ID",
   "amountmonthlyincome" = "Income_Amount",
   "monthlyincomestart" = "Income_Start",
   "monthlyincomeend" = "Income_End",
   "sourceofincome" = "Income_Source"
   )
-
+t2 <- print(now())
+print(t2 - t)
+# rm(income, a, client_ids, i, length_income, ids, income_node)
 # Non Cash ----------------------------------------------------------------
 # name nodes we want to pull in
 cols <- c(
@@ -633,7 +669,7 @@ health_insurance <- mutate(health_insurance,
                              Health_Insurance_Type == "state health insurance for adults" ~ 1,
                              Health_Insurance_Type == "veteran's administration (va) medical services" ~ 1
                            ))
-rm(cols,ids)
+rm(cols, y)
 t2 <- print(now())
 print(t2 - t)
 
