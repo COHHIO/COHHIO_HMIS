@@ -449,14 +449,82 @@ rm(assessmentData_child_nodes,
    i,
    length_assessments, 
    ids)
-# delete records we don't want
-duplicates <- assessment_data %>%
-  group_by(Client_ID, Data_Element, Value, Date_Effective) %>% 
-  filter(n() > 1) %>% 
-  summarize(n = n())
-assessment_data <- assessment_data %>% filter(
-  
-)
+# delete records we don't need
+assessment_data <- assessment_data %>%
+  filter(!(
+    Data_Element %in%
+      c(
+        "veteran",
+        "monthlyincome",
+        "svp_noncashbenefits",
+        "disabilities_1",
+        "hudhealthinsurancesuba",
+        "hud_vamcstationno",
+        "hud_currentlyinschool",
+        "hud_healthcondition",
+        "hud_receivedvoctraining",
+        "hud_currentemptenure",
+        "hud_hrsworkedlastweek",
+        "svpjuvenileparent",
+        "hud_lookingforwork",
+        "hud_assessmentdispositionoth",
+        "hud_assessmentdisposition",
+        "hud_hpscreeningscore",
+        "hud_inpermhousing",
+        "address_1",
+        "hud_vetinfo",
+        "svp_outreach",
+        "hud_hivaids",
+        "hud_respriorentryothspec",
+        "hud_apxstartdateessh",
+        "hud_nomonthesshin3yrs",
+        "hud_numberoftimeessh",
+        "hud_conthomeless1year",
+        "hud_numhomeless3yrs",
+        "svpchronichomeless",
+        "hud_monthsconthomeless",
+        "hud_statusdocumented",
+        "hud_totalnummonhomelesspast3yr",
+        "hud_zipcodelastpermaddr",
+        "hud_zipdataquality",
+        "rhymisbcpexincartype",
+        "hud_rhymisbcpexactmilp",
+        "rhymisbcpexabusef",
+        "rhymisbcpexabusey",
+        "rhymisbcpexalcoholy",
+        "rhymisbcpexhealthf",
+        "rhymisbcpexhealthy",
+        "rhymisbcpexhhdyn",
+        "rhymisbcpexhousingf",
+        "rhymisbcpexhousingy",
+        "rhymisbcpexmentaly",
+        "rhymisbcpexmentdisf",
+        "rhymisbcpexmentdisy",
+        "rhymisbcpexphysdisy",
+        "rhymisbcpexschoolf",
+        "rhymisbcpexschooly",
+        "rhymisbcpexsexorif",
+        "rhymisbcpexsexoriy",
+        "rhymisbcpexunemployy",
+        "hud_famreunifachieved",
+        "rhymisbcpextrans171",
+        "rhymisbcpextrans172",
+        "rhymisbcpextrans173",
+        "rhymisbcpextrans174",
+        "rhymisbcpextrans175",
+        "rhymisbcpextrans176",
+        "rhymisbcpextrans177",
+        "rhymisbcpextrans178",
+        "rhymisbcpextrans179",
+        "svphudothercrisis_numberemergencyroom",
+        "svphudothercrisis_numberinpatientfacility",
+        "svphudothercrisis_numberprison",
+        "svp_hud_housingstatus",
+        "svp_employed",
+        "hud_counselingafterexit",
+        "rhymistertiaryrace"
+      )
+  ))
 
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
@@ -673,3 +741,54 @@ rm(cols, y)
 t2 <- print(now())
 print(t2 - t)
 
+
+
+# TESTING INCOME ----------------------------------------------------------
+
+cols <- c(
+  "client_id",
+  "data_element",
+  "value",
+  "system_id"
+)
+income_child_nodes <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/monthlyincome/*")
+Client_ID_as_gparent <- xml_parent(xml_parent(xml_parent(income_child_nodes)))
+data_element <- xml_name(income_child_nodes)
+value <- xml_text(income_child_nodes)
+# getting the subs' record ids replicated across the child node data
+system_id <- xml_attr(xml_parent(income_child_nodes), "system_id")
+length_assessments <- sapply(xml_parent(income_child_nodes), function(x) length(xml_children(x)))
+ids <- data.frame(length_assessments, system_id)
+a <- c()
+for(i in 1:nrow(ids)) {
+  a <- c(a, rep(ids[i,]$system_id, ids[i,]$length_assessments))
+}
+system_id <- a
+# adding client id to the mix
+client_id <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
+length_monthly_income <- sapply(Client_ID_as_gparent, function(x) length(xml_children(x)))
+client_id_to_income_sub_id <-
+  sapply(xml_parent(income_child_nodes), function(x)
+    {xml_attr(xml_parent(xml_parent(x)), "record_id")})
+
+
+# putting it all together
+income <- bind_cols(list(client_id, data_element, value, system_id))
+# naming the columns
+colnames(income) <- c(
+  "client_id" = "Client_ID",
+  "data_element" = "Data_Element",
+  "value" = "Value",
+  "system_id" =  "Record_ID"
+)
+# clean the house
+rm(income_child_nodes, 
+   Client_ID_as_gparent, 
+   data_element, 
+   value, 
+   system_id, 
+   client_id, 
+   a,
+   i,
+   length_assessments, 
+   ids)
