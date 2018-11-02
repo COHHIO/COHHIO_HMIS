@@ -1,7 +1,7 @@
 library("xml2")
 library("tidyverse")
 library("lubridate")
-t <- print(now())
+begin <- print(now())
 #change to ..._41 when at home, ..._40 at work
 y <- read_xml("data/Bowman_Payload_40.xml")
 
@@ -23,9 +23,9 @@ xml_to_df <- function(xml, path_name, cols) {
   }
   return(df)
 }
-
 # Provider records --------------------------------------------------------
 # name nodes we want to pull
+provider_start <- print(now())
 cols <- c(
   "record_id",
   "name",
@@ -121,6 +121,7 @@ providers <- providers %>% mutate(
 )
 # Provider CoC records ----------------------------------------------------
 # name nodes we want to pull in
+provider_CoC_start <- print(now())
 cols <- c(
   "provider",
   "startDate",
@@ -156,6 +157,7 @@ provider_cocs <- provider_cocs %>%
 
 # Provider Inventory Records ----------------------------------------------
 # name nodes we want to pull in
+provider_inventory_start <- print(now())
 cols <- c(
   "provider",
   "householdTypeValue",
@@ -212,6 +214,7 @@ bed_inventory <- bed_inventory %>%
 
 # Entry Exit Records ------------------------------------------------------
 # name nodes we want to pull in
+ee_start <- print(now())
 cols <- c(
   "system_id",
   "date_added",
@@ -317,6 +320,7 @@ entry_exits <- entry_exits %>% mutate(
 
 
 # Interims ----------------------------------------------------------------
+interims_start <- print(now())
 cols <- c(
   "reviewDate",
   "reviewType",
@@ -349,6 +353,7 @@ rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids)
 
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
+client_start <- print(now())
 cols <- c(
   "record_id",
   "firstName",
@@ -395,6 +400,7 @@ colnames(clients) <- c(
   "veteranStatus" = "Veteran_Status"  
 )
 # Assessment Records ------------------------------------------------------
+assessments_start <- print(now())
 cols <- c(
   "client_id",
   "data_element",
@@ -528,6 +534,7 @@ assessment_data <- assessment_data %>%
 
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
+needs_start <- print(now())
 cols <- c(
   "record_id",
   "client",
@@ -564,6 +571,7 @@ colnames(needs) <- c(
 
 # Services and Referrals ---------------------------------------------------
 # name nodes we want to pull in
+services_start <- print(now())
 cols <- c(
   "record_id",
   "client",
@@ -606,7 +614,7 @@ colnames(services_referrals) <- c(
 )
 # Income ------------------------------------------------------------------
 # name nodes we want to pull in
-t <- print(now())
+income_start <- print(now())
 cols <- c(
   "client_id",
   "system_id",
@@ -648,11 +656,10 @@ colnames(income) <- c(
   "monthlyincomeend" = "Income_End",
   "sourceofincome" = "Income_Source"
   )
-t2 <- print(now())
-print(t2 - t)
 # rm(income, a, client_ids, i, length_income, ids, income_node)
 # Non Cash ----------------------------------------------------------------
 # name nodes we want to pull in
+noncash_start <- print(now())
 cols <- c(
   "system_id",
   "svp_noncashbenefitssource",
@@ -673,6 +680,7 @@ colnames(noncash) <- c(
 
 # Disabilities -----------------------------------------------------------
 # name nodes we want to pull in
+disabilities_start <- print(now())
 cols <- c(
   "system_id",
   "disabilities_1start",
@@ -706,6 +714,7 @@ colnames(disabilities) <- c(
 
 # Health Insurance -------------------------------------------------------
 # name nodes we want to pull in
+h_ins_start <- print(now())
 cols <- c(
   "system_id",
   "hudhealthinsurancesubastart",
@@ -738,57 +747,131 @@ health_insurance <- mutate(health_insurance,
                              Health_Insurance_Type == "veteran's administration (va) medical services" ~ 1
                            ))
 rm(cols, y)
-t2 <- print(now())
-print(t2 - t)
-
+end <- print(now())
+print(list("load xml file", provider_start - begin))
+print(list("provider records", provider_CoC_start - provider_start))
+print(list("provider CoC records", provider_inventory_start - provider_CoC_start))
+print(list("provider inventory", ee_start - provider_inventory_start))
+print(list("entry exits", interims_start - ee_start))
+print(list("interims", client_start - interims_start))
+print(list("clients", assessments_start - client_start))
+print(list("assessments", needs_start - assessments_start))
+print(list("needs", services_start - needs_start))
+print(list("services", income_start - services_start))
+print(list("income", noncash_start - income_start))
+print(list("noncash", disabilities_start - noncash_start))
+print(list("disabiltiies", h_ins_start - disabilities_start))
+print(list("health insurance", end - h_ins_start))
+print(list("all the whole thing", end - begin))
 
 
 # TESTING INCOME ----------------------------------------------------------
 
-cols <- c(
-  "client_id",
-  "data_element",
-  "value",
-  "system_id"
-)
-income_child_nodes <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/monthlyincome/*")
-Client_ID_as_gparent <- xml_parent(xml_parent(xml_parent(income_child_nodes)))
-data_element <- xml_name(income_child_nodes)
-value <- xml_text(income_child_nodes)
-# getting the subs' record ids replicated across the child node data
-system_id <- xml_attr(xml_parent(income_child_nodes), "system_id")
-length_assessments <- sapply(xml_parent(income_child_nodes), function(x) length(xml_children(x)))
-ids <- data.frame(length_assessments, system_id)
-a <- c()
-for(i in 1:nrow(ids)) {
-  a <- c(a, rep(ids[i,]$system_id, ids[i,]$length_assessments))
-}
-system_id <- a
-# adding client id to the mix
-client_id <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
-length_monthly_income <- sapply(Client_ID_as_gparent, function(x) length(xml_children(x)))
-client_id_to_income_sub_id <-
-  sapply(xml_parent(income_child_nodes), function(x)
-    {xml_attr(xml_parent(xml_parent(x)), "record_id")})
+# cols <- c(
+#   "client_id",
+#   "data_element",
+#   "value",
+#   "system_id"
+# )
+# Client_ID_as_gparent <- xml_parent(xml_parent(xml_parent(income_child_nodes)))
+# data_element <- xml_name(income_child_nodes)
+# value <- xml_text(income_child_nodes)
+# # getting the subs' record ids replicated across the child node data
+# system_id <- xml_attr(xml_parent(income_child_nodes), "system_id")
+# length_assessments <- sapply(xml_parent(income_child_nodes), function(x) length(xml_children(x)))
+# ids <- data.frame(length_assessments, system_id)
+# a <- c()
+# for(i in 1:nrow(ids)) {
+#   a <- c(a, rep(ids[i,]$system_id, ids[i,]$length_assessments))
+# }
+# system_id <- a
+# # adding client id to the mix
+# client_id <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
+# length_monthly_income <- sapply(Client_ID_as_gparent, function(x) length(xml_children(x)))
+# client_id_to_income_sub_id <-
+#   sapply(xml_parent(income_child_nodes), function(x)
+#     {xml_attr(xml_parent(xml_parent(x)), "record_id")})
+# 
+# 
+# # putting it all together
+# income <- bind_cols(list(client_id, data_element, value, system_id))
+# # naming the columns
+# colnames(income) <- c(
+#   "client_id" = "Client_ID",
+#   "data_element" = "Data_Element",
+#   "value" = "Value",
+#   "system_id" =  "Record_ID"
+# )
+# # clean the house
+# rm(income_child_nodes, 
+#    Client_ID_as_gparent, 
+#    data_element, 
+#    value, 
+#    system_id, 
+#    client_id, 
+#    a,
+#    i,
+#    length_assessments, 
+#    ids)
 
 
-# putting it all together
-income <- bind_cols(list(client_id, data_element, value, system_id))
-# naming the columns
-colnames(income) <- c(
-  "client_id" = "Client_ID",
-  "data_element" = "Data_Element",
-  "value" = "Value",
-  "system_id" =  "Record_ID"
-)
-# clean the house
-rm(income_child_nodes, 
-   Client_ID_as_gparent, 
-   data_element, 
-   value, 
-   system_id, 
-   client_id, 
-   a,
-   i,
-   length_assessments, 
-   ids)
+# example -----------------------------------------------------------------
+
+# x <- read_xml("
+# <Clients>  
+#    <Client system_id = 'client_234563'>  
+#       <name>Garghentini, Davide</name>  
+#       <ssn>555555555</ssn>  
+#       <veteran>no</veteran>  
+#       <assessmentdata>  
+#         <moveindate>2000-10-01</moveindate>  
+#         <dob>10102001</dob> 
+#         <monthlyincome record_id = '4148564'>
+#           <startdate>02012018</startdate>
+#           <incomesource>ssi</incomesource>
+#         </monthlyincome>
+#         <monthlyincome record_id = '4145347'>
+#           <startdate>02012018</startdate>
+#           <incomesource>ssdi</incomesource>
+#         </monthlyincome>
+#         <monthlyincome record_id = '453437'>
+#           <startdate>02012018</startdate>
+#               <incomesource>ssi</incomesource>
+#               </monthlyincome>
+#       </assessmentdata> 
+#    </Client>  
+#    <Client system_id = 'client_278565'>  
+#       <name>Nope, Jason</name>  
+#       <ssn>666666666</ssn>  
+#       <veteran>no</veteran>  
+#       <assessmentdata>  
+#         <moveindate>2000-10-01</moveindate>  
+#         <dob>10102001</dob> 
+#         <monthlyincome record_id = '426426'>
+#           <startdate>02012018</startdate>
+#           <incomesource>ssi</incomesource>
+#         </monthlyincome>
+#         <monthlyincome record_id = '426427'>
+#           <startdate>02012018</startdate>
+#           <incomesource>ssdi</incomesource>
+#         </monthlyincome>
+#         <monthlyincome record_id = '426429'>
+#           <startdate>02012018</startdate>
+#               <incomesource>ssi</incomesource>
+#               </monthlyincome>
+#       </assessmentdata> 
+#    </Client>  
+# </Clients>")
+# 
+# x_income_child_nodes <- xml_find_all(x, xpath = "/Clients/Client/assessmentdata/monthlyincome/*")
+
+# the following does not work.
+# x %>% xml_add_parent(.x = x_income_child_nodes, 
+#                       .value = as.character(xml_attr(
+#                         xml_parent(
+#                          xml_parent(
+#                           xml_parent(
+#                             x_income_child_nodes))),
+#                                         "system_id")), 
+#                       where = x_income_child_nodes)
+
