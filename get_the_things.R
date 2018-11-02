@@ -4,12 +4,13 @@ library("lubridate")
 begin <- print(now())
 #change to ..._41 when at home, ..._40 at work
 y <- read_xml("data/Bowman_Payload_40.xml")
-
+users <- read_csv("data/usercreating.csv")
+counties <- read_csv("data/counties.csv")
 # LIST OF THINGS
 # add code at the end that replaces the PII with "what we need to know" about names and ssns so that you can base
 #     your reporting on that. 
-# will need to pull in User Created for each Entry Exit ID and it will have to come from Qlik or somewhere
-# how do I run this in Terminal so I can do other things in R while this runs? (saw a blog about it)
+# sadly no county data is coming through in the provider address.
+# can't get the hopwa psh funding source to flip to its number.
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
@@ -155,6 +156,98 @@ provider_cocs <- provider_cocs %>%
     )
   )
 
+# Funding Sources ---------------------------------------------------------
+# name nodes we want to pull in
+funding_source_start <- print(now())
+cols <- c(
+  "provider",
+  "grantStartDate",
+  "grantEndDate",
+  "federalPartnerProgram"
+)
+# node to count from
+# run function to get xml to a dataframe
+provider_funding <- xml_to_df(y, "//records/providerRecords/Provider/childProviderFedPartnerFundingSource/*[active = 'true']", cols)
+# clean up column names
+colnames(provider_funding) <- c(
+  "provider" = "Provider_ID",
+  "grantStartDate" = "Grant_Start",
+  "grantEndDate" = "Grant_End",
+  "federalPartnerProgram" = "Funding_Source"
+)
+# clean up data to match with HUD CSV specs and make id field numeric
+provider_funding <- provider_funding %>%
+  mutate(
+    Provider_ID = parse_number(Provider_ID),
+    Funding_Source = case_when(
+      Funding_Source == "hud:coc - homelessness prevention (high performing comm. only)" ~ 1,
+      Funding_Source == "hud:coc - permanent supportive housing" ~ 2,
+      Funding_Source == "hud:coc - rapid re‐housing" ~ 3,
+      Funding_Source == "hud:coc - supportive services only" ~ 4,
+      Funding_Source == "hud:coc - transitional housing" ~ 5,
+      Funding_Source == "hud:coc - safe haven" ~ 6,      
+      Funding_Source == "hud:coc - single room occupancy (sro)" ~ 7,
+      Funding_Source == "hud:esg - emergency shelter (operating and/or essential services)" ~ 8,
+      Funding_Source == "hud:esg - homelessness prevention" ~ 9,      
+      Funding_Source == "hud:esg - rapid rehousing" ~ 10,
+      Funding_Source == "hud:esg - street outreach" ~ 11,
+      Funding_Source == "hud:rural housing stability assistance program" ~ 12,      
+      Funding_Source == "hud:hopwa - hotel/motel vouchers" ~ 13,
+      Funding_Source == "hud:hopwa - housing information" ~ 14,
+      Funding_Source == "hud:hopwa - permanent housing (facility based or tbra)" ~ 15,      
+      Funding_Source == "hud:hopwa - permanent housing placement" ~ 16,
+      Funding_Source == "hud:hopwa - short‐term rent, mortgage, utility assistance" ~ 17,
+      Funding_Source == "hud:hopwa - short‐term supportive facility" ~ 18,      
+      Funding_Source == "hud:hopwa - transitional housing (facility based or tbra)" ~ 19,
+      Funding_Source == "hud:hud/vash" ~ 20,
+      Funding_Source == "hhs:path - street outreach & supportive services only" ~ 21,      
+      Funding_Source == "hhs:rhy - basic center program (prevention and shelter)" ~ 22,
+      Funding_Source == "hhs:rhy - maternity group home for pregnant and parenting youth" ~ 23,
+      Funding_Source == "hhs:rhy - transitional living program" ~ 24,      
+      Funding_Source == "hhs:rhy - street outreach project" ~ 25,
+      Funding_Source == "hhs:rhy - demonstration project" ~ 26,
+      Funding_Source == "va: crs contract residential services" ~ 27,      
+      Funding_Source == "va:community contract safe haven program" ~ 30,
+      Funding_Source == "va compensated work therapy transitional residence" ~ 32,
+      Funding_Source == "va:supportive services for veteran families" ~ 33,      
+      Funding_Source == "n/a" ~ 34,
+      Funding_Source == "hud:pay for success" ~ 35,
+      Funding_Source == "hud:public and indian housing (pih) programs" ~ 36,      
+      Funding_Source == "va:grant per diem - bridge housing" ~ 37,
+      Funding_Source == "va:grant per diem - low demand" ~ 38,
+      Funding_Source == "va:grant per diem - hospital to housing" ~ 39,      
+      Funding_Source == "va:grant per diem - clinical treatment" ~ 40,
+      Funding_Source == "va:grant per diem - service intensive transitional housing" ~ 41,
+      Funding_Source == "va:grant per diem - transition in place" ~ 42,
+      Funding_Source == "hud:coc - youth homeless demonstration program (yhdp)"~ 43,
+      Funding_Source %in% c("odsa: supportive housing program", "odsa: hcrp es", "odsa: hcrp hp rr") ~ 50
+    )
+  )
+# ProviderAddresses -------------------------------------------------------
+# name nodes we want to pull in
+provider_address_start <- print(now())
+cols <- c(
+  "provider",
+  "line1",
+  "city",
+  "addressType",
+  "province",
+  "postalCode"
+)
+# run function to get xml to a dataframe
+provider_address <- xml_to_df(y, "//*/childProviderAddress/*", cols)
+# clean up column names
+colnames(provider_address) <- c(
+  "provider" = "Provider_ID",
+  "line1" = "Address",
+  "city" = "City",
+  "addressType" = "Address_Type",
+  "province" = "State",
+  "postalCode" = "ZIP"
+)
+provider_address <- provider_address %>%
+  mutate(
+    Provider_ID = parse_number(Provider_ID))
 # Provider Inventory Records ----------------------------------------------
 # name nodes we want to pull in
 provider_inventory_start <- print(now())
@@ -317,8 +410,9 @@ entry_exits <- entry_exits %>% mutate(
   Household_ID = parse_number(Household_ID),
   Provider_ID = parse_number(Provider_ID)
 )
-
-
+# add in User_Creating
+entry_exits <- entry_exits %>% left_join(users, by = "EE_ID")
+entry_exits <- left_join(entry_exits, counties, by = c("EE_ID", "Client_ID"))
 # Interims ----------------------------------------------------------------
 interims_start <- print(now())
 cols <- c(
@@ -348,8 +442,10 @@ for(i in 1:nrow(ids)) {
   ee_ids <- c(ee_ids, rep(ids[i,]$ee_id, ids[i,]$length_interim))
 }
 interims$ee_id <- ee_ids
+# clean up column names
+colnames(interims) <- c("Interim_Date", "Interim_Type", "Interim_ID", "EE_ID")
 # clean up the house
-rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids)
+rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, counties)
 
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
@@ -579,7 +675,6 @@ cols <- c(
   "needServiceGroup",
   "group",
   "referfromProvider",
-  "serviceProvided",
   "provideProvider",
   "code",
   "provideStartDate",
@@ -603,14 +698,16 @@ services_referrals <- mutate(services_referrals,
 colnames(services_referrals) <- c(
   "record_id" = "Service_Referral_ID",
   "client" = "Client_ID",
-  "provider" = "Provider_ID",
+  "need" = "Need_ID",
+  "needServiceGroup" = "Group_UID",
   "group" = "Group_ID",
-  "dateSet" = "Need_Date",
-  "status" = "Need_Status",
-  "outcome" = "Need_Outcome",
-  "reasonUnmet" = "Reason_Unmet",
-  "note" = "Note",
-  "code" = "Need_Code"
+  "referfromProvider" = "Refer_From_Provider_ID",
+  "provideProvider" = "Provider_ID",
+  "code" = "Need_Code",
+  "provideStartDate" = "Service_Start_Date",
+  "provideEndDate" = "Service_End_Date",
+  "household" = "Household_ID",
+  "note" = "Note"
 )
 # Income ------------------------------------------------------------------
 # name nodes we want to pull in
@@ -629,24 +726,16 @@ income_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/mo
 income <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']", cols)
 # get sub ids
 income$system_id <- parse_number(xml_attr(income_node, "system_id"))
-# client
-Client_ID_as_gparent <- xml_attr(xml_parent(xml_parent(income_node)),"record_id")
-# get Client IDs
-client_ids <- parse_number(Client_ID_as_gparent)
-# count number of monthly income records per client
-length_income <- sapply(xml_parent(xml_parent(income_node)), function(x) length(xml_children(x)))
-# create a data frame with the client ids and how many income records each has
-ids <- data.frame(length_income, client_ids)
 # create an empty table
 a <- c()
-# populate the empty table with the right number of client ids
-for(i in 1:nrow(ids)) {
-  a <- c(a, rep(ids[i,]$client_ids, ids[i,]$length_income))
-}
-# add this column into the larger object
+# populate the empty table with the client ids
+for(i in 1:length(income_node)) {
+  a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(income_node[i])),"record_id")))
+  }
+# add client ids into the larger object
 income$client_id <- a
 # clean up the house
-rm(income_node, Client_ID_as_gparent, length_income, client_ids, ids, a)
+rm(income_node, a)
 # clean up column names
 colnames(income) <- c(
   "client_id" = "Client_ID",
@@ -656,42 +745,66 @@ colnames(income) <- c(
   "monthlyincomeend" = "Income_End",
   "sourceofincome" = "Income_Source"
   )
-# rm(income, a, client_ids, i, length_income, ids, income_node)
 # Non Cash ----------------------------------------------------------------
 # name nodes we want to pull in
 noncash_start <- print(now())
 cols <- c(
+  "client_id",
   "system_id",
   "svp_noncashbenefitssource",
   "svp_noncashbenefitsstart",
   "svp_noncashbenefitsend"
 )
+# noncash node to count up from
+noncash_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']")
 # run function to get xml to a dataframe
 noncash <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']", cols)
 # get ids to data frame
-noncash$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']/@system_id")))
+noncash$system_id <- parse_number(xml_attr(noncash_node, "system_id"))
+# create an empty table
+a <- c()
+# populate the empty table with the right number of client ids
+for(i in 1:length(noncash_node)) {
+  a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(noncash_node[i])),"record_id")))
+}
+# add this column into the larger object
+noncash$client_id <- a
+# clean up the house
+rm(noncash_node, a)
 # clean up column names
 colnames(noncash) <- c(
-  "system_id" = "NCB_ID",
-  "svp_noncashbenefitssource" = "NCB_Source",
-  "svp_noncashbenefitsstart" = "NCB_Start_Date",
-  "svp_noncashbenefitsend" = "NCB_End_Date"
+  "client_id" = "Client_ID",
+  "system_id" = "Noncash_ID",
+  "svp_noncashbenefitssource" = "Noncash_Source",
+  "svp_noncashbenefitsstart" = "Noncash_Start_Date",
+  "svp_noncashbenefitsend" = "Noncash_End_Date"
 )
 
 # Disabilities -----------------------------------------------------------
 # name nodes we want to pull in
 disabilities_start <- print(now())
 cols <- c(
+  "client_id",
   "system_id",
   "disabilities_1start",
   "disabilities_1end",
   "disabilitytype",
   "hud_impairabilityliveind"
 )
+# node to count from
+disabilities_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']")
 # run function to get xml to a dataframe
 disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
 # get ids to data frame
 disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
+# create an empty table
+a <- c()
+# populate the empty table with the right number of client ids
+for(i in 1:length(disabilities_node)) {
+  a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(disabilities_node[i])),"record_id")))
+}
+# add this column into the larger object
+disabilities$client_id <- a
 # clean up data to match with HUD CSV specs 
 disabilities <- mutate(disabilities,
   hud_impairabilityliveind = case_when(
@@ -703,8 +816,11 @@ disabilities <- mutate(disabilities,
       is.na(hud_impairabilityliveind) ~ 99
   )
 )
+# clean up
+rm(disabilities_node, a)
 # rename columns
 colnames(disabilities) <- c(
+  "client_id" = "Client_ID",
   "system_id" = "Disability_ID",
   "disabilities_1start" = "Disability_Start_Date",
   "disabilities_1end" = "Disability_End_Date",
@@ -716,38 +832,52 @@ colnames(disabilities) <- c(
 # name nodes we want to pull in
 h_ins_start <- print(now())
 cols <- c(
+  "client_id",
   "system_id",
   "hudhealthinsurancesubastart",
   "hudhealthinsurancesubaend",
   "svphudhealthinsurancetype"
 )
+health_insurance_node <-
+  xml_find_all(
+    y,
+    "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']"
+  )
 # run function to get xml to a dataframe
-health_insurance <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']", cols)
+health_insurance <-
+  xml_to_df(
+    y,
+    "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']",
+    cols
+  )
 # get ids to data frame
-health_insurance$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']/@system_id")))
+health_insurance$system_id <-
+  parse_number(xml_text(
+    xml_find_all(
+      y,
+      "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']/@system_id"
+    )
+  ))
+# create empty table
+a <- c()
+# populate the empty table with the right number of client ids
+for(i in 1:length(health_insurance_node)) {
+  a <-  c(a, parse_number(xml_attr(xml_parent(xml_parent(health_insurance_node[i])), "record_id")))
+}
+# add this column into the larger object
+health_insurance$client_id <- a
 # clean up column names
 colnames(health_insurance) <- c(
+  "client_id" = "Client_ID",
   "system_id" = "Health_Insurance_ID",
   "hudhealthinsurancesubastart" = "Health_Insurance_Start_Date",
   "hudhealthinsurancesubaend" = "Health_Insurance_End_Date",
   "svphudhealthinsurancetype" = "Health_Insurance_Type"
 )
-# clean up data to match with HUD CSV specs and make id field numeric
-health_insurance <- mutate(health_insurance,
-                           Health_Insurance_Type = case_when(
-                             Health_Insurance_Type == "employer - provided health insurance" ~ 1,
-                             Health_Insurance_Type == "health insurance obtained through cobra" ~ 1,
-                             Health_Insurance_Type == "indian health services program" ~ 1,
-                             Health_Insurance_Type == "medicaid" ~ 1,
-                             Health_Insurance_Type == "medicare" ~ 1,
-                             Health_Insurance_Type == "other" ~ 1,
-                             Health_Insurance_Type == "private pay health insurance" ~ 1,
-                             Health_Insurance_Type == "state children's health insurance program" ~ 1,
-                             Health_Insurance_Type == "state health insurance for adults" ~ 1,
-                             Health_Insurance_Type == "veteran's administration (va) medical services" ~ 1
-                           ))
-rm(cols, y)
+# clean up the house
+rm(cols, y, health_insurance_node, a, i)
 end <- print(now())
+# Timing ------------------------------------------------------------------
 print(list("load xml file", provider_start - begin))
 print(list("provider records", provider_CoC_start - provider_start))
 print(list("provider CoC records", provider_inventory_start - provider_CoC_start))
@@ -763,115 +893,7 @@ print(list("noncash", disabilities_start - noncash_start))
 print(list("disabiltiies", h_ins_start - disabilities_start))
 print(list("health insurance", end - h_ins_start))
 print(list("all the whole thing", end - begin))
-
-
-# TESTING INCOME ----------------------------------------------------------
-
-# cols <- c(
-#   "client_id",
-#   "data_element",
-#   "value",
-#   "system_id"
-# )
-# Client_ID_as_gparent <- xml_parent(xml_parent(xml_parent(income_child_nodes)))
-# data_element <- xml_name(income_child_nodes)
-# value <- xml_text(income_child_nodes)
-# # getting the subs' record ids replicated across the child node data
-# system_id <- xml_attr(xml_parent(income_child_nodes), "system_id")
-# length_assessments <- sapply(xml_parent(income_child_nodes), function(x) length(xml_children(x)))
-# ids <- data.frame(length_assessments, system_id)
-# a <- c()
-# for(i in 1:nrow(ids)) {
-#   a <- c(a, rep(ids[i,]$system_id, ids[i,]$length_assessments))
-# }
-# system_id <- a
-# # adding client id to the mix
-# client_id <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
-# length_monthly_income <- sapply(Client_ID_as_gparent, function(x) length(xml_children(x)))
-# client_id_to_income_sub_id <-
-#   sapply(xml_parent(income_child_nodes), function(x)
-#     {xml_attr(xml_parent(xml_parent(x)), "record_id")})
-# 
-# 
-# # putting it all together
-# income <- bind_cols(list(client_id, data_element, value, system_id))
-# # naming the columns
-# colnames(income) <- c(
-#   "client_id" = "Client_ID",
-#   "data_element" = "Data_Element",
-#   "value" = "Value",
-#   "system_id" =  "Record_ID"
-# )
-# # clean the house
-# rm(income_child_nodes, 
-#    Client_ID_as_gparent, 
-#    data_element, 
-#    value, 
-#    system_id, 
-#    client_id, 
-#    a,
-#    i,
-#    length_assessments, 
-#    ids)
-
-
-# example -----------------------------------------------------------------
-
-# x <- read_xml("
-# <Clients>  
-#    <Client system_id = 'client_234563'>  
-#       <name>Garghentini, Davide</name>  
-#       <ssn>555555555</ssn>  
-#       <veteran>no</veteran>  
-#       <assessmentdata>  
-#         <moveindate>2000-10-01</moveindate>  
-#         <dob>10102001</dob> 
-#         <monthlyincome record_id = '4148564'>
-#           <startdate>02012018</startdate>
-#           <incomesource>ssi</incomesource>
-#         </monthlyincome>
-#         <monthlyincome record_id = '4145347'>
-#           <startdate>02012018</startdate>
-#           <incomesource>ssdi</incomesource>
-#         </monthlyincome>
-#         <monthlyincome record_id = '453437'>
-#           <startdate>02012018</startdate>
-#               <incomesource>ssi</incomesource>
-#               </monthlyincome>
-#       </assessmentdata> 
-#    </Client>  
-#    <Client system_id = 'client_278565'>  
-#       <name>Nope, Jason</name>  
-#       <ssn>666666666</ssn>  
-#       <veteran>no</veteran>  
-#       <assessmentdata>  
-#         <moveindate>2000-10-01</moveindate>  
-#         <dob>10102001</dob> 
-#         <monthlyincome record_id = '426426'>
-#           <startdate>02012018</startdate>
-#           <incomesource>ssi</incomesource>
-#         </monthlyincome>
-#         <monthlyincome record_id = '426427'>
-#           <startdate>02012018</startdate>
-#           <incomesource>ssdi</incomesource>
-#         </monthlyincome>
-#         <monthlyincome record_id = '426429'>
-#           <startdate>02012018</startdate>
-#               <incomesource>ssi</incomesource>
-#               </monthlyincome>
-#       </assessmentdata> 
-#    </Client>  
-# </Clients>")
-# 
-# x_income_child_nodes <- xml_find_all(x, xpath = "/Clients/Client/assessmentdata/monthlyincome/*")
-
-# the following does not work.
-# x %>% xml_add_parent(.x = x_income_child_nodes, 
-#                       .value = as.character(xml_attr(
-#                         xml_parent(
-#                          xml_parent(
-#                           xml_parent(
-#                             x_income_child_nodes))),
-#                                         "system_id")), 
-#                       where = x_income_child_nodes)
+rm(begin, provider_start, provider_CoC_start, provider_inventory_start, ee_start, interims_start,
+   client_start, assessments_start, needs_start, services_start, income_start, noncash_start,
+   disabilities_start, h_ins_start, end)
 

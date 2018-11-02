@@ -1,34 +1,5 @@
 library("tidyverse")
 library("lubridate")
-# affiliation_csv <- read_csv("data/Affiliation.csv")
-client_csv <- read_csv("data/Client.csv") %>%
-  select(1:31)
-disabilities_csv <- read_csv("data/Disabilities.csv") %>%
-  select(1:14)
-# employment_education_csv <- read_csv("data/EmploymentEducation.csv")
-enrollment_csv <- read_csv("data/Enrollment.csv") %>%
-  select(1:65)
-enrollment_coc_csv <- read_csv("data/EnrollmentCoC.csv") %>%
-  select(1:8)
-exit_csv <- read_csv("data/Exit.csv") %>%
-  select(1:10)
-funder_csv <- read_csv("data/Funder.csv") %>%
-  select(1:6)
-# geography_csv <- read_csv("data/Geography.csv")
-health_and_dv_csv <- read_csv("data/HealthAndDV.csv") %>%
-  select(1:7, 13)
-income_benefits_csv <- read_csv("data/IncomeBenefits.csv") %>%
-  select(1:72)
-inventory_csv <- read_csv("data/Inventory.csv") %>%
-  select(1:15)
-# organization_csv <- read_csv("data/Organization.csv")
-project_csv <- read_csv("data/Project.csv") %>%
-  select(1:14)
-project_coc_csv <- read_csv("data/ProjectCoC.csv") %>%
-  select(1:3)
-services_csv <- read_csv("data/Services.csv") %>%
-  select(1:10)
-counties_csv <- read_csv("data/custom.csv")
 
 # *** adding ExitDate to the rest of the Enrollment data 
 entry_exits <- enrollment_csv %>%
