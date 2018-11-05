@@ -3,7 +3,7 @@ library("tidyverse")
 library("lubridate")
 begin <- print(now())
 #change to ..._41 when at home, ..._40 at work
-y <- read_xml("data/Bowman_Payload_40.xml")
+y <- read_xml("data/Bowman_Payload_41.xml")
 users <- read_csv("data/usercreating.csv")
 counties <- read_csv("data/counties.csv")
 # LIST OF THINGS
@@ -147,7 +147,7 @@ colnames(provider_cocs) <- c(
 # clean up data to match with HUD CSV specs and make id field numeric
 provider_cocs <- provider_cocs %>%
   mutate(
-    Provider_ID = as.numeric(str_extract(Provider_ID, "[0-9]+")),
+    Provider_ID = parse_number(Provider_ID),
     Geography_Type = case_when(
       Geography_Type == "urban" ~ 1,
       Geography_Type == "suburban" ~ 2,
@@ -880,7 +880,9 @@ end <- print(now())
 # Timing ------------------------------------------------------------------
 print(list("load xml file", provider_start - begin))
 print(list("provider records", provider_CoC_start - provider_start))
-print(list("provider CoC records", provider_inventory_start - provider_CoC_start))
+print(list("provider CoC records", funding_source_start - provider_CoC_start))
+print(list("funding", provider_address_start - funding_source_start))
+print(list("addresses", provider_inventory_start - provider_address_start))
 print(list("provider inventory", ee_start - provider_inventory_start))
 print(list("entry exits", interims_start - ee_start))
 print(list("interims", client_start - interims_start))
@@ -890,10 +892,10 @@ print(list("needs", services_start - needs_start))
 print(list("services", income_start - services_start))
 print(list("income", noncash_start - income_start))
 print(list("noncash", disabilities_start - noncash_start))
-print(list("disabiltiies", h_ins_start - disabilities_start))
+print(list("disabilities", h_ins_start - disabilities_start))
 print(list("health insurance", end - h_ins_start))
 print(list("all the whole thing", end - begin))
 rm(begin, provider_start, provider_CoC_start, provider_inventory_start, ee_start, interims_start,
-   client_start, assessments_start, needs_start, services_start, income_start, noncash_start,
-   disabilities_start, h_ins_start, end)
+   client_start, assessments_start, funding_source_start, provider_address_start, needs_start, 
+   services_start, income_start, noncash_start, disabilities_start, h_ins_start, end)
 
