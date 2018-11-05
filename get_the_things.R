@@ -3,7 +3,7 @@ library("tidyverse")
 library("lubridate")
 begin <- print(now())
 #change to ..._41 when at home, ..._40 at work
-y <- read_xml("data/Bowman_Payload_41.xml")
+y <- read_xml("data/Bowman_Payload_40.xml")
 users <- read_csv("data/usercreating.csv")
 counties <- read_csv("data/counties.csv")
 # LIST OF THINGS
@@ -219,8 +219,7 @@ provider_funding <- provider_funding %>%
       Funding_Source == "va:grant per diem - clinical treatment" ~ 40,
       Funding_Source == "va:grant per diem - service intensive transitional housing" ~ 41,
       Funding_Source == "va:grant per diem - transition in place" ~ 42,
-      Funding_Source == "hud:coc - youth homeless demonstration program (yhdp)"~ 43,
-      Funding_Source %in% c("odsa: supportive housing program", "odsa: hcrp es", "odsa: hcrp hp rr") ~ 50
+      Funding_Source == "hud:coc - youth homeless demonstration program (yhdp)"~ 43
     )
   )
 # ProviderAddresses -------------------------------------------------------

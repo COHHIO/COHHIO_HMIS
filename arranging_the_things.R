@@ -7,11 +7,13 @@
 
 
 # Date of Birth -----------------------------------------------------------
-dob <- assessment_data %>% filter(Data_Element %in% c("svpprofdob", "svpprofdobtype"))
+dob <- assessment_data %>% filter(Data_Element == "svpprofdob")
+dob_dq <- assessment_data %>% filter(Data_Element == "svpprofdobtype")
 
-dob <- arrange(dob, desc("Date_Effective")) %>%
-  mutate(rank = 1:nrow("Client_ID"))
+dob <- mutate(rank = 1:nrow("Client_ID"))
 # doesnt work ^^
+dob_test <- dob %>% mutate(answer_count = group_size(by_Client_ID))
+# also doesn't work ^^
 # Race --------------------------------------------------------------------
 race1 <- assessment_data %>% filter(Data_Element == "svpprofrace")
 
