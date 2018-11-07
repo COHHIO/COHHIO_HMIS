@@ -1,7 +1,7 @@
 library("xml2")
 library("tidyverse")
 library("lubridate")
-begin <- print(now())
+begin <- now()
 #change to ..._41 when at home, ..._40 at work
 y <- read_xml("data/Bowman_Payload_40.xml")
 users <- read_csv("data/usercreating.csv")
@@ -26,7 +26,7 @@ xml_to_df <- function(xml, path_name, cols) {
 }
 # Provider records --------------------------------------------------------
 # name nodes we want to pull
-provider_start <- print(now())
+provider_start <- now()
 cols <- c(
   "record_id",
   "name",
@@ -45,13 +45,13 @@ cols <- c(
   "victimServiceProvider"
 )
 # run function to get xml data to a data frame
-providers <- xml_to_df(y, "//*/Provider", cols)
+Project <- xml_to_df(y, "//*/Provider", cols)
 
 # get ids, add them to the data frame
 providers$record_id <- parse_number(xml_text(xml_find_all(y, "//records/providerRecords/Provider/@record_id")))
 
 # clean up column names
-colnames(providers) <- c(
+colnames(Project) <- c(
   "record_id" = "Provider_ID",
   "name" = "Provider_Name",
   "aka" = "Common_Name",
@@ -69,7 +69,7 @@ colnames(providers) <- c(
   "victimServiceProvider" = "Victim_Services_Provider"
 )
 # replace data levels with what it has in the HUD CSV specs 
-providers <- providers %>% mutate(
+Project <- Project %>% mutate(
   Project_Type = case_when(
     Project_Type == "emergency shelter (hud)" ~ 1,
     Project_Type == "transitional housing (hud)" ~ 2,
@@ -122,7 +122,7 @@ providers <- providers %>% mutate(
 )
 # Provider CoC records ----------------------------------------------------
 # name nodes we want to pull in
-provider_CoC_start <- print(now())
+provider_CoC_start <- now()
 cols <- c(
   "provider",
   "startDate",
@@ -133,9 +133,9 @@ cols <- c(
   "geocode"
 )
 # run function to get xml to a dataframe
-provider_cocs <- xml_to_df(y, "//*/ProviderCOCCode", cols)
+ProjectCoC <- xml_to_df(y, "//*/ProviderCOCCode", cols)
 # clean up column names
-colnames(provider_cocs) <- c(
+colnames(ProjectCoC) <- c(
   "provider" = "Provider_ID",
   "startDate" = "CoC_Start",
   "endDate" = "CoC_End",
@@ -145,7 +145,7 @@ colnames(provider_cocs) <- c(
   "geocode" = "Geocode"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
-provider_cocs <- provider_cocs %>%
+ProjectCoC <- ProjectCoC %>%
   mutate(
     Provider_ID = parse_number(Provider_ID),
     Geography_Type = case_when(
@@ -158,7 +158,7 @@ provider_cocs <- provider_cocs %>%
 
 # Funding Sources ---------------------------------------------------------
 # name nodes we want to pull in
-funding_source_start <- print(now())
+funding_source_start <- now()
 cols <- c(
   "provider",
   "grantStartDate",
@@ -167,16 +167,16 @@ cols <- c(
 )
 # node to count from
 # run function to get xml to a dataframe
-provider_funding <- xml_to_df(y, "//records/providerRecords/Provider/childProviderFedPartnerFundingSource/*[active = 'true']", cols)
+Funder <- xml_to_df(y, "//records/providerRecords/Provider/childProviderFedPartnerFundingSource/*[active = 'true']", cols)
 # clean up column names
-colnames(provider_funding) <- c(
+colnames(Funder) <- c(
   "provider" = "Provider_ID",
   "grantStartDate" = "Grant_Start",
   "grantEndDate" = "Grant_End",
   "federalPartnerProgram" = "Funding_Source"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
-provider_funding <- provider_funding %>%
+Funder <- Funder %>%
   mutate(
     Provider_ID = parse_number(Provider_ID),
     Funding_Source = case_when(
@@ -224,7 +224,7 @@ provider_funding <- provider_funding %>%
   )
 # ProviderAddresses -------------------------------------------------------
 # name nodes we want to pull in
-provider_address_start <- print(now())
+provider_address_start <- now()
 cols <- c(
   "provider",
   "line1",
@@ -234,9 +234,9 @@ cols <- c(
   "postalCode"
 )
 # run function to get xml to a dataframe
-provider_address <- xml_to_df(y, "//*/childProviderAddress/*", cols)
+Geography <- xml_to_df(y, "//*/childProviderAddress/*", cols)
 # clean up column names
-colnames(provider_address) <- c(
+colnames(Geography) <- c(
   "provider" = "Provider_ID",
   "line1" = "Address",
   "city" = "City",
@@ -244,12 +244,12 @@ colnames(provider_address) <- c(
   "province" = "State",
   "postalCode" = "ZIP"
 )
-provider_address <- provider_address %>%
+Geography <- Geography %>%
   mutate(
     Provider_ID = parse_number(Provider_ID))
 # Provider Inventory Records ----------------------------------------------
 # name nodes we want to pull in
-provider_inventory_start <- print(now())
+provider_inventory_start <- now()
 cols <- c(
   "provider",
   "householdTypeValue",
@@ -266,9 +266,9 @@ cols <- c(
   "cocCode"
 )
 # run function to get xml to a dataframe
-bed_inventory <- xml_to_df(y, "//records/bedUnitInventoryRecords/BedUnitInventory[active = 'true']", cols)
+Inventory <- xml_to_df(y, "//records/bedUnitInventoryRecords/BedUnitInventory[active = 'true']", cols)
 # clean up column names
-colnames(bed_inventory) <- c(
+colnames(Inventory) <- c(
   "provider" = "Provider_ID", 
   "householdTypeValue" = "Household_Type", 
   "bedTypeValue" = "Bed_Type", 
@@ -284,7 +284,7 @@ colnames(bed_inventory) <- c(
   "cocCode" = "CoC_Code"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
-bed_inventory <- bed_inventory %>%
+Inventory <- Inventory %>%
   mutate(
     Provider_ID = as.numeric(str_extract(Provider_ID, "[0-9]+")),
     Household_Type = case_when(
@@ -306,7 +306,7 @@ bed_inventory <- bed_inventory %>%
 
 # Entry Exit Records ------------------------------------------------------
 # name nodes we want to pull in
-ee_start <- print(now())
+ee_start <- now()
 cols <- c(
   "system_id",
   "date_added",
@@ -320,12 +320,12 @@ cols <- c(
   "destinationValue"
 )
 # run function to get xml to a dataframe
-entry_exits <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']", cols)
+Enrollment <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']", cols)
 # get attributes to the data frame
-entry_exits$system_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@system_id")))
-entry_exits$date_added <- xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@date_added"))
+Enrollment$system_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@system_id")))
+Enrollment$date_added <- xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@date_added"))
 # clean up column names
-colnames(entry_exits) <- c(
+colnames(Enrollment) <- c(
   "system_id" = "EE_ID",
   "date_added" = "EE_Date_Added",
   "client" = "Client_ID",
@@ -338,7 +338,7 @@ colnames(entry_exits) <- c(
   "destinationValue" = "Destination"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
-entry_exits <- entry_exits %>% mutate(
+Enrollment <- Enrollment %>% mutate(
   Destination = case_when(
     Destination == "emergency shelter, including hotel or motel paid for with emergency shelter voucher (hud)" &
       !is.na(Exit_Date) ~  1,
@@ -410,10 +410,10 @@ entry_exits <- entry_exits %>% mutate(
   Provider_ID = parse_number(Provider_ID)
 )
 # add in User_Creating
-entry_exits <- entry_exits %>% left_join(users, by = "EE_ID")
-entry_exits <- left_join(entry_exits, counties, by = c("EE_ID", "Client_ID"))
+Enrollment <- entry_exits %>% left_join(users, by = "EE_ID")
+Enrollment <- left_join(Enrollment, counties, by = c("EE_ID", "Client_ID"))
 # Interims ----------------------------------------------------------------
-interims_start <- print(now())
+interims_start <- now()
 cols <- c(
   "reviewDate",
   "reviewType",
@@ -448,7 +448,7 @@ rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, count
 
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
-client_start <- print(now())
+client_start <- now()
 cols <- c(
   "record_id",
   "firstName",
@@ -458,11 +458,11 @@ cols <- c(
   "veteranStatus"
 )
 # run function to get xml to a dataframe
-clients <- xml_to_df(y, "//records/clientRecords/Client", cols)
+Client <- xml_to_df(y, "//records/clientRecords/Client", cols)
 # get ids
-clients$record_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
+Client$record_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/@record_id")))
 # clean up data to match with HUD CSV specs and make id field numeric
-clients <- clients %>% mutate(
+Client <- Client %>% mutate(
   nameDataQualityValue = case_when(
     nameDataQualityValue == "full name reported" ~ 1,
     nameDataQualityValue == "partial, street name, or code name reported" ~ 2,
@@ -486,7 +486,7 @@ clients <- clients %>% mutate(
   )
 )
 # clean up column names
-colnames(clients) <- c(
+colnames(Client) <- c(
   "record_id" = "Client_ID",
   "firstName" = "First_Name",
   "socSecNoDashed" = "SSN",
@@ -494,8 +494,48 @@ colnames(clients) <- c(
   "nameDataQualityValue" = "Name_DQ",
   "veteranStatus" = "Veteran_Status"  
 )
+# Strip of PII ------------------------------------------------------------
+
+Client <- Client %>%
+  mutate(First_Name = case_when(
+    Name_DQ %in% c(8,9) ~ "DKR",
+    Name_DQ == 2 ~ "Partial",
+    Name_DQ == 99 | is.na(Name_DQ) | First_Name == "Anonymous" ~ "Missing",
+    !(Name_DQ %in% c(2, 8, 9, 99) | is.na(Name_DQ) | First_Name == "Anonymous") ~ "ok"))
+
+Client <- Client %>%
+  mutate(SSN = case_when(
+    is.na(SSN) | is.na(SSN_DQ) | SSN_DQ == 99 ~ "Missing",
+    SSN_DQ %in% c(8, 9) ~ "DKR",
+    ifelse((
+      substr(SSN, 1, 1) != "0" &
+        substr(SSN, 1, 2) != "00"
+    ),
+    nchar(as.numeric(SSN)) != 9, FALSE) |
+      substr(SSN, 1, 3) %in% c("000", "666") |
+      substr(SSN, 1, 1) == 9 |
+      substr(SSN, 4, 5) == "00" |
+      substr(SSN, 6, 9) == "0000" |
+      SSN_DQ == 2 |
+      SSN %in% c(
+        111111111,
+        222222222,
+        333333333,
+        444444444,
+        555555555,
+        666666666,
+        777777777,
+        888888888,
+        123456789) ~ "Invalid or Incomplete"
+  ))
+
+Client <- Client %>%
+  mutate(SSN = case_when(
+    is.na(SSN) ~ "ok",
+    !is.na(SSN) ~ SSN
+  ))
 # Assessment Records ------------------------------------------------------
-assessments_start <- print(now())
+assessments_start <- now()
 cols <- c(
   "client_id",
   "data_element",
@@ -629,7 +669,7 @@ assessment_data <- assessment_data %>%
 
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
-needs_start <- print(now())
+needs_start <- now()
 cols <- c(
   "record_id",
   "client",
@@ -666,7 +706,7 @@ colnames(needs) <- c(
 
 # Services and Referrals ---------------------------------------------------
 # name nodes we want to pull in
-services_start <- print(now())
+services_start <- now()
 cols <- c(
   "record_id",
   "client",
@@ -682,11 +722,11 @@ cols <- c(
   "serviceNote"
 ) 
 # run function to get xml to a dataframe (I think there are no inactive records coming in)
-services_referrals <- xml_to_df(y, "//records/needRecords/Need/childService/Service", cols)
+Services <- xml_to_df(y, "//records/needRecords/Need/childService/Service", cols)
 # clean up column names
-services_referrals$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id")))
+Services$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id")))
 # make the Client IDs and Provider IDs numeric
-services_referrals <- mutate(services_referrals, 
+Services <- mutate(Services, 
                 "client" = parse_number(client),
                 "referfromProvider" = parse_number(referfromProvider),
                 "needServiceGroup" = parse_number(needServiceGroup),
@@ -694,7 +734,7 @@ services_referrals <- mutate(services_referrals,
                 "provideProvider" = parse_number(provideProvider),
                 "household" = parse_number(household))
 # clean up column names
-colnames(services_referrals) <- c(
+colnames(Services) <- c(
   "record_id" = "Service_Referral_ID",
   "client" = "Client_ID",
   "need" = "Need_ID",
@@ -710,7 +750,7 @@ colnames(services_referrals) <- c(
 )
 # Income ------------------------------------------------------------------
 # name nodes we want to pull in
-income_start <- print(now())
+income_start <- now()
 cols <- c(
   "client_id",
   "system_id",
@@ -722,9 +762,9 @@ cols <- c(
 # income node to count up from
 income_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']")
 # run function to get xml to a dataframe
-income <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']", cols)
+IncomeBenefits <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']", cols)
 # get sub ids
-income$system_id <- parse_number(xml_attr(income_node, "system_id"))
+IncomeBenefits$system_id <- parse_number(xml_attr(income_node, "system_id"))
 # create an empty table
 a <- c()
 # populate the empty table with the client ids
@@ -732,11 +772,11 @@ for(i in 1:length(income_node)) {
   a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(income_node[i])),"record_id")))
   }
 # add client ids into the larger object
-income$client_id <- a
+IncomeBenefits$client_id <- a
 # clean up the house
 rm(income_node, a)
 # clean up column names
-colnames(income) <- c(
+colnames(IncomeBenefits) <- c(
   "client_id" = "Client_ID",
   "system_id" = "Income_ID",
   "amountmonthlyincome" = "Income_Amount",
@@ -746,7 +786,7 @@ colnames(income) <- c(
   )
 # Non Cash ----------------------------------------------------------------
 # name nodes we want to pull in
-noncash_start <- print(now())
+noncash_start <- now()
 cols <- c(
   "client_id",
   "system_id",
@@ -781,7 +821,7 @@ colnames(noncash) <- c(
 
 # Disabilities -----------------------------------------------------------
 # name nodes we want to pull in
-disabilities_start <- print(now())
+disabilities_start <- now()
 cols <- c(
   "client_id",
   "system_id",
@@ -793,9 +833,9 @@ cols <- c(
 # node to count from
 disabilities_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']")
 # run function to get xml to a dataframe
-disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
+Disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
 # get ids to data frame
-disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
+Disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
 # create an empty table
 a <- c()
 # populate the empty table with the right number of client ids
@@ -803,9 +843,9 @@ for(i in 1:length(disabilities_node)) {
   a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(disabilities_node[i])),"record_id")))
 }
 # add this column into the larger object
-disabilities$client_id <- a
+Disabilities$client_id <- a
 # clean up data to match with HUD CSV specs 
-disabilities <- mutate(disabilities,
+Disabilities <- mutate(Disabilities,
   hud_impairabilityliveind = case_when(
     hud_impairabilityliveind == "yes (hud)" ~ 1,
     hud_impairabilityliveind == "no (hud)" ~ 0,
@@ -818,7 +858,7 @@ disabilities <- mutate(disabilities,
 # clean up
 rm(disabilities_node, a)
 # rename columns
-colnames(disabilities) <- c(
+colnames(Disabilities) <- c(
   "client_id" = "Client_ID",
   "system_id" = "Disability_ID",
   "disabilities_1start" = "Disability_Start_Date",
@@ -829,7 +869,7 @@ colnames(disabilities) <- c(
 
 # Health Insurance -------------------------------------------------------
 # name nodes we want to pull in
-h_ins_start <- print(now())
+h_ins_start <- now()
 cols <- c(
   "client_id",
   "system_id",
@@ -875,8 +915,9 @@ colnames(health_insurance) <- c(
 )
 # clean up the house
 rm(cols, y, health_insurance_node, a, i)
-end <- print(now())
+
 # Timing ------------------------------------------------------------------
+end <- now()
 print(list("load xml file", provider_start - begin))
 print(list("provider records", provider_CoC_start - provider_start))
 print(list("provider CoC records", funding_source_start - provider_CoC_start))
@@ -897,4 +938,3 @@ print(list("all the whole thing", end - begin))
 rm(begin, provider_start, provider_CoC_start, provider_inventory_start, ee_start, interims_start,
    client_start, assessments_start, funding_source_start, provider_address_start, needs_start, 
    services_start, income_start, noncash_start, disabilities_start, h_ins_start, end)
-
