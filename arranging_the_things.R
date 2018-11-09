@@ -3,7 +3,7 @@ library("janitor")
 
 # Date Cleaning -----------------------------------------------------------
 # tried substr() to split out the year, month, etc. with the idea of putting them back together, but it's very slow
-race2 %>% get_dupes(Client_ID)
+race2 %>% get_dupes(PersonalID)
 
 # Filtering out duplicative assessment records ----------------------------
 
@@ -12,15 +12,15 @@ race2 %>% get_dupes(Client_ID)
 
 
 # Date of Birth -----------------------------------------------------------
-dob <- assessment_data %>% filter(Data_Element == "svpprofdob")
+dob <- assessment_data %>% filter(DataElement == "svpprofdob")
 
-dob_dq <- assessment_data %>% filter(Data_Element == "svpprofdobtype")
+dob_dq <- assessment_data %>% filter(DataElement == "svpprofdobtype")
 
 # Race --------------------------------------------------------------------
-race1 <- assessment_data %>% filter(Data_Element == "svpprofrace")
+race1 <- assessment_data %>% filter(DataElement == "svpprofrace")
 
-race2 <- assessment_data %>% filter(Data_Element == "svpprofsecondaryrace")
+race2 <- assessment_data %>% filter(DataElement == "svpprofsecondaryrace")
 
-summarised_race2 <- race2 %>% group_by(Client_ID) %>% summarise(max(Date_Effective), max(Date_Added))
+summarised_race2 <- race2 %>% group_by(PersonalID) %>% summarise(max(DateEffective), max(DateAdded))
 # Ethnicity ---------------------------------------------------------------
-ethnicity <- assessment_data %>% filter(Data_Element == "svpprofeth")
+ethnicity <- assessment_data %>% filter(DataElement == "svpprofeth")

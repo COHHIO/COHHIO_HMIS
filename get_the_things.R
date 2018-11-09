@@ -7,10 +7,8 @@ y <- read_xml("data/Bowman_Payload_40.xml")
 users <- read_csv("data/usercreating.csv")
 counties <- read_csv("data/counties.csv")
 # LIST OF THINGS
-# add code at the end that replaces the PII with "what we need to know" about names and ssns so that you can base
-#     your reporting on that. 
-# sadly no county data is coming through in the provider address.
 # can't get the hopwa psh funding source to flip to its number.
+# see line 409
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
@@ -52,72 +50,72 @@ providers$record_id <- parse_number(xml_text(xml_find_all(y, "//records/provider
 
 # clean up column names
 colnames(Project) <- c(
-  "record_id" = "Provider_ID",
-  "name" = "Provider_Name",
-  "aka" = "Common_Name",
-  "customHudOrganizationName" = "Organization_Name",
-  "programTypeCodeValue" = "Project_Type",
-  "hudHousingType" = "Housing_Type",
-  "hudOrganization" = "Organization_ID",
-  "continuumFlag" = "Continuum_Project",
-  "affiliatedResidentialProject" = "Affiliated_Residential_Project",
+  "record_id" = "ProjectID",
+  "name" = "ProjectName",
+  "aka" = "ProjectCommonName",
+  "customHudOrganizationName" = "OrganizationName",
+  "programTypeCodeValue" = "ProjectType",
+  "hudHousingType" = "HousingType",
+  "hudOrganization" = "OrganizationID",
+  "continuumFlag" = "ContinuumProject",
+  "affiliatedResidentialProject" = "ResidentialAffiliation",
   "principalSite" = "Principal_Site",
-  "hudTrackingMethod" = "Tracking_Method",
-  "operatingStartDate" = "Operating_Start",
-  "operatingEndDate" = "Operating_End",
-  "targetPopValue" = "Target_Population",
-  "victimServiceProvider" = "Victim_Services_Provider"
+  "hudTrackingMethod" = "TrackingMethod",
+  "operatingStartDate" = "OperatingStartDate",
+  "operatingEndDate" = "OperatingEndDate",
+  "targetPopValue" = "TargetPopulation",
+  "victimServiceProvider" = "VictimServicesProvider"
 )
 # replace data levels with what it has in the HUD CSV specs 
 Project <- Project %>% mutate(
-  Project_Type = case_when(
-    Project_Type == "emergency shelter (hud)" ~ 1,
-    Project_Type == "transitional housing (hud)" ~ 2,
-    Project_Type == "ph - permanent supportive housing (disability required for entry) (hud)" ~ 3,
-    Project_Type == "street outreach (hud)" ~ 4,
-    Project_Type == "services only (hud)" ~ 6,
-    Project_Type == "other (hud)" ~ 7,
-    Project_Type == "safe haven (hud)" ~ 8,
-    Project_Type == "ph - housing only (hud)" ~ 9,
-    Project_Type == "ph - housing with services (hud)" ~ 10,
-    Project_Type == "day shelter (hud)" ~ 11,
-    Project_Type == "homelessness prevention (hud)" ~ 12,
-    Project_Type == "ph - rapid re-housing (hud)" ~ 13,
-    Project_Type == "coordinated assessment (hud)" ~ 14
+  ProjectType = case_when(
+    ProjectType == "emergency shelter (hud)" ~ 1,
+    ProjectType == "transitional housing (hud)" ~ 2,
+    ProjectType == "ph - permanent supportive housing (disability required for entry) (hud)" ~ 3,
+    ProjectType == "street outreach (hud)" ~ 4,
+    ProjectType == "services only (hud)" ~ 6,
+    ProjectType == "other (hud)" ~ 7,
+    ProjectType == "safe haven (hud)" ~ 8,
+    ProjectType == "ph - housing only (hud)" ~ 9,
+    ProjectType == "ph - housing with services (hud)" ~ 10,
+    ProjectType == "day shelter (hud)" ~ 11,
+    ProjectType == "homelessness prevention (hud)" ~ 12,
+    ProjectType == "ph - rapid re-housing (hud)" ~ 13,
+    ProjectType == "coordinated assessment (hud)" ~ 14
   ),
-  Tracking_Method = case_when(
-    Tracking_Method == "entry/exit date" & Project_Type == 1 ~ 0,
-    Tracking_Method == "service transaction model" & Project_Type == 1 ~ 3
+  TrackingMethod = case_when(
+    TrackingMethod == "entry/exit date" & ProjectType == 1 ~ 0,
+    TrackingMethod == "service transaction model" & ProjectType == 1 ~ 3
   ),
-  Target_Population = case_when(
-    Target_Population == "dv: domestic violence victims" ~ 1,
-    Target_Population == "hiv: persons with hiv/aids" ~3,
-    Target_Population == "na: not applicable" ~ 4
+  TargetPopulation = case_when(
+    TargetPopulation == "dv: domestic violence victims" ~ 1,
+    TargetPopulation == "hiv: persons with hiv/aids" ~3,
+    TargetPopulation == "na: not applicable" ~ 4
   ),
-  Housing_Type = case_when(
-    Housing_Type == "site-based - single site" & Project_Type %in% c(1, 2, 3, 8, 9, 10, 13) ~ 1,
-    Housing_Type == "site-based - clustered / multiple sites" & Project_Type %in% c(1, 2, 3, 8, 9, 10, 13) ~ 2,
-    Housing_Type == "tenant-based - scattered site" & Project_Type %in% c(1, 2, 3, 8, 9, 10, 13) ~ 3
+  HousingType = case_when(
+    HousingType == "site-based - single site" & ProjectType %in% c(1, 2, 3, 8, 9, 10, 13) ~ 1,
+    HousingType == "site-based - clustered / multiple sites" & ProjectType %in% c(1, 2, 3, 8, 9, 10, 13) ~ 2,
+    HousingType == "tenant-based - scattered site" & ProjectType %in% c(1, 2, 3, 8, 9, 10, 13) ~ 3
   ),
-  Victim_Services_Provider = case_when(
-    Victim_Services_Provider == "true" ~ 1,
-    Victim_Services_Provider == "false" ~ 0,
+  VictimServicesProvider = case_when(
+    VictimServicesProvider == "true" ~ 1,
+    VictimServicesProvider == "false" ~ 0,
     is.na(Victim_Services_Provider) ~ 99
   ),
-  Continuum_Project = case_when(
-    Continuum_Project == "true" ~ 1,
-    Continuum_Project == "false" ~ 0,
-    is.na(Continuum_Project) ~ 99
+  ContinuumProject = case_when(
+    ContinuumProject == "true" ~ 1,
+    ContinuumProject == "false" ~ 0,
+    is.na(ContinuumProject) ~ 99
   ),
-  Affiliated_Residential_Project = case_when(
-    Affiliated_Residential_Project == "true" & Project_Type == 6 ~ 1,
-    Affiliated_Residential_Project == "false" & Project_Type == 6 ~ 0,
-    is.na(Affiliated_Residential_Project) & Project_Type == 6 ~ 99
+  ResidentialAffiliation = case_when(
+    ResidentialAffiliation == "true" & ProjectType == 6 ~ 1,
+    ResidentialAffiliation == "false" & ProjectType == 6 ~ 0,
+    is.na(ResidentialAffiliation) & ProjectType == 6 ~ 99
   ),
-  Principal_Site = case_when(
-    Principal_Site == "true" ~ 1,
-    Principal_Site == "false" ~ 0,
-    is.na(Principal_Site) ~ 99
+  PrincipalSite = case_when(
+    PrincipalSite == "true" ~ 1,
+    PrincipalSite == "false" ~ 0,
+    is.na(PrincipalSite) ~ 99
   )
 )
 # Provider CoC records ----------------------------------------------------
@@ -136,23 +134,23 @@ cols <- c(
 ProjectCoC <- xml_to_df(y, "//*/ProviderCOCCode", cols)
 # clean up column names
 colnames(ProjectCoC) <- c(
-  "provider" = "Provider_ID",
-  "startDate" = "CoC_Start",
-  "endDate" = "CoC_End",
-  "cocCode" = "CoC_Code",
-  "geographyType" = "Geography_Type",
+  "provider" = "ProjectID",
+  "startDate" = "CoCStart", 
+  "endDate" = "CoCEnd", 
+  "cocCode" = "CoCCode",
+  "geographyType" = "GeographyType",
   "postalCode" = "ZIP",
   "geocode" = "Geocode"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
 ProjectCoC <- ProjectCoC %>%
   mutate(
-    Provider_ID = parse_number(Provider_ID),
-    Geography_Type = case_when(
-      Geography_Type == "urban" ~ 1,
-      Geography_Type == "suburban" ~ 2,
-      Geography_Type == "rural" ~ 3,
-      is.na(Geography_Type) ~ 99
+    ProjectID = parse_number(ProjectID),
+    GeographyType = case_when(
+      GeographyType == "urban" ~ 1,
+      GeographyType == "suburban" ~ 2,
+      GeographyType == "rural" ~ 3,
+      is.na(GeographyType) ~ 99
     )
   )
 
@@ -170,56 +168,56 @@ cols <- c(
 Funder <- xml_to_df(y, "//records/providerRecords/Provider/childProviderFedPartnerFundingSource/*[active = 'true']", cols)
 # clean up column names
 colnames(Funder) <- c(
-  "provider" = "Provider_ID",
-  "grantStartDate" = "Grant_Start",
-  "grantEndDate" = "Grant_End",
-  "federalPartnerProgram" = "Funding_Source"
+  "provider" = "ProjectID",
+  "grantStartDate" = "StartDate",
+  "grantEndDate" = "EndDate",
+  "federalPartnerProgram" = "Funder"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
 Funder <- Funder %>%
   mutate(
-    Provider_ID = parse_number(Provider_ID),
-    Funding_Source = case_when(
-      Funding_Source == "hud:coc - homelessness prevention (high performing comm. only)" ~ 1,
-      Funding_Source == "hud:coc - permanent supportive housing" ~ 2,
-      Funding_Source == "hud:coc - rapid re‐housing" ~ 3,
-      Funding_Source == "hud:coc - supportive services only" ~ 4,
-      Funding_Source == "hud:coc - transitional housing" ~ 5,
-      Funding_Source == "hud:coc - safe haven" ~ 6,      
-      Funding_Source == "hud:coc - single room occupancy (sro)" ~ 7,
-      Funding_Source == "hud:esg - emergency shelter (operating and/or essential services)" ~ 8,
-      Funding_Source == "hud:esg - homelessness prevention" ~ 9,      
-      Funding_Source == "hud:esg - rapid rehousing" ~ 10,
-      Funding_Source == "hud:esg - street outreach" ~ 11,
-      Funding_Source == "hud:rural housing stability assistance program" ~ 12,      
-      Funding_Source == "hud:hopwa - hotel/motel vouchers" ~ 13,
-      Funding_Source == "hud:hopwa - housing information" ~ 14,
-      Funding_Source == "hud:hopwa - permanent housing (facility based or tbra)" ~ 15,      
-      Funding_Source == "hud:hopwa - permanent housing placement" ~ 16,
-      Funding_Source == "hud:hopwa - short‐term rent, mortgage, utility assistance" ~ 17,
-      Funding_Source == "hud:hopwa - short‐term supportive facility" ~ 18,      
-      Funding_Source == "hud:hopwa - transitional housing (facility based or tbra)" ~ 19,
-      Funding_Source == "hud:hud/vash" ~ 20,
-      Funding_Source == "hhs:path - street outreach & supportive services only" ~ 21,      
-      Funding_Source == "hhs:rhy - basic center program (prevention and shelter)" ~ 22,
-      Funding_Source == "hhs:rhy - maternity group home for pregnant and parenting youth" ~ 23,
-      Funding_Source == "hhs:rhy - transitional living program" ~ 24,      
-      Funding_Source == "hhs:rhy - street outreach project" ~ 25,
-      Funding_Source == "hhs:rhy - demonstration project" ~ 26,
-      Funding_Source == "va: crs contract residential services" ~ 27,      
-      Funding_Source == "va:community contract safe haven program" ~ 30,
-      Funding_Source == "va compensated work therapy transitional residence" ~ 32,
-      Funding_Source == "va:supportive services for veteran families" ~ 33,      
-      Funding_Source == "n/a" ~ 34,
-      Funding_Source == "hud:pay for success" ~ 35,
-      Funding_Source == "hud:public and indian housing (pih) programs" ~ 36,      
-      Funding_Source == "va:grant per diem - bridge housing" ~ 37,
-      Funding_Source == "va:grant per diem - low demand" ~ 38,
-      Funding_Source == "va:grant per diem - hospital to housing" ~ 39,      
-      Funding_Source == "va:grant per diem - clinical treatment" ~ 40,
-      Funding_Source == "va:grant per diem - service intensive transitional housing" ~ 41,
-      Funding_Source == "va:grant per diem - transition in place" ~ 42,
-      Funding_Source == "hud:coc - youth homeless demonstration program (yhdp)"~ 43
+    ProjectID = parse_number(ProjectID),
+    Funder = case_when(
+      Funder == "hud:coc - homelessness prevention (high performing comm. only)" ~ 1,
+      Funder == "hud:coc - permanent supportive housing" ~ 2,
+      Funder == "hud:coc - rapid re‐housing" ~ 3,
+      Funder == "hud:coc - supportive services only" ~ 4,
+      Funder == "hud:coc - transitional housing" ~ 5,
+      Funder == "hud:coc - safe haven" ~ 6,      
+      Funder == "hud:coc - single room occupancy (sro)" ~ 7,
+      Funder == "hud:esg - emergency shelter (operating and/or essential services)" ~ 8,
+      Funder == "hud:esg - homelessness prevention" ~ 9,      
+      Funder == "hud:esg - rapid rehousing" ~ 10,
+      Funder == "hud:esg - street outreach" ~ 11,
+      Funder == "hud:rural housing stability assistance program" ~ 12,      
+      Funder == "hud:hopwa - hotel/motel vouchers" ~ 13,
+      Funder == "hud:hopwa - housing information" ~ 14,
+      Funder == "hud:hopwa - permanent housing (facility based or tbra)" ~ 15,      
+      Funder == "hud:hopwa - permanent housing placement" ~ 16,
+      Funder == "hud:hopwa - short‐term rent, mortgage, utility assistance" ~ 17,
+      Funder == "hud:hopwa - short‐term supportive facility" ~ 18,      
+      Funder == "hud:hopwa - transitional housing (facility based or tbra)" ~ 19,
+      Funder == "hud:hud/vash" ~ 20,
+      Funder == "hhs:path - street outreach & supportive services only" ~ 21,      
+      Funder == "hhs:rhy - basic center program (prevention and shelter)" ~ 22,
+      Funder == "hhs:rhy - maternity group home for pregnant and parenting youth" ~ 23,
+      Funder == "hhs:rhy - transitional living program" ~ 24,      
+      Funder == "hhs:rhy - street outreach project" ~ 25,
+      Funder == "hhs:rhy - demonstration project" ~ 26,
+      Funder == "va: crs contract residential services" ~ 27,      
+      Funder == "va:community contract safe haven program" ~ 30,
+      Funder == "va compensated work therapy transitional residence" ~ 32,
+      Funder == "va:supportive services for veteran families" ~ 33,      
+      Funder == "n/a" ~ 34,
+      Funder == "hud:pay for success" ~ 35,
+      Funder == "hud:public and indian housing (pih) programs" ~ 36,      
+      Funder == "va:grant per diem - bridge housing" ~ 37,
+      Funder == "va:grant per diem - low demand" ~ 38,
+      Funder == "va:grant per diem - hospital to housing" ~ 39,      
+      Funder == "va:grant per diem - clinical treatment" ~ 40,
+      Funder == "va:grant per diem - service intensive transitional housing" ~ 41,
+      Funder == "va:grant per diem - transition in place" ~ 42,
+      Funder == "hud:coc - youth homeless demonstration program (yhdp)"~ 43
     )
   )
 # ProviderAddresses -------------------------------------------------------
@@ -237,16 +235,16 @@ cols <- c(
 Geography <- xml_to_df(y, "//*/childProviderAddress/*", cols)
 # clean up column names
 colnames(Geography) <- c(
-  "provider" = "Provider_ID",
-  "line1" = "Address",
+  "provider" = "ProjectID",
+  "line1" = "Address1", #is there an Address2 in the XML file? if so we should pull it in
   "city" = "City",
-  "addressType" = "Address_Type",
+  "addressType" = "AddressType",
   "province" = "State",
   "postalCode" = "ZIP"
 )
 Geography <- Geography %>%
   mutate(
-    Provider_ID = parse_number(Provider_ID))
+    ProjectID = parse_number(ProjectID))
 # Provider Inventory Records ----------------------------------------------
 # name nodes we want to pull in
 provider_inventory_start <- now()
@@ -254,7 +252,7 @@ cols <- c(
   "provider",
   "householdTypeValue",
   "bedTypeValue",
-  "availabilityValue",
+  "availabilityValue", #need to pull in Information Date
   "bedInventory",
   "unitInventory",
   "chBedInventory",
@@ -269,38 +267,38 @@ cols <- c(
 Inventory <- xml_to_df(y, "//records/bedUnitInventoryRecords/BedUnitInventory[active = 'true']", cols)
 # clean up column names
 colnames(Inventory) <- c(
-  "provider" = "Provider_ID", 
-  "householdTypeValue" = "Household_Type", 
-  "bedTypeValue" = "Bed_Type", 
+  "provider" = "ProjectID", 
+  "householdTypeValue" = "HouseholdType", 
+  "bedTypeValue" = "BedType", 
   "availabilityValue" = "Availability",
-  "bedInventory" = "Bed_Inventory", 
-  "unitInventory" = "Unit_Inventory",
-  "chBedInventory" = "Chronic_Beds",
-  "veteranBedInventory" = "Vet_Beds",
-  "youthBedInventory" = "Youth_Beds",
-  "inventoryStartDate" = "Inventory_Start",
-  "inventoryEndDate" = "Inventory_End",
-  "hmisBeds" = "HMIS_Beds",
-  "cocCode" = "CoC_Code"
+  "bedInventory" = "BedInventory", 
+  "unitInventory" = "UnitInventory",
+  "chBedInventory" = "CHBedInventory",
+  "veteranBedInventory" = "VetBedInventory",
+  "youthBedInventory" = "YouthBedInventory",
+  "inventoryStartDate" = "InventoryStartDate",
+  "inventoryEndDate" = "InventoryEndDate",
+  "hmisBeds" = "HMISParticipatingBeds",
+  "cocCode" = "CoCCode"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
 Inventory <- Inventory %>%
   mutate(
-    Provider_ID = as.numeric(str_extract(Provider_ID, "[0-9]+")),
-    Household_Type = case_when(
-      Household_Type == "households without children" ~ 1,
-      Household_Type == "households with at least one adult and one child" ~ 3,
-      Household_Type == "households with only children" ~ 4
+    ProjectID = parse_number(ProjectID),
+    HouseholdType = case_when(
+      HouseholdType == "households without children" ~ 1,
+      HouseholdType == "households with at least one adult and one child" ~ 3,
+      HouseholdType == "households with only children" ~ 4
     ),
     Availability = case_when(
       Availability == "year-round" ~ 1,
       Availability == "seasonal" ~ 2,
       Availability == "overflow" ~ 3
     ),
-    Bed_Type = case_when(
-      Bed_Type == "facility-based" ~ 1,
-      Bed_Type == "voucher" ~ 2,
-      Bed_Type == "other" ~ 3
+    BedType = case_when(
+      BedType == "facility-based" ~ 1,
+      BedType == "voucher" ~ 2,
+      BedType == "other" ~ 3
     )
   )
 
@@ -326,92 +324,92 @@ Enrollment$system_id <- parse_number(xml_text(xml_find_all(y, "//records/entryEx
 Enrollment$date_added <- xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/@date_added"))
 # clean up column names
 colnames(Enrollment) <- c(
-  "system_id" = "EE_ID",
-  "date_added" = "EE_Date_Added",
-  "client" = "Client_ID",
-  "typeEntryExit" = "EE_Type",
-  "group" = "Group_ID",
-  "household" = "Household_ID",
-  "provider" = "Provider_ID",
-  "entryDate" = "Entry_Date",
-  "exitDate" = "Exit_Date",
+  "system_id" = "EnrollmentID",
+  "date_added" = "DateCreated",
+  "client" = "PersonalID",
+  "typeEntryExit" = "EEType",
+  "group" = "HouseholdID",
+  "household" = "FamilyID",
+  "provider" = "ProjectID",
+  "entryDate" = "EntryDate",
+  "exitDate" = "ExitDate",
   "destinationValue" = "Destination"
 )
 # clean up data to match with HUD CSV specs and make id field numeric
 Enrollment <- Enrollment %>% mutate(
   Destination = case_when(
     Destination == "emergency shelter, including hotel or motel paid for with emergency shelter voucher (hud)" &
-      !is.na(Exit_Date) ~  1,
+      !is.na(ExitDate) ~  1,
     Destination == "transitional housing for homeless persons (including homeless youth) (hud)" &
-      !is.na(Exit_Date) ~ 2,
+      !is.na(ExitDate) ~ 2,
     Destination == "permanent housing (other than rrh) for formerly homeless persons (hud)" &
-      !is.na(Exit_Date) ~ 3,
+      !is.na(ExitDate) ~ 3,
     Destination == "psychiatric hospital or other psychiatric facility (hud)" &
-      !is.na(Exit_Date) ~ 4,
+      !is.na(ExitDate) ~ 4,
     Destination == "substance abuse treatment facility or detox center (hud)" &
-      !is.na(Exit_Date) ~ 5,
+      !is.na(ExitDate) ~ 5,
     Destination == "hospital or other residential non-psychiatric medical facility (hud)" &
-      !is.na(Exit_Date) ~ 6,
+      !is.na(ExitDate) ~ 6,
     Destination == "jail, prison or juvenile detention facility (hud)" &
-      !is.na(Exit_Date) ~ 7,
+      !is.na(ExitDate) ~ 7,
     Destination == "client doesn't know (hud)" &
-      !is.na(Exit_Date) ~ 8,
+      !is.na(ExitDate) ~ 8,
     Destination == "client refused (hud)" &
-      !is.na(Exit_Date) ~ 9,
+      !is.na(ExitDate) ~ 9,
     Destination == "rental by client, no ongoing housing subsidy (hud)" &
-      !is.na(Exit_Date) ~ 10,
+      !is.na(ExitDate) ~ 10,
     Destination == "owned by client, no ongoing housing subsidy (hud)" &
-      !is.na(Exit_Date) ~ 11,
+      !is.na(ExitDate) ~ 11,
     Destination == "staying or living with family, temporary tenure (e.g., room, apartment or house)(hud)" &
-      !is.na(Exit_Date) ~ 12,
+      !is.na(ExitDate) ~ 12,
     Destination == "staying or living with friends, temporary tenure (e.g., room apartment or house)(hud)" &
-      !is.na(Exit_Date) ~ 13,
+      !is.na(ExitDate) ~ 13,
     Destination == "hotel or motel paid for without emergency shelter voucher (hud)" &
-      !is.na(Exit_Date) ~ 14,
+      !is.na(ExitDate) ~ 14,
     Destination == "foster care home or foster care group home (hud)" &
-      !is.na(Exit_Date) ~ 15,
+      !is.na(ExitDate) ~ 15,
     Destination == "place not meant for habitation (hud)" &
-      !is.na(Exit_Date) ~ 16,
+      !is.na(ExitDate) ~ 16,
     Destination == "other (hud)" &
-      !is.na(Exit_Date) ~ 17,
+      !is.na(ExitDate) ~ 17,
     Destination == "safe haven (hud)" &
-      !is.na(Exit_Date) ~ 18,
+      !is.na(ExitDate) ~ 18,
     Destination == "rental by client, with vash housing subsidy (hud)" &
-      !is.na(Exit_Date) ~ 19,
+      !is.na(ExitDate) ~ 19,
     Destination == "rental by client, with other ongoing housing subsidy (hud)" &
-      !is.na(Exit_Date) ~ 20,
+      !is.na(ExitDate) ~ 20,
     Destination == "owned by client, with ongoing housing subsidy (hud)" &
-      !is.na(Exit_Date) ~ 21,
+      !is.na(ExitDate) ~ 21,
     Destination == "staying or living with family, permanent tenure (hud)" &
-      !is.na(Exit_Date) ~ 22,
+      !is.na(ExitDate) ~ 22,
     Destination == "staying or living with friends, permanent tenure (hud)" &
-      !is.na(Exit_Date) ~ 23,
+      !is.na(ExitDate) ~ 23,
     Destination == "deceased (hud)" &
-      !is.na(Exit_Date) ~ 24,
+      !is.na(ExitDate) ~ 24,
     Destination == "long-term care facility or nursing home (hud)" &
-      !is.na(Exit_Date) ~ 25,
+      !is.na(ExitDate) ~ 25,
     Destination == "moved from one hopwa funded project to hopwa ph (hud)" &
-      !is.na(Exit_Date) ~ 26,
+      !is.na(ExitDate) ~ 26,
     Destination == "moved from one hopwa funded project to hopwa th (hud)" &
-      !is.na(Exit_Date) ~ 27,
+      !is.na(ExitDate) ~ 27,
     Destination == "rental by client, with gpd tip housing subsidy (hud)" &
-      !is.na(Exit_Date) ~ 28,
+      !is.na(ExitDate) ~ 28,
     Destination == "residential project or halfway house with no homeless criteria (hud)" &
-      !is.na(Exit_Date) ~ 29,
+      !is.na(ExitDate) ~ 29,
     Destination == "no exit interview completed (hud)" &
-      !is.na(Exit_Date) ~ 30,
+      !is.na(ExitDate) ~ 30,
     Destination == "rental by client, with rrh or equivalent subsidy (hud)" &
-      !is.na(Exit_Date) ~ 31,
+      !is.na(ExitDate) ~ 31,
     Destination == "data not collected (hud)" &
-      !is.na(Exit_Date) ~ 99 
+      !is.na(ExitDate) ~ 99 
   ),
-  Client_ID = parse_number(Client_ID),
-  Household_ID = parse_number(Household_ID),
-  Provider_ID = parse_number(Provider_ID)
+  PersonalID = parse_number(PersonalID),
+  HouseholdID = parse_number(HouseholdID), # check to see if FamilyID also needs a parse_number
+  ProjectID = parse_number(ProjectID)
 )
 # add in User_Creating
-Enrollment <- entry_exits %>% left_join(users, by = "EE_ID")
-Enrollment <- left_join(Enrollment, counties, by = c("EE_ID", "Client_ID"))
+Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")
+Enrollment <- left_join(Enrollment, counties, by = c("EnrollmentID", "PersonalID"))
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
@@ -442,7 +440,7 @@ for(i in 1:nrow(ids)) {
 }
 interims$ee_id <- ee_ids
 # clean up column names
-colnames(interims) <- c("Interim_Date", "Interim_Type", "Interim_ID", "EE_ID")
+colnames(interims) <- c("InterimDate", "InterimType", "InterimID", "EnrollmentID")
 # clean up the house
 rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, counties)
 
@@ -487,26 +485,26 @@ Client <- Client %>% mutate(
 )
 # clean up column names
 colnames(Client) <- c(
-  "record_id" = "Client_ID",
-  "firstName" = "First_Name",
+  "record_id" = "PersonalID",
+  "firstName" = "FirstName",
   "socSecNoDashed" = "SSN",
-  "ssnDataQualityValue" = "SSN_DQ",
-  "nameDataQualityValue" = "Name_DQ",
-  "veteranStatus" = "Veteran_Status"  
+  "ssnDataQualityValue" = "SSNDataQuality",
+  "nameDataQualityValue" = "NameDataQuality",
+  "veteranStatus" = "VeteranStatus"  
 )
 # Strip of PII ------------------------------------------------------------
 
 Client <- Client %>%
-  mutate(First_Name = case_when(
-    Name_DQ %in% c(8,9) ~ "DKR",
-    Name_DQ == 2 ~ "Partial",
-    Name_DQ == 99 | is.na(Name_DQ) | First_Name == "Anonymous" ~ "Missing",
-    !(Name_DQ %in% c(2, 8, 9, 99) | is.na(Name_DQ) | First_Name == "Anonymous") ~ "ok"))
+  mutate(FirstName = case_when(
+    NameDataQuality %in% c(8,9) ~ "DKR",
+    NameDataQuality == 2 ~ "Partial",
+    NameDataQuality == 99 | is.na(NameDataQuality) | FirstName == "Anonymous" ~ "Missing",
+    !(NameDataQuality %in% c(2, 8, 9, 99) | is.na(NameDataQuality) | FirstName == "Anonymous") ~ "ok"))
 
 Client <- Client %>%
   mutate(SSN = case_when(
-    is.na(SSN) | is.na(SSN_DQ) | SSN_DQ == 99 ~ "Missing",
-    SSN_DQ %in% c(8, 9) ~ "DKR",
+    is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
+    SSNDataQuality %in% c(8, 9) ~ "DKR",
     ifelse((
       substr(SSN, 1, 1) != "0" &
         substr(SSN, 1, 2) != "00"
@@ -516,7 +514,7 @@ Client <- Client %>%
       substr(SSN, 1, 1) == 9 |
       substr(SSN, 4, 5) == "00" |
       substr(SSN, 6, 9) == "0000" |
-      SSN_DQ == 2 |
+      SSNDataQuality == 2 |
       SSN %in% c(
         111111111,
         222222222,
@@ -572,11 +570,11 @@ client_id <- a
 assessment_data <- bind_cols(list(client_id, data_element, value, date_effective, date_added))
 # naming the columns
 colnames(assessment_data) <- c(
-  "client_id" = "Client_ID",
-  "data_element" = "Data_Element",
+  "client_id" = "PersonalID",
+  "data_element" = "DataElement",
   "value" = "Value",
-  "date_effective" =  "Date_Effective",
-  "date_added" = "Date_Added"
+  "date_effective" =  "DateEffective",
+  "date_added" = "DateAdded"
 )
 # clean the house
 rm(assessmentData_child_nodes, 
@@ -593,7 +591,7 @@ rm(assessmentData_child_nodes,
 # delete records we don't need
 assessment_data <- assessment_data %>%
   filter(!(
-    Data_Element %in%
+    DataElement %in%
       c(
         "veteran",
         "monthlyincome",
@@ -692,16 +690,16 @@ needs <- mutate(needs,
                 provider = parse_number(provider))
 # clean up column names
 colnames(needs) <- c(
-  "record_id" = "Need_ID",
-  "client" = "Client_ID",
-  "provider" = "Provider_ID",
-  "group" = "Group_ID",
-  "dateSet" = "Need_Date",
-  "status" = "Need_Status",
-  "outcome" = "Need_Outcome",
-  "reasonUnmet" = "Reason_Unmet",
+  "record_id" = "NeedID",
+  "client" = "PersonalID",
+  "provider" = "ProjectID",
+  "group" = "HouseholdID",
+  "dateSet" = "NeedDate",
+  "status" = "NeedStatus",
+  "outcome" = "NeedOutcome",
+  "reasonUnmet" = "ReasonUnmet",
   "note" = "Note",
-  "code" = "Need_Code"
+  "code" = "NeedCode"
 )
 
 # Services and Referrals ---------------------------------------------------
@@ -735,17 +733,17 @@ Services <- mutate(Services,
                 "household" = parse_number(household))
 # clean up column names
 colnames(Services) <- c(
-  "record_id" = "Service_Referral_ID",
-  "client" = "Client_ID",
-  "need" = "Need_ID",
-  "needServiceGroup" = "Group_UID",
-  "group" = "Group_ID",
-  "referfromProvider" = "Refer_From_Provider_ID",
-  "provideProvider" = "Provider_ID",
-  "code" = "Need_Code",
-  "provideStartDate" = "Service_Start_Date",
-  "provideEndDate" = "Service_End_Date",
-  "household" = "Household_ID",
+  "record_id" = "ServicesID",
+  "client" = "PersonalID",
+  "need" = "NeedID",
+  "needServiceGroup" = "NeedServiceGroup",
+  "group" = "HouseholdID",
+  "referfromProvider" = "ReferFromProjectID",
+  "provideProvider" = "ProjectID",
+  "code" = "NeedCode",
+  "provideStartDate" = "ServiceStartDate",
+  "provideEndDate" = "ServiceEndDate",
+  "household" = "FamilyID",
   "note" = "Note"
 )
 # Income ------------------------------------------------------------------
@@ -777,12 +775,12 @@ IncomeBenefits$client_id <- a
 rm(income_node, a)
 # clean up column names
 colnames(IncomeBenefits) <- c(
-  "client_id" = "Client_ID",
-  "system_id" = "Income_ID",
-  "amountmonthlyincome" = "Income_Amount",
-  "monthlyincomestart" = "Income_Start",
-  "monthlyincomeend" = "Income_End",
-  "sourceofincome" = "Income_Source"
+  "client_id" = "PersonalID",
+  "system_id" = "IncomeBenefitsID",
+  "amountmonthlyincome" = "IncomeAmount",
+  "monthlyincomestart" = "IncomeStart",
+  "monthlyincomeend" = "IncomeEnd",
+  "sourceofincome" = "IncomeSource"
   )
 # Non Cash ----------------------------------------------------------------
 # name nodes we want to pull in
@@ -812,11 +810,11 @@ noncash$client_id <- a
 rm(noncash_node, a)
 # clean up column names
 colnames(noncash) <- c(
-  "client_id" = "Client_ID",
-  "system_id" = "Noncash_ID",
-  "svp_noncashbenefitssource" = "Noncash_Source",
-  "svp_noncashbenefitsstart" = "Noncash_Start_Date",
-  "svp_noncashbenefitsend" = "Noncash_End_Date"
+  "client_id" = "PersonalID",
+  "system_id" = "NoncashID",
+  "svp_noncashbenefitssource" = "NoncashSource",
+  "svp_noncashbenefitsstart" = "NoncashStartDate",
+  "svp_noncashbenefitsend" = "NoncashEndDate"
 )
 
 # Disabilities -----------------------------------------------------------
@@ -859,16 +857,16 @@ Disabilities <- mutate(Disabilities,
 rm(disabilities_node, a)
 # rename columns
 colnames(Disabilities) <- c(
-  "client_id" = "Client_ID",
-  "system_id" = "Disability_ID",
-  "disabilities_1start" = "Disability_Start_Date",
-  "disabilities_1end" = "Disability_End_Date",
-  "disabilitytype" = "Disability_Type",
-  "hud_impairabilityliveind" = "Long_Duration"
+  "client_id" = "PersonalID",
+  "system_id" = "DisabilitiesID",
+  "disabilities_1start" = "DisabilityStartDate",
+  "disabilities_1end" = "DisabilityEndDate",
+  "disabilitytype" = "DisabilityType",
+  "hud_impairabilityliveind" = "IndefiniteAndImpairs"
 )
 
 # Health Insurance -------------------------------------------------------
-# name nodes we want to pull in
+# name nodes we want to pull in (Goes in the IncomeAndBenefits table)
 h_ins_start <- now()
 cols <- c(
   "client_id",
@@ -907,11 +905,11 @@ for(i in 1:length(health_insurance_node)) {
 health_insurance$client_id <- a
 # clean up column names
 colnames(health_insurance) <- c(
-  "client_id" = "Client_ID",
-  "system_id" = "Health_Insurance_ID",
-  "hudhealthinsurancesubastart" = "Health_Insurance_Start_Date",
-  "hudhealthinsurancesubaend" = "Health_Insurance_End_Date",
-  "svphudhealthinsurancetype" = "Health_Insurance_Type"
+  "client_id" = "PersonalID",
+  "system_id" = "HealthInsuranceID",
+  "hudhealthinsurancesubastart" = "HealthInsuranceStartDate",
+  "hudhealthinsurancesubaend" = "HealthInsuranceEndDate",
+  "svphudhealthinsurancetype" = "HealthInsuranceType"
 )
 # clean up the house
 rm(cols, y, health_insurance_node, a, i)
