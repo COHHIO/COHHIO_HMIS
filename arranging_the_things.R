@@ -1,26 +1,28 @@
-library("janitor")
-# in order to filter out the most recent answers, I need to convert ALL the dates to something readable.
+# for playing around at home
+w <- read_csv("C:\\Users\\laptop\\Documents\\sampledates.csv")
 
-# Date Cleaning -----------------------------------------------------------
-# tried substr() to split out the year, month, etc. with the idea of putting them back together, but it's very slow
+# trying some deduping with the janitor package:
+library("janitor")
 race2 %>% get_dupes(PersonalID)
 
-# Filtering out duplicative assessment records ----------------------------
-
-# the aim here is to use the date fields to wind up with only one DOB and DOB_DQ per client.
-# keep the most recent Effective Date, and if there's a tie, then the most recent Added Date
-
-
-# Date of Birth -----------------------------------------------------------
+# ONE answer per CLIENt ---------------------------------------------------
 dob <- assessment_data %>% filter(DataElement == "svpprofdob")
-
 dob_dq <- assessment_data %>% filter(DataElement == "svpprofdobtype")
-
-# Race --------------------------------------------------------------------
 race1 <- assessment_data %>% filter(DataElement == "svpprofrace")
-
 race2 <- assessment_data %>% filter(DataElement == "svpprofsecondaryrace")
-
-summarised_race2 <- race2 %>% group_by(PersonalID) %>% summarise(max(DateEffective), max(DateAdded))
-# Ethnicity ---------------------------------------------------------------
+summarised_race2 <- race2 %>% group_by(PersonalID) %>% summarise(max(DateAdded))
 ethnicity <- assessment_data %>% filter(DataElement == "svpprofeth")
+disabling_condition <- assessment_data %>% filter (DataElement == "")
+# add all the client-level data elements into the Client table
+
+# ONE answer per ENROLLMENT -----------------------------------------------
+county_served <- assessment_data %>% filter(DataElement == "")
+CoC_served <- assessment_data %>% filter(DataElement == "")
+residence_prior <- assessment_data %>% filter(DataElement == "")
+length_of_time <- assessment_data %>% filter(DataElement == "")
+county_prior <- assessment_data %>% filter(DataElement == "")
+LH_prior <- assessment_data %>% filter(DataElement == "")
+Approx_date_homeless <- assessment_data %>% filter(DataElement == "")
+DV_yesno <- assessmenet_data %>% filter(DataElement == "")
+DV_whenx <- assessment_data %>% filter(DataElement == "")
+DV_fleeing <- assessment_data %>% filter(DataElement == "")

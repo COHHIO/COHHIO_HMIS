@@ -2,10 +2,9 @@ library("xml2")
 library("tidyverse")
 library("lubridate")
 begin <- now()
-#change to ..._41 when at home, ..._40 at work
 y <- read_xml("data/Bowman_Payload_40.xml")
 users <- read_csv("data/usercreating.csv")
-counties <- read_csv("data/counties.csv")
+counties <- read_csv("data/counties.csv") # change "Client_ID" in the file to PersonalID
 # LIST OF THINGS
 # can't get the hopwa psh funding source to flip to its number.
 # see line 409
@@ -409,7 +408,7 @@ Enrollment <- Enrollment %>% mutate(
 )
 # add in User_Creating
 Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")
-Enrollment <- left_join(Enrollment, counties, by = c("EnrollmentID", "PersonalID"))
+Enrollment <- left_join(Enrollment, counties, by = c("EnrollmentID", "Client_ID"))
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
