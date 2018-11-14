@@ -1,21 +1,33 @@
 # for playing around at home
 w <- read_csv("C:\\Users\\laptop\\Documents\\sampledates.csv")
-
+ymd_hms(w$Date_Added)
+force_tzs()
 # trying some deduping with the janitor package:
 library("janitor")
 race2 %>% get_dupes(PersonalID)
-
+w %>% get_dupes(Client_ID)
 
 # Function to get most recent value for CLIENT-LEVEL assessment data ------
 client_level_value <- function(dataelement) {
-  x <- dataelement %>% group_by(PersonalID) %>% summarise(max(DateEffective), max(DateAdded))
-  dataelement <- semi_join(dataelement, x, by = c("PersonalID", "DateAdded" = "max(DateAdded)", "DateEffective" = "max(DateEffective)"))
+  x <- dataelement %>% 
+    group_by(PersonalID) %>% 
+    summarise(max(DateEffective), max(DateAdded))
+  dataelement <- semi_join(dataelement, x, 
+                           by = c("PersonalID", 
+                                  "DateAdded" = "max(DateAdded)", 
+                                  "DateEffective" = "max(DateEffective)"))
+  return(dataelement)
 }
 # this ^^ does not work when used as a function, but it does work if run by itself (see below)
 
 race2 <- assessment_data %>% filter(DataElement == "svpprofsecondaryrace")
-summarised_race2 <- race2 %>% group_by(PersonalID) %>% summarise(max(DateEffective), max(DateAdded)) 
-race2 <- semi_join(race2, summarised_race2, by = c("PersonalID", "DateAdded" = "max(DateAdded)", "DateEffective" = "max(DateEffective)"))
+summarised_race2 <- race2 %>% 
+  group_by(PersonalID) %>% 
+  summarise(max(DateEffective), max(DateAdded)) 
+race2 <- 
+  semi_join(race2, summarised_race2, by = c("PersonalID", 
+                                            "DateAdded" = "max(DateAdded)", 
+                                            "DateEffective" = "max(DateEffective)"))
 
 # ONE answer per CLIENt ---------------------------------------------------
 dob <- assessment_data %>% filter(DataElement == "svpprofdob")
