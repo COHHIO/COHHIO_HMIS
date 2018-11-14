@@ -88,7 +88,7 @@ Project <- Project %>% mutate(
   ),
   TargetPopulation = case_when(
     TargetPopulation == "dv: domestic violence victims" ~ 1,
-    TargetPopulation == "hiv: persons with hiv/aids" ~3,
+    TargetPopulation == "hiv: persons with hiv/aids" ~ 3,
     TargetPopulation == "na: not applicable" ~ 4
   ),
   HousingType = case_when(
