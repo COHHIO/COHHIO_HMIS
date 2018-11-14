@@ -1,11 +1,13 @@
 # for playing around at home
 w <- read_csv("C:\\Users\\laptop\\Documents\\sampledates.csv")
-ymd_hms(w$Date_Added)
-force_tzs()
+with_tz(ymd_hms(w$Date_Added), "America/New_York")
+
 # trying some deduping with the janitor package:
 library("janitor")
 race2 %>% get_dupes(PersonalID)
 w %>% get_dupes(Client_ID)
+
+# sys.setenv()
 
 # Function to get most recent value for CLIENT-LEVEL assessment data ------
 client_level_value <- function(dataelement) {
@@ -18,6 +20,7 @@ client_level_value <- function(dataelement) {
                                   "DateEffective" = "max(DateEffective)"))
   return(dataelement)
 }
+
 # this ^^ does not work when used as a function, but it does work if run by itself (see below)
 
 race2 <- assessment_data %>% filter(DataElement == "svpprofsecondaryrace")
