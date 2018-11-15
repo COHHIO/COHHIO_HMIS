@@ -32,14 +32,27 @@ dob_dq <- dob_dq %>% mutate(
   DateAdded = NULL,
   Value = NULL
 )
-race <- assessment_data %>% filter(DataElement %in% c("svpprofrace", "svpprofsecondaryrace"))
-x <- filter(race, 
-            Value != "" | 
-              (DataElement == "svpprofsecondaryrace" & 
-                 Value %in% c("client doesn't know (hud)", 
-                              "client refused (hud)", 
-                              "data not collected (hud)")))
-x <- x %>% group_by(PersonalID, Value) %>% 
+race <-
+  assessment_data %>% filter(
+    DataElement %in% c("svpprofrace", "svpprofsecondaryrace"),
+    Value != "",
+    (DataElement == "svpprofsecondaryrace" &
+        Value %in% c(
+          "client doesn't know (hud)",
+          "client refused (hud)",
+          "data not collected (hud)")
+    )
+  ) #added more to the filter
+x <- filter(race,
+            Value != "" |
+              (DataElement == "svpprofsecondaryrace" &
+                  Value %in% c(
+                    "client doesn't know (hud)",
+                    "client refused (hud)",
+                    "data not collected (hud)"
+                  )
+              )) #do we still need this?
+x <- race %>% group_by(PersonalID, Value) %>% 
   summarise(max(DateEffective), max(DateAdded))
 race <- semi_join(race, x, 
                          by = c("PersonalID", "Value",
@@ -74,7 +87,7 @@ disabling_condition <- disabling_condition %>% mutate(
   Value = NULL,
   DateEffective = NULL,
   DateAdded = NULL
-)
+) #check to see if this is actually leaving you with one row per client 
 # add all the client-level data elements into the Client table
 Client <- left_join(Client, dob, by = "PersonalID")
 Client <- left_join(Client, dob_dq, by = "PersonalID")
@@ -105,7 +118,7 @@ Client <- mutate(Client,
                    DisablingCondition == "data not collected (hud)" | is.na(DisablingCondition) ~ 99
                  )
                  )
-rm(disabling_condition, dob, dob_dq, ethnicity)
+rm(disabling_condition, dob, dob_dq, ethnicity, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
 
 CoC_served <- assessment_data %>% filter(DataElement == "hud_cocclientlocation")

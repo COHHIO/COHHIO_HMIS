@@ -442,7 +442,10 @@ interims$ee_id <- ee_ids
 colnames(interims) <- c("InterimDate", "InterimType", "InterimID", "EnrollmentID")
 # clean up the house
 rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, counties)
-
+# grab Client IDs from the Enrollments table
+x <- select(Enrollment, EnrollmentID, PersonalID)
+interims <- join(interims, x, by = EnrollmentID)
+rm(x)
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
 client_start <- now()
