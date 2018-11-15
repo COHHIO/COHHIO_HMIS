@@ -1,4 +1,5 @@
 # need to figure out how to get the race tables into the Client table correctly.
+# not sure how to handle Race DKRs from the HUD CSV Specs.
 
 # Function to get most recent value for CLIENT-LEVEL assessment data ------
 client_level_value <- function(dataelement) {
@@ -32,9 +33,14 @@ dob_dq <- dob_dq %>% mutate(
   Value = NULL
 )
 race <- assessment_data %>% filter(DataElement %in% c("svpprofrace", "svpprofsecondaryrace"))
-x <- race %>% group_by(PersonalID, Value) %>% 
+x <- filter(race, 
+            Value != "" | 
+              (DataElement == "svpprofsecondaryrace" & 
+                 Value %in% c("client doesn't know (hud)", 
+                              "client refused (hud)", 
+                              "data not collected (hud)")))
+x <- x %>% group_by(PersonalID, Value) %>% 
   summarise(max(DateEffective), max(DateAdded))
-x <- filter(x, Value != "")
 race <- semi_join(race, x, 
                          by = c("PersonalID", "Value",
                                 "DateAdded" = "max(DateAdded)", 
