@@ -4,10 +4,11 @@ library("lubridate")
 begin <- now()
 y <- read_xml("data/Bowman_Payload_40.xml")
 users <- read_csv("data/usercreating.csv")
-counties <- read_csv("data/counties.csv") # change "Client_ID" in the file to PersonalID
+counties <- read_csv("data/counties.csv") 
+UserRecords <- read_csv("data/users.csv")
 # LIST OF THINGS
 # can't get the hopwa psh funding source to flip to its number.
-# see line 409
+# where are the spdat scores
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
@@ -403,12 +404,14 @@ Enrollment <- Enrollment %>% mutate(
       !is.na(ExitDate) ~ 99 
   ),
   PersonalID = parse_number(PersonalID),
-  HouseholdID = parse_number(HouseholdID), # check to see if FamilyID also needs a parse_number
-  ProjectID = parse_number(ProjectID)
+  HouseholdID = parse_number(HouseholdID), 
+  FamilyID = parse_number(FamilyID),
+  ProjectID = parse_number(ProjectID),
+  HouseholdID = if_else(is.na(HouseholdID), EnrollmentID, HouseholdID) # this is the ART "Group UID"
 )
 # add in User_Creating
 Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")
-Enrollment <- left_join(Enrollment, counties, by = c("EnrollmentID", "Client_ID"))
+Enrollment <- left_join(Enrollment, counties, by = c("EnrollmentID", "PersonalID"))
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
@@ -444,8 +447,8 @@ colnames(interims) <- c("InterimDate", "InterimType", "InterimID", "EnrollmentID
 rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, counties)
 # grab Client IDs from the Enrollments table
 x <- select(Enrollment, EnrollmentID, PersonalID)
-interims <- join(interims, x, by = EnrollmentID)
-rm(x)
+interims <- inner_join(interims, x, by = "EnrollmentID")
+rm(x) 
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
 client_start <- now()

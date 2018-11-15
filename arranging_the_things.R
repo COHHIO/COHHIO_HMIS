@@ -1,7 +1,4 @@
-# need to figure out how to get the race tables into the Client table correctly.
-# not sure how to handle Race DKRs from the HUD CSV Specs.
-
-# Function to get most recent value for CLIENT-LEVEL assessment data ------
+# ONE answer per CLIENt ---------------------------------------------------
 client_level_value <- function(dataelement) {
   x <- dataelement %>% 
     group_by(PersonalID) %>% 
@@ -12,9 +9,6 @@ client_level_value <- function(dataelement) {
                                   "DateEffective" = "max(DateEffective)"))
   return(dataelement)
 }
-
-
-# ONE answer per CLIENt ---------------------------------------------------
 dob <- assessment_data %>% filter(DataElement == "svpprofdob")
 dob <- client_level_value(dob)
 dob <- mutate(dob, 
@@ -34,32 +28,20 @@ dob_dq <- dob_dq %>% mutate(
 )
 race <-
   assessment_data %>% filter(
-    DataElement %in% c("svpprofrace", "svpprofsecondaryrace"),
-    Value != "",
+    DataElement %in% c("svpprofrace", "svpprofsecondaryrace") &
+    Value != "" &
+      (DataElement == "svpprofrace" |
     (DataElement == "svpprofsecondaryrace" &
-        Value %in% c(
+        !(Value %in% c(
           "client doesn't know (hud)",
           "client refused (hud)",
-          "data not collected (hud)")
-    )
-  ) #added more to the filter
-x <- filter(race,
-            Value != "" |
-              (DataElement == "svpprofsecondaryrace" &
-                  Value %in% c(
-                    "client doesn't know (hud)",
-                    "client refused (hud)",
-                    "data not collected (hud)"
-                  )
-              )) #do we still need this?
-x <- race %>% group_by(PersonalID, Value) %>% 
-  summarise(max(DateEffective), max(DateAdded))
-race <- semi_join(race, x, 
-                         by = c("PersonalID", "Value",
-                                "DateAdded" = "max(DateAdded)", 
-                                "DateEffective" = "max(DateEffective)"))
+          "data not collected (hud)"))
+    ))
+  ) 
+x <- race %>% group_by(PersonalID, Value) %>%  # eliminates the two identical races saved problem
+  summarise(max(DateEffective), max(DateAdded)) # only keeps the most recent record
 race <- mutate(
-  race,
+  x,
   AmIndAKNative = if_else(Value == "american indian or alaska native (hud)", 1, 0),
   Asian = if_else(Value == "asian (hud)", 1, 0),
   BlackAfAmerican = if_else(Value == "black or african american (hud)", 1, 0),
@@ -70,6 +52,12 @@ race <- mutate(
   DateEffective = NULL,
   DateAdded = NULL
   )
+race <- race %>% group_by(PersonalID) %>% 
+  summarise(AmIndAKNative = sum(AmIndAKNative),
+            Asian = sum(Asian),
+            BlackAfAmerican = sum(BlackAfAmerican),
+            NativeHIOtherPacific = sum(NativeHIOtherPacific),
+            White = sum(White))
 ethnicity <- assessment_data %>% filter(DataElement == "svpprofeth")
 ethnicity <- client_level_value(ethnicity)
 ethnicity <- ethnicity %>% mutate(
@@ -91,10 +79,10 @@ disabling_condition <- disabling_condition %>% mutate(
 # add all the client-level data elements into the Client table
 Client <- left_join(Client, dob, by = "PersonalID")
 Client <- left_join(Client, dob_dq, by = "PersonalID")
-# Client <- left_join(Client, race, by = "PersonalID")
+Client <- left_join(Client, race, by = "PersonalID")
 Client <- left_join(Client, ethnicity, by = "PersonalID")
 Client <- left_join(Client, disabling_condition, by = "PersonalID")
-
+# tidy up the Client table
 Client <- mutate(Client,
                  DOBDataQuality = case_when(
                    DOBDataQuality == "full dob reported (hud)" ~ 1,
@@ -116,12 +104,43 @@ Client <- mutate(Client,
                    DisablingCondition == "client doesn't know (hud)" ~ 8,
                    DisablingCondition == "client refused (hud)" ~ 9,
                    DisablingCondition == "data not collected (hud)" | is.na(DisablingCondition) ~ 99
+                 ),
+                 RaceNone = if_else(AmIndAKNative + 
+                                      Asian + 
+                                      BlackAfAmerican + 
+                                      NativeHIOtherPacific + 
+                                      White == 0, 1, 0)
                  )
-                 )
-rm(disabling_condition, dob, dob_dq, ethnicity, x)
+rm(disabling_condition, dob, dob_dq, ethnicity, race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
 
-CoC_served <- assessment_data %>% filter(DataElement == "hud_cocclientlocation")
+CoC_served <- assessment_data %>% filter(DataElement == "hud_cocclientlocation" & Value != "")
+
+CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%  
+  summarise(max(DateEffective), max(DateAdded)) %>% # filters out duplicate answers with the same Eff Date
+  select(PersonalID, Value, DateEffective)
+colnames(CoC_served) <- c("PersonalID", 
+                          "CoCCode", 
+                          "CoCCodeDateEffective")
+test <- left_join(Enrollment, CoC_served, by = "PersonalID")
+test <-
+  test %>% group_by(
+    EnrollmentID,
+    DateCreated,
+    PersonalID,
+    EEType,
+    HouseholdID,
+    FamilyID,
+    ProjectID,
+    EntryDate,
+    ExitDate,
+    Destination,
+    User_Creating,
+    County_Where_Served,
+    County_Residence_Prior,
+    CoCCode
+  ) %>% summarise(min(CoCCodeDateEffective))
+
 residence_prior <- assessment_data %>% filter(DataElement == "typeoflivingsituation")
 length_of_time <- assessment_data %>% filter(DataElement == "hud_lengthofstay")
 LH_prior_90days <- assessment_data %>% filter(DataElement == "hud_lengthstay_less90days")
