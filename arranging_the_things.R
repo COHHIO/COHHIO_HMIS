@@ -113,33 +113,20 @@ Client <- mutate(Client,
                  )
 rm(disabling_condition, dob, dob_dq, ethnicity, race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
-
+# filtering out "" values because they're not helpful for CoC_Served.
+# CoC_served is only req'd for HoHs so generally when non_HoH's get a value, someone saves a "" over it
 CoC_served <- assessment_data %>% filter(DataElement == "hud_cocclientlocation" & Value != "")
-
+# filters out duplicate answers with the same Eff Date and Value
 CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%  
-  summarise(max(DateEffective), max(DateAdded)) %>% # filters out duplicate answers with the same Eff Date
-  select(PersonalID, Value, DateEffective)
+  summarise(max(DateAdded)) %>% select(PersonalID, Value, DateEffective)
+# the plan is to pull in the value and the eff date into the Enrollment table, then use the date 
+# to calculate a Collection Stage
 colnames(CoC_served) <- c("PersonalID", 
                           "CoCCode", 
                           "CoCCodeDateEffective")
+
 test <- left_join(Enrollment, CoC_served, by = "PersonalID")
-test <-
-  test %>% group_by(
-    EnrollmentID,
-    DateCreated,
-    PersonalID,
-    EEType,
-    HouseholdID,
-    FamilyID,
-    ProjectID,
-    EntryDate,
-    ExitDate,
-    Destination,
-    User_Creating,
-    County_Where_Served,
-    County_Residence_Prior,
-    CoCCode
-  ) %>% summarise(min(CoCCodeDateEffective))
+# CS suggests starting work on the Collection Stage column before moving on 
 
 residence_prior <- assessment_data %>% filter(DataElement == "typeoflivingsituation")
 length_of_time <- assessment_data %>% filter(DataElement == "hud_lengthofstay")
