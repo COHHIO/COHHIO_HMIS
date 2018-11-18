@@ -4,7 +4,7 @@ entry <- c("1/1/2016","1/1/2016","1/1/2018","1/1/2018","5/1/2017","3/1/2018","2/
 exit <- c("9/1/2018","9/1/2018","3/1/2018","3/1/2018","6/1/2017","5/1/2018","3/1/2018","3/1/2018","3/1/2018", "5/1/2018", "5/1/2018","5/1/2018","9/1/2018","9/1/2018","10/1/2016","10/1/2016","9/1/2017","9/1/2017","9/1/2018","9/1/2018")
 tmi <- c(600, 0, 600, 0, 300, 700, 1400, 200, 1400, 1400, 200, 1400, 1200, 1500, 1200, 1500, 1200, 1500, 1600, 1800)
 tmieff <- c("1/1/2013","1/1/2018","1/1/2013","1/1/2018","5/1/2017","3/1/2018","1/1/2016","2/1/2018","4/1/2018","1/1/2016","2/1/2018","4/1/2018","9/1/2016","9/1/2017","9/1/2016","9/1/2017","9/1/2016","9/1/2017","6/1/2018","9/1/2018")
-manual <- c(1, 2,  0, 1, 1, 1, 0, 1, 0, 0, 1, 2, 0, 1, 1, 0, 1, 3, 1, 3)
+manual <- c(1, 2, 0, 1, 1, 1, 0, 1, 0, 0, 1, 2, 0, 1, 1, 0, 1, 3, 1, 3)
 testdata <- data.frame(client, enrollmentid, entry, exit, tmi, tmieff, manual)
 rm(client, enrollmentid, entry, exit, tmi, tmieff, manual)
 
@@ -20,7 +20,7 @@ tmp <- tmp %>%
   group_by(enrollmentid) %>%
   mutate(datacollectionstage3 = case_when(mdy(tmieff) == mdy(exit) ~ mdy(tmieff)))
 
-tmp <- tmp %>%
+testdata <- tmp %>%
   mutate(collectionstage = 
            case_when(
              mdy(tmieff) == ymd(datacollectionstage1) ~ 1,
@@ -29,4 +29,9 @@ tmp <- tmp %>%
            ),
          datacollectionstage1 = NULL,
          datacollectionstage2 = NULL,
-         datacollectionstage3 = NULL)
+         datacollectionstage3 = NULL,
+         manual = NULL) %>%
+  filter(!is.na(collectionstage))
+rm(tmp)
+# maybe what happens after this is you do this for every data element (or create a function that will do it) so you have
+# a table like this for each data element (ugh!) and then you join them all together in the end. is this really the best way?
