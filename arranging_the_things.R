@@ -123,10 +123,33 @@ CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%
 # to calculate a Collection Stage
 colnames(CoC_served) <- c("PersonalID", 
                           "CoCCode", 
-                          "CoCCodeDateEffective")
+                          "DateEffective")
+small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, EntryDate, ExitDate)
+test <- left_join(small_enrollment, CoC_served, by = "PersonalID")
 
-test <- left_join(Enrollment, CoC_served, by = "PersonalID")
-# CS suggests starting work on the Collection Stage column before moving on 
+tmp <- test %>%
+  group_by(EnrollmentID) %>%
+  mutate(datacollectionstage1 = max(ymd_hms(DateEffective)[ymd_hms(EntryDate) >= ymd_hms(DateEffective)]))
+tmp <- tmp %>%
+  group_by(EnrollmentID) %>% 
+  mutate(datacollectionstage2 = max(ymd_hms(DateEffective)[ymd_hms(EntryDate) < ymd_hms(DateEffective) & 
+                                                             ymd_hms(ExitDate) > ymd_hms(DateEffective)]))
+tmp <- tmp %>%
+  group_by(EnrollmentID) %>%
+  mutate(datacollectionstage3 = case_when(ymd_hms(DateEffective) == ymd_hms(ExitDate) ~ ymd_hms(DateEffective)))
+
+test <- tmp %>%
+  mutate(collectionstage = 
+           case_when(
+             ymd_hms(DateEffective) == ymd_hms(datacollectionstage1) ~ 1,
+             ymd_hms(DateEffective) == ymd_hms(datacollectionstage2) ~ 2,
+             ymd_hms(DateEffective) == ymd_hms(datacollectionstage3) ~ 3
+           ),
+         datacollectionstage1 = NULL,
+         datacollectionstage2 = NULL,
+         datacollectionstage3 = NULL) %>%
+  filter(!is.na(collectionstage))
+rm(tmp)
 
 residence_prior <- assessment_data %>% filter(DataElement == "typeoflivingsituation")
 length_of_time <- assessment_data %>% filter(DataElement == "hud_lengthofstay")
