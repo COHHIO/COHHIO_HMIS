@@ -1,11 +1,13 @@
 library("xml2")
 library("tidyverse")
 library("lubridate")
+library("readxl")
 begin <- now()
 y <- read_xml("data/Bowman_Payload_40.xml")
 users <- read_csv("data/usercreating.csv")
 counties <- read_csv("data/counties.csv") 
 UserRecords <- read_csv("data/users.csv")
+scores <- read_xls("data/RScores.xls")
 # LIST OF THINGS
 # can't get the hopwa psh funding source to flip to its number.
 # where are the spdat scores

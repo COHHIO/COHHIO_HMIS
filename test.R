@@ -12,20 +12,19 @@ rm(client, enrollment_id, entry, exit, monthly_income, date_eff, manual)
 
 # testdata <- testdata %>% filter(client == "Jennifer")
 stage1begin <- now()
-tmp <- testdata %>%
+tmp <- testdata %>% mutate(date_eff = ymd(date_eff)) %>%
   group_by(enrollment_id) %>%
-  mutate(datacollectionstage1 = max(ymd(date_eff)[ymd(entry) >= ymd(date_eff)]))
+  mutate(datacollectionstage1 = max(date_eff[entry >= date_eff]))
 
 stage2begin <- now()
-tmp <- tmp %>%
+tmp <- tmp %>% mutate(date_eff = ymd(date_eff), entry = ymd(entry), exit = ymd(exit)) %>%
   group_by(enrollment_id) %>% 
-  mutate(datacollectionstage2 = max(ymd(date_eff)[ymd(entry) < ymd(date_eff) & 
-                                                    ymd(exit) > ymd(date_eff)]))
+  mutate(datacollectionstage2 = max(date_eff[entry < date_eff & exit > date_eff]))
 
 stage3begin <- now()
-tmp <- tmp %>%
+tmp <- tmp %>% mutate(date_eff = ymd(date_eff), exit = ymd(exit)) %>%
   group_by(enrollment_id) %>%
-  mutate(datacollectionstage3 = case_when(ymd(date_eff) == ymd(exit) ~ ymd(date_eff)))
+  mutate(datacollectionstage3 = case_when(date_eff == exit ~ date_eff))
 
 putitalltogether <- now()
 testdata <- tmp %>%
@@ -51,7 +50,3 @@ rm(tmp)
 # a table like this for each data element (ugh!) and then you join them all together in the end. is this really the best way?
 # comparing dates takes up a lot of processing time.
 
-c1 <- read_csv("C:\\Users\\laptop\\Downloads\\odod_live_lsacsv_18342_2650614053184175930\\funder.csv")
-d1 <- read_csv("C:\\Users\\laptop\\Downloads\\odod_live_lsacsv_18274_1212802950732688510\\funder.csv")
-e1 <- rbind(c1, d1)
-write_csv(e1, "C:\\Users\\laptop\\Downloads\\funder.csv", append = FALSE)
