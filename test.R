@@ -50,3 +50,8 @@ rm(tmp)
 # maybe what happens after this is you do this for every data element (or create a function that will do it) so you have
 # a table like this for each data element (ugh!) and then you join them all together in the end. is this really the best way?
 # comparing dates takes up a lot of processing time.
+
+c1 <- read_csv("C:\\Users\\laptop\\Downloads\\odod_live_lsacsv_18342_2650614053184175930\\funder.csv")
+d1 <- read_csv("C:\\Users\\laptop\\Downloads\\odod_live_lsacsv_18274_1212802950732688510\\funder.csv")
+e1 <- rbind(c1, d1)
+write_csv(e1, "C:\\Users\\laptop\\Downloads\\funder.csv", append = FALSE)
