@@ -143,11 +143,11 @@ tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), ExitDate = ymd_hm
   group_by(EnrollmentID) %>%
   mutate(datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective))
 stage5begin <- now()
-test <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), 
-                       # datacollectionstage2 = ymd_hms(datacollectionstage2),
-                       # datacollectionstage1 = ymd_hms(datacollectionstage1),
-                       # datacollectionstage3 = ymd_hms(datacollectionstage3)) %>%
-  mutate(collectionstage = 
+test <- tmp %>% mutate(#DateEffective = ymd_hms(DateEffective), 
+                       datacollectionstage1 = ymd_hms(datacollectionstage1),
+                       datacollectionstage2 = ymd_hms(datacollectionstage2),
+                       datacollectionstage3 = ymd_hms(datacollectionstage3)) %>%
+  mutate(collectionstage =
            case_when(
              DateEffective == datacollectionstage1 ~ 1,
              DateEffective == datacollectionstage2 ~ 2,
