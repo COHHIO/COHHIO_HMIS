@@ -1,5 +1,6 @@
 library("tidyverse")
 library("lubridate")
+library("data.table")
 client <- c("Mary", "Mary", "Mary", "Mary", "Rex", "Rex", "Jennifer", "Jennifer", "Jennifer", "Jennifer", "Jennifer", "Jennifer", "Hannah", "Hannah", "Hannah", "Hannah", "Hannah", "Hannah", "Lydia", "Lydia")
 enrollment_id <- c(1552, 1552, 4828, 4828, 3831, 3171, 3336, 3336, 3336, 2554, 2554, 2554, 1778, 1778, 1131, 1131, 4062, 4062, 3199, 3199)
 entry <- c("2016-01-01","2016-01-01","2018-01-01","2018-01-01","2017-05-01","2018-03-01","2018-02-01","2018-02-01","2018-02-01","2018-03-15","2018-03-15","2018-03-15","2018-01-01","2018-01-01","2016-09-01","2016-09-01","2017-01-01","2017-01-01","2018-06-01","2018-06-01")
@@ -7,12 +8,12 @@ exit <- c("2018-09-01","2018-09-01","2018-03-01","2018-03-01","2017-06-01","2018
 monthly_income  <- c(600, 0, 600, 0, 300, 700, 1400, 200, 1400, 1400, 200, 1400, 1200, 1500, 1200, 1500, 1200, 1500, 1600, 1800)
 date_eff  <- c("2013-01-01","2018-01-01","2013-01-01","2018-01-01","2017-05-01","2018-03-01","2016-01-01","2018-02-01","2018-04-01","2016-01-01","2018-02-01","2018-04-01","2016-09-01","2017-09-01","2016-09-01","2017-09-01","2016-09-01","2017-09-01","2018-06-01","2018-09-01")
 manual <- c(1, 2, 0, 1, 1, 1, 0, 1, 0, 0, 1, 2, 0, 1, 1, 0, 1, 3, 1, 3)
-testdata <- data.frame(client, enrollment_id, entry, exit, monthly_income, date_eff, manual)
+testdata <- data.table(client, enrollment_id, entry, exit, monthly_income, date_eff, manual)
 rm(client, enrollment_id, entry, exit, monthly_income, date_eff, manual)
 
 # testdata <- testdata %>% filter(client == "Jennifer")
 stage1begin <- now()
-tmp <- testdata %>% mutate(date_eff = ymd(date_eff)) %>%
+tmp <- testdata %>% mutate(date_eff = ymd(date_eff), entry = ymd(entry)) %>%
   group_by(enrollment_id) %>%
   mutate(datacollectionstage1 = max(date_eff[entry >= date_eff]))
 
@@ -44,6 +45,7 @@ end <- now()
 (stage2time <- stage3begin - stage2begin)
 (stage3time <- putitalltogether - stage3begin)
 (alltogether <- end - putitalltogether)
+(wholething <- end - stage1begin)
 
 rm(tmp)
 # maybe what happens after this is you do this for every data element (or create a function that will do it) so you have

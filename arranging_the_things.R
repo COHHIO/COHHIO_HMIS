@@ -115,6 +115,9 @@ rm(disabling_condition, dob, dob_dq, ethnicity, race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
 # filtering out "" values because they're not helpful for CoC_Served.
 # CoC_served is only req'd for HoHs so generally when non_HoH's get a value, someone saves a "" over it
+small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, EntryDate, ExitDate)
+
+stage0begin <- now()
 CoC_served <- assessment_data %>% filter(DataElement == "hud_cocclientlocation" & Value != "")
 # filters out duplicate answers with the same Eff Date and Value
 CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%  
@@ -124,32 +127,45 @@ CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%
 colnames(CoC_served) <- c("PersonalID", 
                           "CoCCode", 
                           "DateEffective")
-small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, EntryDate, ExitDate)
+stage1begin <- now()
 test <- left_join(small_enrollment, CoC_served, by = "PersonalID")
-
-tmp <- test %>%
+stage2begin <- now()
+tmp <- test %>% mutate(DateEffective = ymd_hms(DateEffective), EntryDate = ymd_hms(EntryDate), ExitDate = ymd_hms(ExitDate)) %>%
   group_by(EnrollmentID) %>%
-  mutate(datacollectionstage1 = max(ymd_hms(DateEffective)[ymd_hms(EntryDate) >= ymd_hms(DateEffective)]))
-tmp <- tmp %>%
+  mutate(datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]))
+stage3begin <- now()
+tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), entry = ymd_hms(EntryDate)) %>%
   group_by(EnrollmentID) %>% 
-  mutate(datacollectionstage2 = max(ymd_hms(DateEffective)[ymd_hms(EntryDate) < ymd_hms(DateEffective) & 
-                                                             ymd_hms(ExitDate) > ymd_hms(DateEffective)]))
-tmp <- tmp %>%
+  mutate(datacollectionstage2 = max(DateEffective[EntryDate < DateEffective & 
+                                                             ExitDate > DateEffective]))
+stage4begin <- now()
+tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), ExitDate = ymd_hms(ExitDate)) %>%
   group_by(EnrollmentID) %>%
-  mutate(datacollectionstage3 = case_when(ymd_hms(DateEffective) == ymd_hms(ExitDate) ~ ymd_hms(DateEffective)))
-
-test <- tmp %>%
+  mutate(datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective))
+stage5begin <- now()
+test <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), 
+                       # datacollectionstage2 = ymd_hms(datacollectionstage2),
+                       # datacollectionstage1 = ymd_hms(datacollectionstage1),
+                       # datacollectionstage3 = ymd_hms(datacollectionstage3)) %>%
   mutate(collectionstage = 
            case_when(
-             ymd_hms(DateEffective) == ymd_hms(datacollectionstage1) ~ 1,
-             ymd_hms(DateEffective) == ymd_hms(datacollectionstage2) ~ 2,
-             ymd_hms(DateEffective) == ymd_hms(datacollectionstage3) ~ 3
+             DateEffective == datacollectionstage1 ~ 1,
+             DateEffective == datacollectionstage2 ~ 2,
+             DateEffective == datacollectionstage3 ~ 3
            ),
          datacollectionstage1 = NULL,
          datacollectionstage2 = NULL,
          datacollectionstage3 = NULL) %>%
   filter(!is.na(collectionstage))
 rm(tmp)
+endend <- now()
+(getdata <- stage1begin - stage0begin)
+(joinenrollment <- stage2begin - stage1begin)
+(datacollection1 <- stage3begin - stage2begin)
+(datacollection2 <- stage4begin - stage3begin)
+(datacollection3 <- stage5begin - stage4begin)
+(alltogether <- endend - stage5begin)
+(thewholething <- endend - stage0begin)
 
 residence_prior <- assessment_data %>% filter(DataElement == "typeoflivingsituation")
 length_of_time <- assessment_data %>% filter(DataElement == "hud_lengthofstay")
@@ -157,5 +173,5 @@ LH_prior_90days <- assessment_data %>% filter(DataElement == "hud_lengthstay_les
 LH_prior_7days <- assessment_data %>% filter(DataElement == "hud_lengthstay_less7nights")
 Approx_date_homeless <- assessment_data %>% filter(DataElement == "hud_homelessstartdate")
 DV_yesno <- assessmenet_data %>% filter(DataElement == "domesticviolencevictim")
-DV_whenx <- assessment_data %>% filter(DataElement == "hud_extentofdv")
+DV_when <- assessment_data %>% filter(DataElement == "hud_extentofdv")
 DV_fleeing <- assessment_data %>% filter(DataElement == "hud_extentofdv2")

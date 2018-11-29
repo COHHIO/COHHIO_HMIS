@@ -10,7 +10,7 @@ UserRecords <- read_csv("data/users.csv")
 scores <- read_xls("data/RScores.xls")
 # LIST OF THINGS
 # can't get the hopwa psh funding source to flip to its number.
-# where are the spdat scores
+# on arranging the things, test the code as it is, then test it uncommented to see if it makes a difference
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
