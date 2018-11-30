@@ -115,57 +115,77 @@ rm(disabling_condition, dob, dob_dq, ethnicity, race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
 # filtering out "" values because they're not helpful for CoC_Served.
 # CoC_served is only req'd for HoHs so generally when non_HoH's get a value, someone saves a "" over it
+setDT(assessment_data)
 small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, EntryDate, ExitDate)
-
+small_enrollment <- setDT(small_enrollment)
 stage0begin <- now()
-CoC_served <- assessment_data %>% filter(DataElement == "hud_cocclientlocation" & Value != "")
-# filters out duplicate answers with the same Eff Date and Value
+CoC_served <- assessment_data %>%
+  filter(DataElement == "hud_cocclientlocation" &
+           Value != "")
+# old <- now()
 CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%  
-  summarise(max(DateAdded)) %>% select(PersonalID, Value, DateEffective)
+  summarise(max(DateAdded)) 
+# new <- now()
+# CoC_served <- assessment_data[DataElement == "hud_cocclientlocation" & Value != "",
+#                               .(max(DateAdded)),
+#                               by = list(PersonalID, CoCCode = Value, DateEffective)]
+# endend <- now()
+# new - old
+# endend - new
+# filters out duplicate answers with the same Eff Date and Value
+
 # the plan is to pull in the value and the eff date into the Enrollment table, then use the date 
 # to calculate a Collection Stage
-colnames(CoC_served) <- c("PersonalID", 
-                          "CoCCode", 
-                          "DateEffective")
-stage1begin <- now()
+
 test <- left_join(small_enrollment, CoC_served, by = "PersonalID")
-stage2begin <- now()
+
+stage1begin <- now()
 tmp <- test %>% mutate(DateEffective = ymd_hms(DateEffective), EntryDate = ymd_hms(EntryDate), ExitDate = ymd_hms(ExitDate)) %>%
   group_by(EnrollmentID) %>%
   mutate(datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]))
-stage3begin <- now()
+setDT(tmp)
+stage2begin <- now()
 tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), entry = ymd_hms(EntryDate)) %>%
   group_by(EnrollmentID) %>% 
   mutate(datacollectionstage2 = max(DateEffective[EntryDate < DateEffective & 
-                                                             ExitDate > DateEffective]))
-stage4begin <- now()
+                                      ExitDate > DateEffective]))
+#this is me trying to use data.table for stage 2. it is not coming out with all the columns
+#and the number of rows is incorrect as well. needs a lot of work but i think it will 
+#speed it up a lot if i can pull this out!
+tmp <- tmp[EntryDate < DateEffective & ExitDate > DateEffective, 
+           .(datacollectionstage2 = max(DateEffective)), 
+           by = EnrollmentID]
+
+stage3begin <- now()
 tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), ExitDate = ymd_hms(ExitDate)) %>%
   group_by(EnrollmentID) %>%
   mutate(datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective))
-stage5begin <- now()
-test <- tmp %>% mutate(#DateEffective = ymd_hms(DateEffective), 
-                       datacollectionstage1 = ymd_hms(datacollectionstage1),
-                       datacollectionstage2 = ymd_hms(datacollectionstage2),
-                       datacollectionstage3 = ymd_hms(datacollectionstage3)) %>%
-  mutate(collectionstage =
-           case_when(
-             DateEffective == datacollectionstage1 ~ 1,
-             DateEffective == datacollectionstage2 ~ 2,
-             DateEffective == datacollectionstage3 ~ 3
-           ),
-         datacollectionstage1 = NULL,
-         datacollectionstage2 = NULL,
-         datacollectionstage3 = NULL) %>%
+
+stage4begin <- now()
+test <- tmp %>% mutate(
+
+  collectionstage =
+    case_when(
+      DateEffective == datacollectionstage1 ~ 1,
+      DateEffective == datacollectionstage2 ~ 2,
+      DateEffective == datacollectionstage3 ~ 3
+    ),
+  datacollectionstage1 = NULL,
+  datacollectionstage2 = NULL,
+  datacollectionstage3 = NULL
+) %>%
   filter(!is.na(collectionstage))
 rm(tmp)
 endend <- now()
+
+
 (getdata <- stage1begin - stage0begin)
-(joinenrollment <- stage2begin - stage1begin)
-(datacollection1 <- stage3begin - stage2begin)
-(datacollection2 <- stage4begin - stage3begin)
-(datacollection3 <- stage5begin - stage4begin)
-(alltogether <- endend - stage5begin)
+(datacollection1 <- stage2begin - stage1begin)
+(datacollection2 <- stage3begin - stage2begin)
+(datacollection3 <- stage4begin - stage3begin)
+(alltogether <- endend - stage4begin)
 (thewholething <- endend - stage0begin)
+
 
 residence_prior <- assessment_data %>% filter(DataElement == "typeoflivingsituation")
 length_of_time <- assessment_data %>% filter(DataElement == "hud_lengthofstay")
