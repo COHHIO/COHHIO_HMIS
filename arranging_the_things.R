@@ -113,15 +113,45 @@ Client <- mutate(Client,
                  )
 rm(disabling_condition, dob, dob_dq, ethnicity, race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
-# filtering out "" values because they're not helpful for CoC_Served.
-# CoC_served is only req'd for HoHs so generally when non_HoH's get a value, someone saves a "" over it
 setDT(assessment_data)
 small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, EntryDate, ExitDate)
 small_enrollment <- setDT(small_enrollment)
+# Relationship to HoH
+ReltoHoH <-
+  assessment_data %>% filter(DataElement == "hud_relationtohoh") 
+tmp <- ReltoHoH %>%
+  group_by(PersonalID, DateEffective) %>%
+  summarise(DateAdded = max(DateAdded))
+ReltoHoH <- semi_join(ReltoHoH, tmp, by = c("PersonalID", "DateAdded"))
+x <- left_join(small_enrollment, ReltoHoH, by = "PersonalID") %>%
+  mutate(
+    DateEffective = ymd_hms(DateEffective),
+    EntryDate = ymd_hms(EntryDate),
+    ExitDate = ymd_hms(ExitDate))
+
+x <- setDT(x)[,.SD[which.max(DateEffective[EntryDate >= DateEffective])], keyby = EnrollmentID]
+# Residence Prior
+
+# Length Of Stay
+
+# LoS Under Threshhold
+
+# Previous Previous Street ESSH
+
+# Date to Street ESSH
+
+# Times Homeless
+
+# Months Homeless
+
+
+
 stage0begin <- now()
 CoC_served <- assessment_data %>%
   filter(DataElement == "hud_cocclientlocation" &
            Value != "")
+# filtering out "" values because they're not helpful for CoC_Served.
+# CoC_served is only req'd for HoHs so generally when non_HoH's get a value, someone saves a "" over it
 # old <- now()
 CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%  
   summarise(max(DateAdded)) 
