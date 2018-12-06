@@ -4,7 +4,7 @@ library("lubridate")
 library("readxl")
 library("data.table")
 begin <- now()
-y <- read_xml("data/Bowman_Payload_40.xml")
+y <- read_xml("data/Bowman_Payload_68.xml")
 users <- read_csv("data/usercreating.csv")
 counties <- read_csv("data/counties.csv") 
 UserRecords <- read_csv("data/users.csv")
@@ -506,7 +506,7 @@ Client <- Client %>%
   mutate(FirstName = case_when(
     NameDataQuality %in% c(8,9) ~ "DKR",
     NameDataQuality == 2 ~ "Partial",
-    NameDataQuality == 99 | is.na(NameDataQuality) | FirstName == "Anonymous" ~ "Missing",
+    NameDataQuality == 99 | is.na(NameDataQuality) | FirstName == 0 ~ "Missing",
     !(NameDataQuality %in% c(2, 8, 9, 99) | is.na(NameDataQuality) | FirstName == "Anonymous") ~ "ok"))
 
 Client <- Client %>%
