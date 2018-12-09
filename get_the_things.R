@@ -420,7 +420,8 @@ Enrollment <- Enrollment %>% mutate(
   HouseholdID = if_else(is.na(HouseholdID), EnrollmentID, HouseholdID), # this is the ART "Group UID"
   DateCreated = ymd_hms(DateCreated),
   EntryDate = ymd_hms(EntryDate),
-  ExitDate = ymd_hms(ExitDate)
+  ExitDate = ymd_hms(ExitDate),
+  ExitAdjust = if_else(is.na(ExitDate), now(), ExitDate)
 )
 # add in User_Creating
 Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")
