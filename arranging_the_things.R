@@ -138,19 +138,24 @@ CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%
 test <- left_join(small_enrollment, CoC_served, by = "PersonalID")
 
 stage1begin <- now()
-tmp <- test %>% mutate(DateEffective = ymd_hms(DateEffective), EntryDate = ymd_hms(EntryDate), ExitDate = ymd_hms(ExitDate)) %>%
+# may not need to lubridate your dates here since it's already been done upstream
+tmp <- test %>% mutate(DateEffective = ymd_hms(DateEffective), 
+                       EntryDate = ymd_hms(EntryDate), 
+                       ExitDate = ymd_hms(ExitDate)) %>%
   group_by(EnrollmentID) %>%
   mutate(datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]))
+
 setDT(tmp)
 stage2begin <- now()
-tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), entry = ymd_hms(EntryDate)) %>%
+tmp <- tmp %>% 
   group_by(EnrollmentID) %>% 
-  mutate(datacollectionstage2 = max(DateEffective[EntryDate < DateEffective & 
-                                      ExitDate > DateEffective]))
+  mutate(
+    datacollectionstage2 = max(DateEffective[EntryDate < DateEffective & 
+                                      ExitAdjust > DateEffective]))
 #this is me trying to use data.table for stage 2. it is not coming out with all the columns
 #and the number of rows is incorrect as well. needs a lot of work but i think it will 
 #speed it up a lot if i can pull this out!
-tmp <- tmp[EntryDate < DateEffective & ExitDate > DateEffective, 
+tmp <- tmp[DateEffective %between% c(EntryDate, ExitAdjust, incbounds = FALSE), 
            .(datacollectionstage2 = max(DateEffective)), 
            by = EnrollmentID]
 
