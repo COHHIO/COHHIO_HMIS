@@ -421,7 +421,8 @@ Enrollment <- Enrollment %>% mutate(
   DateCreated = ymd_hms(DateCreated),
   EntryDate = ymd_hms(EntryDate),
   ExitDate = ymd_hms(ExitDate),
-  ExitAdjust = if_else(is.na(ExitDate), now(), ExitDate)
+  ExitAdjust = if_else(is.na(ExitDate), now(), ExitDate),
+  ExitAdjust = ymd_hms(ExitAdjust)
 )
 # add in User_Creating
 Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")
