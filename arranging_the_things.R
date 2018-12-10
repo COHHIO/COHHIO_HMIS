@@ -1,3 +1,5 @@
+the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
+
 # ONE answer per CLIENt ---------------------------------------------------
 client_level_value <- function(dataelement) {
   relevant_data <- filter(assessment_data, DataElement == dataelement)
@@ -23,7 +25,9 @@ race <-
     Value != "" &
       (DataElement == "svpprofrace" |
     (DataElement == "svpprofsecondaryrace" &
-        !(Value %in% c("client doesn't know (hud)", "client refused (hud)", "data not collected (hud)"))
+        !(Value %in% c("client doesn't know (hud)", 
+                       "client refused (hud)", 
+                       "data not collected (hud)"))
     ))
   ) 
 x <- race %>% group_by(PersonalID, Value) %>%  # eliminates the two identical races saved problem
@@ -43,6 +47,7 @@ race <- race %>% group_by(PersonalID) %>%
     NativeHIOtherPacific = sum(NativeHIOtherPacific),
     White = sum(White)
   )
+Client <- left_join(Client, race, by = "PersonalID")
 
 # tidy up the Client table
 Client <- mutate(
@@ -72,11 +77,7 @@ Client <- mutate(
       is.na(DisablingCondition) ~ 99
   ),
   RaceNone = if_else(
-    AmIndAKNative +
-      Asian +
-      BlackAfAmerican +
-      NativeHIOtherPacific +
-      White == 0,
+    AmIndAKNative + Asian + BlackAfAmerican + NativeHIOtherPacific + White == 0,
     1,
     0
   ),
@@ -85,7 +86,7 @@ Client <- mutate(
 rm(race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
 setDT(assessment_data)
-small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, EntryDate, ExitDate)
+small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust)
 small_enrollment <- setDT(small_enrollment)
 # function to pull assessment data into Enrollment table
 enrollment_level_value <- function(dataelement) {
@@ -114,81 +115,106 @@ Enrollment <- enrollment_level_value("hud_homelessstartdate") %>% rename(DateToS
 Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% rename(TimesHomelessPastThreeYears = Value)
 Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% rename(MonthsHomelessPastThreeYears = Value)
 
-stage0begin <- now()
-CoC_served <- assessment_data %>%
-  filter(DataElement == "hud_cocclientlocation" &
-           Value != "")
-# filtering out "" values because they're not helpful for CoC_Served.
-# CoC_served is only req'd for HoHs so generally when non_HoH's get a value, someone saves a "" over it
-# old <- now()
-CoC_served <- CoC_served %>% group_by(PersonalID, Value, DateEffective) %>%  
-  summarise(max(DateAdded)) 
-# new <- now()
-# CoC_served <- assessment_data[DataElement == "hud_cocclientlocation" & Value != "",
-#                               .(max(DateAdded)),
-#                               by = list(PersonalID, CoCCode = Value, DateEffective)]
-# endend <- now()
-# new - old
-# endend - new
-# filters out duplicate answers with the same Eff Date and Value
-
-# the plan is to pull in the value and the eff date into the Enrollment table, then use the date 
-# to calculate a Collection Stage
-
-test <- left_join(small_enrollment, CoC_served, by = "PersonalID")
-
-stage1begin <- now()
-# may not need to lubridate your dates here since it's already been done upstream
-tmp <- test %>% mutate(DateEffective = ymd_hms(DateEffective), 
-                       EntryDate = ymd_hms(EntryDate), 
-                       ExitDate = ymd_hms(ExitDate)) %>%
-  group_by(EnrollmentID) %>%
-  mutate(datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]))
-
-setDT(tmp)
-stage2begin <- now()
-tmp <- tmp %>% 
-  group_by(EnrollmentID) %>% 
-  mutate(
-    datacollectionstage2 = max(DateEffective[EntryDate < DateEffective & 
-                                      ExitAdjust > DateEffective]))
-#this is me trying to use data.table for stage 2. it is not coming out with all the columns
-#and the number of rows is incorrect as well. needs a lot of work but i think it will 
-#speed it up a lot if i can pull this out!
-tmp <- tmp[DateEffective %between% c(EntryDate, ExitAdjust, incbounds = FALSE), 
-           .(datacollectionstage2 = max(DateEffective)), 
-           by = EnrollmentID]
-
-stage3begin <- now()
-tmp <- tmp %>% #mutate(DateEffective = ymd_hms(DateEffective), ExitDate = ymd_hms(ExitDate)) %>%
-  group_by(EnrollmentID) %>%
-  mutate(datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective))
-
-stage4begin <- now()
-test <- tmp %>% mutate(
-
-  collectionstage =
-    case_when(
-      DateEffective == datacollectionstage1 ~ 1,
-      DateEffective == datacollectionstage2 ~ 2,
-      DateEffective == datacollectionstage3 ~ 3
-    ),
-  datacollectionstage1 = NULL,
-  datacollectionstage2 = NULL,
-  datacollectionstage3 = NULL
-) %>%
-  filter(!is.na(collectionstage))
-rm(tmp)
-endend <- now()
+# All Data Collection Stages ----------------------------------------------
 
 
-(getdata <- stage1begin - stage0begin)
-(datacollection1 <- stage2begin - stage1begin)
-(datacollection2 <- stage3begin - stage2begin)
-(datacollection3 <- stage4begin - stage3begin)
-(alltogether <- endend - stage4begin)
-(thewholething <- endend - stage0begin)
+all_the_stages <- function(dataelement) {
+  x <- filter(assessment_data, DataElement == dataelement)
+  x <- x %>% group_by(PersonalID, Value, DateEffective) %>%
+    summarise(DateAdded = max(DateAdded))
+  x <- left_join(small_enrollment, x, by = "PersonalID") %>%
+    group_by(EnrollmentID) %>%
+    mutate(
+      datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]),
+      datacollectionstage2 = max(DateEffective[EntryDate < DateEffective &
+                                                 ExitAdjust > DateEffective]),
+      datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective)
+    )
+  x <- x %>% mutate(
+    DataCollectionStage = 
+      case_when(
+        DateEffective == datacollectionstage1 ~ 1,
+        DateEffective == datacollectionstage2 ~ 2,
+        DateEffective == datacollectionstage3 ~ 3
+      ),
+    datacollectionstage1 = NULL,
+    datacollectionstage2 = NULL,
+    datacollectionstage3 = NULL,
+    EntryDate = NULL,
+    ExitDate = NULL,
+    ExitAdjust = NULL,
+    DateAdded = NULL,
+    DateEffective = NULL
+  ) %>%
+    filter(!is.na(DataCollectionStage)
+  )
+  return(x)
+}
 
-DV_yesno <- assessmenet_data %>% filter(DataElement == "domesticviolencevictim")
-DV_when <- assessment_data %>% filter(DataElement == "hud_extentofdv")
-DV_fleeing <- assessment_data %>% filter(DataElement == "hud_extentofdv2")
+# Domestic Violence -------------------------------------------------------
+
+DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>% 
+  rename(DomesticViolenceVictim = Value)
+DomesticViolence2 <- all_the_stages("hud_extentofdv") %>% 
+  rename(WhenOccurred = Value)
+DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>% 
+  rename(CurrentlyFleeing = Value)
+DomesticViolence <-
+  left_join(DomesticViolence1, DomesticViolence2, 
+            by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
+  ) %>%
+  left_join(., DomesticViolence3,
+    by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
+  )
+rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
+
+# EnrollmentCoC -----------------------------------------------------------
+
+EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
+  rename(EnrollmentCoC = Value)
+
+# Employment --------------------------------------------------------------
+
+
+# Education ---------------------------------------------------------------
+
+
+# Connection w SOAR -------------------------------------------------------
+
+
+# Non Cash ----------------------------------------------------------------
+
+
+# Disabilities ------------------------------------------------------------
+
+
+# Health Insurance --------------------------------------------------------
+
+
+# HealthStatus ------------------------------------------------------------
+
+
+# MedicalAssistance -------------------------------------------------------
+
+
+# Income and Sources ------------------------------------------------------
+
+
+# Move In Date ------------------------------------------------------------
+
+
+# Contacts ----------------------------------------------------------------
+
+
+# Referrals Services ------------------------------------------------------
+
+
+# Exit RHY ----------------------------------------------------------------
+
+
+# EntryRHSP ---------------------------------------------------------------
+
+
+# EntryRHY ----------------------------------------------------------------
+
+
