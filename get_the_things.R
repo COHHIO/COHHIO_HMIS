@@ -847,8 +847,8 @@ colnames(noncash) <- c(
   "svp_noncashbenefitsend" = "NoncashEndDate"
 )
 noncash <- mutate(noncash, 
-                  NoncashStartDate = ymd_hms(NoncashStartDate),
-                  NoncashEndDate = ymd_hms(NoncashEndDate))
+                  NoncashStartDate = ymd(NoncashStartDate),
+                  NoncashEndDate = ymd(NoncashEndDate))
 # Disabilities -----------------------------------------------------------
 # name nodes we want to pull in
 disabilities_start <- now()
