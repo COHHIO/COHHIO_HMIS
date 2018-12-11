@@ -167,11 +167,12 @@ DomesticViolence <-
     by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
   )
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
-
+DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
 # EnrollmentCoC -----------------------------------------------------------
 
 EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
   rename(EnrollmentCoC = Value)
+EnrollmentCoC <- EnrollmentCoC[, c(2, 1, 3:5)]
 
 # Employment Education ----------------------------------------------------
 
@@ -298,7 +299,7 @@ NonCashBenefits <- full_join(noncash2, NCByn, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
 )) 
-NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17, 18, 5:10)]
+NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
 rm(noncash2, NCByn)
 # Disabilities ------------------------------------------------------------
 
