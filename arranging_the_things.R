@@ -175,15 +175,15 @@ EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>%
 
 # Employment Education ----------------------------------------------------
 
-LastGrade <- all_the_stages("hud_cocclientlocation") %>% 
+LastGrade <- all_the_stages("rhymislastgradecompleted") %>% 
   rename(LastGradeCompleted = Value)
-SchoolStatus <- all_the_stages("hud_cocclientlocation") %>% 
+SchoolStatus <- all_the_stages("rhymisschoolstatus") %>% 
   rename(SchoolStatus = Value)
-Employed <- all_the_stages("hud_cocclientlocation") %>% 
+Employed <- all_the_stages("hud_employed") %>% 
   rename(Employed = Value)
-EmploymentType <- all_the_stages("hud_cocclientlocation") %>% 
+EmploymentType <- all_the_stages("hud_employmenttype") %>% 
   rename(EmploymentType = Value)
-NotEmployedReason <- all_the_stages("hud_cocclientlocation") %>% 
+NotEmployedReason <- all_the_stages("hud_noemployreason") %>% 
   rename(NotEmployedReason = Value)
 EmploymentEducation <- left_join(
   LastGrade,
@@ -226,37 +226,94 @@ EmploymentEducation <- left_join(
     )
   )
 rm(LastGrade, SchoolStatus, Employed, EmploymentType, NotEmployedReason)
-
+EmploymentEducation <- EmploymentEducation[, c(2, 1, 3, 5, 4, 6:9)]
 # Connection w SOAR -------------------------------------------------------
-ConnectionWithSOAR <- all_the_stages("dataelementname") %>% 
+ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>% 
   rename(ConnectionWithSOAR = Value)
 
 # Non Cash ----------------------------------------------------------------
-NCByn <- all_the_stages("dataelementname") %>% 
+rm(NCByn)
+NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
   rename(BenefitsFromAnySource = Value)
+NCByn <- left_join(NCByn, small_enrollment, by = c(
+  "EnrollmentID", "PersonalID", "HouseholdID"
+))
+NCByn <-
+  mutate(
+    NCByn,
+    EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
+    ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
+    ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York")
+  )
 
+rm(noncash2)
+noncash2 <- mutate(
+  noncash,
+  SNAP = if_else(
+    NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)",
+    1,
+    0
+  ),
+  WIC = if_else(
+    NoncashSource == "special supplemental nutrition program for wic (hud)", 
+    1, 
+    0
+    ),
+  TANFChildCare = if_else(NoncashSource == "tanf child care services (hud)", 1, 0),
+  TANFTransportation = if_else(NoncashSource == "tanf transportation services (hud)", 1, 0),
+  OtherTANF = if_else(NoncashSource == "other tanf-funded services (hud)", 1, 0),
+  OtherSource = if_else(NoncashSource == "other source (hud)", 1, 0),
+  NoncashSource = NULL
+)
+noncash2 <-
+  left_join(noncash2, small_enrollment, by = "PersonalID") %>%
+  mutate(
+    EntryDate = format.Date(EntryDate, "%Y-%m-%d"),
+    ExitDate = format.Date(ExitDate, "%Y-%m-%d"),
+    ExitAdjust = format.Date(ExitAdjust, "%Y-%m-%d"),
+    NoncashStartDate = ymd(NoncashStartDate),
+    NoncashEndDate = ymd(NoncashEndDate),
+    NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), today(), NoncashEndDate),
+    EntryDate = ymd(EntryDate),
+    ExitDate = ymd(ExitDate),
+    ExitAdjust = ymd(ExitAdjust),
+    inproject = interval(EntryDate, ExitAdjust),
+    benefitactive = interval(NoncashStartDate, NoncashEndDateAdjust),
+    DataCollectionStage = if_else(
+      int_overlaps(benefitactive, inproject),
+      case_when(
+        NoncashStartDate <= EntryDate ~ 1,
+        NoncashStartDate > EntryDate &
+          NoncashStartDate < ExitAdjust ~ 2,
+        NoncashStartDate == ExitDate ~ 3
+      ),
+      NULL
+    ),
+    inproject = NULL,
+    benefitactive = NULL
+  ) 
+noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
+rm(NonCashBenefits)
+NonCashBenefits <- full_join(noncash2, NCByn, by = c(
+  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
+  "ExitDate", "ExitAdjust"
+)) 
+NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17, 18, 5:10)]
+rm(noncash2, NCByn)
 # Disabilities ------------------------------------------------------------
 
 
 # Health Insurance --------------------------------------------------------
-Insuranceyn <- all_the_stages("dataelementname") %>% 
+Insuranceyn <- all_the_stages("hud_coveredbyhlthins") %>% 
   rename(InsuranceFromAnySource = Value)
 
-# HealthStatus ------------------------------------------------------------
-table <- all_the_stages("dataelementname") %>% 
-  rename(variablename = Value)
-
-# MedicalAssistance -------------------------------------------------------
-table <- all_the_stages("dataelementname") %>% 
-  rename(variablename = Value)
-
 # Income and Sources ------------------------------------------------------
-table <- all_the_stages("dataelementname") %>% 
+Incomeyn <- all_the_stages("svp_anysource30dayincome") %>% 
   rename(variablename = Value)
 
 # Move In Date ------------------------------------------------------------
-table <- all_the_stages("dataelementname") %>% 
-  rename(variablename = Value)
+MoveInDate <- all_the_stages("hud_housingmoveindate") %>% 
+  rename(MoveInDate = Value)
 
 # Contacts ----------------------------------------------------------------
 
@@ -271,5 +328,8 @@ table <- all_the_stages("dataelementname") %>%
 
 
 # EntryRHY ----------------------------------------------------------------
+
+
+# SPDAT Scores ------------------------------------------------------------
 
 
