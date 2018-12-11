@@ -173,35 +173,90 @@ rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
 EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
   rename(EnrollmentCoC = Value)
 
-# Employment --------------------------------------------------------------
+# Employment Education ----------------------------------------------------
 
-
-# Education ---------------------------------------------------------------
-
+LastGrade <- all_the_stages("hud_cocclientlocation") %>% 
+  rename(LastGradeCompleted = Value)
+SchoolStatus <- all_the_stages("hud_cocclientlocation") %>% 
+  rename(SchoolStatus = Value)
+Employed <- all_the_stages("hud_cocclientlocation") %>% 
+  rename(Employed = Value)
+EmploymentType <- all_the_stages("hud_cocclientlocation") %>% 
+  rename(EmploymentType = Value)
+NotEmployedReason <- all_the_stages("hud_cocclientlocation") %>% 
+  rename(NotEmployedReason = Value)
+EmploymentEducation <- left_join(
+  LastGrade,
+  SchoolStatus,
+  by = c(
+    "EnrollmentID",
+    "PersonalID",
+    "HouseholdID",
+    "DataCollectionStage"
+  )
+) %>%
+  left_join(
+    .,
+    Employed,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "HouseholdID",
+      "DataCollectionStage"
+    )
+  ) %>%
+  left_join(
+    .,
+    EmploymentType,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "HouseholdID",
+      "DataCollectionStage"
+    )
+  ) %>%
+  left_join(
+    .,
+    NotEmployedReason,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "HouseholdID",
+      "DataCollectionStage"
+    )
+  )
+rm(LastGrade, SchoolStatus, Employed, EmploymentType, NotEmployedReason)
 
 # Connection w SOAR -------------------------------------------------------
-
+ConnectionWithSOAR <- all_the_stages("dataelementname") %>% 
+  rename(ConnectionWithSOAR = Value)
 
 # Non Cash ----------------------------------------------------------------
-
+NCByn <- all_the_stages("dataelementname") %>% 
+  rename(BenefitsFromAnySource = Value)
 
 # Disabilities ------------------------------------------------------------
 
 
 # Health Insurance --------------------------------------------------------
-
+Insuranceyn <- all_the_stages("dataelementname") %>% 
+  rename(InsuranceFromAnySource = Value)
 
 # HealthStatus ------------------------------------------------------------
-
+table <- all_the_stages("dataelementname") %>% 
+  rename(variablename = Value)
 
 # MedicalAssistance -------------------------------------------------------
-
+table <- all_the_stages("dataelementname") %>% 
+  rename(variablename = Value)
 
 # Income and Sources ------------------------------------------------------
-
+table <- all_the_stages("dataelementname") %>% 
+  rename(variablename = Value)
 
 # Move In Date ------------------------------------------------------------
-
+table <- all_the_stages("dataelementname") %>% 
+  rename(variablename = Value)
 
 # Contacts ----------------------------------------------------------------
 
