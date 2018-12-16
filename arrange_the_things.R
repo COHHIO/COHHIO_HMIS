@@ -116,8 +116,8 @@ Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% rename(Ti
 Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% rename(MonthsHomelessPastThreeYears = Value)
 
 # All Data Collection Stages ----------------------------------------------
-
-
+# this pulls a data element out of the assessment_data table into data from the
+# small_enrollment table and outputs that data along with Data Collection Stage
 all_the_stages <- function(dataelement) {
   x <- filter(assessment_data, DataElement == dataelement)
   x <- x %>% group_by(PersonalID, Value, DateEffective) %>%
@@ -233,7 +233,6 @@ ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>%
   rename(ConnectionWithSOAR = Value)
 
 # Non Cash ----------------------------------------------------------------
-rm(NCByn)
 NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
   rename(BenefitsFromAnySource = Value)
 NCByn <- left_join(NCByn, small_enrollment, by = c(
@@ -247,7 +246,6 @@ NCByn <-
     ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York")
   )
 
-rm(noncash2)
 noncash2 <- mutate(
   noncash,
   SNAP = if_else(
@@ -294,7 +292,6 @@ noncash2 <-
     benefitactive = NULL
   ) 
 noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
-rm(NonCashBenefits)
 NonCashBenefits <- full_join(noncash2, NCByn, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
@@ -303,6 +300,36 @@ NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
 rm(noncash2, NCByn)
 # Disabilities ------------------------------------------------------------
 
+disability2 <-
+  left_join(Disability, small_enrollment, by = "PersonalID") %>%
+  mutate(
+    EntryDate = format.Date(EntryDate, "%Y-%m-%d"),
+    ExitDate = format.Date(ExitDate, "%Y-%m-%d"),
+    ExitAdjust = format.Date(ExitAdjust, "%Y-%m-%d"),
+    DisabilityStartDate = ymd(NoncashStartDate),
+    DisabilityEndDate = ymd(NoncashEndDate),
+    DisabilityEndDateAdjust = if_else(is.na(DisabilityEndDate), today(), DisabilityEndDate),
+    EntryDate = ymd(EntryDate),
+    ExitDate = ymd(ExitDate),
+    ExitAdjust = ymd(ExitAdjust),
+    inproject = interval(EntryDate, ExitAdjust),
+    disabilityactive = interval(NoncashStartDate, NoncashEndDateAdjust),
+    DataCollectionStage = if_else(
+      int_overlaps(disabilityactive, inproject),
+      case_when(
+        DisabilityStartDate <= EntryDate ~ 1,
+        DisabilityStartDate > EntryDate &
+          DisabilityStartDate < ExitAdjust ~ 2,
+        DisabilityStartDate == ExitDate ~ 3
+      ),
+      NULL
+    ),
+    inproject = NULL,
+    benefitactive = NULL
+  ) 
+disability2 <- filter(disability2, !is.na(DataCollectionStage))
+# at some point you'll just want this to be named Disability
+Disability <- Disability[, c("order of the columns")]
 
 # Health Insurance --------------------------------------------------------
 Insuranceyn <- all_the_stages("hud_coveredbyhlthins") %>% 
