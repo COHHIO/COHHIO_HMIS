@@ -1,6 +1,17 @@
 start <- now()
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-disabilitytypes <- select(Disabilities, DisabilityType) %>% unique()
+inctypes <- select(IncomeBenefits, IncomeSource) %>% unique()
+#rm(hitypes)
+# this can be used in pairing EEs to assessment data.
+small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust)
+small_enrollment <- setDT(small_enrollment)
+setDT(assessment_data)
+# subs only store ymd type dates, so we only want to compare them to the same
+# type of date when we're joining the assessment's y/n data back to the subs data
+sub_enrollment <- small_enrollment %>%
+  mutate(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
+         ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
+         ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))
 # ONE answer per CLIENt ---------------------------------------------------
 client_level_value <- function(dataelement) {
   relevant_data <- filter(assessment_data, DataElement == dataelement)
@@ -86,9 +97,7 @@ Client <- mutate(
 )
 rm(race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
-setDT(assessment_data)
-small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust)
-small_enrollment <- setDT(small_enrollment)
+
 # function to pull assessment data into Enrollment table
 enrollment_level_value <- function(dataelement) {
   relevant_data <- assessment_data %>% filter(DataElement == dataelement)
@@ -235,17 +244,17 @@ ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>%
 
 # Non Cash ----------------------------------------------------------------
 NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
-  rename(BenefitsFromAnySource = Value)
-# subs only store ymd type dates, so we only want to compare them to the same
-# type of date when we're joining the NCByn table back to the subs data
-sub_enrollment <- small_enrollment %>%
-  mutate(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
-         ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
-         ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))
+  rename(BenefitsFromAnySource = Value) %>%
+  mutate(BenefitsFromAnySource = case_when(
+    BenefitsFromAnySource == "yes (hud)" ~ 1,
+    BenefitsFromAnySource == "no (hud)" ~ 0,
+    BenefitsFromAnySource == "client doesn't know (hud)" ~ 8,
+    BenefitsFromAnySource == "client refused (hud)" ~ 9,
+    BenefitsFromAnySource == "data not collected (hud)" |
+      is.na(BenefitsFromAnySource) ~ 99
+  ))
 
-NCByn <- left_join(NCByn, sub_enrollment, by = c(
-  "EnrollmentID", "PersonalID", "HouseholdID"
-))
+NCByn <- left_join(NCByn, sub_enrollment, by = c("EnrollmentID", "PersonalID", "HouseholdID"))
 
 noncash2 <- mutate(
   noncash,
@@ -271,9 +280,6 @@ noncash2 <-
     NoncashStartDate = ymd(NoncashStartDate),
     NoncashEndDate = ymd(NoncashEndDate),
     NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), today(), NoncashEndDate),
-    EntryDate = ymd(EntryDate),
-    ExitDate = ymd(ExitDate),
-    ExitAdjust = ymd(ExitAdjust),
     inproject = interval(EntryDate, ExitAdjust),
     benefitactive = interval(NoncashStartDate, NoncashEndDateAdjust),
     DataCollectionStage = if_else(
@@ -290,30 +296,34 @@ noncash2 <-
     benefitactive = NULL
   ) 
 noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
+
 NonCashBenefits <- full_join(noncash2, NCByn, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
 )) 
 NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
+NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
+  summarise(
+    SNAP = sum(SNAP),
+    WIC = sum(WIC),
+    TANFChildCare = sum(TANFChildCare),
+    TANFTransportation = sum(TANFTransportation),
+    OtherTANF = sum(OtherTANF),
+    OtherSource = sum(OtherSource)
+  )
 rm(noncash2, NCByn)
 end <- now()
 end - start
 # Disabilities ------------------------------------------------------------
 
 disability2 <-
-  left_join(Disability, small_enrollment, by = "PersonalID") %>%
+  left_join(Disabilities, sub_enrollment, by = "PersonalID") %>%
   mutate(
-    EntryDate = format.Date(EntryDate, "%Y-%m-%d"),
-    ExitDate = format.Date(ExitDate, "%Y-%m-%d"),
-    ExitAdjust = format.Date(ExitAdjust, "%Y-%m-%d"),
-    DisabilityStartDate = ymd(NoncashStartDate),
-    DisabilityEndDate = ymd(NoncashEndDate),
+    DisabilityStartDate = ymd(DisabilityStartDate),
+    DisabilityEndDate = ymd(DisabilityEndDate),
     DisabilityEndDateAdjust = if_else(is.na(DisabilityEndDate), today(), DisabilityEndDate),
-    EntryDate = ymd(EntryDate),
-    ExitDate = ymd(ExitDate),
-    ExitAdjust = ymd(ExitAdjust),
     inproject = interval(EntryDate, ExitAdjust),
-    disabilityactive = interval(NoncashStartDate, NoncashEndDateAdjust),
+    disabilityactive = interval(DisabilityStartDate, DisabilityEndDateAdjust),
     DataCollectionStage = if_else(
       int_overlaps(disabilityactive, inproject),
       case_when(
@@ -325,19 +335,235 @@ disability2 <-
       NULL
     ),
     inproject = NULL,
-    benefitactive = NULL
+    disabilityactive = NULL
   ) 
 disability2 <- filter(disability2, !is.na(DataCollectionStage))
 # at some point you'll just want this to be named Disability
-Disability <- Disability[, c("order of the columns")]
-
+Disabilities <- disability2[, c(2, 1, 7:8, 13, 5:6)]
+rm(disability2)
 # Health Insurance --------------------------------------------------------
 Insuranceyn <- all_the_stages("hud_coveredbyhlthins") %>% 
   rename(InsuranceFromAnySource = Value)
-
+Insuranceyn <- left_join(Insuranceyn,
+                         sub_enrollment,
+                         by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
+  mutate(InsuranceFromAnySource = case_when(
+    InsuranceFromAnySource == "yes (hud)" ~ 1,
+    InsuranceFromAnySource == "no (hud)" ~ 0,
+    InsuranceFromAnySource == "client doesn't know (hud)" ~ 8,
+    InsuranceFromAnySource == "client refused (hud)" ~ 9,
+    InsuranceFromAnySource == "data not collected (hud)" |
+      is.na(InsuranceFromAnySource) ~ 99
+  ))
+hi <- mutate(
+  health_insurance,
+  Medicaid = if_else(
+    HealthInsuranceType == "medicaid", 1, 0),
+  Medicare = if_else(
+    HealthInsuranceType == "medicare", 1, 0),
+  SCHIP = if_else(
+    HealthInsuranceType == "state children's health insurance program", 1, 0),
+  VAMedicalServices = if_else(
+    HealthInsuranceType == "veteran's administration (va) medical services",  1, 0),
+  EmployerProvided = if_else(
+    HealthInsuranceType == "employer - provided health insurance", 1, 0),
+  COBRA = if_else(
+    HealthInsuranceType == "health insurance obtained through cobra", 1, 0),
+  PrivatePay = if_else(
+    HealthInsuranceType == "private pay health insurance", 1, 0),
+  StateHealthInsAdults = if_else(
+    HealthInsuranceType == "state health insurance for adults", 1, 0),
+  IndianHealthServices = if_else(
+    HealthInsuranceType == "indian health services program", 1, 0),
+  OtherInsurance = if_else(
+    HealthInsuranceType == "other", 1, 0),
+  HealthInsuranceType = NULL
+)
+hi <-
+  left_join(hi, sub_enrollment, by = "PersonalID") %>%
+  mutate(
+    HealthInsuranceStartDate = ymd(HealthInsuranceStartDate),
+    HealthInsuranceEndDate = ymd(HealthInsuranceEndDate),
+    HealthInsuranceEndDateAdjust = if_else(is.na(HealthInsuranceEndDate), today(), HealthInsuranceEndDate),
+    inproject = interval(EntryDate, ExitAdjust),
+    insuranceactive = interval(HealthInsuranceStartDate, HealthInsuranceEndDateAdjust),
+    DataCollectionStage = if_else(
+      int_overlaps(insuranceactive, inproject),
+      case_when(
+        HealthInsuranceStartDate <= EntryDate ~ 1,
+        HealthInsuranceStartDate > EntryDate &
+          HealthInsuranceStartDate < ExitAdjust ~ 2,
+        HealthInsuranceStartDate == ExitDate ~ 3
+      ),
+      NULL
+    ),
+    inproject = NULL,
+    insuranceactive = NULL
+  ) 
+hi <- filter(hi, !is.na(DataCollectionStage))
+HealthInsurance <- full_join(Insuranceyn, hi, by = c(
+  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
+  "ExitDate", "ExitAdjust"
+)) 
+HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 12:21)]
+rm(hi, Insuranceyn)
 # Income and Sources ------------------------------------------------------
 Incomeyn <- all_the_stages("svp_anysource30dayincome") %>% 
-  rename(variablename = Value)
+  rename(IncomeFromAnySource = Value) %>%
+  mutate(IncomeFromAnySource = case_when(
+    IncomeFromAnySource == "yes (hud)" ~ 1,
+    IncomeFromAnySource == "no (hud)" ~ 0,
+    IncomeFromAnySource == "client doesn't know (hud)" ~ 8,
+    IncomeFromAnySource == "client refused (hud)" ~ 9,
+    IncomeFromAnySource == "data not collected (hud)" |
+      is.na(IncomeFromAnySource) ~ 99
+  ))
+
+TMI <- all_the_stages("hud_totalmonthlyincome") %>%
+  rename(TotalMonthlyIncome = Value)
+
+Incomeyn <-
+  left_join(Incomeyn,
+            sub_enrollment,
+            by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
+  left_join(.,
+            TMI,
+            by = c(
+              "EnrollmentID",
+              "PersonalID",
+              "HouseholdID",
+              "DataCollectionStage"
+            ))
+
+incomesubs <- mutate(
+  IncomeBenefits,
+  Earned = if_else(
+    IncomeSource == "earned income (hud)", 1, 0),
+  EarnedAmount = if_else(
+    IncomeSource == "earned income (hud)", IncomeAmount, NULL),
+  Unemployment = if_else(
+    IncomeSource == "unemployment insurance (hud)", 1, 0),
+  UnemploymentAmount = if_else(
+    IncomeSource == "unemployment insurance (hud)", IncomeAmount, NULL),
+  SSI = if_else(
+    IncomeSource == "ssi (hud)", 1, 0),
+  SSIAmount = if_else(
+    IncomeSource == "ssi (hud)", IncomeAmount, NULL),  
+  SSDI = if_else(
+    IncomeSource == "ssdi (hud)", 1, 0),
+  SSDIAmount = if_else(
+    IncomeSource == "ssdi (hud)", IncomeAmount, NULL),  
+  VADisabilityService = if_else(
+    IncomeSource == "va service connected disability compensation (hud)", 1, 0),
+  VADisabilityServiceAmount = if_else(
+    IncomeSource == "va service connected disability compensation (hud)", IncomeAmount, NULL),  
+  VADisabilityNonService = if_else(
+    IncomeSource == "va non-service connected disability compensation (hud)", 1, 0),
+  VADisabilityNonServiceAmount = if_else(
+    IncomeSource == "va non-service connected disability compensation (hud)", IncomeAmount, NULL),  
+  PrivateDisability = if_else(
+    IncomeSource == "private disability insurance (hud)", 1, 0),
+  PrivateDisabilityAmount = if_else(
+    IncomeSource == "private disability insurance (hud)", IncomeAmount, NULL),  
+  WorkersComp = if_else(
+    IncomeSource == "worker's compensation (hud)", 1, 0),
+  WorkersCompAmount = if_else(
+    IncomeSource == "worker's compensation (hud)", IncomeAmount, NULL),  
+  TANF = if_else(
+    IncomeSource == "tanf (hud)", 1, 0),
+  TANFAmount = if_else(
+    IncomeSource == "tanf (hud)", IncomeAmount, NULL),  
+  GA = if_else(
+    IncomeSource == "general assistance (hud)", 1, 0),
+  GAAmount = if_else(
+    IncomeSource == "general assistance (hud)", IncomeAmount, NULL),  
+  SocSecRetirement = if_else(
+    IncomeSource == "retirement income from social security (hud)", 1, 0),
+  SocSecRetirementAmount = if_else(
+    IncomeSource == "retirement income from social security (hud)", IncomeAmount, NULL),  
+  Pension = if_else(
+    IncomeSource == "pension or retirement income from another job (hud)", 1, 0),
+  PensionAmount = if_else(
+    IncomeSource == "pension or retirement income from another job (hud)", IncomeAmount, NULL),  
+  ChildSupport = if_else(
+    IncomeSource == "child support (hud)", 1, 0),
+  ChildSupportAmount = if_else(
+    IncomeSource == "child support (hud)", IncomeAmount, NULL),  
+  Alimony = if_else(
+    IncomeSource == "alimony (hud)", 1, 0),
+  AlimonyAmount = if_else(
+    IncomeSource == "alimony (hud)", IncomeAmount, NULL),  
+  OtherIncomeSource = if_else(
+    IncomeSource == "other (hud)", 1, 0),
+  OtherIncomeSourceAmount = if_else(
+    IncomeSource == "other (hud)", IncomeAmount, NULL),
+  IncomeSource = NULL,
+  IncomeAmount = NULL
+)
+incomesubs <-
+  left_join(incomesubs, sub_enrollment, by = "PersonalID") %>%
+  mutate(
+    IncomeStart = ymd(IncomeStart),
+    IncomeEnd = ymd(IncomeEnd),
+    IncomeEndAdjust = if_else(is.na(IncomeEnd), today(), IncomeEnd),
+    inproject = interval(EntryDate, ExitAdjust),
+    insuranceactive = interval(IncomeStart, IncomeEndAdjust),
+    DataCollectionStage = if_else(
+      int_overlaps(insuranceactive, inproject),
+      case_when(
+        IncomeStart <= EntryDate ~ 1,
+        IncomeStart > EntryDate &
+          IncomeStart < ExitAdjust ~ 2,
+        IncomeStart == ExitDate ~ 3
+      ),
+      NULL
+    ),
+    inproject = NULL,
+    insuranceactive = NULL
+  ) 
+incomesubs <- filter(incomesubs, !is.na(DataCollectionStage))
+Income <- full_join(Incomeyn, incomesubs, by = c(
+  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
+  "ExitDate", "ExitAdjust"
+)) 
+Income <- Income[, c(2, 1, 3, 5, 4, 9, 13:42)]
+test <- Income %>% 
+  select(PersonalID, EnrollmentID, DataCollectionStage, Unemployment, UnemploymentAmount, TotalMonthlyIncome) %>%  
+  group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
+  summarise(
+    # Earned = sum(Earned),
+    # EarnedAmount = sum(EarnedAmount),
+    Unemployment = sum(Unemployment),
+    UnemploymentAmount = sum(UnemploymentAmount)#,
+    # SSI = sum(SSI),
+    # SSIAmount = sum(SSIAmount),  
+    # SSDI = sum(SSDI),
+    # SSDIAmount = sum(SSDIAmount),  
+    # VADisabilityService = sum(VADisabilityService),
+    # VADisabilityServiceAmount = sum(VADisabilityServiceAmount),  
+    # VADisabilityNonService = sum(VADisabilityNonService),
+    # VADisabilityNonServiceAmount = sum(VADisabilityNonServiceAmount),  
+    # PrivateDisability = sum(PrivateDisability),
+    # PrivateDisabilityAmount = sum(PrivateDisabilityAmount),  
+    # WorkersComp = sum(WorkersComp),
+    # WorkersCompAmount = sum(WorkersCompAmount),  
+    # TANF = sum(TANF),
+    # TANFAmount = sum(TANFAmount),  
+    # GA = sum(GA),
+    # GAAmount = sum(GAAmount),  
+    # SocSecRetirement = sum(SocSecRetirement),
+    # SocSecRetirementAmount = sum(SocSecRetirementAmount),  
+    # Pension = sum(Pension),
+    # PensionAmount = sum(PensionAmount),  
+    # ChildSupport = sum(ChildSupport),
+    # ChildSupportAmount = sum(ChildSupportAmount),  
+    # Alimony = sum(Alimony),
+    # AlimonyAmount = sum(AlimonyAmount),  
+    # OtherIncomeSource = sum(OtherIncomeSource),
+    # OtherIncomeSourceAmount = sum(OtherIncomeSourceAmount)
+  )
+rm(incomesubs, Incomeyn)
+
 
 # Move In Date ------------------------------------------------------------
 MoveInDate <- all_the_stages("hud_housingmoveindate") %>% 
