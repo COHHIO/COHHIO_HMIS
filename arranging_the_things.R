@@ -1,5 +1,6 @@
+start <- now()
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-
+disabilitytypes <- select(Disabilities, DisabilityType) %>% unique()
 # ONE answer per CLIENt ---------------------------------------------------
 client_level_value <- function(dataelement) {
   relevant_data <- filter(assessment_data, DataElement == dataelement)
@@ -233,21 +234,19 @@ ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>%
   rename(ConnectionWithSOAR = Value)
 
 # Non Cash ----------------------------------------------------------------
-rm(NCByn)
 NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
   rename(BenefitsFromAnySource = Value)
-NCByn <- left_join(NCByn, small_enrollment, by = c(
+# subs only store ymd type dates, so we only want to compare them to the same
+# type of date when we're joining the NCByn table back to the subs data
+sub_enrollment <- small_enrollment %>%
+  mutate(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
+         ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
+         ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))
+
+NCByn <- left_join(NCByn, sub_enrollment, by = c(
   "EnrollmentID", "PersonalID", "HouseholdID"
 ))
-NCByn <-
-  mutate(
-    NCByn,
-    EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
-    ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
-    ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York")
-  )
 
-rm(noncash2)
 noncash2 <- mutate(
   noncash,
   SNAP = if_else(
@@ -267,11 +266,8 @@ noncash2 <- mutate(
   NoncashSource = NULL
 )
 noncash2 <-
-  left_join(noncash2, small_enrollment, by = "PersonalID") %>%
+  left_join(noncash2, sub_enrollment, by = "PersonalID") %>%
   mutate(
-    EntryDate = format.Date(EntryDate, "%Y-%m-%d"),
-    ExitDate = format.Date(ExitDate, "%Y-%m-%d"),
-    ExitAdjust = format.Date(ExitAdjust, "%Y-%m-%d"),
     NoncashStartDate = ymd(NoncashStartDate),
     NoncashEndDate = ymd(NoncashEndDate),
     NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), today(), NoncashEndDate),
@@ -294,13 +290,14 @@ noncash2 <-
     benefitactive = NULL
   ) 
 noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
-rm(NonCashBenefits)
 NonCashBenefits <- full_join(noncash2, NCByn, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
 )) 
 NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
 rm(noncash2, NCByn)
+end <- now()
+end - start
 # Disabilities ------------------------------------------------------------
 
 
