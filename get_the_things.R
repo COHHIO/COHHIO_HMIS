@@ -885,6 +885,16 @@ Disabilities <- mutate(Disabilities,
     hud_impairabilityliveind == "client refused (hud)" ~ 9,
     hud_impairabilityliveind == "data not collected (hud)" |
       is.na(hud_impairabilityliveind) ~ 99
+  ),
+  disabilitytype = case_when(
+    disabilitytype == "physical (hud)" ~ 5,
+    disabilitytype == "developmental (hud)" ~ 6,
+    disabilitytype == "chronic health condition (hud)" ~ 7,
+    disabilitytype == "hiv/aids (hud)" ~ 8,
+    disabilitytype == "mental health problem (hud)" ~ 9,
+    disabilitytype %in% c("both alcohol and drug abuse (hud)",
+                          "alcohol abuse (hud)",
+                          "drug abuse (hud)") ~ 10 
   )
 )
 # clean up
