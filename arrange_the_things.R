@@ -1,6 +1,6 @@
 start <- now()
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-inctypes <- select(IncomeBenefits, IncomeSource) %>% unique()
+x <- select(Enrollment, MonthsHomelessPastThreeYears) %>% unique()
 #rm(hitypes)
 # this can be used in pairing EEs to assessment data.
 small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust)
@@ -101,15 +101,14 @@ rm(race, x)
 # function to pull assessment data into Enrollment table
 enrollment_level_value <- function(dataelement) {
   relevant_data <- assessment_data %>% filter(DataElement == dataelement)
-  no_dupes <- relevant_data %>%
+  relevant_data <- relevant_data %>%
     group_by(PersonalID, DateEffective) %>%
-    summarise(DateAdded = max(DateAdded))
-  relevant_data <- semi_join(relevant_data, no_dupes, by = c("PersonalID", "DateAdded"))
+    filter(DateAdded == max(DateAdded))
   x <- left_join(small_enrollment, relevant_data, by = "PersonalID") 
   x <- setDT(x)[,.SD[which.max(DateEffective[EntryDate >= DateEffective])], 
                 keyby = EnrollmentID]
   Enrollment <- left_join(Enrollment, x, 
-                          by = c("PersonalID", "EnrollmentID", "EntryDate", "ExitDate")) %>%
+                          by = c("PersonalID", "EnrollmentID", "EntryDate", "ExitDate", "HouseholdID", "ExitAdjust")) %>%
     select(-DataElement, -DateEffective, -DateAdded) 
 
   return(Enrollment)
@@ -125,13 +124,123 @@ Enrollment <- enrollment_level_value("hud_homelessstartdate") %>% rename(DateToS
 Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% rename(TimesHomelessPastThreeYears = Value)
 Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% rename(MonthsHomelessPastThreeYears = Value)
 
+Enrollment <- mutate(
+  Enrollment,
+  RelationshipToHoH = case_when(
+    RelationshipToHoH == "self (head of household)" ~ 1,
+    RelationshipToHoH == "head of household's child" ~ 2,
+    RelationshipToHoH == "head of household's spouse or partner" ~ 3,
+    RelationshipToHoH == "head of household's other relation member (other relation to head of household)" ~ 4,
+    RelationshipToHoH == "other: non-relation member" ~ 5,
+    RelationshipToHoH == "data not collected" |
+      RelationshipToHoH == "" |
+      is.na(RelationshipToHoH) ~ 99
+  ),
+  LivingSituation = case_when(
+    LivingSituation == "emergency shelter, including hotel or motel paid for with emergency shelter voucher (hud)" ~ 1,
+    LivingSituation == "transitional housing for homeless persons (including homeless youth) (hud)" ~ 2,
+    LivingSituation == "permanent housing (other than rrh) for formerly homeless persons (hud)" ~ 3,
+    LivingSituation == "psychiatric hospital or other psychiatric facility (hud)" ~ 4,
+    LivingSituation == "substance abuse treatment facility or detox center (hud)" ~ 5,
+    LivingSituation == "hospital or other residential non-psychiatric medical facility (hud)" ~ 6,
+    LivingSituation == "jail, prison or juvenile detention facility (hud)" ~ 7,
+    LivingSituation == "client doesn't know (hud)" ~ 8,
+    LivingSituation == "client refused (hud)" ~ 9,
+    LivingSituation == "staying or living in a family member's room, apartment or house (hud)" ~ 12,
+    LivingSituation == " staying or living in a friend's room, apartment or house (hud)" ~ 13,
+    LivingSituation == "hotel or motel paid for without emergency shelter voucher (hud)" ~ 14,
+    LivingSituation == "foster care home or foster care group home (hud)" ~ 15,
+    LivingSituation == "place not meant for habitation (hud)" ~ 16,
+    LivingSituation == "safe haven (hud)" ~ 18,
+    LivingSituation == "rental by client, with vash subsidy (hud)" ~ 19,
+    LivingSituation == "rental by client, with other ongoing housing subsidy (including rrh) (hud)" ~ 20,
+    LivingSituation == "owned by client, with ongoing housing subsidy (hud)" ~ 21,
+    LivingSituation == "rental by client, no ongoing housing subsidy (hud)" ~ 22,
+    LivingSituation == "owned by client, no ongoing housing subsidy (hud)" ~ 23,
+    LivingSituation == "long-term care facility or nursing home (hud)" ~ 24,
+    LivingSituation == "rental by client, with gpd tip subsidy (hud)" ~ 25,
+    LivingSituation == "residential project or halfway house with no homeless criteria (hud)" ~ 26,
+    LivingSituation == "interim housing" ~ 27,
+    LivingSituation == "data not collected (hud)"|
+      LivingSituation == "" |
+      is.na(LivingSituation) ~ 99
+  ),
+  LengthOfStay = case_when(
+    LengthOfStay == "one week or more, but less than one month" ~ 2,
+    LengthOfStay == "one month or more, but less than 90 days" ~ 3,
+    LengthOfStay == "90 days or more, but less than one year" ~ 4,
+    LengthOfStay == "one year or longer (hud)" ~ 5,
+    LengthOfStay == "client doesn't know (hud)" ~ 8,
+    LengthOfStay == "client refused (hud)" ~ 9,
+    LengthOfStay == "one night or less" ~ 10,
+    LengthOfStay == "two to six nights" ~ 11,
+    LengthOfStay == "data not collected (hud)" |
+      LengthOfStay == "" |
+      is.na(LengthOfStay) ~ 99
+  ),
+  LOSUnderThreshold = case_when(
+    LoS90d == "true" & 
+      PreviousStreetESSH == "true" & 
+      (LoS7d == "true" | LoS7d == "") ~ 1,
+    LoS90d == "true" & 
+      PreviousStreetESSH == "false" & 
+      (LoS7d == "true" | LoS7d == "") ~ 0,    
+    LoS90d == "false" & 
+      (LoS7d == "false" | LoS7d == "") ~ 0,
+    LoS7d == "true" & 
+      PreviousStreetESSH == "false" & 
+      (LoS7d == "true" | LoS7d == "") ~ 0,    
+    LoS7d == "true" & 
+      PreviousStreetESSH == "true" & 
+      (LoS90d == "true" | LoS90d == "") ~ 1,
+    LoS7d == "false" & 
+      (LoS90d == "false" | LoS90d == "") ~ 0,
+    (LoS7d == "true" | LoS90d == "true") &
+      PreviousStreetESSH == "" ~ 99
+  ),
+  TimesHomelessPastThreeYears = case_when(
+    TimesHomelessPastThreeYears == "one time (hud)" ~ 1,
+    TimesHomelessPastThreeYears == "two times (hud)" ~ 2,
+    TimesHomelessPastThreeYears == "three times (hud)" ~ 3,
+    TimesHomelessPastThreeYears == "four or more times (hud)" ~ 4,
+    TimesHomelessPastThreeYears == "client doesn't know (hud)" ~ 8,
+    TimesHomelessPastThreeYears == "client refused (hud)" ~ 9,
+    TimesHomelessPastThreeYears == "data not collected (hud)" |
+      TimesHomelessPastThreeYears == "" |
+      is.na(TimesHomelessPastThreeYears) ~ 99
+  ),
+  MonthsHomelessPastThreeYears = case_when(
+    MonthsHomelessPastThreeYears == "client doesn't know (hud)" ~ 8,
+    MonthsHomelessPastThreeYears == "client refused (hud)" ~ 9,
+    MonthsHomelessPastThreeYears == "data not collected (hud)" |
+      MonthsHomelessPastThreeYears == "" |
+      is.na(MonthsHomelessPastThreeYears) ~ 99,
+    MonthsHomelessPastThreeYears == "1" ~ 101,
+    MonthsHomelessPastThreeYears == "2" ~ 102,
+    MonthsHomelessPastThreeYears == "3" ~ 103,
+    MonthsHomelessPastThreeYears == "4" ~ 104,
+    MonthsHomelessPastThreeYears == "5" ~ 105,
+    MonthsHomelessPastThreeYears == "6" ~ 106,
+    MonthsHomelessPastThreeYears == "7" ~ 107,
+    MonthsHomelessPastThreeYears == "8" ~ 108,
+    MonthsHomelessPastThreeYears == "9" ~ 109,
+    MonthsHomelessPastThreeYears == "10" ~ 110,
+    MonthsHomelessPastThreeYears == "11" ~ 111,
+    MonthsHomelessPastThreeYears == "12" ~ 112,
+    MonthsHomelessPastThreeYears == "more than 12 months (hud)" ~ 113
+  ),
+  LoS7d = NULL,
+  LoS90d = NULL,
+  PreviousStreetESSH = NULL
+)
 # All Data Collection Stages ----------------------------------------------
 # this pulls a data element out of the assessment_data table into data from the
 # small_enrollment table and outputs that data along with Data Collection Stage
 all_the_stages <- function(dataelement) {
   x <- filter(assessment_data, DataElement == dataelement)
-  x <- x %>% group_by(PersonalID, Value, DateEffective) %>%
-    summarise(DateAdded = max(DateAdded))
+  x <- x %>% group_by(PersonalID, DateEffective) %>%
+    filter(DateAdded == max(DateAdded)) %>%
+    select(-DataElement)
   x <- left_join(small_enrollment, x, by = "PersonalID") %>%
     group_by(EnrollmentID) %>%
     mutate(
@@ -253,30 +362,38 @@ NCByn <- all_the_stages("svp_anysource30daynoncash") %>%
     BenefitsFromAnySource == "data not collected (hud)" |
       is.na(BenefitsFromAnySource) ~ 99
   ))
-
-NCByn <- left_join(NCByn, sub_enrollment, by = c("EnrollmentID", "PersonalID", "HouseholdID"))
-
-noncash2 <- mutate(
-  noncash,
-  SNAP = if_else(
-    NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)",
-    1,
-    0
-  ),
-  WIC = if_else(
-    NoncashSource == "special supplemental nutrition program for wic (hud)", 
-    1, 
-    0
-    ),
-  TANFChildCare = if_else(NoncashSource == "tanf child care services (hud)", 1, 0),
-  TANFTransportation = if_else(NoncashSource == "tanf transportation services (hud)", 1, 0),
-  OtherTANF = if_else(NoncashSource == "other tanf-funded services (hud)", 1, 0),
-  OtherSource = if_else(NoncashSource == "other source (hud)", 1, 0),
-  NoncashSource = NULL
-)
+# 
+# NCByn <- left_join(NCByn, sub_enrollment, by = c("EnrollmentID", "PersonalID", "HouseholdID"))
+# 
+# noncash2 <- mutate(
+#   noncash,
+#   SNAP = if_else(
+#     NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)",
+#     1,
+#     0
+#   ),
+#   WIC = if_else(
+#     NoncashSource == "special supplemental nutrition program for wic (hud)", 
+#     1, 
+#     0
+#     ),
+#   TANFChildCare = if_else(NoncashSource == "tanf child care services (hud)", 1, 0),
+#   TANFTransportation = if_else(NoncashSource == "tanf transportation services (hud)", 1, 0),
+#   OtherTANF = if_else(NoncashSource == "other tanf-funded services (hud)", 1, 0),
+#   OtherSource = if_else(NoncashSource == "other source (hud)", 1, 0),
+#   NoncashSource = NULL
+# )
 noncash2 <-
-  left_join(noncash2, sub_enrollment, by = "PersonalID") %>%
+  left_join(noncash, sub_enrollment, by = "PersonalID") %>%
   mutate(
+    NoncashSource = case_when(
+      NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)" ~ 3,
+      NoncashSource == "special supplemental nutrition program for wic (hud)" ~ 4,
+      NoncashSource == "other source (hud)" ~ 9,
+      NoncashSource == "tanf child care services (hud)" ~ 5,
+      NoncashSource == "tanf transportation services (hud)" ~ 6,
+      NoncashSource == "other tanf-funded services (hud)" ~ 7
+    ),
     NoncashStartDate = ymd(NoncashStartDate),
     NoncashEndDate = ymd(NoncashEndDate),
     NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), today(), NoncashEndDate),
@@ -301,16 +418,17 @@ NonCashBenefits <- full_join(noncash2, NCByn, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
 )) 
-NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
-NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
-  summarise(
-    SNAP = sum(SNAP),
-    WIC = sum(WIC),
-    TANFChildCare = sum(TANFChildCare),
-    TANFTransportation = sum(TANFTransportation),
-    OtherTANF = sum(OtherTANF),
-    OtherSource = sum(OtherSource)
-  )
+NonCashBenefits <- NonCashBenefits[, c(1, 6:10, 12:13, 3:5, 11)]
+# NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
+#   summarise(
+#     SNAP = sum(SNAP),
+#     WIC = sum(WIC),
+#     TANFChildCare = sum(TANFChildCare),
+#     TANFTransportation = sum(TANFTransportation),
+#     OtherTANF = sum(OtherTANF),
+#     OtherSource = sum(OtherSource)
+#   )
+# Data collection stage 3 shows as NA if nothing changed since Stage 1 or 2.
 rm(noncash2, NCByn)
 end <- now()
 end - start
