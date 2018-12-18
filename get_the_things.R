@@ -464,7 +464,7 @@ rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, count
 x <- select(Enrollment, EnrollmentID, PersonalID)
 interims <- inner_join(interims, x, by = "EnrollmentID") %>%
   mutate(InterimDate = ymd_hms(InterimDate))
-rm(x) 
+rm(x)
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
 client_start <- now()
