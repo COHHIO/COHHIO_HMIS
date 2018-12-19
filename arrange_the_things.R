@@ -215,7 +215,7 @@ Enrollment <- mutate(
     MonthsHomelessPastThreeYears == "data not collected (hud)" |
       MonthsHomelessPastThreeYears == "" |
       is.na(MonthsHomelessPastThreeYears) ~ 99,
-    MonthsHomelessPastThreeYears == "1" ~ 101,
+    MonthsHomelessPastThreeYears == "one month (this time is the first month) (hud)" ~ 101,
     MonthsHomelessPastThreeYears == "2" ~ 102,
     MonthsHomelessPastThreeYears == "3" ~ 103,
     MonthsHomelessPastThreeYears == "4" ~ 104,
@@ -233,6 +233,7 @@ Enrollment <- mutate(
   LoS90d = NULL,
   PreviousStreetESSH = NULL
 )
+Enrollment <- Enrollment[, c(1, 3, 5:7, 4, 8:9, 11, 10, 13:17, 21, 18:20, 2, 12)]
 # All Data Collection Stages ----------------------------------------------
 # this pulls a data element out of the assessment_data table into data from the
 # small_enrollment table and outputs that data along with Data Collection Stage
