@@ -5,9 +5,12 @@ library("readxl")
 library("data.table")
 begin <- now()
 y <- read_xml("data/Bowman_Payload_68.xml")
+#comes from ReportWriter ("EE IDs User Creating")
 users <- read_csv("data/usercreating.csv")
+#comes from ReportWriter ("counties")
 counties <- read_csv("data/counties.csv") 
-UserRecords <- read_csv("data/users.csv")
+#comes from ART
+UserRecords <- read_xls("data/RCurrentUsers.xls")
 scores <- read_xls("data/RScores.xls")
 # LIST OF THINGS
 # can't get the hopwa psh funding source to flip to its number.
@@ -119,8 +122,8 @@ Project <- Project %>% mutate(
     PrincipalSite == "false" ~ 0,
     is.na(PrincipalSite) ~ 99
   ),
-  OperatingStartDate = ymd_hms(OperatingStartDate),
-  OperatingEndDate = ymd_hms(OperatingEndDate)
+  OperatingStartDate = with_tz(ymd_hms(OperatingStartDate)),
+  OperatingEndDate = with_tz(ymd_hms(OperatingEndDate))
 )
 # Provider CoC records ----------------------------------------------------
 # name nodes we want to pull in
@@ -156,8 +159,8 @@ ProjectCoC <- ProjectCoC %>%
       GeographyType == "rural" ~ 3,
       is.na(GeographyType) ~ 99
     ),
-    CoCStart = ymd_hms(CoCStart),
-    CoCEnd = ymd_hms(CoCEnd)
+    CoCStart = with_tz(ymd_hms(CoCStart)),
+    CoCEnd = with_tz(ymd_hms(CoCEnd))
   )
 
 # Funding Sources ---------------------------------------------------------
@@ -225,8 +228,8 @@ Funder <- Funder %>%
       Funder == "va:grant per diem - transition in place" ~ 42,
       Funder == "hud:coc - youth homeless demonstration program (yhdp)"~ 43
     ),
-    StartDate = ymd_hms(StartDate),
-    EndDate = ymd_hms(EndDate)
+    StartDate = with_tz(ymd_hms(StartDate)),
+    EndDate = with_tz(ymd_hms(EndDate))
   )
 # ProviderAddresses -------------------------------------------------------
 # name nodes we want to pull in
@@ -308,8 +311,8 @@ Inventory <- Inventory %>%
       BedType == "voucher" ~ 2,
       BedType == "other" ~ 3
     ),
-    InventoryStartDate = ymd_hms(InventoryStartDate),
-    InventoryEndDate = ymd_hms(InventoryEndDate)
+    InventoryStartDate = with_tz(ymd_hms(InventoryStartDate)),
+    InventoryEndDate = with_tz(ymd_hms(InventoryEndDate))
   )
 
 # Entry Exit Records ------------------------------------------------------
@@ -418,15 +421,15 @@ Enrollment <- Enrollment %>% mutate(
   FamilyID = parse_number(FamilyID),
   ProjectID = parse_number(ProjectID),
   HouseholdID = if_else(is.na(HouseholdID), EnrollmentID, HouseholdID), # this is the ART "Group UID"
-  DateCreated = ymd_hms(DateCreated),
-  EntryDate = ymd_hms(EntryDate),
-  ExitDate = ymd_hms(ExitDate),
+  DateCreated = with_tz(ymd_hms(DateCreated)),
+  EntryDate = with_tz(ymd_hms(EntryDate)),
+  ExitDate = with_tz(ymd_hms(ExitDate)),
   ExitAdjust = if_else(is.na(ExitDate), now(), ExitDate),
   ExitAdjust = ymd_hms(ExitAdjust)
 )
 # add in User_Creating
-Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")
-Enrollment <- left_join(Enrollment, counties, by = c("EnrollmentID", "PersonalID"))
+Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")%>% 
+  left_join(., counties, by = c("EnrollmentID", "PersonalID"))
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
@@ -463,7 +466,7 @@ rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, count
 # grab Client IDs from the Enrollments table
 x <- select(Enrollment, EnrollmentID, PersonalID)
 interims <- inner_join(interims, x, by = "EnrollmentID") %>%
-  mutate(InterimDate = ymd_hms(InterimDate))
+  mutate(InterimDate = with_tz(ymd_hms(InterimDate)))
 rm(x)
 # Client Records ----------------------------------------------------------
 # name nodes we want to pull in
@@ -598,8 +601,8 @@ colnames(assessment_data) <- c(
   "date_added" = "DateAdded"
 )
 assessment_data <- mutate(assessment_data,
-                          DateEffective = ymd_hms(DateEffective),
-                          DateAdded = ymd_hms(DateAdded))
+                          DateEffective = with_tz(ymd_hms(DateEffective)),
+                          DateAdded = with_tz(ymd_hms(DateAdded)))
 # clean the house
 rm(assessmentData_child_nodes, 
    Client_ID_as_gparent, 
@@ -712,7 +715,7 @@ needs$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/
 needs <- mutate(needs, 
                 client = parse_number(client),
                 provider = parse_number(provider),
-                dateSet = ymd_hms(dateSet))
+                dateSet = with_tz(ymd_hms(dateSet)))
 # clean up column names
 colnames(needs) <- c(
   "record_id" = "NeedID",
@@ -756,8 +759,8 @@ Services <- mutate(Services,
                 need = parse_number(need),
                 provideProvider = parse_number(provideProvider),
                 household = parse_number(household),
-                provideStartDate = ymd_hms(provideStartDate),
-                provideEndDate = ymd_hms(provideEndDate))
+                provideStartDate = with_tz(ymd_hms(provideStartDate)),
+                provideEndDate = with_tz(ymd_hms(provideEndDate)))
 # clean up column names
 colnames(Services) <- c(
   "record_id" = "ServicesID",
@@ -810,8 +813,8 @@ colnames(IncomeBenefits) <- c(
   "sourceofincome" = "IncomeSource"
   )
 IncomeBenefits <- mutate(IncomeBenefits,
-                         IncomeStart = ymd_hms(IncomeStart),
-                         IncomeEnd = ymd_hms(IncomeEnd))
+                         IncomeStart = with_tz(ymd_hms(IncomeStart)),
+                         IncomeEnd = with_tz(ymd_hms(IncomeEnd)))
 # Non Cash ----------------------------------------------------------------
 # name nodes we want to pull in
 noncash_start <- now()
@@ -909,8 +912,8 @@ colnames(Disabilities) <- c(
   "hud_impairabilityliveind" = "IndefiniteAndImpairs"
 )
 Disabilities <- mutate(Disabilities,
-                       DisabilityStartDate = ymd_hms(DisabilityStartDate),
-                       DisabilityEndDate = ymd_hms(DisabilityEndDate))
+                       DisabilityStartDate = with_tz(ymd_hms(DisabilityStartDate)),
+                       DisabilityEndDate = with_tz(ymd_hms(DisabilityEndDate)))
 
 # Health Insurance -------------------------------------------------------
 # name nodes we want to pull in (Goes in the IncomeAndBenefits table)
@@ -959,10 +962,10 @@ colnames(health_insurance) <- c(
   "svphudhealthinsurancetype" = "HealthInsuranceType"
 )
 # clean up the house
-rm(cols, y, health_insurance_node, a, i)
+rm(cols, health_insurance_node, a, i)
 health_insurance <- mutate(health_insurance,
-                           HealthInsuranceStartDate = ymd_hms(HealthInsuranceStartDate),
-                           HealthInsuranceEndDate = ymd_hms(HealthInsuranceEndDate))
+                           HealthInsuranceStartDate = with_tz(ymd_hms(HealthInsuranceStartDate)),
+                           HealthInsuranceEndDate = with_tz(ymd_hms(HealthInsuranceEndDate)))
 # Timing ------------------------------------------------------------------
 end <- now()
 print(list("load xml file", provider_start - begin))
