@@ -17,11 +17,10 @@ client_level_value <- function(dataelement) {
   relevant_data <- filter(assessment_data, DataElement == dataelement)
   no_dupes <- relevant_data %>%
     group_by(PersonalID) %>%
-    summarise(max(DateEffective), max(DateAdded))
+    filter(DateEffective == max(DateEffective), DateAdded == max(DateAdded))
   x <- semi_join(relevant_data, no_dupes,
-                 by = c("PersonalID", "DateAdded" = "max(DateAdded)",
-                        "DateEffective" = "max(DateEffective)"))
-  Client <- left_join(Client, relevant_data, by = "PersonalID") %>%
+                 by = c("PersonalID", "DateAdded", "DateEffective"))
+  Client <- left_join(Client, x, by = "PersonalID") %>%
     select(-DataElement, -DateEffective, -DateAdded) 
   return(Client)
 }
@@ -82,7 +81,7 @@ Client <- mutate(
   ),
   DisablingCondition = case_when(
     DisablingCondition == "yes (hud)" ~ 1,
-    DisablingCondition == "no (hud)" ~ 2,
+    DisablingCondition == "no (hud)" ~ 0,
     DisablingCondition == "client doesn't know (hud)" ~ 8,
     DisablingCondition == "client refused (hud)" ~ 9,
     DisablingCondition == "data not collected (hud)" |
@@ -233,7 +232,7 @@ Enrollment <- mutate(
   LoS90d = NULL,
   PreviousStreetESSH = NULL
 )
-Enrollment <- Enrollment[, c(1, 3, 5:7, 4, 8:9, 11, 10, 13:17, 21, 18:20, 2, 12)]
+Enrollment <- Enrollment[, c(1, 3, 5:7, 4, 12, 8:9, 11, 10, 13:14, 18, 15:17, 2)]
 # All Data Collection Stages ----------------------------------------------
 # this pulls a data element out of the assessment_data table into data from the
 # small_enrollment table and outputs that data along with Data Collection Stage
