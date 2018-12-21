@@ -473,32 +473,34 @@ Insuranceyn <- left_join(Insuranceyn,
     InsuranceFromAnySource == "data not collected (hud)" |
       is.na(InsuranceFromAnySource) ~ 99
   ))
-hi <- mutate(
-  health_insurance,
-  Medicaid = if_else(
-    HealthInsuranceType == "medicaid", 1, 0),
-  Medicare = if_else(
-    HealthInsuranceType == "medicare", 1, 0),
-  SCHIP = if_else(
-    HealthInsuranceType == "state children's health insurance program", 1, 0),
-  VAMedicalServices = if_else(
-    HealthInsuranceType == "veteran's administration (va) medical services",  1, 0),
-  EmployerProvided = if_else(
-    HealthInsuranceType == "employer - provided health insurance", 1, 0),
-  COBRA = if_else(
-    HealthInsuranceType == "health insurance obtained through cobra", 1, 0),
-  PrivatePay = if_else(
-    HealthInsuranceType == "private pay health insurance", 1, 0),
-  StateHealthInsAdults = if_else(
-    HealthInsuranceType == "state health insurance for adults", 1, 0),
-  IndianHealthServices = if_else(
-    HealthInsuranceType == "indian health services program", 1, 0),
-  OtherInsurance = if_else(
-    HealthInsuranceType == "other", 1, 0),
-  HealthInsuranceType = NULL
-)
-hi <-
-  left_join(hi, sub_enrollment, by = "PersonalID") %>%
+
+# healthins <- mutate(
+#   health_insurance,
+#   Medicaid = if_else(
+#     HealthInsuranceType == "medicaid", 1, 0),
+#   Medicare = if_else(
+#     HealthInsuranceType == "medicare", 1, 0),
+#   SCHIP = if_else(
+#     HealthInsuranceType == "state children's health insurance program", 1, 0),
+#   VAMedicalServices = if_else(
+#     HealthInsuranceType == "veteran's administration (va) medical services",  1, 0),
+#   EmployerProvided = if_else(
+#     HealthInsuranceType == "employer - provided health insurance", 1, 0),
+#   COBRA = if_else(
+#     HealthInsuranceType == "health insurance obtained through cobra", 1, 0),
+#   PrivatePay = if_else(
+#     HealthInsuranceType == "private pay health insurance", 1, 0),
+#   StateHealthInsAdults = if_else(
+#     HealthInsuranceType == "state health insurance for adults", 1, 0),
+#   IndianHealthServices = if_else(
+#     HealthInsuranceType == "indian health services program", 1, 0),
+#   OtherInsurance = if_else(
+#     HealthInsuranceType == "other", 1, 0),
+#   HealthInsuranceType = NULL
+# )
+
+healthins <-
+  left_join(healthins, sub_enrollment, by = "PersonalID") %>%
   mutate(
     HealthInsuranceStartDate = ymd(HealthInsuranceStartDate),
     HealthInsuranceEndDate = ymd(HealthInsuranceEndDate),
@@ -518,13 +520,13 @@ hi <-
     inproject = NULL,
     insuranceactive = NULL
   ) 
-hi <- filter(hi, !is.na(DataCollectionStage))
-HealthInsurance <- full_join(Insuranceyn, hi, by = c(
+healthins <- filter(healthins, !is.na(DataCollectionStage))
+HealthInsurance <- full_join(Insuranceyn, healthins, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
 )) 
 HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 12:21)]
-rm(hi, Insuranceyn)
+rm(healthins, Insuranceyn)
 # Income and Sources ------------------------------------------------------
 Incomeyn <- all_the_stages("svp_anysource30dayincome") %>% 
   rename(IncomeFromAnySource = Value) %>%
