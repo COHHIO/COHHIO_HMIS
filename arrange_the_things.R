@@ -1,7 +1,7 @@
 start <- now()
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-x <- select(Enrollment, MonthsHomelessPastThreeYears) %>% unique()
-#rm(hitypes)
+x <- Client %>% select(Gender)
+unique(x)
 # this can be used in pairing EEs to assessment data.
 small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust)
 small_enrollment <- setDT(small_enrollment)
@@ -23,13 +23,13 @@ client_level_value <- function(dataelement) {
   Client <- left_join(Client, x, by = "PersonalID") %>%
     select(-DataElement, -DateEffective, -DateAdded) 
   return(Client)
-}
+} 
 Client <- client_level_value("svpprofdob") 
 Client <- Client %>% mutate(DOB = strftime(ymd_hms(Value), "%F"), Value = NULL)
 Client <- client_level_value("svpprofdobtype") %>% rename(DOBDataQuality = Value)
 Client <- client_level_value("svpprofeth") %>% rename(Ethnicity = Value)
 Client <- client_level_value("hud_disablingcondition") %>% rename(DisablingCondition = Value)
-
+Client <- client_level_value("svpprofgender") %>% rename(Gender = Value)
 race <-
   assessment_data %>% filter(
     DataElement %in% c("svpprofrace", "svpprofsecondaryrace") &
@@ -92,7 +92,18 @@ Client <- mutate(
     1,
     0
   ),
-  DOB = ymd(DOB)
+  DOB = ymd(DOB),
+  Gender = case_when(
+    Gender == "female" ~ 0,
+    Gender == "male" ~ 1,
+    Gender == "trans female (mtf or male to female)" ~ 2,
+    Gender == "trans male (ftm or female to male)" ~ 3,
+    Gender == "gender non-conforming (i.e. not exclusively male or female)" ~ 4,
+    Gender == "client doesn't know" ~ 8,
+    Gender == "client refused" ~ 9,
+    Gender == "data not collected" |
+      is.na(Gender) ~ 99
+  )
 )
 rm(race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
@@ -106,9 +117,9 @@ enrollment_level_value <- function(dataelement) {
   x <- left_join(small_enrollment, relevant_data, by = "PersonalID") 
   x <- setDT(x)[,.SD[which.max(DateEffective[EntryDate >= DateEffective])], 
                 keyby = EnrollmentID]
+  x <- select(x, EnrollmentID, Value)
   Enrollment <- left_join(Enrollment, x, 
-                          by = c("PersonalID", "EnrollmentID", "EntryDate", "ExitDate", "HouseholdID", "ExitAdjust")) %>%
-    select(-DataElement, -DateEffective, -DateAdded) 
+                          by = "EnrollmentID")  
 
   return(Enrollment)
 }
@@ -284,8 +295,39 @@ DomesticViolence <-
   ) %>%
   left_join(., DomesticViolence3,
     by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
-  )
+  ) %>%
+  mutate(DomesticViolenceVictim = case_when(
+    DomesticViolenceVictim == "yes (hud)" ~ 1,
+    DomesticViolenceVictim == "no (hud)" ~ 0,
+    DomesticViolenceVictim == "client doesn't know (hud)" ~ 8,
+    DomesticViolenceVictim == "client refused (hud)" ~ 9,
+    DomesticViolenceVictim == "data not collected (hud)" |
+      DomesticViolenceVictim == "" |
+      is.na(DomesticViolenceVictim) ~ 99
+  ),
+  WhenOccurred = case_when(
+    WhenOccurred == "within the past three months (hud)" ~ 1,
+    WhenOccurred == "three to six months ago (hud)" ~ 2,
+    WhenOccurred == "from six to twelve months ago (hud)" ~ 3,
+    WhenOccurred == "more than a year ago (hud)" ~ 4,
+    WhenOccurred == "client doesn't know (hud)" ~ 8,
+    WhenOccurred == "client refused (hud)" ~ 9,
+    WhenOccurred == "data not collected (hud)" |
+      WhenOccurred == "" |
+      is.na(WhenOccurred) ~ 99
+  ),
+  CurrentlyFleeing = case_when(
+    CurrentlyFleeing == "yes (hud)" ~ 1,
+    CurrentlyFleeing == "no (hud)" ~ 0,
+    CurrentlyFleeing == "client doesn't know (hud)" ~ 8,
+    CurrentlyFleeing == "client refused (hud)" ~ 9,
+    CurrentlyFleeing == "data not collected (hud)" |
+      CurrentlyFleeing == "" |
+      is.na(CurrentlyFleeing) ~ 99
+  ))
+DomesticViolence <- as.data.frame(DomesticViolence)
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
+
 DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
 # EnrollmentCoC -----------------------------------------------------------
 
