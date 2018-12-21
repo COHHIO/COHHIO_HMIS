@@ -5,15 +5,19 @@ library("readxl")
 library("data.table")
 begin <- now()
 y <- read_xml("data/Bowman_Payload_68.xml")
-#comes from ReportWriter ("EE IDs User Creating")
-users <- read_csv("data/usercreating.csv")
-#comes from ReportWriter ("counties")
-counties <- read_csv("data/counties.csv") 
 #comes from ART
-UserRecords <- read_xls("data/RCurrentUsers.xls")
-scores <- read_xls("data/RScores.xls")
-# LIST OF THINGS
-# can't get the hopwa psh funding source to flip to its number.
+users <- read_xlsx("data/RMisc.xlsx",
+                  sheet = 4,
+                  range = cell_cols("A:G"))
+scores <- read_xlsx("data/RMisc.xlsx",
+                   sheet = 1,
+                   range = cell_cols("A:E"))
+counties <- read_xlsx("data/RMisc.xlsx",
+                     sheet = 2,
+                     range = cell_cols("A:C"))
+usercreating <- read_xlsx("data/RMisc.xlsx",
+                         sheet = 3,
+                         range = cell_cols("A:B"))
 
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
@@ -427,9 +431,11 @@ Enrollment <- Enrollment %>% mutate(
   ExitAdjust = if_else(is.na(ExitDate), now(), ExitDate),
   ExitAdjust = ymd_hms(ExitAdjust)
 )
-# add in User_Creating
-Enrollment <- Enrollment %>% left_join(users, by = "EnrollmentID")%>% 
-  left_join(., counties, by = c("EnrollmentID", "PersonalID"))
+# add in UserCreating and County data
+Enrollment <- Enrollment %>% 
+  left_join(usercreating, by = "EnrollmentID") %>% 
+  left_join(., counties, by = "EnrollmentID")
+
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
