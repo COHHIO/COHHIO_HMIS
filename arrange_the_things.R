@@ -329,6 +329,8 @@ DomesticViolence <- as.data.frame(DomesticViolence)
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
 
 DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
+end <- now()
+end - start
 # EnrollmentCoC -----------------------------------------------------------
 
 EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
@@ -472,8 +474,7 @@ NonCashBenefits <- NonCashBenefits[, c(1, 6:10, 12:13, 3:5, 11)]
 #   )
 # Data collection stage 3 shows as NA if nothing changed since Stage 1 or 2.
 rm(noncash2, NCByn)
-end <- now()
-end - start
+
 # Disabilities ------------------------------------------------------------
 
 disability2 <-
