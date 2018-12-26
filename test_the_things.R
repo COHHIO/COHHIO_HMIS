@@ -1,6 +1,8 @@
 library(janitor)
 # check that the subassessment dates are all only ymd and make necessary corrections
 # can't get the hopwa psh funding source to flip to its number.
+# maybe look at calculating Data Collection Stage by using Intervals like you're
+  # doing for NCBs.
 
 # Client table testing ----------------------------------------------------
 get_dupes(Client, PersonalID)
