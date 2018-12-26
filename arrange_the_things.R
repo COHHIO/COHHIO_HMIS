@@ -315,55 +315,76 @@ DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>%
   rename(CurrentlyFleeing = Value)
 # joining all the dv data with Client and Enrollment data, applying HUD CSV specs
 DomesticViolence <-
-  left_join(DomesticViolence1, DomesticViolence2, 
-            by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
+  left_join(
+    DomesticViolence1,
+    DomesticViolence2,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "HouseholdID",
+      "DataCollectionStage"
+    )
   ) %>%
-  left_join(., DomesticViolence3,
-    by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
+  left_join(
+    .,
+    DomesticViolence3,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "HouseholdID",
+      "DataCollectionStage"
+    )
   ) %>%
-  mutate(DomesticViolenceVictim = case_when(
-    DomesticViolenceVictim == "yes (hud)" ~ 1,
-    DomesticViolenceVictim == "no (hud)" ~ 0,
-    DomesticViolenceVictim == "client doesn't know (hud)" ~ 8,
-    DomesticViolenceVictim == "client refused (hud)" ~ 9,
-    DomesticViolenceVictim == "data not collected (hud)" |
-      DomesticViolenceVictim == "" |
-      is.na(DomesticViolenceVictim) ~ 99
-  ),
-  WhenOccurred = case_when(
-    WhenOccurred == "within the past three months (hud)" ~ 1,
-    WhenOccurred == "three to six months ago (hud)" ~ 2,
-    WhenOccurred == "from six to twelve months ago (hud)" ~ 3,
-    WhenOccurred == "more than a year ago (hud)" ~ 4,
-    WhenOccurred == "client doesn't know (hud)" ~ 8,
-    WhenOccurred == "client refused (hud)" ~ 9,
-    WhenOccurred == "data not collected (hud)" |
-      WhenOccurred == "" |
-      is.na(WhenOccurred) ~ 99
-  ),
-  CurrentlyFleeing = case_when(
-    CurrentlyFleeing == "yes (hud)" ~ 1,
-    CurrentlyFleeing == "no (hud)" ~ 0,
-    CurrentlyFleeing == "client doesn't know (hud)" ~ 8,
-    CurrentlyFleeing == "client refused (hud)" ~ 9,
-    CurrentlyFleeing == "data not collected (hud)" |
-      CurrentlyFleeing == "" |
-      is.na(CurrentlyFleeing) ~ 99
-  ))
+  mutate(
+    DomesticViolenceVictim = case_when(
+      DomesticViolenceVictim == "yes (hud)" ~ 1,
+      DomesticViolenceVictim == "no (hud)" ~ 0,
+      DomesticViolenceVictim == "client doesn't know (hud)" ~ 8,
+      DomesticViolenceVictim == "client refused (hud)" ~ 9,
+      DomesticViolenceVictim == "data not collected (hud)" |
+        DomesticViolenceVictim == "" |
+        is.na(DomesticViolenceVictim) ~ 99
+    ),
+    WhenOccurred = case_when(
+      WhenOccurred == "within the past three months (hud)" ~ 1,
+      WhenOccurred == "three to six months ago (hud)" ~ 2,
+      WhenOccurred == "from six to twelve months ago (hud)" ~ 3,
+      WhenOccurred == "more than a year ago (hud)" ~ 4,
+      WhenOccurred == "client doesn't know (hud)" ~ 8,
+      WhenOccurred == "client refused (hud)" ~ 9,
+      DomesticViolenceVictim == 1 &
+        (
+          WhenOccurred == "data not collected (hud)" |
+            WhenOccurred == "" |
+            is.na(WhenOccurred)
+        ) ~ 99
+    ),
+    CurrentlyFleeing = case_when(
+      CurrentlyFleeing == "yes (hud)" ~ 1,
+      CurrentlyFleeing == "no (hud)" ~ 0,
+      CurrentlyFleeing == "client doesn't know (hud)" ~ 8,
+      CurrentlyFleeing == "client refused (hud)" ~ 9,
+      DomesticViolenceVictim == 1 &
+        (
+          CurrentlyFleeing == "data not collected (hud)" |
+            CurrentlyFleeing == "" |
+            is.na(CurrentlyFleeing)
+        ) ~ 99
+    )
+  )
 # this table was coming out as weird type so I need to convert it to df
 DomesticViolence <- as.data.frame(DomesticViolence)
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
 # arrange rows sensibly
 DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
-end <- now()
-end - start
+
 # EnrollmentCoC -----------------------------------------------------------
 # HUD has this as a separate table even though it seems like an enrollment-level
   # data element to me. I may move this into Enrollment.
 EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
   rename(EnrollmentCoC = Value)
 EnrollmentCoC <- EnrollmentCoC[, c(2, 1, 3:5)]
-
+EnrollmentCoC <- as.data.frame(EnrollmentCoC)
 # Employment Education ----------------------------------------------------
 # these also seem like enrollment-level data elements to me but I think keeping
   # these separate makes sense as it will rarely if ever be used
@@ -419,11 +440,27 @@ EmploymentEducation <- left_join(
   )
 rm(LastGrade, SchoolStatus, Employed, EmploymentType, NotEmployedReason)
 EmploymentEducation <- EmploymentEducation[, c(2, 1, 3, 5, 4, 6:9)]
+EmploymentEducation <- as.data.frame(EmploymentEducation)
+
 # Connection w SOAR -------------------------------------------------------
 # this also seems like enrollment-level data to me but I think keeping it 
-# separate makes sense as it will rarely if ever be used
+  # separate makes sense as it will rarely if ever be used
 ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>% 
-  rename(ConnectionWithSOAR = Value)
+  rename(Connected = Value)
+ConnectionWithSOAR <- as.data.frame(ConnectionWithSOAR)
+ConnectionWithSOAR <-
+  ConnectionWithSOAR %>% mutate(
+    Connected = case_when(
+      Connected == "yes (hud)" ~ 1,
+      Connected == "no (hud)" ~ 0,
+      Connected == "client doesn't know" ~ 8,
+      Connected == "client refused" ~ 9,
+      Connected == "data not collected" |
+        Connected == "" |
+        is.na(Connected) ~ 99
+    )
+  )
+ConnectionWithSOAR <- ConnectionWithSOAR[, c(2, 1, 3, 5, 4)]
 
 # Non Cash ----------------------------------------------------------------
 # HUD stores this data similarly to the way they do Race data but I'm considering
@@ -489,13 +526,20 @@ noncash2 <-
     inproject = NULL,
     benefitactive = NULL
   ) 
+NCByn <- as.data.frame(NCByn)
 # throwing out the noncash subs that are not being assigned a Data Collection Stage
 noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
 # adding the data from the subs to the larger NCB data
-NonCashBenefits <- full_join(noncash2, NCByn, by = c(
-  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
-  "ExitDate", "ExitAdjust"
-)) 
+NonCashBenefits <- full_join(
+  noncash2,
+  NCByn,
+  by = c(
+    "PersonalID",
+    "EnrollmentID",
+    "HouseholdID",
+    "DataCollectionStage"
+  )
+) 
 NonCashBenefits <- NonCashBenefits[, c(1, 6:10, 12:13, 3:5, 11)]
 # NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
 #   summarise(
@@ -511,13 +555,16 @@ rm(noncash2, NCByn)
 # Disabilities ------------------------------------------------------------
 # similar to NCBs, but without the y/n since that's going to be in Enrollment
 disability2 <-
-  left_join(Disabilities, sub_enrollment, by = "PersonalID") %>%
+  left_join(Disabilities, small_enrollment, by = "PersonalID") %>%
   mutate(
-    DisabilityStartDate = ymd(DisabilityStartDate),
-    DisabilityEndDate = ymd(DisabilityEndDate),
-    DisabilityEndDateAdjust = if_else(is.na(DisabilityEndDate), today(), DisabilityEndDate),
+    DisabilityStartDate = ymd_hms(DisabilityStartDate),
+    DisabilityEndDate = ymd_hms(DisabilityEndDate),
+    DisabilityEndDateAdjust = if_else(is.na(DisabilityEndDate), 
+                                      now(), 
+                                      DisabilityEndDate),
     inproject = interval(EntryDate, ExitAdjust),
-    disabilityactive = interval(DisabilityStartDate, DisabilityEndDateAdjust),
+    disabilityactive = interval(DisabilityStartDate,
+                                DisabilityEndDateAdjust),
     DataCollectionStage = if_else(
       int_overlaps(disabilityactive, inproject),
       case_when(
@@ -619,9 +666,11 @@ Incomeyn <- all_the_stages("svp_anysource30dayincome") %>%
     IncomeFromAnySource == "data not collected (hud)" |
       is.na(IncomeFromAnySource) ~ 99
   ))
+Incomeyn <- as.data.frame(Incomeyn)
 # getting the second income-related data element (total monthly income)
 TMI <- all_the_stages("hud_totalmonthlyincome") %>%
   rename(TotalMonthlyIncome = Value)
+TMI <- as.data.frame(TMI)
 # joining the y/n and the tmi data together with Enrollment data
 Incomeyn <-
   left_join(Incomeyn,
@@ -636,6 +685,8 @@ Incomeyn <-
               "DataCollectionStage"
             ))
 # STOP HERE
+end <- now()
+end - start
 # incomesubs <- mutate(
 #   IncomeBenefits,
 #   Earned = if_else(
