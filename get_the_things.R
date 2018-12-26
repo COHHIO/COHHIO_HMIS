@@ -4,8 +4,9 @@ library("lubridate")
 library("readxl")
 library("data.table")
 begin <- now()
+# pulls in the XML file which comes from the ServicePoint export
 y <- read_xml("data/Bowman_Payload_68.xml")
-#comes from ART
+# all other data comes from the RMisc ART report
 users <- read_xlsx("data/RMisc.xlsx",
                   sheet = 4,
                   range = cell_cols("A:G"))
@@ -18,7 +19,7 @@ counties <- read_xlsx("data/RMisc.xlsx",
 usercreating <- read_xlsx("data/RMisc.xlsx",
                          sheet = 3,
                          range = cell_cols("A:B"))
-
+# this function turns the XML data into data frames
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
   df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
@@ -53,10 +54,8 @@ cols <- c(
 )
 # run function to get xml data to a data frame
 Project <- xml_to_df(y, "//*/Provider", cols)
-
 # get ids, add them to the data frame
 Project$record_id <- parse_number(xml_text(xml_find_all(y, "//records/providerRecords/Provider/@record_id")))
-
 # clean up column names
 colnames(Project) <- c(
   "record_id" = "ProjectID",
@@ -75,7 +74,7 @@ colnames(Project) <- c(
   "targetPopValue" = "TargetPopulation",
   "victimServiceProvider" = "VictimServicesProvider"
 )
-# replace data levels with what it has in the HUD CSV specs 
+# update data to match the HUD CSV specs 
 Project <- Project %>% mutate(
   ProjectType = case_when(
     ProjectType == "emergency shelter (hud)" ~ 1,
@@ -153,7 +152,7 @@ colnames(ProjectCoC) <- c(
   "postalCode" = "ZIP",
   "geocode" = "Geocode"
 )
-# clean up data to match with HUD CSV specs and make id field numeric
+# update data to match the HUD CSV specs, make IDs numeric, and convert dates to EST
 ProjectCoC <- ProjectCoC %>%
   mutate(
     ProjectID = parse_number(ProjectID),
@@ -176,7 +175,6 @@ cols <- c(
   "grantEndDate",
   "federalPartnerProgram"
 )
-# node to count from
 # run function to get xml to a dataframe
 Funder <- xml_to_df(y, "//records/providerRecords/Provider/childProviderFedPartnerFundingSource/*[active = 'true']", cols)
 # clean up column names
@@ -186,7 +184,7 @@ colnames(Funder) <- c(
   "grantEndDate" = "EndDate",
   "federalPartnerProgram" = "Funder"
 )
-# clean up data to match with HUD CSV specs and make id field numeric
+# clean up data to match with HUD CSV specs, make id field numeric, convert dates to EST
 Funder <- Funder %>%
   mutate(
     ProjectID = parse_number(ProjectID),
@@ -257,6 +255,7 @@ colnames(Geography) <- c(
   "province" = "State",
   "postalCode" = "ZIP"
 )
+# make IDs numeric
 Geography <- Geography %>%
   mutate(
     ProjectID = parse_number(ProjectID))
@@ -296,7 +295,7 @@ colnames(Inventory) <- c(
   "hmisBeds" = "HMISParticipatingBeds",
   "cocCode" = "CoCCode"
 )
-# clean up data to match with HUD CSV specs and make id field numeric
+# clean up data to match with HUD CSV specs, make id field numeric, convert dates to EST
 Inventory <- Inventory %>%
   mutate(
     ProjectID = parse_number(ProjectID),
@@ -352,7 +351,7 @@ colnames(Enrollment) <- c(
   "exitDate" = "ExitDate",
   "destinationValue" = "Destination"
 )
-# clean up data to match with HUD CSV specs and make id field numeric
+# clean up data to match with HUD CSV specs, make id field numeric, convert dates to EST
 Enrollment <- Enrollment %>% mutate(
   Destination = case_when(
     Destination == "emergency shelter, including hotel or motel paid for with emergency shelter voucher (hud)" &
@@ -444,32 +443,32 @@ cols <- c(
   "review_id",
   "ee_id"
 )
-# this throws warnings but it's ok
+# get data from the XML to a df
 interims <- xml_to_df(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview", cols)
 # getting record id's of the interim records
 interims$review_id <- parse_number(xml_text(xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview/@system_id")))
 # establishing the node we're counting up from
 interim_node <- xml_find_all(y, "//records/entryExitRecords/EntryExit[active = 'true']/childEntryExitReview/EntryExitReview")
-
-ee_as_gparent <- xml_parent(xml_parent(interim_node))
 # grabbing the attribute that's at those particular ee's
-
+ee_as_gparent <- xml_parent(xml_parent(interim_node))
+# how many interims per ee?
 length_interim <- sapply(xml_parent(interim_node), function(x) length(xml_children(x)))
-
+# gets the ee ids
 ee_id <- parse_number(xml_attr(ee_as_gparent, "record_id"))
-
+# creates a df that tells us how many interims per ee id
 ids <- data.frame(length_interim, ee_id)
-
+# uses the info gained to repeat the number of ee ids for each interim
 ee_ids <- c()
 for(i in 1:nrow(ids)) {
   ee_ids <- c(ee_ids, rep(ids[i,]$ee_id, ids[i,]$length_interim))
 }
+# finally adds the ee ids to the interims df
 interims$ee_id <- ee_ids
 # clean up column names
 colnames(interims) <- c("InterimDate", "InterimType", "InterimID", "EnrollmentID")
 # clean up the house
 rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, counties)
-# grab Client IDs from the Enrollments table
+# adds Client IDs from the Enrollments table
 x <- select(Enrollment, EnrollmentID, PersonalID)
 interims <- inner_join(interims, x, by = "EnrollmentID") %>%
   mutate(InterimDate = with_tz(ymd_hms(InterimDate)))
@@ -571,25 +570,25 @@ cols <- c(
   "date_added",
   "date_effective"
 )
-# 2742036 nodes (assessment records, including subs)
+# gets all the nodes under the "assessmentData" node
 assessmentData_child_nodes <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/*")
-# 42754 nodes (client records)
+# using the above, grabs Client IDs
 Client_ID_as_gparent <- xml_parent(xml_parent(assessmentData_child_nodes))
-# 2742036 records
+# each node's name
 data_element <- xml_name(assessmentData_child_nodes)
-# 2742036 records
+# each node's value
 value <- xml_text(assessmentData_child_nodes)
-# 2742036 records
+# each node's date eff
 date_effective <- xml_attr(assessmentData_child_nodes, "date_effective")
-# 2742036 records
+# each node's date added
 date_added <- xml_attr(assessmentData_child_nodes, "date_added")
-# 42754 records
+# making Client ID numeric
 client_id <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
-# 42754 records
+# works out how many assessments per Client ID
 length_assessments <- sapply(xml_parent(assessmentData_child_nodes), function(x) length(xml_children(x)))
-# 42754 records
+# returns how many assessments per Client ID
 ids <- data.frame(length_assessments, client_id)
-# getting the 42754 records onto the larger number of rows
+# uses the info from above to repeat the Client IDs however many times as needed
 a <- c()
 for(i in 1:nrow(ids)) {
   a <- c(a, rep(ids[i,]$client_id, ids[i,]$length_assessments))
@@ -606,6 +605,7 @@ colnames(assessment_data) <- c(
   "date_effective" =  "DateEffective",
   "date_added" = "DateAdded"
 )
+# converting dates to EST
 assessment_data <- mutate(assessment_data,
                           DateEffective = with_tz(ymd_hms(DateEffective)),
                           DateAdded = with_tz(ymd_hms(DateAdded)))
@@ -717,7 +717,7 @@ cols <- c(
 needs <- xml_to_df(y, "//records/needRecords/Need", cols)
 # get Need IDs to data frame
 needs$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/@record_id")))
-# make the Client IDs and Provider IDs numeric
+# make the Client IDs and Provider IDs numeric and converting date to EST
 needs <- mutate(needs, 
                 client = parse_number(client),
                 provider = parse_number(provider),
@@ -755,9 +755,9 @@ cols <- c(
 ) 
 # run function to get xml to a dataframe (I think there are no inactive records coming in)
 Services <- xml_to_df(y, "//records/needRecords/Need/childService/Service", cols)
-# clean up column names
+# add service ids to the df
 Services$record_id <- parse_number(xml_text(xml_find_all(y, "//records/needRecords/Need/childService/Service/@record_id")))
-# make the Client IDs and Provider IDs numeric
+# make the Client IDs and Provider IDs numeric and convert dates to EST
 Services <- mutate(Services, 
                 client = parse_number(client),
                 referfromProvider = parse_number(referfromProvider),
@@ -793,11 +793,11 @@ cols <- c(
   "monthlyincomeend",
   "sourceofincome"
 )
-# income node to count up from
-income_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']")
 # run function to get xml to a dataframe
 IncomeBenefits <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']", cols)
-# get sub ids
+# income node to count up from
+income_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/monthlyincome[svp_receivingincomesource ='yes']")
+# add sub ids to the df
 IncomeBenefits$system_id <- parse_number(xml_attr(income_node, "system_id"))
 # create an empty table
 a <- c()
@@ -805,7 +805,7 @@ a <- c()
 for(i in 1:length(income_node)) {
   a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(income_node[i])),"record_id")))
   }
-# add client ids into the larger object
+# add client ids to the df
 IncomeBenefits$client_id <- a
 # clean up the house
 rm(income_node, a)
@@ -818,6 +818,7 @@ colnames(IncomeBenefits) <- c(
   "monthlyincomeend" = "IncomeEnd",
   "sourceofincome" = "IncomeSource"
   )
+# convert dates to EST
 IncomeBenefits <- mutate(IncomeBenefits,
                          IncomeStart = with_tz(ymd_hms(IncomeStart)),
                          IncomeEnd = with_tz(ymd_hms(IncomeEnd)))
@@ -831,19 +832,19 @@ cols <- c(
   "svp_noncashbenefitsstart",
   "svp_noncashbenefitsend"
 )
-# noncash node to count up from
-noncash_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']")
 # run function to get xml to a dataframe
 noncash <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']", cols)
-# get ids to data frame
+# noncash node to count up from
+noncash_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/svp_noncashbenefits[svp_receivingbenefit = 'yes']")
+# get ids to df
 noncash$system_id <- parse_number(xml_attr(noncash_node, "system_id"))
 # create an empty table
 a <- c()
-# populate the empty table with the right number of client ids
+# populate the empty table with the client ids
 for(i in 1:length(noncash_node)) {
   a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(noncash_node[i])),"record_id")))
 }
-# add this column into the larger object
+# add this column to the df
 noncash$client_id <- a
 # clean up the house
 rm(noncash_node, a)
@@ -855,6 +856,7 @@ colnames(noncash) <- c(
   "svp_noncashbenefitsstart" = "NoncashStartDate",
   "svp_noncashbenefitsend" = "NoncashEndDate"
 )
+# convert dates to EST
 noncash <- mutate(
   noncash,
   NoncashStartDate = as.Date(NoncashStartDate, "%Y-%m-%d", tz = "America/New_York"),
@@ -871,19 +873,19 @@ cols <- c(
   "disabilitytype",
   "hud_impairabilityliveind"
 )
-# node to count from
-disabilities_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']")
 # run function to get xml to a dataframe
 Disabilities <- xml_to_df(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']", cols)
-# get ids to data frame
+# node to count from
+disabilities_node <- xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']")
+# get ids to df
 Disabilities$system_id <- parse_number(xml_text(xml_find_all(y, "//records/clientRecords/Client/assessmentData/disabilities_1[disabilitydetermine = 'yes (hud)']/@system_id")))
 # create an empty table
 a <- c()
-# populate the empty table with the right number of client ids
+# populate the empty table with the client ids
 for(i in 1:length(disabilities_node)) {
   a <- c(a, parse_number(xml_attr(xml_parent(xml_parent(disabilities_node[i])),"record_id")))
 }
-# add this column into the larger object
+# add this column to the df
 Disabilities$client_id <- a
 # clean up data to match with HUD CSV specs 
 Disabilities <- mutate(Disabilities,
@@ -917,6 +919,7 @@ colnames(Disabilities) <- c(
   "disabilitytype" = "DisabilityType",
   "hud_impairabilityliveind" = "IndefiniteAndImpairs"
 )
+# convert dates to EST
 Disabilities <- mutate(Disabilities,
                        DisabilityStartDate = with_tz(ymd_hms(DisabilityStartDate)),
                        DisabilityEndDate = with_tz(ymd_hms(DisabilityEndDate)))
@@ -931,11 +934,7 @@ cols <- c(
   "hudhealthinsurancesubaend",
   "svphudhealthinsurancetype"
 )
-health_insurance_node <-
-  xml_find_all(
-    y,
-    "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']"
-  )
+
 # run function to get xml to a dataframe
 health_insurance <-
   xml_to_df(
@@ -943,7 +942,13 @@ health_insurance <-
     "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']",
     cols
   )
-# get ids to data frame
+# get node to start from
+health_insurance_node <-
+  xml_find_all(
+    y,
+    "//records/clientRecords/Client/assessmentData/hudhealthinsurancesuba[svphudhealthinscovered = 'yes']"
+  )
+# get sub ids to data frame
 health_insurance$system_id <-
   parse_number(xml_text(
     xml_find_all(
@@ -957,7 +962,7 @@ a <- c()
 for(i in 1:length(health_insurance_node)) {
   a <-  c(a, parse_number(xml_attr(xml_parent(xml_parent(health_insurance_node[i])), "record_id")))
 }
-# add this column into the larger object
+# add this column ito the larger object
 health_insurance$client_id <- a
 # clean up column names
 colnames(health_insurance) <- c(
@@ -969,6 +974,7 @@ colnames(health_insurance) <- c(
 )
 # clean up the house
 rm(cols, health_insurance_node, a, i)
+# convert dates to EST
 health_insurance <- mutate(health_insurance,
                            HealthInsuranceStartDate = with_tz(ymd_hms(HealthInsuranceStartDate)),
                            HealthInsuranceEndDate = with_tz(ymd_hms(HealthInsuranceEndDate)))
