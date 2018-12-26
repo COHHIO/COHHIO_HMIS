@@ -1,18 +1,32 @@
 start <- now()
+# for reference (can be deleted once this is complete)
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-x <- Client %>% select(Gender)
-unique(x)
-# this can be used in pairing EEs to assessment data.
-small_enrollment <- Enrollment %>% select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust)
-small_enrollment <- setDT(small_enrollment)
+picklist_values <- Client %>% select(Gender)
+unique(picklist_values)
+# using the DT package is (supposedly) faster when working w/ large datasets
 setDT(assessment_data)
-# subs only store ymd type dates, so we only want to compare them to the same
-# type of date when we're joining the assessment's y/n data back to the subs data
+
+# smaller dataset used in pairing EEs to assessment data.
+small_enrollment <-
+  Enrollment %>% select(EnrollmentID,
+                        PersonalID,
+                        HouseholdID,
+                        EntryDate,
+                        ExitDate,
+                        ExitAdjust)
+#may not need to do this since you're DT'ing the assessment_data df already
+small_enrollment <- setDT(small_enrollment)
+
+# also smaller dataset, but used for subassessments because subs only store ymd 
+  # type dates, so we only want to compare them to the same type of date when 
+  # we're joining the assessment's y/n data back to the subs data
 sub_enrollment <- small_enrollment %>%
   mutate(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
          ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
          ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))
 # ONE answer per CLIENt ---------------------------------------------------
+# function that pulls client-level data from the assessments df and adds it to the 
+  # Client table based on the MOST RECENT answer
 client_level_value <- function(dataelement) {
   relevant_data <- filter(assessment_data, DataElement == dataelement)
   no_dupes <- relevant_data %>%
@@ -24,12 +38,18 @@ client_level_value <- function(dataelement) {
     select(-DataElement, -DateEffective, -DateAdded) 
   return(Client)
 } 
+# applying this function to each client-level data element to add it to Clients
 Client <- client_level_value("svpprofdob") 
-Client <- Client %>% mutate(DOB = strftime(ymd_hms(Value), "%F"), Value = NULL)
+# formatting DOB date
+Client <-
+  Client %>% mutate(DOB = strftime(ymd_hms(Value), "%F"), 
+                    Value = NULL)
 Client <- client_level_value("svpprofdobtype") %>% rename(DOBDataQuality = Value)
 Client <- client_level_value("svpprofeth") %>% rename(Ethnicity = Value)
+# should remove this one from Clients and move it to Enrollments
 Client <- client_level_value("hud_disablingcondition") %>% rename(DisablingCondition = Value)
 Client <- client_level_value("svpprofgender") %>% rename(Gender = Value)
+# the HUD CSV stores Race in a more complicated way so not using the function for this
 race <-
   assessment_data %>% filter(
     DataElement %in% c("svpprofrace", "svpprofsecondaryrace") &
@@ -41,8 +61,11 @@ race <-
                        "data not collected (hud)"))
     ))
   ) 
-x <- race %>% group_by(PersonalID, Value) %>%  # eliminates the two identical races saved problem
-  summarise(max(DateEffective), max(DateAdded)) # only keeps the most recent record
+# eliminates the two identical races saved problem
+x <- race %>% group_by(PersonalID, Value) %>%  
+  # only keeps the most recent record
+  summarise(max(DateEffective), max(DateAdded)) 
+# turns each value to a column
 race <- mutate(x,
   AmIndAKNative = if_else(Value == "american indian or alaska native (hud)", 1, 0),
   Asian = if_else(Value == "asian (hud)", 1, 0),
@@ -50,6 +73,7 @@ race <- mutate(x,
   NativeHIOtherPacific = if_else(Value == "native hawaiian or other pacific islander (hud)", 1, 0),
   White = if_else(Value == "white (hud)", 1, 0),
   DataElement = NULL, Value = NULL, DateEffective = NULL, DateAdded = NULL)
+# collapses the rows so multiracial Clients will only show on one row
 race <- race %>% group_by(PersonalID) %>%
   summarise(
     AmIndAKNative = sum(AmIndAKNative),
@@ -58,8 +82,8 @@ race <- race %>% group_by(PersonalID) %>%
     NativeHIOtherPacific = sum(NativeHIOtherPacific),
     White = sum(White)
   )
+# joining this all to Client
 Client <- left_join(Client, race, by = "PersonalID")
-
 # tidy up the Client table
 Client <- mutate(
   Client,
@@ -107,8 +131,7 @@ Client <- mutate(
 )
 rm(race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
-
-# function to pull assessment data into Enrollment table
+# function to pull assessment data into Enrollment 
 enrollment_level_value <- function(dataelement) {
   relevant_data <- assessment_data %>% filter(DataElement == dataelement)
   relevant_data <- relevant_data %>%
@@ -120,10 +143,9 @@ enrollment_level_value <- function(dataelement) {
   x <- select(x, EnrollmentID, Value)
   Enrollment <- left_join(Enrollment, x, 
                           by = "EnrollmentID")  
-
   return(Enrollment)
 }
-
+# applying the function to all the enrollment-level data elements
 Enrollment <- enrollment_level_value("hud_relationtohoh") %>% rename(RelationshipToHoH = Value)
 Enrollment <- enrollment_level_value("typeoflivingsituation") %>% rename(LivingSituation = Value)
 Enrollment <- enrollment_level_value("hud_lengthofstay") %>% rename(LengthOfStay = Value)
@@ -133,7 +155,7 @@ Enrollment <- enrollment_level_value("hud_nightbeforestreetessh") %>% rename(Pre
 Enrollment <- enrollment_level_value("hud_homelessstartdate") %>% rename(DateToStreetESSH = Value)
 Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% rename(TimesHomelessPastThreeYears = Value)
 Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% rename(MonthsHomelessPastThreeYears = Value)
-
+# applying HUD CSV specs to the values
 Enrollment <- mutate(
   Enrollment,
   RelationshipToHoH = case_when(
@@ -188,6 +210,7 @@ Enrollment <- mutate(
       LengthOfStay == "" |
       is.na(LengthOfStay) ~ 99
   ),
+  # three data elements go into LOSUnderThreshold. this uses those data to assign a 1 or 0
   LOSUnderThreshold = case_when(
     LoS90d == "true" & 
       PreviousStreetESSH == "true" & 
@@ -239,6 +262,7 @@ Enrollment <- mutate(
     MonthsHomelessPastThreeYears == "12" ~ 112,
     MonthsHomelessPastThreeYears == "more than 12 months (hud)" ~ 113
   ),
+  # dumping the three data elements we used to get to LOSUnderThreshold
   LoS7d = NULL,
   LoS90d = NULL,
   PreviousStreetESSH = NULL
@@ -246,7 +270,7 @@ Enrollment <- mutate(
 Enrollment <- Enrollment[, c(1, 3, 5:7, 4, 12, 8:9, 11, 10, 13:14, 18, 15:17, 2)]
 # All Data Collection Stages ----------------------------------------------
 # this pulls a data element out of the assessment_data table into data from the
-# small_enrollment table and outputs that data along with Data Collection Stage
+  # small_enrollment table and outputs that data along with Data Collection Stage
 all_the_stages <- function(dataelement) {
   x <- filter(assessment_data, DataElement == dataelement)
   x <- x %>% group_by(PersonalID, DateEffective) %>%
@@ -282,13 +306,14 @@ all_the_stages <- function(dataelement) {
 }
 
 # Domestic Violence -------------------------------------------------------
-
+# DV data is collected from three data elements
 DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>% 
   rename(DomesticViolenceVictim = Value)
 DomesticViolence2 <- all_the_stages("hud_extentofdv") %>% 
   rename(WhenOccurred = Value)
 DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>% 
   rename(CurrentlyFleeing = Value)
+# joining all the dv data with Client and Enrollment data, applying HUD CSV specs
 DomesticViolence <-
   left_join(DomesticViolence1, DomesticViolence2, 
             by = c("EnrollmentID", "PersonalID", "HouseholdID", "DataCollectionStage")
@@ -325,20 +350,23 @@ DomesticViolence <-
       CurrentlyFleeing == "" |
       is.na(CurrentlyFleeing) ~ 99
   ))
+# this table was coming out as weird type so I need to convert it to df
 DomesticViolence <- as.data.frame(DomesticViolence)
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
-
+# arrange rows sensibly
 DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
 end <- now()
 end - start
 # EnrollmentCoC -----------------------------------------------------------
-
+# HUD has this as a separate table even though it seems like an enrollment-level
+  # data element to me. I may move this into Enrollment.
 EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
   rename(EnrollmentCoC = Value)
 EnrollmentCoC <- EnrollmentCoC[, c(2, 1, 3:5)]
 
 # Employment Education ----------------------------------------------------
-
+# these also seem like enrollment-level data elements to me but I think keeping
+  # these separate makes sense as it will rarely if ever be used
 LastGrade <- all_the_stages("rhymislastgradecompleted") %>% 
   rename(LastGradeCompleted = Value)
 SchoolStatus <- all_the_stages("rhymisschoolstatus") %>% 
@@ -392,10 +420,14 @@ EmploymentEducation <- left_join(
 rm(LastGrade, SchoolStatus, Employed, EmploymentType, NotEmployedReason)
 EmploymentEducation <- EmploymentEducation[, c(2, 1, 3, 5, 4, 6:9)]
 # Connection w SOAR -------------------------------------------------------
+# this also seems like enrollment-level data to me but I think keeping it 
+# separate makes sense as it will rarely if ever be used
 ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>% 
   rename(ConnectionWithSOAR = Value)
 
 # Non Cash ----------------------------------------------------------------
+# HUD stores this data similarly to the way they do Race data but I'm considering
+  # keeping it straight since I can't think of how that would be easier later
 NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
   rename(BenefitsFromAnySource = Value) %>%
   mutate(BenefitsFromAnySource = case_when(
@@ -427,6 +459,7 @@ NCByn <- all_the_stages("svp_anysource30daynoncash") %>%
 #   OtherSource = if_else(NoncashSource == "other source (hud)", 1, 0),
 #   NoncashSource = NULL
 # )
+# applying HUD CSV specs and Data Collection Stage thanks to lubridate intervals!
 noncash2 <-
   left_join(noncash, sub_enrollment, by = "PersonalID") %>%
   mutate(
@@ -456,8 +489,9 @@ noncash2 <-
     inproject = NULL,
     benefitactive = NULL
   ) 
+# throwing out the noncash subs that are not being assigned a Data Collection Stage
 noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
-
+# adding the data from the subs to the larger NCB data
 NonCashBenefits <- full_join(noncash2, NCByn, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
@@ -472,11 +506,10 @@ NonCashBenefits <- NonCashBenefits[, c(1, 6:10, 12:13, 3:5, 11)]
 #     OtherTANF = sum(OtherTANF),
 #     OtherSource = sum(OtherSource)
 #   )
-# Data collection stage 3 shows as NA if nothing changed since Stage 1 or 2.
 rm(noncash2, NCByn)
 
 # Disabilities ------------------------------------------------------------
-
+# similar to NCBs, but without the y/n since that's going to be in Enrollment
 disability2 <-
   left_join(Disabilities, sub_enrollment, by = "PersonalID") %>%
   mutate(
@@ -503,8 +536,10 @@ disability2 <- filter(disability2, !is.na(DataCollectionStage))
 Disabilities <- disability2[, c(2, 1, 7:8, 13, 5:6)]
 rm(disability2)
 # Health Insurance --------------------------------------------------------
+# getting the y/n from the assessment_Data
 Insuranceyn <- all_the_stages("hud_coveredbyhlthins") %>% 
   rename(InsuranceFromAnySource = Value)
+# joining the y/n data to the Enrollment data, applying HUD CSV specs to values
 Insuranceyn <- left_join(Insuranceyn,
                          sub_enrollment,
                          by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
@@ -541,7 +576,7 @@ Insuranceyn <- left_join(Insuranceyn,
 #     HealthInsuranceType == "other", 1, 0),
 #   HealthInsuranceType = NULL
 # )
-
+# joining health insurance sub data so enrollment data with Data Collection Stages
 healthins <-
   left_join(healthins, sub_enrollment, by = "PersonalID") %>%
   mutate(
@@ -563,7 +598,9 @@ healthins <-
     inproject = NULL,
     insuranceactive = NULL
   ) 
+# throwing out unnecessary subs
 healthins <- filter(healthins, !is.na(DataCollectionStage))
+# joining sub data to y/n and Enrollment data
 HealthInsurance <- full_join(Insuranceyn, healthins, by = c(
   "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
   "ExitDate", "ExitAdjust"
@@ -571,6 +608,7 @@ HealthInsurance <- full_join(Insuranceyn, healthins, by = c(
 HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 12:21)]
 rm(healthins, Insuranceyn)
 # Income and Sources ------------------------------------------------------
+# income uses two assessment data elements plus subs
 Incomeyn <- all_the_stages("svp_anysource30dayincome") %>% 
   rename(IncomeFromAnySource = Value) %>%
   mutate(IncomeFromAnySource = case_when(
@@ -581,10 +619,10 @@ Incomeyn <- all_the_stages("svp_anysource30dayincome") %>%
     IncomeFromAnySource == "data not collected (hud)" |
       is.na(IncomeFromAnySource) ~ 99
   ))
-
+# getting the second income-related data element (total monthly income)
 TMI <- all_the_stages("hud_totalmonthlyincome") %>%
   rename(TotalMonthlyIncome = Value)
-
+# joining the y/n and the tmi data together with Enrollment data
 Incomeyn <-
   left_join(Incomeyn,
             sub_enrollment,
@@ -597,72 +635,72 @@ Incomeyn <-
               "HouseholdID",
               "DataCollectionStage"
             ))
-
-incomesubs <- mutate(
-  IncomeBenefits,
-  Earned = if_else(
-    IncomeSource == "earned income (hud)", 1, 0),
-  EarnedAmount = if_else(
-    IncomeSource == "earned income (hud)", IncomeAmount, NULL),
-  Unemployment = if_else(
-    IncomeSource == "unemployment insurance (hud)", 1, 0),
-  UnemploymentAmount = if_else(
-    IncomeSource == "unemployment insurance (hud)", IncomeAmount, NULL),
-  SSI = if_else(
-    IncomeSource == "ssi (hud)", 1, 0),
-  SSIAmount = if_else(
-    IncomeSource == "ssi (hud)", IncomeAmount, NULL),  
-  SSDI = if_else(
-    IncomeSource == "ssdi (hud)", 1, 0),
-  SSDIAmount = if_else(
-    IncomeSource == "ssdi (hud)", IncomeAmount, NULL),  
-  VADisabilityService = if_else(
-    IncomeSource == "va service connected disability compensation (hud)", 1, 0),
-  VADisabilityServiceAmount = if_else(
-    IncomeSource == "va service connected disability compensation (hud)", IncomeAmount, NULL),  
-  VADisabilityNonService = if_else(
-    IncomeSource == "va non-service connected disability compensation (hud)", 1, 0),
-  VADisabilityNonServiceAmount = if_else(
-    IncomeSource == "va non-service connected disability compensation (hud)", IncomeAmount, NULL),  
-  PrivateDisability = if_else(
-    IncomeSource == "private disability insurance (hud)", 1, 0),
-  PrivateDisabilityAmount = if_else(
-    IncomeSource == "private disability insurance (hud)", IncomeAmount, NULL),  
-  WorkersComp = if_else(
-    IncomeSource == "worker's compensation (hud)", 1, 0),
-  WorkersCompAmount = if_else(
-    IncomeSource == "worker's compensation (hud)", IncomeAmount, NULL),  
-  TANF = if_else(
-    IncomeSource == "tanf (hud)", 1, 0),
-  TANFAmount = if_else(
-    IncomeSource == "tanf (hud)", IncomeAmount, NULL),  
-  GA = if_else(
-    IncomeSource == "general assistance (hud)", 1, 0),
-  GAAmount = if_else(
-    IncomeSource == "general assistance (hud)", IncomeAmount, NULL),  
-  SocSecRetirement = if_else(
-    IncomeSource == "retirement income from social security (hud)", 1, 0),
-  SocSecRetirementAmount = if_else(
-    IncomeSource == "retirement income from social security (hud)", IncomeAmount, NULL),  
-  Pension = if_else(
-    IncomeSource == "pension or retirement income from another job (hud)", 1, 0),
-  PensionAmount = if_else(
-    IncomeSource == "pension or retirement income from another job (hud)", IncomeAmount, NULL),  
-  ChildSupport = if_else(
-    IncomeSource == "child support (hud)", 1, 0),
-  ChildSupportAmount = if_else(
-    IncomeSource == "child support (hud)", IncomeAmount, NULL),  
-  Alimony = if_else(
-    IncomeSource == "alimony (hud)", 1, 0),
-  AlimonyAmount = if_else(
-    IncomeSource == "alimony (hud)", IncomeAmount, NULL),  
-  OtherIncomeSource = if_else(
-    IncomeSource == "other (hud)", 1, 0),
-  OtherIncomeSourceAmount = if_else(
-    IncomeSource == "other (hud)", IncomeAmount, NULL),
-  IncomeSource = NULL,
-  IncomeAmount = NULL
-)
+# STOP HERE
+# incomesubs <- mutate(
+#   IncomeBenefits,
+#   Earned = if_else(
+#     IncomeSource == "earned income (hud)", 1, 0),
+#   EarnedAmount = if_else(
+#     IncomeSource == "earned income (hud)", IncomeAmount, NULL),
+#   Unemployment = if_else(
+#     IncomeSource == "unemployment insurance (hud)", 1, 0),
+#   UnemploymentAmount = if_else(
+#     IncomeSource == "unemployment insurance (hud)", IncomeAmount, NULL),
+#   SSI = if_else(
+#     IncomeSource == "ssi (hud)", 1, 0),
+#   SSIAmount = if_else(
+#     IncomeSource == "ssi (hud)", IncomeAmount, NULL),  
+#   SSDI = if_else(
+#     IncomeSource == "ssdi (hud)", 1, 0),
+#   SSDIAmount = if_else(
+#     IncomeSource == "ssdi (hud)", IncomeAmount, NULL),  
+#   VADisabilityService = if_else(
+#     IncomeSource == "va service connected disability compensation (hud)", 1, 0),
+#   VADisabilityServiceAmount = if_else(
+#     IncomeSource == "va service connected disability compensation (hud)", IncomeAmount, NULL),  
+#   VADisabilityNonService = if_else(
+#     IncomeSource == "va non-service connected disability compensation (hud)", 1, 0),
+#   VADisabilityNonServiceAmount = if_else(
+#     IncomeSource == "va non-service connected disability compensation (hud)", IncomeAmount, NULL),  
+#   PrivateDisability = if_else(
+#     IncomeSource == "private disability insurance (hud)", 1, 0),
+#   PrivateDisabilityAmount = if_else(
+#     IncomeSource == "private disability insurance (hud)", IncomeAmount, NULL),  
+#   WorkersComp = if_else(
+#     IncomeSource == "worker's compensation (hud)", 1, 0),
+#   WorkersCompAmount = if_else(
+#     IncomeSource == "worker's compensation (hud)", IncomeAmount, NULL),  
+#   TANF = if_else(
+#     IncomeSource == "tanf (hud)", 1, 0),
+#   TANFAmount = if_else(
+#     IncomeSource == "tanf (hud)", IncomeAmount, NULL),  
+#   GA = if_else(
+#     IncomeSource == "general assistance (hud)", 1, 0),
+#   GAAmount = if_else(
+#     IncomeSource == "general assistance (hud)", IncomeAmount, NULL),  
+#   SocSecRetirement = if_else(
+#     IncomeSource == "retirement income from social security (hud)", 1, 0),
+#   SocSecRetirementAmount = if_else(
+#     IncomeSource == "retirement income from social security (hud)", IncomeAmount, NULL),  
+#   Pension = if_else(
+#     IncomeSource == "pension or retirement income from another job (hud)", 1, 0),
+#   PensionAmount = if_else(
+#     IncomeSource == "pension or retirement income from another job (hud)", IncomeAmount, NULL),  
+#   ChildSupport = if_else(
+#     IncomeSource == "child support (hud)", 1, 0),
+#   ChildSupportAmount = if_else(
+#     IncomeSource == "child support (hud)", IncomeAmount, NULL),  
+#   Alimony = if_else(
+#     IncomeSource == "alimony (hud)", 1, 0),
+#   AlimonyAmount = if_else(
+#     IncomeSource == "alimony (hud)", IncomeAmount, NULL),  
+#   OtherIncomeSource = if_else(
+#     IncomeSource == "other (hud)", 1, 0),
+#   OtherIncomeSourceAmount = if_else(
+#     IncomeSource == "other (hud)", IncomeAmount, NULL),
+#   IncomeSource = NULL,
+#   IncomeAmount = NULL
+# )
 incomesubs <-
   left_join(incomesubs, sub_enrollment, by = "PersonalID") %>%
   mutate(
