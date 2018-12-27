@@ -22,7 +22,7 @@ usercreating <- read_xlsx("data/RMisc.xlsx",
 # this function turns the XML data into data frames
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
-  df <- as.data.frame(setNames(replicate(length(cols), character(0), simplify = F), cols))
+  df <- setDT(setNames(replicate(length(cols), character(0), simplify = F), cols))
   for(child in records){
     gchild <-  xml_children(child)
     data  <-  xml_text(gchild)
@@ -126,7 +126,8 @@ Project <- Project %>% mutate(
     is.na(PrincipalSite) ~ 99
   ),
   OperatingStartDate = with_tz(ymd_hms(OperatingStartDate)),
-  OperatingEndDate = with_tz(ymd_hms(OperatingEndDate))
+  OperatingEndDate = with_tz(ymd_hms(OperatingEndDate)),
+  OrganizationID = parse_number(OrganizationID)
 )
 # Provider CoC records ----------------------------------------------------
 # name nodes we want to pull in
@@ -434,7 +435,7 @@ Enrollment <- Enrollment %>% mutate(
 Enrollment <- Enrollment %>% 
   left_join(usercreating, by = "EnrollmentID") %>% 
   left_join(., counties, by = "EnrollmentID")
-
+Enrollment <- setDT(Enrollment)
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
@@ -467,7 +468,7 @@ interims$ee_id <- ee_ids
 # clean up column names
 colnames(interims) <- c("InterimDate", "InterimType", "InterimID", "EnrollmentID")
 # clean up the house
-rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids, users, counties)
+rm(interim_node, ee_as_gparent, length_interim, ee_id, ids, ee_ids)
 # adds Client IDs from the Enrollments table
 x <- select(Enrollment, EnrollmentID, PersonalID)
 interims <- inner_join(interims, x, by = "EnrollmentID") %>%
@@ -583,20 +584,22 @@ date_effective <- xml_attr(assessmentData_child_nodes, "date_effective")
 # each node's date added
 date_added <- xml_attr(assessmentData_child_nodes, "date_added")
 # making Client ID numeric
-client_id <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
+client_ids <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
+# trying something
+m <- xml_parent(assessmentData_child_nodes)
 # works out how many assessments per Client ID
-length_assessments <- sapply(xml_parent(assessmentData_child_nodes), function(x) length(xml_children(x)))
+length_assessments <- sapply(m, function(x) length(xml_children(x)))
 # returns how many assessments per Client ID
-ids <- data.frame(length_assessments, client_id)
+ids <- data.frame(length_assessments, client_ids)
 # uses the info from above to repeat the Client IDs however many times as needed
-a <- c()
+# THIS IS THE PART THAT TAKES A LONG TIME
+client_ids <- c()
 for(i in 1:nrow(ids)) {
-  a <- c(a, rep(ids[i,]$client_id, ids[i,]$length_assessments))
+  client_ids <- c(client_ids, rep(ids[i,]$client_id, ids[i,]$length_assessments))
 }
-# and thank you
-client_id <- a
+
 # putting it all together
-assessment_data <- bind_cols(list(client_id, data_element, value, date_effective, date_added))
+assessment_data <- bind_cols(list(client_ids, data_element, value, date_effective, date_added))
 # naming the columns
 colnames(assessment_data) <- c(
   "client_id" = "PersonalID",
@@ -616,8 +619,8 @@ rm(assessmentData_child_nodes,
    value, 
    date_effective, 
    date_added, 
-   client_id, 
-   a,
+   client_ids, 
+   client_id,
    i,
    length_assessments, 
    ids)
@@ -697,7 +700,7 @@ assessment_data <- assessment_data %>%
         "rhymistertiaryrace"
       )
   ))
-
+assessment_data <- setDT(assessment_data)
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
 needs_start <- now()
