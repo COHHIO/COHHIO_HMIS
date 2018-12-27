@@ -1,21 +1,11 @@
 start <- now()
 # for reference (can be deleted once this is complete)
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-picklist_values <- Client %>% select(Gender)
-unique(picklist_values)
+picklist_values <- Client %>% select(Gender) %>% unique()
 # using the DT package is (supposedly) faster when working w/ large datasets
-setDT(assessment_data)
-
+Enrollment <- setDT(Enrollment)
 # smaller dataset used in pairing EEs to assessment data.
-small_enrollment <-
-  Enrollment %>% select(EnrollmentID,
-                        PersonalID,
-                        HouseholdID,
-                        EntryDate,
-                        ExitDate,
-                        ExitAdjust)
-#may not need to do this since you're DT'ing the assessment_data df already
-small_enrollment <- setDT(small_enrollment)
+small_enrollment <- Enrollment[, c(1:3, 8:10)]
 
 # also smaller dataset, but used for subassessments because subs only store ymd 
   # type dates, so we only want to compare them to the same type of date when 
@@ -302,6 +292,7 @@ all_the_stages <- function(dataelement) {
   ) %>%
     filter(!is.na(DataCollectionStage)
   )
+  x <- setDT(x, key = c("EnrollmentID", "DataCollectionStage"))
   return(x)
 }
 
@@ -372,8 +363,6 @@ DomesticViolence <-
         ) ~ 99
     )
   )
-# this table was coming out as weird type so I need to convert it to df
-DomesticViolence <- as.data.frame(DomesticViolence)
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
 # arrange rows sensibly
 DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
@@ -384,7 +373,7 @@ DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
 EnrollmentCoC <- all_the_stages("hud_cocclientlocation") %>% 
   rename(EnrollmentCoC = Value)
 EnrollmentCoC <- EnrollmentCoC[, c(2, 1, 3:5)]
-EnrollmentCoC <- as.data.frame(EnrollmentCoC)
+
 # Employment Education ----------------------------------------------------
 # these also seem like enrollment-level data elements to me but I think keeping
   # these separate makes sense as it will rarely if ever be used
@@ -398,7 +387,7 @@ EmploymentType <- all_the_stages("hud_employmenttype") %>%
   rename(EmploymentType = Value)
 NotEmployedReason <- all_the_stages("hud_noemployreason") %>% 
   rename(NotEmployedReason = Value)
-EmploymentEducation <- left_join(
+EmploymentEducation <- full_join(
   LastGrade,
   SchoolStatus,
   by = c(
@@ -408,7 +397,7 @@ EmploymentEducation <- left_join(
     "DataCollectionStage"
   )
 ) %>%
-  left_join(
+  full_join(
     .,
     Employed,
     by = c(
@@ -418,7 +407,7 @@ EmploymentEducation <- left_join(
       "DataCollectionStage"
     )
   ) %>%
-  left_join(
+  full_join(
     .,
     EmploymentType,
     by = c(
@@ -428,7 +417,7 @@ EmploymentEducation <- left_join(
       "DataCollectionStage"
     )
   ) %>%
-  left_join(
+  full_join(
     .,
     NotEmployedReason,
     by = c(
@@ -440,14 +429,12 @@ EmploymentEducation <- left_join(
   )
 rm(LastGrade, SchoolStatus, Employed, EmploymentType, NotEmployedReason)
 EmploymentEducation <- EmploymentEducation[, c(2, 1, 3, 5, 4, 6:9)]
-EmploymentEducation <- as.data.frame(EmploymentEducation)
 
 # Connection w SOAR -------------------------------------------------------
 # this also seems like enrollment-level data to me but I think keeping it 
   # separate makes sense as it will rarely if ever be used
 ConnectionWithSOAR <- all_the_stages("hud_connectwithsoar") %>% 
   rename(Connected = Value)
-ConnectionWithSOAR <- as.data.frame(ConnectionWithSOAR)
 ConnectionWithSOAR <-
   ConnectionWithSOAR %>% mutate(
     Connected = case_when(
@@ -463,8 +450,7 @@ ConnectionWithSOAR <-
 ConnectionWithSOAR <- ConnectionWithSOAR[, c(2, 1, 3, 5, 4)]
 
 # Non Cash ----------------------------------------------------------------
-# HUD stores this data similarly to the way they do Race data but I'm considering
-  # keeping it straight since I can't think of how that would be easier later
+
 NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
   rename(BenefitsFromAnySource = Value) %>%
   mutate(BenefitsFromAnySource = case_when(
@@ -486,8 +472,8 @@ NCByn <- all_the_stages("svp_anysource30daynoncash") %>%
 #     0
 #   ),
 #   WIC = if_else(
-#     NoncashSource == "special supplemental nutrition program for wic (hud)", 
-#     1, 
+#     NoncashSource == "special supplemental nutrition program for wic (hud)",
+#     1,
 #     0
 #     ),
 #   TANFChildCare = if_else(NoncashSource == "tanf child care services (hud)", 1, 0),
@@ -526,7 +512,6 @@ noncash2 <-
     inproject = NULL,
     benefitactive = NULL
   ) 
-NCByn <- as.data.frame(NCByn)
 # throwing out the noncash subs that are not being assigned a Data Collection Stage
 noncash2 <- filter(noncash2, !is.na(DataCollectionStage))
 # adding the data from the subs to the larger NCB data
@@ -666,11 +651,9 @@ Incomeyn <- all_the_stages("svp_anysource30dayincome") %>%
     IncomeFromAnySource == "data not collected (hud)" |
       is.na(IncomeFromAnySource) ~ 99
   ))
-Incomeyn <- as.data.frame(Incomeyn)
 # getting the second income-related data element (total monthly income)
 TMI <- all_the_stages("hud_totalmonthlyincome") %>%
   rename(TotalMonthlyIncome = Value)
-TMI <- as.data.frame(TMI)
 # joining the y/n and the tmi data together with Enrollment data
 Incomeyn <-
   left_join(Incomeyn,
