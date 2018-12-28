@@ -1,11 +1,10 @@
 start <- now()
 # for reference (can be deleted once this is complete)
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-picklist_values <- Client %>% select(Gender) %>% unique()
-# using the DT package is (supposedly) faster when working w/ large datasets
-Enrollment <- setDT(Enrollment)
+picklist_values <- EmploymentEducation %>% select(NotEmployedReason) %>% unique()
+
 # smaller dataset used in pairing EEs to assessment data.
-small_enrollment <- Enrollment[, c(1:3, 8:10)]
+small_enrollment <- Enrollment[, c(1, 3, 5, 8, 9, 11)]
 
 # also smaller dataset, but used for subassessments because subs only store ymd 
   # type dates, so we only want to compare them to the same type of date when 
@@ -37,7 +36,6 @@ Client <-
 Client <- client_level_value("svpprofdobtype") %>% rename(DOBDataQuality = Value)
 Client <- client_level_value("svpprofeth") %>% rename(Ethnicity = Value)
 # should remove this one from Clients and move it to Enrollments
-Client <- client_level_value("hud_disablingcondition") %>% rename(DisablingCondition = Value)
 Client <- client_level_value("svpprofgender") %>% rename(Gender = Value)
 # the HUD CSV stores Race in a more complicated way so not using the function for this
 race <-
@@ -93,14 +91,6 @@ Client <- mutate(
     is.na(Ethnicity) |
       Ethnicity == "" | Ethnicity == "data not collected (hud)" ~ 99
   ),
-  DisablingCondition = case_when(
-    DisablingCondition == "yes (hud)" ~ 1,
-    DisablingCondition == "no (hud)" ~ 0,
-    DisablingCondition == "client doesn't know (hud)" ~ 8,
-    DisablingCondition == "client refused (hud)" ~ 9,
-    DisablingCondition == "data not collected (hud)" |
-      is.na(DisablingCondition) ~ 99
-  ),
   RaceNone = if_else(
     AmIndAKNative + Asian + BlackAfAmerican + NativeHIOtherPacific + White == 0,
     1,
@@ -145,6 +135,7 @@ Enrollment <- enrollment_level_value("hud_nightbeforestreetessh") %>% rename(Pre
 Enrollment <- enrollment_level_value("hud_homelessstartdate") %>% rename(DateToStreetESSH = Value)
 Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% rename(TimesHomelessPastThreeYears = Value)
 Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% rename(MonthsHomelessPastThreeYears = Value)
+Enrollment <- enrollment_level_value("hud_disablingcondition") %>% rename(DisablingCondition = Value)
 # applying HUD CSV specs to the values
 Enrollment <- mutate(
   Enrollment,
@@ -186,6 +177,14 @@ Enrollment <- mutate(
     LivingSituation == "data not collected (hud)"|
       LivingSituation == "" |
       is.na(LivingSituation) ~ 99
+  ),
+  DisablingCondition = case_when(
+    DisablingCondition == "yes (hud)" ~ 1,
+    DisablingCondition == "no (hud)" ~ 0,
+    DisablingCondition == "client doesn't know (hud)" ~ 8,
+    DisablingCondition == "client refused (hud)" ~ 9,
+    DisablingCondition == "data not collected (hud)" |
+      is.na(DisablingCondition) ~ 99
   ),
   LengthOfStay = case_when(
     LengthOfStay == "one week or more, but less than one month" ~ 2,
@@ -306,7 +305,7 @@ DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>%
   rename(CurrentlyFleeing = Value)
 # joining all the dv data with Client and Enrollment data, applying HUD CSV specs
 DomesticViolence <-
-  left_join(
+  full_join(
     DomesticViolence1,
     DomesticViolence2,
     by = c(
@@ -316,7 +315,7 @@ DomesticViolence <-
       "DataCollectionStage"
     )
   ) %>%
-  left_join(
+  full_join(
     .,
     DomesticViolence3,
     by = c(
@@ -429,7 +428,71 @@ EmploymentEducation <- full_join(
   )
 rm(LastGrade, SchoolStatus, Employed, EmploymentType, NotEmployedReason)
 EmploymentEducation <- EmploymentEducation[, c(2, 1, 3, 5, 4, 6:9)]
-
+EmploymentEducation <- mutate(
+  EmploymentEducation,
+  LastGradeCompleted = case_when(
+    LastGradeCompleted == "less than grade 5" ~ 1,
+    LastGradeCompleted == "grades 5 - 6" ~ 2,
+    LastGradeCompleted == "grades 7 - 8" ~ 3,
+    LastGradeCompleted == "grades 9 - 11" ~ 4,
+    LastGradeCompleted == "grade 12 / high school diploma" ~ 5,
+    LastGradeCompleted == "school program does not have grade levels" ~ 6,
+    LastGradeCompleted == "ged" ~ 7,
+    LastGradeCompleted == "client doesn't know" ~ 8,
+    LastGradeCompleted == "client refused" ~ 9,
+    LastGradeCompleted == "some college" ~ 10,
+    LastGradeCompleted == "associate's degree" ~ 11,
+    LastGradeCompleted == "bachelor's degree" ~ 12,
+    LastGradeCompleted == "graduate degree" ~ 13,
+    LastGradeCompleted == "vocational certification" ~ 14,
+    LastGradeCompleted == "data not collected" |
+      LastGradeCompleted == "" |
+      is.na(LastGradeCompleted) ~ 99
+  ),
+  SchoolStatus = case_when(
+    SchoolStatus == "attending school regularly" ~ 1,
+    SchoolStatus == "attending school irregularly" ~ 1,
+    SchoolStatus == "suspended" ~ 1,
+    SchoolStatus == "dropped out" ~ 1,
+    SchoolStatus == "graduated from high school" ~ 1,
+    SchoolStatus == "obtained ged" ~ 1,
+    SchoolStatus == "expelled" ~ 1,
+    SchoolStatus == "client doesn't know" ~ 8,
+    SchoolStatus == "client refused" ~ 9,
+    SchoolStatus == "data not collected" |
+      SchoolStatus == "" |
+      is.na(SchoolStatus) ~ 99
+  ),
+  Employed = case_when(
+    Employed == "no (hud)" ~ 0,
+    Employed == "yes (hud)" ~ 1,
+    Employed == "client doesn't know" ~ 8,
+    Employed == "client refused" ~ 9,
+    Employed == "data not collected" |
+      Employed == "" |
+      is.na(Employed) ~ 99
+  ),
+  EmploymentType = case_when(
+    EmploymentType == "full-time" ~ 1,
+    EmploymentType == "part-time" ~ 2,
+    EmploymentType == "seasonal/sporadic (including day labor)" ~ 3,
+    EmploymentType == "client doesn't know" ~ 8,
+    EmploymentType == "client refused" ~ 9,
+    EmploymentType == "data not collected" |
+      EmploymentType == "" |
+      is.na(EmploymentType) ~ 99
+  ),
+  NotEmployedReason = case_when(
+    NotEmployedReason == "looking for work" ~ 1,
+    NotEmployedReason == "not looking for work" ~ 3,
+    NotEmployedReason == "unable to work" ~ 2,
+    NotEmployedReason == "client doesn't know" ~ 8,
+    NotEmployedReason == "client refused" ~ 9,
+    NotEmployedReason == "data not collected" |
+      NotEmployedReason == "" |
+      is.na(NotEmployedReason) ~ 99
+  )
+)
 # Connection w SOAR -------------------------------------------------------
 # this also seems like enrollment-level data to me but I think keeping it 
   # separate makes sense as it will rarely if ever be used
