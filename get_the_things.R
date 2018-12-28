@@ -22,12 +22,13 @@ usercreating <- read_xlsx("data/RMisc.xlsx",
 # this function turns the XML data into data frames
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
-  df <- data.table(setNames(replicate(length(cols), character(0), simplify = F), cols))
-  for(child in records){
-    gchild <-  xml_children(child)
-    data  <-  xml_text(gchild)
+  df <-
+    data.table(setNames(replicate(length(cols), character(0), simplify = F), cols))
+  for (child in records) {
+    gchild <- xml_children(child)
+    data <- xml_text(gchild)
     names(data) <- xml_name(gchild)
-    data  <- data[names(data) %in% cols]
+    data <- data[names(data) %in% cols]
     df <- bind_rows(df, data.frame(as.list(data)))
   }
   return(df)
