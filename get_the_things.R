@@ -5,7 +5,7 @@ library("readxl")
 library("data.table")
 begin <- now()
 # pulls in the XML file which comes from the ServicePoint export
-y <- read_xml("data/Bowman_Payload_68.xml")
+y <- read_xml("data/Bowman_Payload_72.xml")
 # all other data comes from the RMisc ART report
 users <- read_xlsx("data/RMisc.xlsx",
                   sheet = 4,
@@ -22,7 +22,7 @@ usercreating <- read_xlsx("data/RMisc.xlsx",
 # this function turns the XML data into data frames
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
-  df <- setDT(setNames(replicate(length(cols), character(0), simplify = F), cols))
+  df <- data.table(setNames(replicate(length(cols), character(0), simplify = F), cols))
   for(child in records){
     gchild <-  xml_children(child)
     data  <-  xml_text(gchild)
@@ -435,7 +435,7 @@ Enrollment <- Enrollment %>% mutate(
 Enrollment <- Enrollment %>% 
   left_join(usercreating, by = "EnrollmentID") %>% 
   left_join(., counties, by = "EnrollmentID")
-Enrollment <- setDT(Enrollment)
+Enrollment <- data.table(Enrollment)
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
@@ -571,35 +571,48 @@ cols <- c(
   "date_added",
   "date_effective"
 )
+r <- now()
 # gets all the nodes under the "assessmentData" node
 assessmentData_child_nodes <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/*")
+b <- now()
 # using the above, grabs Client IDs
 Client_ID_as_gparent <- xml_parent(xml_parent(assessmentData_child_nodes))
+c <- now()
 # each node's name
 data_element <- xml_name(assessmentData_child_nodes)
+d <- now()
 # each node's value
 value <- xml_text(assessmentData_child_nodes)
+e <- now()
 # each node's date eff
 date_effective <- xml_attr(assessmentData_child_nodes, "date_effective")
+f <- now()
 # each node's date added
 date_added <- xml_attr(assessmentData_child_nodes, "date_added")
+g <- now()
 # making Client ID numeric
-client_ids <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
+Client_IDs <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
+h <- now()
 # trying something
-m <- xml_parent(assessmentData_child_nodes)
+# tmp <- xml_parent(assessmentData_child_nodes)
 # works out how many assessments per Client ID
-length_assessments <- sapply(m, function(x) length(xml_children(x)))
+length_assessments <- sapply(xml_parent(assessmentData_child_nodes), function(x) length(xml_children(x)))
+j <- now()
 # returns how many assessments per Client ID
-ids <- data.frame(length_assessments, client_ids)
+ids <- data.frame(length_assessments, Client_IDs)
+k <- now()
 # uses the info from above to repeat the Client IDs however many times as needed
 # THIS IS THE PART THAT TAKES A LONG TIME
-client_ids <- c()
+# TRY THIS:           w <- integer(nrow(ids))
+w <- c()
 for(i in 1:nrow(ids)) {
-  client_ids <- c(client_ids, rep(ids[i,]$client_id, ids[i,]$length_assessments))
+  w <- c(w, rep(ids[i,]$Client_IDs, ids[i,]$length_assessments))
 }
-
+Client_IDs <- w
+l <- now()
 # putting it all together
-assessment_data <- bind_cols(list(client_ids, data_element, value, date_effective, date_added))
+assessment_data <- bind_cols(list(Client_IDs, data_element, value, date_effective, date_added))
+m <- now()
 # naming the columns
 colnames(assessment_data) <- c(
   "client_id" = "PersonalID",
@@ -608,21 +621,22 @@ colnames(assessment_data) <- c(
   "date_effective" =  "DateEffective",
   "date_added" = "DateAdded"
 )
+n <- now()
 # converting dates to EST
 assessment_data <- mutate(assessment_data,
                           DateEffective = with_tz(ymd_hms(DateEffective)),
                           DateAdded = with_tz(ymd_hms(DateAdded)))
+o <- now()
 # clean the house
-rm(assessmentData_child_nodes, 
-   Client_ID_as_gparent, 
-   data_element, 
-   value, 
-   date_effective, 
-   date_added, 
-   client_ids, 
-   client_id,
-   i,
-   length_assessments, 
+rm(assessmentData_child_nodes,
+   Client_ID_as_gparent,
+   data_element,
+   value,
+   date_effective,
+   date_added,
+   w,
+   Client_IDs,
+   length_assessments,
    ids)
 # delete records we don't need
 assessment_data <- assessment_data %>%
@@ -700,7 +714,8 @@ assessment_data <- assessment_data %>%
         "rhymistertiaryrace"
       )
   ))
-assessment_data <- setDT(assessment_data)
+p <- now()
+assessment_data <- data.table(assessment_data)
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
 needs_start <- now()
@@ -983,23 +998,47 @@ health_insurance <- mutate(health_insurance,
                            HealthInsuranceEndDate = with_tz(ymd_hms(HealthInsuranceEndDate)))
 # Timing ------------------------------------------------------------------
 end <- now()
-print(list("load xml file", provider_start - begin))
-print(list("provider records", provider_CoC_start - provider_start))
-print(list("provider CoC records", funding_source_start - provider_CoC_start))
-print(list("funding", provider_address_start - funding_source_start))
-print(list("addresses", provider_inventory_start - provider_address_start))
-print(list("provider inventory", ee_start - provider_inventory_start))
-print(list("entry exits", interims_start - ee_start))
-print(list("interims", client_start - interims_start))
-print(list("clients", assessments_start - client_start))
-print(list("assessments", needs_start - assessments_start))
-print(list("needs", services_start - needs_start))
-print(list("services", income_start - services_start))
-print(list("income", noncash_start - income_start))
-print(list("noncash", disabilities_start - noncash_start))
-print(list("disabilities", h_ins_start - disabilities_start))
-print(list("health insurance", end - h_ins_start))
-print(list("all the whole thing", end - begin))
-rm(begin, provider_start, provider_CoC_start, provider_inventory_start, ee_start, interims_start,
-   client_start, assessments_start, funding_source_start, provider_address_start, needs_start, 
-   services_start, income_start, noncash_start, disabilities_start, h_ins_start, end)
+t <- as.data.frame(
+  list(
+    "load xml file" = provider_start - begin,
+    "provider records" = provider_CoC_start - provider_start,
+    "provider CoC records" = funding_source_start - provider_CoC_start,
+    "funding" = provider_address_start - funding_source_start,
+    "addresses" = provider_inventory_start - provider_address_start,
+    "provider inventory" = ee_start - provider_inventory_start,
+    "entry exits" = interims_start - ee_start,
+    "interims" = client_start - interims_start,
+    "clients" = assessments_start - client_start,
+    "assessments" = needs_start - assessments_start,
+    "needs" = services_start - needs_start,
+    "services" = income_start - services_start,
+    "income" = noncash_start - income_start,
+    "noncash" = disabilities_start - noncash_start,
+    "disabilities" = h_ins_start - disabilities_start,
+    "health insurance" = end - h_ins_start,
+    "all the whole thing" = end - begin
+  ))
+write_csv(t, "C:\\Users\\Public\\HMIS-Share\\timing.csv", append = TRUE)
+# rm(begin, provider_start, provider_CoC_start, provider_inventory_start, ee_start, interims_start,
+#    client_start, assessments_start, funding_source_start, provider_address_start, needs_start, 
+#    services_start, income_start, noncash_start, disabilities_start, h_ins_start, end)
+as.data.frame(
+  c(
+    "select col names" = r - assessments_start,
+    "all nodes under assessmentData" = b - r,
+    "grabs Client IDs" = c - b,
+    "each node's name" = d - c,
+    "each node's value" = e - d,
+    "each node's date eff" = f - e,
+    "each node's date added" = g - f,
+    "making Client ID numeric" = h - g,
+    "# assessments per Client ID" = j - h,
+    "df assessments per Client ID" = k - j,
+    "for loop repeat the Client IDs however many times" = l - k,
+    "putting it all together" = m - l,
+    "naming the columns" = n - m,
+    "converting dates to EST" = o - n,
+    "clean the house" = p - o,
+    "setDT" = needs_start - p,
+    "all" = needs_start - assessments_start
+  ))
