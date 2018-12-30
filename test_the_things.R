@@ -10,7 +10,7 @@ library(janitor)
 get_dupes(Client, PersonalID)
 
 View(Client %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
-
+summary(Client)
 
 # Enrollment table testing ---------------ok-------------------------------
 get_dupes(Enrollment, EnrollmentID)
