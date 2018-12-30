@@ -35,9 +35,8 @@ Client <-
                     Value = NULL)
 Client <- client_level_value("svpprofdobtype") %>% rename(DOBDataQuality = Value)
 Client <- client_level_value("svpprofeth") %>% rename(Ethnicity = Value)
-# should remove this one from Clients and move it to Enrollments
 Client <- client_level_value("svpprofgender") %>% rename(Gender = Value)
-# the HUD CSV stores Race in a more complicated way so not using the function for this
+# the HUD CSV stores Race in a more complicated way so not using the function for race
 race <-
   assessment_data %>% filter(
     DataElement %in% c("svpprofrace", "svpprofsecondaryrace") &
@@ -81,6 +80,7 @@ Client <- mutate(
     DOBDataQuality == "client doesn't know (hud)" ~ 8,
     DOBDataQuality == "client refused (hud)" ~ 9,
     is.na(DOBDataQuality) |
+      DOBDataQuality == "" | 
       DOBDataQuality == "data not collected (hud)" ~ 99
   ),
   Ethnicity = case_when(
@@ -89,7 +89,8 @@ Client <- mutate(
     Ethnicity == "client doesn't know (hud)" ~ 8,
     Ethnicity == "client refused (hud)" ~ 9,
     is.na(Ethnicity) |
-      Ethnicity == "" | Ethnicity == "data not collected (hud)" ~ 99
+      Ethnicity == "" | 
+      Ethnicity == "data not collected (hud)" ~ 99
   ),
   RaceNone = if_else(
     AmIndAKNative + Asian + BlackAfAmerican + NativeHIOtherPacific + White == 0,
@@ -106,12 +107,14 @@ Client <- mutate(
     Gender == "client doesn't know" ~ 8,
     Gender == "client refused" ~ 9,
     Gender == "data not collected" |
+      Gender == "" |
       is.na(Gender) ~ 99
   )
 )
 rm(race, x)
 # ONE answer per ENROLLMENT -----------------------------------------------
 # function to pull assessment data into Enrollment 
+# try piping relevant_data and check if you maybe should use data.table not setDT
 enrollment_level_value <- function(dataelement) {
   relevant_data <- assessment_data %>% filter(DataElement == dataelement)
   relevant_data <- relevant_data %>%
@@ -184,6 +187,7 @@ Enrollment <- mutate(
     DisablingCondition == "client doesn't know (hud)" ~ 8,
     DisablingCondition == "client refused (hud)" ~ 9,
     DisablingCondition == "data not collected (hud)" |
+      DisablingCondition == "" |
       is.na(DisablingCondition) ~ 99
   ),
   LengthOfStay = case_when(
@@ -199,7 +203,7 @@ Enrollment <- mutate(
       LengthOfStay == "" |
       is.na(LengthOfStay) ~ 99
   ),
-  # three data elements go into LOSUnderThreshold. this uses those data to assign a 1 or 0
+  # three data elements decide if LOSUnderThreshold. this uses those data to assign a 1 or 0
   LOSUnderThreshold = case_when(
     LoS90d == "true" & 
       PreviousStreetESSH == "true" & 
@@ -273,7 +277,7 @@ all_the_stages <- function(dataelement) {
                                                  ExitAdjust > DateEffective]),
       datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective)
     )
-  x <- x %>% mutate(
+  x <- mutate(x,
     DataCollectionStage = 
       case_when(
         DateEffective == datacollectionstage1 ~ 1,
@@ -451,12 +455,12 @@ EmploymentEducation <- mutate(
   ),
   SchoolStatus = case_when(
     SchoolStatus == "attending school regularly" ~ 1,
-    SchoolStatus == "attending school irregularly" ~ 1,
-    SchoolStatus == "suspended" ~ 1,
-    SchoolStatus == "dropped out" ~ 1,
-    SchoolStatus == "graduated from high school" ~ 1,
-    SchoolStatus == "obtained ged" ~ 1,
-    SchoolStatus == "expelled" ~ 1,
+    SchoolStatus == "attending school irregularly" ~ 2,
+    SchoolStatus == "suspended" ~ 6,
+    SchoolStatus == "dropped out" ~ 5,
+    SchoolStatus == "graduated from high school" ~ 3,
+    SchoolStatus == "obtained ged" ~ 4,
+    SchoolStatus == "expelled" ~ 7,
     SchoolStatus == "client doesn't know" ~ 8,
     SchoolStatus == "client refused" ~ 9,
     SchoolStatus == "data not collected" |
