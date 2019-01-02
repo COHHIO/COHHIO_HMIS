@@ -528,39 +528,34 @@ NCByn <- all_the_stages("svp_anysource30daynoncash") %>%
     BenefitsFromAnySource == "data not collected (hud)" |
       is.na(BenefitsFromAnySource) ~ 99
   ))
-# 
-# NCByn <- left_join(NCByn, sub_enrollment, by = c("EnrollmentID", "PersonalID", "HouseholdID"))
-# 
-# noncash2 <- mutate(
-#   noncash,
-#   SNAP = if_else(
-#     NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)",
-#     1,
-#     0
-#   ),
-#   WIC = if_else(
-#     NoncashSource == "special supplemental nutrition program for wic (hud)",
-#     1,
-#     0
-#     ),
-#   TANFChildCare = if_else(NoncashSource == "tanf child care services (hud)", 1, 0),
-#   TANFTransportation = if_else(NoncashSource == "tanf transportation services (hud)", 1, 0),
-#   OtherTANF = if_else(NoncashSource == "other tanf-funded services (hud)", 1, 0),
-#   OtherSource = if_else(NoncashSource == "other source (hud)", 1, 0),
-#   NoncashSource = NULL
-# )
+
+NCByn <-
+  left_join(NCByn,
+            sub_enrollment,
+            by = c("EnrollmentID", "PersonalID", "HouseholdID"))
+
+noncash2 <- mutate(
+  noncash,
+  SNAP = if_else(
+    NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)",
+    1,
+    0
+  ),
+  WIC = if_else(
+    NoncashSource == "special supplemental nutrition program for wic (hud)",
+    1,
+    0
+    ),
+  TANFChildCare = if_else(NoncashSource == "tanf child care services (hud)", 1, 0),
+  TANFTransportation = if_else(NoncashSource == "tanf transportation services (hud)", 1, 0),
+  OtherTANF = if_else(NoncashSource == "other tanf-funded services (hud)", 1, 0),
+  OtherSource = if_else(NoncashSource == "other source (hud)", 1, 0),
+  NoncashSource = NULL
+)
 # applying HUD CSV specs and Data Collection Stage thanks to lubridate intervals!
 noncash2 <-
-  left_join(noncash, sub_enrollment, by = "PersonalID") %>%
+  left_join(noncash2, sub_enrollment, by = "PersonalID") %>%
   mutate(
-    NoncashSource = case_when(
-      NoncashSource == "supplemental nutrition assistance program (food stamps) (hud)" ~ 3,
-      NoncashSource == "special supplemental nutrition program for wic (hud)" ~ 4,
-      NoncashSource == "other source (hud)" ~ 9,
-      NoncashSource == "tanf child care services (hud)" ~ 5,
-      NoncashSource == "tanf transportation services (hud)" ~ 6,
-      NoncashSource == "other tanf-funded services (hud)" ~ 7
-    ),
     NoncashStartDate = ymd(NoncashStartDate),
     NoncashEndDate = ymd(NoncashEndDate),
     NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), today(), NoncashEndDate),
@@ -589,21 +584,24 @@ NonCashBenefits <- full_join(
     "PersonalID",
     "EnrollmentID",
     "HouseholdID",
-    "DataCollectionStage"
+    "DataCollectionStage",
+    "EntryDate",
+    "ExitDate",
+    "ExitAdjust"
   )
 ) 
-NonCashBenefits <- NonCashBenefits[, c(1, 6:10, 12:13, 3:5, 11)]
-# NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
-#   summarise(
-#     SNAP = sum(SNAP),
-#     WIC = sum(WIC),
-#     TANFChildCare = sum(TANFChildCare),
-#     TANFTransportation = sum(TANFTransportation),
-#     OtherTANF = sum(OtherTANF),
-#     OtherSource = sum(OtherSource)
-#   )
+NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
+NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
+  summarise(
+    SNAP = sum(SNAP),
+    WIC = sum(WIC),
+    TANFChildCare = sum(TANFChildCare),
+    TANFTransportation = sum(TANFTransportation),
+    OtherTANF = sum(OtherTANF),
+    OtherSource = sum(OtherSource)
+  )
 rm(noncash2, NCByn)
-
+setDT(NonCashBenefits, key = c("EnrollmentID", "DataCollectionStage"))
 # Disabilities ------------------------------------------------------------
 # similar to NCBs, but without the y/n since that's going to be in Enrollment
 disability2 <-
