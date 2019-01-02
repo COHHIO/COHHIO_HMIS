@@ -23,7 +23,7 @@ usercreating <- read_xlsx("data/RMisc.xlsx",
 xml_to_df <- function(xml, path_name, cols) {
   records <- xml_find_all(xml, xpath = path_name)
   df <-
-    data.table(setNames(replicate(length(cols), character(0), simplify = F), cols))
+    setDT(setNames(replicate(length(cols), character(0), simplify = F), cols))
   for (child in records) {
     gchild <- xml_children(child)
     data <- xml_text(gchild)
@@ -436,7 +436,7 @@ Enrollment <- Enrollment %>% mutate(
 Enrollment <- Enrollment %>% 
   left_join(usercreating, by = "EnrollmentID") %>% 
   left_join(., counties, by = "EnrollmentID")
-Enrollment <- data.table(Enrollment)
+Enrollment <- setDT(Enrollment)
 # Interims ----------------------------------------------------------------
 interims_start <- now()
 cols <- c(
@@ -716,7 +716,7 @@ assessment_data <- assessment_data %>%
       )
   ))
 p <- now()
-assessment_data <- data.table(assessment_data)
+assessment_data <- setDT(assessment_data)
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
 needs_start <- now()
