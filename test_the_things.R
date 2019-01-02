@@ -35,7 +35,7 @@ get_dupes(ConnectionWithSOAR, EnrollmentID, DataCollectionStage)
 View(ConnectionWithSOAR %>% filter(PersonalID %in% c(219218, 130592, 196671, 20228, 193399)))
 
 # NonCash testing ---------------------------------------------------------
-get_dupes(NonCashBenefits, EnrollmentID, DataCollectionStage, BenefitsFromAnySource, NoncashSource)
+get_dupes(NonCashBenefits, EnrollmentID, DataCollectionStage)
 View(NonCashBenefits %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
 
 # Disabilities testing ----------------------------------------------------
