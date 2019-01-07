@@ -1,18 +1,20 @@
 start <- now()
 # for reference (can be deleted once this is complete)
 the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-picklist_values <- EmploymentEducation %>% select(NotEmployedReason) %>% unique()
+#picklist_values <- EmploymentEducation %>% select(NotEmployedReason) %>% unique()
 
 # smaller dataset used in pairing EEs to assessment data.
 small_enrollment <- Enrollment[, c(1, 3, 5, 8, 9, 11)]
 
-# also smaller dataset, but used for subassessments because subs only store ymd 
+# also smaller dataset, but used for NCB subassessments because subs only store ymd 
   # type dates, so we only want to compare them to the same type of date when 
   # we're joining the assessment's y/n data back to the subs data
-sub_enrollment <- small_enrollment %>%
-  mutate(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
+
+sub_enrollment <- 
+  small_enrollment[, .(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
          ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
-         ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))
+         ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))]
+
 # ONE answer per CLIENt ---------------------------------------------------
 # function that pulls client-level data from the assessments df and adds it to the 
   # Client table based on the MOST RECENT answer
@@ -629,7 +631,7 @@ disability2 <-
     disabilityactive = NULL
   ) 
 disability2 <- filter(disability2, !is.na(DataCollectionStage))
-# at some point you'll just want this to be named Disability
+# main departure from specs is ONLY yes records are included, also no HOPWA data
 Disabilities <- disability2[, c(2, 1, 7:8, 13, 5:6)]
 rm(disability2)
 # Health Insurance --------------------------------------------------------
@@ -637,17 +639,20 @@ rm(disability2)
 Insuranceyn <- all_the_stages("hud_coveredbyhlthins") %>% 
   rename(InsuranceFromAnySource = Value)
 # joining the y/n data to the Enrollment data, applying HUD CSV specs to values
-Insuranceyn <- left_join(Insuranceyn,
-                         sub_enrollment,
-                         by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
-  mutate(InsuranceFromAnySource = case_when(
-    InsuranceFromAnySource == "yes (hud)" ~ 1,
-    InsuranceFromAnySource == "no (hud)" ~ 0,
-    InsuranceFromAnySource == "client doesn't know (hud)" ~ 8,
-    InsuranceFromAnySource == "client refused (hud)" ~ 9,
-    InsuranceFromAnySource == "data not collected (hud)" |
-      is.na(InsuranceFromAnySource) ~ 99
-  ))
+Insuranceyn <-
+  left_join(Insuranceyn,
+            sub_enrollment,
+            by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
+  mutate(
+    InsuranceFromAnySource = case_when(
+      InsuranceFromAnySource == "yes (hud)" ~ 1,
+      InsuranceFromAnySource == "no (hud)" ~ 0,
+      InsuranceFromAnySource == "client doesn't know (hud)" ~ 8,
+      InsuranceFromAnySource == "client refused (hud)" ~ 9,
+      InsuranceFromAnySource == "data not collected (hud)" |
+        is.na(InsuranceFromAnySource) ~ 99
+    )
+  )
 
 # healthins <- mutate(
 #   health_insurance,
@@ -706,16 +711,18 @@ HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 12:21)]
 rm(healthins, Insuranceyn)
 # Income and Sources ------------------------------------------------------
 # income uses two assessment data elements plus subs
-Incomeyn <- all_the_stages("svp_anysource30dayincome") %>% 
+Incomeyn <- all_the_stages("svp_anysource30dayincome") %>%
   rename(IncomeFromAnySource = Value) %>%
-  mutate(IncomeFromAnySource = case_when(
-    IncomeFromAnySource == "yes (hud)" ~ 1,
-    IncomeFromAnySource == "no (hud)" ~ 0,
-    IncomeFromAnySource == "client doesn't know (hud)" ~ 8,
-    IncomeFromAnySource == "client refused (hud)" ~ 9,
-    IncomeFromAnySource == "data not collected (hud)" |
-      is.na(IncomeFromAnySource) ~ 99
-  ))
+  mutate(
+    IncomeFromAnySource = case_when(
+      IncomeFromAnySource == "yes (hud)" ~ 1,
+      IncomeFromAnySource == "no (hud)" ~ 0,
+      IncomeFromAnySource == "client doesn't know (hud)" ~ 8,
+      IncomeFromAnySource == "client refused (hud)" ~ 9,
+      IncomeFromAnySource == "data not collected (hud)" |
+        is.na(IncomeFromAnySource) ~ 99
+    )
+  )
 # getting the second income-related data element (total monthly income)
 TMI <- all_the_stages("hud_totalmonthlyincome") %>%
   rename(TotalMonthlyIncome = Value)
