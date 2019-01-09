@@ -10,10 +10,15 @@ small_enrollment <- Enrollment[, c(1, 3, 5, 8, 9, 11)]
   # type dates, so we only want to compare them to the same type of date when 
   # we're joining the assessment's y/n data back to the subs data
 
-sub_enrollment <- 
-  small_enrollment[, .(EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
-         ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
-         ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York"))]
+sub_enrollment <-
+  small_enrollment[, .(
+    EnrollmentID,
+    PersonalID,
+    HouseholdID,
+    EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
+    ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
+    ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York")
+  )]
 
 # ONE answer per CLIENt ---------------------------------------------------
 # function that pulls client-level data from the assessments df and adds it to the 
@@ -641,7 +646,7 @@ Insuranceyn <- all_the_stages("hud_coveredbyhlthins") %>%
 # joining the y/n data to the Enrollment data, applying HUD CSV specs to values
 Insuranceyn <-
   left_join(Insuranceyn,
-            sub_enrollment,
+            small_enrollment,
             by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
   mutate(
     InsuranceFromAnySource = case_when(
@@ -654,37 +659,39 @@ Insuranceyn <-
     )
   )
 
-# healthins <- mutate(
-#   health_insurance,
-#   Medicaid = if_else(
-#     HealthInsuranceType == "medicaid", 1, 0),
-#   Medicare = if_else(
-#     HealthInsuranceType == "medicare", 1, 0),
-#   SCHIP = if_else(
-#     HealthInsuranceType == "state children's health insurance program", 1, 0),
-#   VAMedicalServices = if_else(
-#     HealthInsuranceType == "veteran's administration (va) medical services",  1, 0),
-#   EmployerProvided = if_else(
-#     HealthInsuranceType == "employer - provided health insurance", 1, 0),
-#   COBRA = if_else(
-#     HealthInsuranceType == "health insurance obtained through cobra", 1, 0),
-#   PrivatePay = if_else(
-#     HealthInsuranceType == "private pay health insurance", 1, 0),
-#   StateHealthInsAdults = if_else(
-#     HealthInsuranceType == "state health insurance for adults", 1, 0),
-#   IndianHealthServices = if_else(
-#     HealthInsuranceType == "indian health services program", 1, 0),
-#   OtherInsurance = if_else(
-#     HealthInsuranceType == "other", 1, 0),
-#   HealthInsuranceType = NULL
-# )
+healthins <- mutate(
+  health_insurance,
+  HealthInsuranceStartDate = ymd_hms(HealthInsuranceStartDate),
+  HealthInsuranceEndDate = ymd_hms(HealthInsuranceEndDate),
+  Medicaid = if_else(
+    HealthInsuranceType == "medicaid", 1, 0),
+  Medicare = if_else(
+    HealthInsuranceType == "medicare", 1, 0),
+  SCHIP = if_else(
+    HealthInsuranceType == "state children's health insurance program", 1, 0),
+  VAMedicalServices = if_else(
+    HealthInsuranceType == "veteran's administration (va) medical services",  1, 0),
+  EmployerProvided = if_else(
+    HealthInsuranceType == "employer - provided health insurance", 1, 0),
+  COBRA = if_else(
+    HealthInsuranceType == "health insurance obtained through cobra", 1, 0),
+  PrivatePay = if_else(
+    HealthInsuranceType == "private pay health insurance", 1, 0),
+  StateHealthInsAdults = if_else(
+    HealthInsuranceType == "state health insurance for adults", 1, 0),
+  IndianHealthServices = if_else(
+    HealthInsuranceType == "indian health services program", 1, 0),
+  OtherInsurance = if_else(
+    HealthInsuranceType == "other", 1, 0),
+  HealthInsuranceType = NULL
+)
 # joining health insurance sub data so enrollment data with Data Collection Stages
 healthins <-
-  left_join(healthins, sub_enrollment, by = "PersonalID") %>%
+  left_join(healthins, small_enrollment, by = "PersonalID") %>%
   mutate(
-    HealthInsuranceStartDate = ymd(HealthInsuranceStartDate),
-    HealthInsuranceEndDate = ymd(HealthInsuranceEndDate),
-    HealthInsuranceEndDateAdjust = if_else(is.na(HealthInsuranceEndDate), today(), HealthInsuranceEndDate),
+    HealthInsuranceEndDateAdjust = if_else(is.na(HealthInsuranceEndDate), 
+                                           now(), 
+                                           HealthInsuranceEndDate),
     inproject = interval(EntryDate, ExitAdjust),
     insuranceactive = interval(HealthInsuranceStartDate, HealthInsuranceEndDateAdjust),
     DataCollectionStage = if_else(
@@ -702,12 +709,28 @@ healthins <-
   ) 
 # throwing out unnecessary subs
 healthins <- filter(healthins, !is.na(DataCollectionStage))
+# paring down where there is no change between Data Collection Stages
+healthins <- 
+# smushing into rows
+healthins <- healthins %>% 
+  group_by(PersonalID, EnrollmentID, HouseholdID, DataCollectionStage) %>%
+  summarise(
+    Medicaid = sum(Medicaid),
+    Medicare = sum(Medicare),
+    SCHIP = sum(SCHIP),
+    VAMedicalServices = sum(VAMedicalServices),
+    EmployerProvided = sum(EmployerProvided),
+    COBRA = sum(COBRA),
+    PrivatePay = sum(PrivatePay),
+    StateHealthInsAdults = sum(StateHealthInsAdults),
+    IndianHealthServices = sum(IndianHealthServices),
+    OtherInsurance = sum(OtherInsurance)
+  )
 # joining sub data to y/n and Enrollment data
 HealthInsurance <- full_join(Insuranceyn, healthins, by = c(
-  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage", "EntryDate",
-  "ExitDate", "ExitAdjust"
+  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage"
 )) 
-HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 12:21)]
+HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 9:18)]
 rm(healthins, Insuranceyn)
 # Income and Sources ------------------------------------------------------
 # income uses two assessment data elements plus subs
