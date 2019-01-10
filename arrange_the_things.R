@@ -4,21 +4,11 @@ the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
 #picklist_values <- EmploymentEducation %>% select(NotEmployedReason) %>% unique()
 
 # smaller dataset used in pairing EEs to assessment data.
-small_enrollment <- Enrollment[, c(1, 3, 5, 8, 9, 11)]
-
-# also smaller dataset, but used for NCB subassessments because subs only store ymd 
-  # type dates, so we only want to compare them to the same type of date when 
-  # we're joining the assessment's y/n data back to the subs data
-
-sub_enrollment <-
-  small_enrollment[, .(
-    EnrollmentID,
-    PersonalID,
-    HouseholdID,
-    EntryDate = as.Date(EntryDate, "%Y-%m-%d", tz = "America/New_York"),
-    ExitDate = as.Date(ExitDate, "%Y-%m-%d", tz = "America/New_York"),
-    ExitAdjust = as.Date(ExitAdjust, "%Y-%m-%d", tz = "America/New_York")
-  )]
+small_enrollment <-
+  full_join(Enrollment,
+            interims,
+            by = c("EnrollmentID", "PersonalID")) %>%
+  select(1:3, 5, 8:10, 19:20)
 
 # ONE answer per CLIENt ---------------------------------------------------
 # function that pulls client-level data from the assessments df and adds it to the 
@@ -37,9 +27,8 @@ client_level_value <- function(dataelement) {
 # applying this function to each client-level data element to add it to Clients
 Client <- client_level_value("svpprofdob") 
 # formatting DOB date
-Client <-
-  Client %>% mutate(DOB = strftime(ymd_hms(Value), "%F"), 
-                    Value = NULL)
+Client <- Client %>% mutate(DOB = strftime(ymd_hms(Value), "%F"), Value = NULL)
+# getting back to applying the function to the various client-level data elements
 Client <- client_level_value("svpprofdobtype") %>% rename(DOBDataQuality = Value)
 Client <- client_level_value("svpprofeth") %>% rename(Ethnicity = Value)
 Client <- client_level_value("svpprofgender") %>% rename(Gender = Value)
@@ -276,7 +265,7 @@ all_the_stages <- function(dataelement) {
   x <- x %>% group_by(PersonalID, DateEffective) %>%
     filter(DateAdded == max(DateAdded)) %>%
     select(-DataElement)
-  x <- left_join(small_enrollment, x, by = "PersonalID") %>%
+  x <- left_join(x, small_enrollment, by = "PersonalID") %>%
     group_by(EnrollmentID) %>%
     mutate(
       datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]),
@@ -288,20 +277,17 @@ all_the_stages <- function(dataelement) {
     DataCollectionStage = 
       case_when(
         DateEffective == datacollectionstage1 ~ 1,
-        DateEffective == datacollectionstage2 ~ 2,
+        DateEffective == datacollectionstage2 & 
+          (InterimType == "update" |
+             is.na(InterimType)) ~ 2,
+        DateEffective == datacollectionstage2 &
+          InterimType == "annual assessment" ~ 5,
         DateEffective == datacollectionstage3 ~ 3
-      ),
-    datacollectionstage1 = NULL,
-    datacollectionstage2 = NULL,
-    datacollectionstage3 = NULL,
-    EntryDate = NULL,
-    ExitDate = NULL,
-    ExitAdjust = NULL,
-    DateAdded = NULL,
-    DateEffective = NULL
+      )
   ) %>%
     filter(!is.na(DataCollectionStage)
-  )
+  ) %>%
+    distinct(PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage) 
   x <- setDT(x, key = c("EnrollmentID", "DataCollectionStage"))
   return(x)
 }
@@ -323,7 +309,8 @@ DomesticViolence <-
       "EnrollmentID",
       "PersonalID",
       "HouseholdID",
-      "DataCollectionStage"
+      "DataCollectionStage",
+      "ProjectID"
     )
   ) %>%
   full_join(
@@ -333,7 +320,8 @@ DomesticViolence <-
       "EnrollmentID",
       "PersonalID",
       "HouseholdID",
-      "DataCollectionStage"
+      "DataCollectionStage",
+      "ProjectID"
     )
   ) %>%
   mutate(
@@ -375,7 +363,7 @@ DomesticViolence <-
   )
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
 # arrange rows sensibly
-DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
+# DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
 
 # EnrollmentCoC -----------------------------------------------------------
 # HUD has this as a separate table even though it seems like an enrollment-level
@@ -524,22 +512,25 @@ ConnectionWithSOAR <-
 ConnectionWithSOAR <- ConnectionWithSOAR[, c(2, 1, 3, 5, 4)]
 
 # Non Cash ----------------------------------------------------------------
-
-NCByn <- all_the_stages("svp_anysource30daynoncash") %>% 
+start <- now()
+NCByn <- all_the_stages("svp_anysource30daynoncash") %>%
   rename(BenefitsFromAnySource = Value) %>%
-  mutate(BenefitsFromAnySource = case_when(
-    BenefitsFromAnySource == "yes (hud)" ~ 1,
-    BenefitsFromAnySource == "no (hud)" ~ 0,
-    BenefitsFromAnySource == "client doesn't know (hud)" ~ 8,
-    BenefitsFromAnySource == "client refused (hud)" ~ 9,
-    BenefitsFromAnySource == "data not collected (hud)" |
-      is.na(BenefitsFromAnySource) ~ 99
-  ))
+  mutate(
+    BenefitsFromAnySource = case_when(
+      BenefitsFromAnySource == "yes (hud)" ~ 1,
+      BenefitsFromAnySource == "no (hud)" ~ 0,
+      BenefitsFromAnySource == "client doesn't know (hud)" ~ 8,
+      BenefitsFromAnySource == "client refused (hud)" ~ 9,
+      BenefitsFromAnySource == "data not collected (hud)" |
+        is.na(BenefitsFromAnySource) ~ 99
+    )
+  )
 
 NCByn <-
   left_join(NCByn,
-            sub_enrollment,
-            by = c("EnrollmentID", "PersonalID", "HouseholdID"))
+            small_enrollment,
+            by = c("EnrollmentID", "PersonalID", "HouseholdID")
+            )
 
 noncash2 <- mutate(
   noncash,
@@ -561,11 +552,11 @@ noncash2 <- mutate(
 )
 # applying HUD CSV specs and Data Collection Stage thanks to lubridate intervals!
 noncash2 <-
-  left_join(noncash2, sub_enrollment, by = "PersonalID") %>%
+  left_join(noncash2, small_enrollment, by = "PersonalID") %>%
   mutate(
-    NoncashStartDate = ymd(NoncashStartDate),
-    NoncashEndDate = ymd(NoncashEndDate),
-    NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), today(), NoncashEndDate),
+    NoncashStartDate = ymd_hms(NoncashStartDate),
+    NoncashEndDate = ymd_hms(NoncashEndDate),
+    NoncashEndDateAdjust = if_else(is.na(NoncashEndDate), now(), NoncashEndDate),
     inproject = interval(EntryDate, ExitAdjust),
     benefitactive = interval(NoncashStartDate, NoncashEndDateAdjust),
     DataCollectionStage = if_else(
@@ -596,9 +587,10 @@ NonCashBenefits <- full_join(
     "ExitDate",
     "ExitAdjust"
   )
-) 
+)
 NonCashBenefits <- NonCashBenefits[, c(1, 11:15, 17:18, 5:10)]
-NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCollectionStage) %>%
+NonCashBenefits <- NonCashBenefits %>% 
+  group_by(PersonalID, EnrollmentID, DataCollectionStage, BenefitsFromAnySource) %>%
   summarise(
     SNAP = sum(SNAP),
     WIC = sum(WIC),
@@ -609,6 +601,9 @@ NonCashBenefits <- NonCashBenefits %>% group_by(PersonalID, EnrollmentID, DataCo
   )
 rm(noncash2, NCByn)
 setDT(NonCashBenefits, key = c("EnrollmentID", "DataCollectionStage"))
+# STOP HERE
+end <- now()
+end - start
 # Disabilities ------------------------------------------------------------
 # similar to NCBs, but without the y/n since that's going to be in Enrollment
 disability2 <-
@@ -727,9 +722,16 @@ healthins <- healthins %>%
     OtherInsurance = sum(OtherInsurance)
   )
 # joining sub data to y/n and Enrollment data
-HealthInsurance <- full_join(Insuranceyn, healthins, by = c(
-  "PersonalID", "EnrollmentID", "HouseholdID", "DataCollectionStage"
-)) 
+HealthInsurance <- full_join(
+  Insuranceyn,
+  healthins,
+  by = c(
+    "PersonalID",
+    "EnrollmentID",
+    "HouseholdID",
+    "DataCollectionStage"
+  )
+) 
 HealthInsurance <- HealthInsurance[, c(2, 1, 3, 5, 4, 9:18)]
 rm(healthins, Insuranceyn)
 # Income and Sources ------------------------------------------------------
@@ -752,7 +754,7 @@ TMI <- all_the_stages("hud_totalmonthlyincome") %>%
 # joining the y/n and the tmi data together with Enrollment data
 Incomeyn <-
   left_join(Incomeyn,
-            sub_enrollment,
+            small_enrollment,
             by = c("EnrollmentID", "PersonalID", "HouseholdID")) %>%
   left_join(.,
             TMI,
@@ -762,9 +764,7 @@ Incomeyn <-
               "HouseholdID",
               "DataCollectionStage"
             ))
-# STOP HERE
-end <- now()
-end - start
+
 # incomesubs <- mutate(
 #   IncomeBenefits,
 #   Earned = if_else(
@@ -831,7 +831,7 @@ end - start
 #   IncomeAmount = NULL
 # )
 incomesubs <-
-  left_join(incomesubs, sub_enrollment, by = "PersonalID") %>%
+  left_join(incomesubs, small_enrollment, by = "PersonalID") %>%
   mutate(
     IncomeStart = ymd(IncomeStart),
     IncomeEnd = ymd(IncomeEnd),
@@ -902,18 +902,20 @@ MoveInDate <- all_the_stages("hud_housingmoveindate") %>%
 # Contacts ----------------------------------------------------------------
 
 
-# Referrals Services ------------------------------------------------------
+# Referrals ---------------------------------------------------------------
 
+# Services ----------------------------------------------------------------
 
-# Exit RHY ----------------------------------------------------------------
-
-
-# EntryRHSP ---------------------------------------------------------------
-
-
-# EntryRHY ----------------------------------------------------------------
+# EntrySSVF ---------------------------------------------------------------
 
 
 # SPDAT Scores ------------------------------------------------------------
+
+
+
+# PATHStatus --------------------------------------------------------------
+
+
+# DateOfEngagement --------------------------------------------------------
 
 
