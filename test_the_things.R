@@ -5,6 +5,8 @@ library(janitor)
   # doing for NCBs.
 # consider filtering Connection with SOAR data to only pull in PATH and RHY 
   # Enrollment IDs
+# idea to make things faster: mutate the entire assessment_data table so that the
+  # values are all already HUD CSV'd
 
 # Client table testing -------------------ok-------------------------------
 get_dupes(Client, PersonalID)
@@ -21,6 +23,7 @@ View(Enrollment %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 1447
 get_dupes(DomesticViolence, DataCollectionStage, EnrollmentID)
 
 View(DomesticViolence %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
+View(x %>% filter(PersonalID %in% c(171167, 213714, 211099, 210831, 114311)))
 
 # Enrollment CoC testing -----------------ok-------------------------------
 get_dupes(EnrollmentCoC, EnrollmentID, DataCollectionStage)
@@ -36,7 +39,7 @@ View(ConnectionWithSOAR %>% filter(PersonalID %in% c(219218, 130592, 196671, 202
 
 # NonCash testing ---------------------------------------------------------
 get_dupes(NonCashBenefits, EnrollmentID, DataCollectionStage)
-View(NonCashBenefits %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
+View(NonCashBenefits %>% filter(PersonalID %in% c(11675, 54017, 188869, 192304, 144707)))
 
 # Disabilities testing ----------------------------------------------------
 get_dupes(tablename, EnrollmentID, DataCollectionStage)
