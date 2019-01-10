@@ -878,8 +878,8 @@ colnames(noncash) <- c(
 # convert dates to EST
 noncash <- mutate(
   noncash,
-  NoncashStartDate = as.Date(NoncashStartDate, "%Y-%m-%d", tz = "America/New_York"),
-  NoncashEndDate = as.Date(NoncashEndDate, "%Y-%m-%d", tz = "America/New_York")
+  NoncashStartDate = with_tz(ymd_hms(NoncashStartDate)),
+  NoncashEndDate = with_tz(ymd_hms(NoncashEndDate))
 )
 # Disabilities -----------------------------------------------------------
 # name nodes we want to pull in
