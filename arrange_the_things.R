@@ -8,7 +8,7 @@ small_enrollment <-
   full_join(Enrollment,
             interims,
             by = c("EnrollmentID", "PersonalID")) %>%
-  select(1:3, 5, 8:10, 19:20)
+  select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust, InterimDate, InterimType)
 
 # ONE answer per CLIENt ---------------------------------------------------
 # function that pulls client-level data from the assessments df and adds it to the 
