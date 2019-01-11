@@ -8,7 +8,7 @@ small_enrollment <-
   full_join(Enrollment,
             interims,
             by = c("EnrollmentID", "PersonalID")) %>%
-  select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ExitDate, ExitAdjust, InterimDate, InterimType)
+  select(EnrollmentID, PersonalID, HouseholdID, ProjectID, EntryDate, ExitDate, ExitAdjust, InterimDate, InterimType)
 
 # ONE answer per CLIENt ---------------------------------------------------
 # function that pulls client-level data from the assessments df and adds it to the 
@@ -287,7 +287,7 @@ all_the_stages <- function(dataelement) {
   ) %>%
     filter(!is.na(DataCollectionStage)
   ) %>%
-    distinct(PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage) 
+    distinct(PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective) 
   x <- setDT(x, key = c("EnrollmentID", "DataCollectionStage"))
   return(x)
 }
@@ -295,11 +295,11 @@ all_the_stages <- function(dataelement) {
 # Domestic Violence -------------------------------------------------------
 # DV data is collected from three data elements
 DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>% 
-  rename(DomesticViolenceVictim = Value)
+  rename(DomesticViolenceVictim = Value, DVVictim_DE = DateEffective)
 DomesticViolence2 <- all_the_stages("hud_extentofdv") %>% 
-  rename(WhenOccurred = Value)
+  rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective)
 DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>% 
-  rename(CurrentlyFleeing = Value)
+  rename(CurrentlyFleeing = Value, Currently_Fleeing_DE = DateEffective)
 # joining all the dv data with Client and Enrollment data, applying HUD CSV specs
 DomesticViolence <-
   full_join(
@@ -331,8 +331,7 @@ DomesticViolence <-
       DomesticViolenceVictim == "client doesn't know (hud)" ~ 8,
       DomesticViolenceVictim == "client refused (hud)" ~ 9,
       DomesticViolenceVictim == "data not collected (hud)" |
-        DomesticViolenceVictim == "" |
-        is.na(DomesticViolenceVictim) ~ 99
+        DomesticViolenceVictim == "" ~ 99
     ),
     WhenOccurred = case_when(
       WhenOccurred == "within the past three months (hud)" ~ 1,
@@ -344,8 +343,7 @@ DomesticViolence <-
       DomesticViolenceVictim == 1 &
         (
           WhenOccurred == "data not collected (hud)" |
-            WhenOccurred == "" |
-            is.na(WhenOccurred)
+            WhenOccurred == "" 
         ) ~ 99
     ),
     CurrentlyFleeing = case_when(
@@ -356,14 +354,44 @@ DomesticViolence <-
       DomesticViolenceVictim == 1 &
         (
           CurrentlyFleeing == "data not collected (hud)" |
-            CurrentlyFleeing == "" |
-            is.na(CurrentlyFleeing)
+            CurrentlyFleeing == "" 
         ) ~ 99
     )
   )
 rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
+# this part is where the problem with the N/As being overwritten with 0s.
+# make this into a case_when()
+DomesticViolence <- DomesticViolence %>%
+  group_by(EnrollmentID, PersonalID, DataCollectionStage) %>%
+  summarise(DVVictim_DE = max(DVVictim_DE),
+            WhenOccurred_DE = max(WhenOccurred_DE),
+            Currently_Fleeing_DE = max(Currently_Fleeing_DE),
+            DomesticViolenceVictim = sum(DomesticViolenceVictim, na.rm = TRUE),
+            WhenOccurred = sum(WhenOccurred, na.rm = TRUE),
+            CurrentlyFleeing = sum(CurrentlyFleeing, na.rm = TRUE))
+
+EnrollmentIDs <- DomesticViolence %>% distinct(EnrollmentID)
+
+for(ID in EnrollmentIDs$EnrollmentID) {
+  print (ID)
+  temprows <- filter(DomesticViolence, EnrollmentID == ID)
+  temprows <- mutate(temprows, maxDE = pmax(DVVictim_DE, WhenOccurred_DE, Currently_Fleeing_DE, na.rm = TRUE))
+  maxEEID <- filter(temprows, maxDE == max(temprows$maxDE))
+  # print(maxEEID$maxDE)
+  # print(filter(temprows, DVVictim_DE == max(DVVictim_DE, na.rm = TRUE)) %>% 
+  #         select(DomesticViolenceVictim) %>% as.character())
+  maxEEID$DomesticViolenceVictim <- (filter(temprows, DVVictim_DE == max(DVVictim_DE, na.rm = TRUE)) %>% 
+    select(DomesticViolenceVictim) %>% as.character())[3]
+  maxEEID$WhenOccurred <- (filter(temprows, WhenOccurred_DE == max(WhenOccurred_DE, na.rm = TRUE)) %>% 
+    select(WhenOccurred) %>% as.character())[3]
+  maxEEID$CurrentlyFleeing <- (filter(temprows, Currently_Fleeing_DE == max(Currently_Fleeing_DE, na.rm = TRUE)) %>% 
+    select(CurrentlyFleeing) %>% as.character())[3]
+  # print(maxEEID)
+  DomesticViolence[DomesticViolence$EnrollmentID == ID && DomesticViolence$DataCollectionStage == maxEEID$DataCollectionStage[1],] <- maxEEID
+}
+ 
 # arrange rows sensibly
-# DomesticViolence <- DomesticViolence[, c(2, 1, 3, 5, 4, 6:7)]
+# DomesticViolence <- DomesticViolence[, c(1, 3:5, 2, 6:8)]
 
 # EnrollmentCoC -----------------------------------------------------------
 # HUD has this as a separate table even though it seems like an enrollment-level
