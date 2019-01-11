@@ -1,5 +1,5 @@
 library(janitor)
-# check that the subassessment dates are all only ymd and make necessary corrections
+
 # can't get the hopwa psh funding source to flip to its number.
 # maybe look at calculating Data Collection Stage by using Intervals like you're
   # doing for NCBs.
@@ -21,10 +21,10 @@ View(Enrollment %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 1447
 
 # Domestic Violence testing --------------ok-------------------------------
 get_dupes(DomesticViolence, DataCollectionStage, EnrollmentID)
-
-View(DomesticViolence %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
+get_dupes(x, PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective)
+View(DomesticViolence %>% filter(PersonalID %in% c(10454, 29446, 42737, 210831, 114311)))
 View(x %>% filter(PersonalID %in% c(171167, 213714, 211099, 210831, 114311)))
-
+setDT(x)
 # Enrollment CoC testing -----------------ok-------------------------------
 get_dupes(EnrollmentCoC, EnrollmentID, DataCollectionStage)
 View(EnrollmentCoC %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
