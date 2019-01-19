@@ -292,6 +292,46 @@ all_the_stages <- function(dataelement) {
   return(x)
 }
 
+all_the_stages_ex <- function(dataelement) {
+  x <- filter(assessment_data, DataElement == dataelement) # getting Client, DataElement, Value, DateEffective, DateAdded out of the assessment_data table
+  x <- x %>% group_by(PersonalID, DateEffective) %>% # grouping by ClientID and DateEffective
+    filter(DateAdded == max(DateAdded)) %>% # we only want the records in this grouping with the most recent DateAdded
+    select(-DataElement) # throw away the DataElement column since we already filtered on that
+  # the result thus far is ClientID, Value, DateEffective, and DateAdded, the key being ClientID and DateEffective though at this point, we don't need DateAdded anymore!
+  x <- left_join(x, small_enrollment, by = "PersonalID") %>% # joining x to small_enrollment, which has enrollment and interim data in it
+    group_by(EnrollmentID) %>% 
+    filter(DateEffective <= ExitAdjust) %>% # NOOOO (this is throwing out answers after an exit) this only throws out records that come AFTER an Exit Date but I think that's ok
+    mutate( # adding three columns that compare the DateEffective to the EntryDate and ExitAdjust
+      # maybe at this time I do the case_when statement using intervals to throw out records wholly unrelated to an EnrollmentID but be sure you're not throwing out prior answers!
+      datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]), # the stage1 will have the most recent date since the EntryDate.
+      datacollectionstage2 = max(DateEffective[#EntryDate < DateEffective & # by removing this we will pull forward the answers at Entry
+        ExitAdjust > DateEffective & 
+          (InterimType == "update" | is.na(InterimType))]), 
+      # stage2 has the the most recent date that falls between EntryDate and ExitAdjust and either an update interim or na (if there is one)
+      datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective), # stage3 will return the DateEffective if it matches the ExitDate
+      datacollectionstage4 = max(DateEffective),	  # most recent answer in the project stay
+      datacollectionstage5 = max(DateEffective[EntryDate < DateEffective & # maybe we don't need to specify this if we're throwing out records not related to an EnrollmentID
+                                                 ExitAdjust > DateEffective &
+                                                 InterimType == "annual assessment"])
+    )
+  x <- mutate(x,
+              DataCollectionStage = 
+                case_when(
+                  DateEffective == datacollectionstage1 ~ 1, 
+                  DateEffective == datacollectionstage2 ~ 2,
+                  DateEffective == datacollectionstage5 ~ 5,
+                  DateEffective == datacollectionstage3 ~ 3,
+                  DateEffective == datacollectionstage4 ~ 4
+                )
+  ) %>%
+    filter(!is.na(DataCollectionStage) # since we're only throwing out records AFTER Exit, we may still need to throw out records prior to the Entry that were not the max
+    ) %>%
+    distinct(PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective) 
+  x <- setDT(x, key = c("EnrollmentID", "DataCollectionStage"))
+  return(x)
+}
+
+
 # Domestic Violence -------------------------------------------------------
 # DV data is collected from three data elements
 DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>% 
@@ -299,6 +339,13 @@ DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>%
 DomesticViolence2 <- all_the_stages("hud_extentofdv") %>% 
   rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective)
 DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>% 
+  rename(CurrentlyFleeing = Value, Currently_Fleeing_DE = DateEffective)
+
+DomesticViolence1ex <- all_the_stages_ex("domesticviolencevictim") %>% 
+  rename(DomesticViolenceVictim = Value, DVVictim_DE = DateEffective)
+DomesticViolence2ex <- all_the_stages_ex("hud_extentofdv") %>% 
+  rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective)
+DomesticViolence3ex <- all_the_stages_ex("hud_extenttofdv2") %>% 
   rename(CurrentlyFleeing = Value, Currently_Fleeing_DE = DateEffective)
 # joining all the dv data with Client and Enrollment data, applying HUD CSV specs
 DomesticViolence <-
