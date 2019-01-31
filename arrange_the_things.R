@@ -264,113 +264,49 @@ all_the_stages <- function(dataelement) {
   x <- filter(assessment_data, DataElement == dataelement)
   x <- x %>% group_by(PersonalID, DateEffective) %>%
     filter(DateAdded == max(DateAdded)) %>%
-    select(-DataElement)
-  x <- left_join(x, small_enrollment, by = "PersonalID") %>%
-    group_by(EnrollmentID) %>%
+    select(-DataElement, -DateAdded)
+  x <- left_join(x, small_enrollment, by = "PersonalID") 
+  x <- as.data.frame(x)
+  x <-
     mutate(
-      datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]),
-      datacollectionstage2 = max(DateEffective[EntryDate < DateEffective &
-                                                 ExitAdjust > DateEffective]),
-      datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective)
-    )
-  x <- mutate(x,
-    DataCollectionStage = 
-      case_when(
-        DateEffective == datacollectionstage1 ~ 1,
-        DateEffective == datacollectionstage2 & 
-          (InterimType == "update" |
-             is.na(InterimType)) ~ 2,
-        DateEffective == datacollectionstage2 &
-          InterimType == "annual assessment" ~ 5,
-        DateEffective == datacollectionstage3 ~ 3
-      )
-  ) %>%
-    filter(!is.na(DataCollectionStage)
-  ) %>%
-    distinct(PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective) 
+      x,
+      projectstay = interval(ymd_hms(EntryDate), ymd_hms(ExitAdjust)),
+      responseduringproject = ymd_hms(DateEffective) %within% projectstay,
+      projectstay = NULL)
+  x <- group_by(x, EnrollmentID) %>%
+    mutate(
+      mostrecentresponse = max(DateEffective[EntryDate > DateEffective]),
+      DataCollectionStage = if_else(
+        responseduringproject == TRUE,
+        case_when(
+          EntryDate == DateEffective ~ 1,
+          DateEffective > EntryDate & 
+            DateEffective < ExitAdjust &
+            (InterimType == "update" |
+               is.na(InterimType)) ~ 2,
+          ExitDate == DateEffective ~ 3,
+          DateEffective > EntryDate & 
+            DateEffective < ExitAdjust &
+            InterimType == "annual assessment" ~ 5
+        ), NULL),
+      DataCollectionStage = if_else(
+        responseduringproject == FALSE & is.na(DataCollectionStage),
+        case_when(
+          mostrecentresponse == DateEffective ~ 1
+        ), 
+        DataCollectionStage 
+      )) %>%
+    select(-responseduringproject, -mostrecentresponse)
+  x <- filter(x, !is.na(DataCollectionStage) 
+  ) 
   x <- setDT(x, key = c("EnrollmentID", "DataCollectionStage"))
   return(x)
 }
-
-all_the_stages_ex <- function(dataelement) {
-  x <- filter(assessment_data, DataElement == dataelement) # getting Client, DataElement, Value, DateEffective, DateAdded out of the assessment_data table
-  x <- x %>% group_by(PersonalID, DateEffective) %>% # grouping by ClientID and DateEffective
-    filter(DateAdded == max(DateAdded)) %>% # we only want the records in this grouping with the most recent DateAdded
-    select(-DataElement) # throw away the DataElement column since we already filtered on that
-  # the result thus far is ClientID, Value, DateEffective, and DateAdded, the key being ClientID and DateEffective though at this point, we don't need DateAdded anymore!
-  x <- left_join(x, small_enrollment, by = "PersonalID") %>% # joining x to small_enrollment, which has enrollment and interim data in it
-    group_by(EnrollmentID) %>% 
-    filter(DateEffective <= ExitAdjust) %>% # NOOOO (this is throwing out answers after an exit) this only throws out records that come AFTER an Exit Date but I think that's ok
-    mutate( # adding three columns that compare the DateEffective to the EntryDate and ExitAdjust
-      # maybe at this time I do the case_when statement using intervals to throw out records wholly unrelated to an EnrollmentID but be sure you're not throwing out prior answers!
-      datacollectionstage1 = max(DateEffective[EntryDate >= DateEffective]), # the stage1 will have the most recent date since the EntryDate.
-      datacollectionstage2 = max(DateEffective[#EntryDate < DateEffective & # by removing this we will pull forward the answers at Entry
-        ExitAdjust > DateEffective & 
-          (InterimType == "update" | is.na(InterimType))]), 
-      # stage2 has the the most recent date that falls between EntryDate and ExitAdjust and either an update interim or na (if there is one)
-      datacollectionstage3 = case_when(DateEffective == ExitDate ~ DateEffective), # stage3 will return the DateEffective if it matches the ExitDate
-      datacollectionstage4 = max(DateEffective),	  # most recent answer in the project stay
-      datacollectionstage5 = max(DateEffective[EntryDate < DateEffective & # maybe we don't need to specify this if we're throwing out records not related to an EnrollmentID
-                                                 ExitAdjust > DateEffective &
-                                                 InterimType == "annual assessment"])
-    )
-  x <- mutate(x,
-              DataCollectionStage = 
-                case_when(
-                  DateEffective == datacollectionstage1 ~ 1, 
-                  DateEffective == datacollectionstage2 ~ 2,
-                  DateEffective == datacollectionstage5 ~ 5,
-                  DateEffective == datacollectionstage3 ~ 3,
-                  DateEffective == datacollectionstage4 ~ 4
-                )
-  ) %>%
-    filter(!is.na(DataCollectionStage) # since we're only throwing out records AFTER Exit, we may still need to throw out records prior to the Entry that were not the max
-    ) %>%
-    distinct(PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective) 
-  x <- setDT(x, key = c("EnrollmentID", "DataCollectionStage"))
-  return(x)
-}
-
 
 # Domestic Violence -------------------------------------------------------
 # DV data is collected from three data elements
-DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>% 
-  rename(DomesticViolenceVictim = Value, DVVictim_DE = DateEffective)
-DomesticViolence2 <- all_the_stages("hud_extentofdv") %>% 
-  rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective)
-DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>% 
-  rename(CurrentlyFleeing = Value, Currently_Fleeing_DE = DateEffective)
-
-DomesticViolence1ex <- all_the_stages_ex("domesticviolencevictim") %>% 
-  rename(DomesticViolenceVictim = Value, DVVictim_DE = DateEffective)
-DomesticViolence2ex <- all_the_stages_ex("hud_extentofdv") %>% 
-  rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective)
-DomesticViolence3ex <- all_the_stages_ex("hud_extenttofdv2") %>% 
-  rename(CurrentlyFleeing = Value, Currently_Fleeing_DE = DateEffective)
-# joining all the dv data with Client and Enrollment data, applying HUD CSV specs
-DomesticViolence <-
-  full_join(
-    DomesticViolence1,
-    DomesticViolence2,
-    by = c(
-      "EnrollmentID",
-      "PersonalID",
-      "HouseholdID",
-      "DataCollectionStage",
-      "ProjectID"
-    )
-  ) %>%
-  full_join(
-    .,
-    DomesticViolence3,
-    by = c(
-      "EnrollmentID",
-      "PersonalID",
-      "HouseholdID",
-      "DataCollectionStage",
-      "ProjectID"
-    )
-  ) %>%
+DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>%
+  rename(DomesticViolenceVictim = Value, DVVictim_DE = DateEffective) %>%
   mutate(
     DomesticViolenceVictim = case_when(
       DomesticViolenceVictim == "yes (hud)" ~ 1,
@@ -379,7 +315,11 @@ DomesticViolence <-
       DomesticViolenceVictim == "client refused (hud)" ~ 9,
       DomesticViolenceVictim == "data not collected (hud)" |
         DomesticViolenceVictim == "" ~ 99
-    ),
+    )
+  )
+DomesticViolence2 <- all_the_stages("hud_extentofdv") %>%
+  rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective) %>%
+  mutate(
     WhenOccurred = case_when(
       WhenOccurred == "within the past three months (hud)" ~ 1,
       WhenOccurred == "three to six months ago (hud)" ~ 2,
@@ -387,56 +327,98 @@ DomesticViolence <-
       WhenOccurred == "more than a year ago (hud)" ~ 4,
       WhenOccurred == "client doesn't know (hud)" ~ 8,
       WhenOccurred == "client refused (hud)" ~ 9,
-      DomesticViolenceVictim == 1 &
-        (
-          WhenOccurred == "data not collected (hud)" |
-            WhenOccurred == "" 
-        ) ~ 99
-    ),
+      WhenOccurred == "data not collected (hud)" |
+        WhenOccurred == "" ~ 99
+    )
+  )
+DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>%
+  rename(CurrentlyFleeing = Value,
+         Currently_Fleeing_DE = DateEffective) %>%
+  mutate(
     CurrentlyFleeing = case_when(
       CurrentlyFleeing == "yes (hud)" ~ 1,
       CurrentlyFleeing == "no (hud)" ~ 0,
       CurrentlyFleeing == "client doesn't know (hud)" ~ 8,
       CurrentlyFleeing == "client refused (hud)" ~ 9,
-      DomesticViolenceVictim == 1 &
-        (
-          CurrentlyFleeing == "data not collected (hud)" |
-            CurrentlyFleeing == "" 
-        ) ~ 99
+      CurrentlyFleeing == "data not collected (hud)" |
+        CurrentlyFleeing == "" ~ 99
     )
   )
-rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
+
+# may want to add logic later to N/A any of the dependent questions based on 
+# whether DVVictim == 1
+
+# a problem doing it the way I'm going is it should be allowed to have multiple
+# Stage 2 records for an EE. According to HUD. The problem with that is
+# that won't give me a way of distinguishing which one's the most recent answer.
+
+
+# building a new table based on all EnrollmentIDs represented in all three tables
+DV1 <- distinct(DomesticViolence1, EnrollmentID)
+DV2 <- distinct(DomesticViolence2, EnrollmentID)
+DV3 <- distinct(DomesticViolence3, EnrollmentID)
+
+DV <- full_join(
+  DV1,
+  DV2,
+  by = "EnrollmentID") %>%
+  full_join(
+    .,
+    DV3,
+    by = "EnrollmentID")
+dfstages <- data.frame(DataCollectionStage = c(1, 2, 3, 5))
+DV <- merge(DV, dfstages)
+rm(DV1, DV2, DV3, dfstages)
+
+DV <- left_join(DV, small_enrollment, by = "EnrollmentID")
+
+# joining all the dv data with Client and Enrollment data, applying HUD CSV specs
+# DomesticViolence <-
+  # full_join(
+  #   DomesticViolence1,
+  #   DomesticViolence2,
+  #   by = c(
+  #     "EnrollmentID",
+  #     "PersonalID",
+  #     "HouseholdID",
+  #     "DataCollectionStage",
+  #     "ProjectID",
+  #     "EntryDate",
+  #     "ExitDate",
+  #     "ExitAdjust",
+  #     "InterimDate",
+  #     "InterimType"
+  #   )
+  # ) %>%
+  # full_join(
+  #   .,
+  #   DomesticViolence3,
+  #   by = c(
+  #     "EnrollmentID",
+  #     "PersonalID",
+  #     "HouseholdID",
+  #     "DataCollectionStage",
+  #     "ProjectID",
+  #     "EntryDate",
+  #     "ExitDate",
+  #     "ExitAdjust",
+  #     "InterimDate",
+  #     "InterimType"
+  #   )
+  # ) 
+    
+
+
+# rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
 # this part is where the problem with the N/As being overwritten with 0s.
 # make this into a case_when()
-DomesticViolence <- DomesticViolence %>%
-  group_by(EnrollmentID, PersonalID, DataCollectionStage) %>%
-  summarise(DVVictim_DE = max(DVVictim_DE),
-            WhenOccurred_DE = max(WhenOccurred_DE),
-            Currently_Fleeing_DE = max(Currently_Fleeing_DE),
-            DomesticViolenceVictim = sum(DomesticViolenceVictim, na.rm = TRUE),
-            WhenOccurred = sum(WhenOccurred, na.rm = TRUE),
-            CurrentlyFleeing = sum(CurrentlyFleeing, na.rm = TRUE))
+# w <- DomesticViolence %>%
+#   group_by(EnrollmentID, PersonalID, DataCollectionStage) %>%
+#   mutate(sameyn = DVVictim_DE == WhenOccurred_DE & 
+#            WhenOccurred_DE == Currently_Fleeing_DE)
 
 EnrollmentIDs <- DomesticViolence %>% distinct(EnrollmentID)
 
-for(ID in EnrollmentIDs$EnrollmentID) {
-  print (ID)
-  temprows <- filter(DomesticViolence, EnrollmentID == ID)
-  temprows <- mutate(temprows, maxDE = pmax(DVVictim_DE, WhenOccurred_DE, Currently_Fleeing_DE, na.rm = TRUE))
-  maxEEID <- filter(temprows, maxDE == max(temprows$maxDE))
-  # print(maxEEID$maxDE)
-  # print(filter(temprows, DVVictim_DE == max(DVVictim_DE, na.rm = TRUE)) %>% 
-  #         select(DomesticViolenceVictim) %>% as.character())
-  maxEEID$DomesticViolenceVictim <- (filter(temprows, DVVictim_DE == max(DVVictim_DE, na.rm = TRUE)) %>% 
-    select(DomesticViolenceVictim) %>% as.character())[3]
-  maxEEID$WhenOccurred <- (filter(temprows, WhenOccurred_DE == max(WhenOccurred_DE, na.rm = TRUE)) %>% 
-    select(WhenOccurred) %>% as.character())[3]
-  maxEEID$CurrentlyFleeing <- (filter(temprows, Currently_Fleeing_DE == max(Currently_Fleeing_DE, na.rm = TRUE)) %>% 
-    select(CurrentlyFleeing) %>% as.character())[3]
-  # print(maxEEID)
-  DomesticViolence[DomesticViolence$EnrollmentID == ID && DomesticViolence$DataCollectionStage == maxEEID$DataCollectionStage[1],] <- maxEEID
-}
- 
 # arrange rows sensibly
 # DomesticViolence <- DomesticViolence[, c(1, 3:5, 2, 6:8)]
 
