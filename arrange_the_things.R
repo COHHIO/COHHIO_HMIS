@@ -8,10 +8,18 @@ small_enrollment <-
   full_join(Enrollment,
             interims,
             by = c("EnrollmentID", "PersonalID")) %>%
-  select(EnrollmentID, PersonalID, HouseholdID, ProjectID, EntryDate, ExitDate, ExitAdjust, InterimDate, InterimType)
+  select(EnrollmentID, 
+         PersonalID, 
+         HouseholdID, 
+         ProjectID, 
+         EntryDate, 
+         ExitDate, 
+         ExitAdjust, 
+         InterimDate, 
+         InterimType)
 
 # ONE answer per CLIENt ---------------------------------------------------
-# function that pulls client-level data from the assessments df and adds it to the 
+# function that pulls client-level data from assessments df and adds it to the 
   # Client table based on the MOST RECENT answer
 client_level_value <- function(dataelement) {
   relevant_data <- filter(assessment_data, DataElement == dataelement)
@@ -32,7 +40,7 @@ Client <- Client %>% mutate(DOB = strftime(ymd_hms(Value), "%F"), Value = NULL)
 Client <- client_level_value("svpprofdobtype") %>% rename(DOBDataQuality = Value)
 Client <- client_level_value("svpprofeth") %>% rename(Ethnicity = Value)
 Client <- client_level_value("svpprofgender") %>% rename(Gender = Value)
-# the HUD CSV stores Race in a more complicated way so not using the function for race
+# the HUD CSV stores Race in a more complicated way so ...
 race <-
   assessment_data %>% filter(
     DataElement %in% c("svpprofrace", "svpprofsecondaryrace") &
@@ -50,11 +58,16 @@ x <- race %>% group_by(PersonalID, Value) %>%
   summarise(max(DateEffective), max(DateAdded)) 
 # turns each value to a column
 race <- mutate(x,
-  AmIndAKNative = if_else(Value == "american indian or alaska native (hud)", 1, 0),
-  Asian = if_else(Value == "asian (hud)", 1, 0),
-  BlackAfAmerican = if_else(Value == "black or african american (hud)", 1, 0),
-  NativeHIOtherPacific = if_else(Value == "native hawaiian or other pacific islander (hud)", 1, 0),
-  White = if_else(Value == "white (hud)", 1, 0),
+  AmIndAKNative = 
+    if_else(Value == "american indian or alaska native (hud)", 1, 0),
+  Asian = 
+    if_else(Value == "asian (hud)", 1, 0),
+  BlackAfAmerican = 
+    if_else(Value == "black or african american (hud)", 1, 0),
+  NativeHIOtherPacific = 
+    if_else(Value == "native hawaiian or other pacific islander (hud)", 1, 0),
+  White = 
+    if_else(Value == "white (hud)", 1, 0),
   DataElement = NULL, Value = NULL, DateEffective = NULL, DateAdded = NULL)
 # collapses the rows so multiracial Clients will only show on one row
 race <- race %>% group_by(PersonalID) %>%
@@ -125,16 +138,26 @@ enrollment_level_value <- function(dataelement) {
   return(Enrollment)
 }
 # applying the function to all the enrollment-level data elements
-Enrollment <- enrollment_level_value("hud_relationtohoh") %>% rename(RelationshipToHoH = Value)
-Enrollment <- enrollment_level_value("typeoflivingsituation") %>% rename(LivingSituation = Value)
-Enrollment <- enrollment_level_value("hud_lengthofstay") %>% rename(LengthOfStay = Value)
-Enrollment <- enrollment_level_value("hud_lengthstay_less90days") %>% rename(LoS90d = Value)
-Enrollment <- enrollment_level_value("hud_lengthstay_less7nights") %>% rename(LoS7d = Value)
-Enrollment <- enrollment_level_value("hud_nightbeforestreetessh") %>% rename(PreviousStreetESSH = Value)
-Enrollment <- enrollment_level_value("hud_homelessstartdate") %>% rename(DateToStreetESSH = Value)
-Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% rename(TimesHomelessPastThreeYears = Value)
-Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% rename(MonthsHomelessPastThreeYears = Value)
-Enrollment <- enrollment_level_value("hud_disablingcondition") %>% rename(DisablingCondition = Value)
+Enrollment <- enrollment_level_value("hud_relationtohoh") %>% 
+  rename(RelationshipToHoH = Value)
+Enrollment <- enrollment_level_value("typeoflivingsituation") %>% 
+  rename(LivingSituation = Value)
+Enrollment <- enrollment_level_value("hud_lengthofstay") %>% 
+  rename(LengthOfStay = Value)
+Enrollment <- enrollment_level_value("hud_lengthstay_less90days") %>% 
+  rename(LoS90d = Value)
+Enrollment <- enrollment_level_value("hud_lengthstay_less7nights") %>% 
+  rename(LoS7d = Value)
+Enrollment <- enrollment_level_value("hud_nightbeforestreetessh") %>% 
+  rename(PreviousStreetESSH = Value)
+Enrollment <- enrollment_level_value("hud_homelessstartdate") %>% 
+  rename(DateToStreetESSH = Value)
+Enrollment <- enrollment_level_value("hud_numberoftimestreetessh") %>% 
+  rename(TimesHomelessPastThreeYears = Value)
+Enrollment <- enrollment_level_value("hud_nomonthstreetesshin3yrs") %>% 
+  rename(MonthsHomelessPastThreeYears = Value)
+Enrollment <- enrollment_level_value("hud_disablingcondition") %>% 
+  rename(DisablingCondition = Value)
 # applying HUD CSV specs to the values
 Enrollment <- mutate(
   Enrollment,
@@ -199,7 +222,7 @@ Enrollment <- mutate(
       LengthOfStay == "" |
       is.na(LengthOfStay) ~ 99
   ),
-  # three data elements decide if LOSUnderThreshold. this uses those data to assign a 1 or 0
+  # three data elements decide if LOSUnderThreshold. 
   LOSUnderThreshold = case_when(
     LoS90d == "true" & 
       PreviousStreetESSH == "true" & 
@@ -306,7 +329,7 @@ all_the_stages <- function(dataelement) {
 # Domestic Violence -------------------------------------------------------
 # DV data is collected from three data elements
 DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>%
-  rename(DomesticViolenceVictim = Value, DVVictim_DE = DateEffective) %>%
+  rename(DomesticViolenceVictim = Value) %>%
   mutate(
     DomesticViolenceVictim = case_when(
       DomesticViolenceVictim == "yes (hud)" ~ 1,
@@ -315,10 +338,11 @@ DomesticViolence1 <- all_the_stages("domesticviolencevictim") %>%
       DomesticViolenceVictim == "client refused (hud)" ~ 9,
       DomesticViolenceVictim == "data not collected (hud)" |
         DomesticViolenceVictim == "" ~ 99
-    )
+    ),
+    DateEffective = NULL
   )
 DomesticViolence2 <- all_the_stages("hud_extentofdv") %>%
-  rename(WhenOccurred = Value, WhenOccurred_DE = DateEffective) %>%
+  rename(WhenOccurred = Value) %>%
   mutate(
     WhenOccurred = case_when(
       WhenOccurred == "within the past three months (hud)" ~ 1,
@@ -329,11 +353,11 @@ DomesticViolence2 <- all_the_stages("hud_extentofdv") %>%
       WhenOccurred == "client refused (hud)" ~ 9,
       WhenOccurred == "data not collected (hud)" |
         WhenOccurred == "" ~ 99
-    )
+    ),
+    DateEffective = NULL
   )
 DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>%
-  rename(CurrentlyFleeing = Value,
-         Currently_Fleeing_DE = DateEffective) %>%
+  rename(CurrentlyFleeing = Value) %>%
   mutate(
     CurrentlyFleeing = case_when(
       CurrentlyFleeing == "yes (hud)" ~ 1,
@@ -342,7 +366,8 @@ DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>%
       CurrentlyFleeing == "client refused (hud)" ~ 9,
       CurrentlyFleeing == "data not collected (hud)" |
         CurrentlyFleeing == "" ~ 99
-    )
+    ),
+    DateEffective = NULL
   )
 
 # may want to add logic later to N/A any of the dependent questions based on 
@@ -371,6 +396,45 @@ DV <- merge(DV, dfstages)
 rm(DV1, DV2, DV3, dfstages)
 
 DV <- left_join(DV, small_enrollment, by = "EnrollmentID")
+
+e <- left_join(DV, DomesticViolence1, by = c(
+  "PersonalID", "EnrollmentID", "HouseholdID", "ProjectID", "EntryDate", "ExitDate", 
+  "ExitAdjust", "InterimDate", "InterimType", "DataCollectionStage"
+))
+
+e <- left_join(
+  e,
+  DomesticViolence2,
+  by = c(
+    "PersonalID",
+    "EnrollmentID",
+    "HouseholdID",
+    "ProjectID",
+    "EntryDate",
+    "ExitDate",
+    "ExitAdjust",
+    "InterimDate",
+    "InterimType",
+    "DataCollectionStage"
+  )
+)
+e <- left_join(
+  e,
+  DomesticViolence3,
+  by = c(
+    "PersonalID",
+    "EnrollmentID",
+    "HouseholdID",
+    "ProjectID",
+    "EntryDate",
+    "ExitDate",
+    "ExitAdjust",
+    "InterimDate",
+    "InterimType",
+    "DataCollectionStage"
+  )
+)
+
 
 # joining all the dv data with Client and Enrollment data, applying HUD CSV specs
 # DomesticViolence <-
