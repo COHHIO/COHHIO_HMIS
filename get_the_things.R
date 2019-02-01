@@ -572,36 +572,26 @@ cols <- c(
   "date_added",
   "date_effective"
 )
-r <- now()
 # gets all the nodes under the "assessmentData" node
 assessmentData_child_nodes <- xml_find_all(y, xpath = "//records/clientRecords/Client/assessmentData/*")
-b <- now()
 # using the above, grabs Client IDs
 Client_ID_as_gparent <- xml_parent(xml_parent(assessmentData_child_nodes))
-c <- now()
 # each node's name
 data_element <- xml_name(assessmentData_child_nodes)
-d <- now()
 # each node's value
 value <- xml_text(assessmentData_child_nodes)
-e <- now()
 # each node's date eff
 date_effective <- xml_attr(assessmentData_child_nodes, "date_effective")
-f <- now()
 # each node's date added
 date_added <- xml_attr(assessmentData_child_nodes, "date_added")
-g <- now()
 # making Client ID numeric
 Client_IDs <- parse_number(xml_attr(Client_ID_as_gparent, "record_id"))
-h <- now()
 # trying something
 # tmp <- xml_parent(assessmentData_child_nodes)
 # works out how many assessments per Client ID
 length_assessments <- sapply(xml_parent(assessmentData_child_nodes), function(x) length(xml_children(x)))
-j <- now()
 # returns how many assessments per Client ID
 ids <- data.frame(length_assessments, Client_IDs)
-k <- now()
 # uses the info from above to repeat the Client IDs however many times as needed
 # THIS IS THE PART THAT TAKES A LONG TIME
 # TRY THIS:           w <- integer(nrow(ids))
@@ -610,10 +600,8 @@ for(i in 1:nrow(ids)) {
   w <- c(w, rep(ids[i,]$Client_IDs, ids[i,]$length_assessments))
 }
 Client_IDs <- w
-l <- now()
 # putting it all together
 assessment_data <- bind_cols(list(Client_IDs, data_element, value, date_effective, date_added))
-m <- now()
 # naming the columns
 colnames(assessment_data) <- c(
   "client_id" = "PersonalID",
@@ -622,12 +610,10 @@ colnames(assessment_data) <- c(
   "date_effective" =  "DateEffective",
   "date_added" = "DateAdded"
 )
-n <- now()
 # converting dates to EST
 assessment_data <- mutate(assessment_data,
                           DateEffective = with_tz(ymd_hms(DateEffective)),
                           DateAdded = with_tz(ymd_hms(DateAdded)))
-o <- now()
 # clean the house
 rm(assessmentData_child_nodes,
    Client_ID_as_gparent,
@@ -715,7 +701,6 @@ assessment_data <- assessment_data %>%
         "rhymistertiaryrace"
       )
   ))
-p <- now()
 assessment_data <- setDT(assessment_data)
 # Needs ------------------------------------------------------------
 # name nodes we want to pull in
@@ -1019,27 +1004,27 @@ t <- as.data.frame(
     "health insurance" = end - h_ins_start,
     "all the whole thing" = end - begin
   ))
-write_csv(t, "C:\\Users\\Public\\HMIS-Share\\timing.csv", append = TRUE)
+# write_csv(t, "C:\\Users\\Public\\HMIS-Share\\timing.csv", append = TRUE)
 # rm(begin, provider_start, provider_CoC_start, provider_inventory_start, ee_start, interims_start,
 #    client_start, assessments_start, funding_source_start, provider_address_start, needs_start, 
 #    services_start, income_start, noncash_start, disabilities_start, h_ins_start, end)
-as.data.frame(
-  c(
-    "select col names" = r - assessments_start,
-    "all nodes under assessmentData" = b - r,
-    "grabs Client IDs" = c - b,
-    "each node's name" = d - c,
-    "each node's value" = e - d,
-    "each node's date eff" = f - e,
-    "each node's date added" = g - f,
-    "making Client ID numeric" = h - g,
-    "# assessments per Client ID" = j - h,
-    "df assessments per Client ID" = k - j,
-    "for loop repeat the Client IDs however many times" = l - k,
-    "putting it all together" = m - l,
-    "naming the columns" = n - m,
-    "converting dates to EST" = o - n,
-    "clean the house" = p - o,
-    "setDT" = needs_start - p,
-    "all" = needs_start - assessments_start
-  ))
+# as.data.frame(
+#   c(
+#     "select col names" = r - assessments_start,
+#     "all nodes under assessmentData" = b - r,
+#     "grabs Client IDs" = c - b,
+#     "each node's name" = d - c,
+#     "each node's value" = e - d,
+#     "each node's date eff" = f - e,
+#     "each node's date added" = g - f,
+#     "making Client ID numeric" = h - g,
+#     "# assessments per Client ID" = j - h,
+#     "df assessments per Client ID" = k - j,
+#     "for loop repeat the Client IDs however many times" = l - k,
+#     "putting it all together" = m - l,
+#     "naming the columns" = n - m,
+#     "converting dates to EST" = o - n,
+#     "clean the house" = p - o,
+#     "setDT" = needs_start - p,
+#     "all" = needs_start - assessments_start
+#   ))
