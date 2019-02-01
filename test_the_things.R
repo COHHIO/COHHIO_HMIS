@@ -1,5 +1,6 @@
 library(janitor)
 library("skimr")
+library("tidylog")
 # can't get the hopwa psh funding source to flip to its number.
 # maybe look at calculating Data Collection Stage by using Intervals like you're
   # doing for NCBs.
@@ -24,7 +25,7 @@ get_dupes(Enrollment, EnrollmentID)
 View(Enrollment %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
 
 # Domestic Violence testing --------------ok-------------------------------
-get_dupes(DomesticViolence, DataCollectionStage, EnrollmentID)
+get_dupes(x, DataCollectionStage, EnrollmentID)
 anti_join(DomesticViolence1, DomesticViolence1ex)
 
 get_dupes(x, PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective)
