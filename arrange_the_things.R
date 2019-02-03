@@ -298,7 +298,9 @@ all_the_stages <- function(dataelement) {
       projectstay = NULL)
   x <- group_by(x, EnrollmentID) %>%
     mutate(
-      mostrecentresponse = max(DateEffective[EntryDate > DateEffective]),
+      mostrecentresponse = max(DateEffective[EntryDate >= DateEffective]),
+      mostrecentresponseduringstay = 
+        max(DateEffective[ExitAdjust >= DateEffective]) == DateEffective,
       DataCollectionStage = if_else(
         responseduringproject == TRUE,
         case_when(
@@ -373,11 +375,6 @@ DomesticViolence3 <- all_the_stages("hud_extenttofdv2") %>%
 # may want to add logic later to N/A any of the dependent questions based on 
 # whether DVVictim == 1
 
-# a problem doing it the way I'm going is it should be allowed to have multiple
-# Stage 2 records for an EE. According to HUD. The problem with that is
-# that won't give me a way of distinguishing which one's the most recent answer.
-
-
 # building a new table based on all EnrollmentIDs represented in all three tables
 DV1 <- distinct(DomesticViolence1, EnrollmentID)
 DV2 <- distinct(DomesticViolence2, EnrollmentID)
@@ -397,10 +394,22 @@ rm(DV1, DV2, DV3, dfstages)
 
 DV <- left_join(DV, small_enrollment, by = "EnrollmentID")
 
-e <- left_join(DV, DomesticViolence1, by = c(
-  "PersonalID", "EnrollmentID", "HouseholdID", "ProjectID", "EntryDate", "ExitDate", 
-  "ExitAdjust", "InterimDate", "InterimType", "DataCollectionStage"
-))
+e <- left_join(
+  DV,
+  DomesticViolence1,
+  by = c(
+    "PersonalID",
+    "EnrollmentID",
+    "HouseholdID",
+    "ProjectID",
+    "EntryDate",
+    "ExitDate",
+    "ExitAdjust",
+    "InterimDate",
+    "InterimType",
+    "DataCollectionStage"
+  )
+)
 
 e <- left_join(
   e,
@@ -415,7 +424,8 @@ e <- left_join(
     "ExitAdjust",
     "InterimDate",
     "InterimType",
-    "DataCollectionStage"
+    "DataCollectionStage",
+    "mostrecentresponseduringstay"
   )
 )
 e <- left_join(
@@ -431,60 +441,52 @@ e <- left_join(
     "ExitAdjust",
     "InterimDate",
     "InterimType",
-    "DataCollectionStage"
+    "DataCollectionStage",
+    "mostrecentresponseduringstay"
   )
 )
+# isolating all the most recent answers in the stay into f
+f <- 
+  filter(e,
+    mostrecentresponseduringstay == TRUE
+  ) %>%
+  mutate(
+    DataCollectionStage = 3
+  ) %>%
+  select(
+    EnrollmentID,
+    DataCollectionStage,
+    DomesticViolenceVictim,
+    WhenOccurred,
+    CurrentlyFleeing
+  )
 
 
-# joining all the dv data with Client and Enrollment data, applying HUD CSV specs
-# DomesticViolence <-
-  # full_join(
-  #   DomesticViolence1,
-  #   DomesticViolence2,
-  #   by = c(
-  #     "EnrollmentID",
-  #     "PersonalID",
-  #     "HouseholdID",
-  #     "DataCollectionStage",
-  #     "ProjectID",
-  #     "EntryDate",
-  #     "ExitDate",
-  #     "ExitAdjust",
-  #     "InterimDate",
-  #     "InterimType"
-  #   )
-  # ) %>%
-  # full_join(
-  #   .,
-  #   DomesticViolence3,
-  #   by = c(
-  #     "EnrollmentID",
-  #     "PersonalID",
-  #     "HouseholdID",
-  #     "DataCollectionStage",
-  #     "ProjectID",
-  #     "EntryDate",
-  #     "ExitDate",
-  #     "ExitAdjust",
-  #     "InterimDate",
-  #     "InterimType"
-  #   )
-  # ) 
-    
+DomesticViolence <-
+  left_join(e, f, by = c("EnrollmentID",
+                         "DataCollectionStage"))
+DomesticViolence <- DomesticViolence %>%
+  mutate(
+         DomesticViolenceVictim.x = if_else(DataCollectionStage == 3, 
+                                            DomesticViolenceVictim.y, 
+                                            DomesticViolenceVictim.x),
+         WhenOccurred.x = if_else(DataCollectionStage == 3, 
+                                  WhenOccurred.y, 
+                                  WhenOccurred.x),
+         CurrentlyFleeing.x = if_else(DataCollectionStage == 3, 
+                                      CurrentlyFleeing.y, 
+                                      CurrentlyFleeing.x)) %>%
+  select(-DomesticViolenceVictim.y, 
+         -WhenOccurred.y, 
+         -CurrentlyFleeing.y, 
+         -mostrecentresponseduringstay) 
+DomesticViolence <- DomesticViolence %>%
+  rename(DomesticViolenceVictim = DomesticViolenceVictim.x,
+         WhenOccurred = WhenOccurred.x,
+         CurrentlyFleeing = CurrentlyFleeing.x)
 
+rm(e, f, DV, DomesticViolence1, DomesticViolence2, DomesticViolence3)
 
-# rm(DomesticViolence1, DomesticViolence2, DomesticViolence3)
-# this part is where the problem with the N/As being overwritten with 0s.
-# make this into a case_when()
-# w <- DomesticViolence %>%
-#   group_by(EnrollmentID, PersonalID, DataCollectionStage) %>%
-#   mutate(sameyn = DVVictim_DE == WhenOccurred_DE & 
-#            WhenOccurred_DE == Currently_Fleeing_DE)
-
-EnrollmentIDs <- DomesticViolence %>% distinct(EnrollmentID)
-
-# arrange rows sensibly
-# DomesticViolence <- DomesticViolence[, c(1, 3:5, 2, 6:8)]
 
 # EnrollmentCoC -----------------------------------------------------------
 # HUD has this as a separate table even though it seems like an enrollment-level

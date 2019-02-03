@@ -25,7 +25,7 @@ get_dupes(Enrollment, EnrollmentID)
 View(Enrollment %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
 
 # Domestic Violence testing --------------ok-------------------------------
-get_dupes(x, DataCollectionStage, EnrollmentID)
+get_dupes(DomesticViolence1, EnrollmentID)
 anti_join(DomesticViolence1, DomesticViolence1ex)
 
 get_dupes(x, PersonalID, EnrollmentID, HouseholdID, ProjectID, Value, DataCollectionStage, DateEffective)
