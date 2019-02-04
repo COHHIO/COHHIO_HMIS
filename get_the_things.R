@@ -5,7 +5,7 @@ library("readxl")
 library("data.table")
 begin <- now()
 # pulls in the XML file which comes from the ServicePoint export
-y <- read_xml("data/Bowman_Payload_41.xml")
+y <- read_xml("data/Bowman_Payload_72.xml")
 # all other data comes from the RMisc ART report
 users <- read_xlsx("data/RMisc.xlsx",
                   sheet = 4,
