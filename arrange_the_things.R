@@ -1,7 +1,6 @@
-start <- now()
 # for reference (can be deleted once this is complete)
-the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
-#picklist_values <- EmploymentEducation %>% select(NotEmployedReason) %>% unique()
+# the_assessment_questions <- select(assessment_data, DataElement) %>% unique()
+# picklist_values <- EmploymentEducation %>% select(NotEmployedReason) %>% unique()
 
 # smaller dataset used in pairing EEs to assessment data.
 small_enrollment <-
