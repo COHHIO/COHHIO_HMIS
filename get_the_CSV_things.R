@@ -21,20 +21,27 @@ Affiliation <- read_csv("data/Affiliation.csv")
 Client <- read_csv("data/Client.csv")
 Disabilities <- read_csv("data/Disabilities.csv",
                          col_types = "cnnDnnnnnnnnnnTTnln") 
-EmploymentEducation <- read_csv("data/EmploymentEducation.csv") # parsing probs
-Enrollment <- read_csv("data/Enrollment.csv") # parsing probs
+EmploymentEducation <- read_csv("data/EmploymentEducation.csv",
+                                col_types = "cnnDnnnnnnTTnln") 
+Enrollment <- 
+  read_csv("data/Enrollment.csv",
+           col_types = "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnln")
 EnrollmentCoC <- read_csv("data/EnrollmentCoC.csv")
-Exit <- read_csv("data/Exit.csv") # parsing probs
+Exit <- read_csv("data/Exit.csv",
+                 col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnln")
 Export <- read_csv("data/Export.csv")
 Funder <- read_csv("data/Funder.csv")
 Geography <- read_csv("data/Geography.csv")
-HealthAndDV <- read_csv("data/HealthAndDV.csv")  # parsing probs
-IncomeBenefits <- read_csv("data/IncomeBenefits.csv")  # parsing probs
+HealthAndDV <- read_csv("data/HealthAndDV.csv",
+                        col_types = "cnnDnnnnnnnDnTTnln")
+IncomeBenefits <- 
+  read_csv("data/IncomeBenefits.csv",
+           col_types = "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnln")
 Inventory <- read_csv("data/Inventory.csv")
 Organization <- read_csv("data/Organization.csv")
 Project <- read_csv("data/Project.csv")
 ProjectCoC <- read_csv("data/ProjectCoC.csv")
-Services <- read_csv("data/Services.csv") # parsing probs
+Services <- read_csv("data/Services.csv", col_types = "cnnDnncnnnTTnln")
 
 # --- All other data comes ART > Ohio BoS > COHHIO Only > RMisc ---
 
@@ -73,13 +80,13 @@ Client <- Client %>%
     NameDataQuality %in% c(8,9) ~ "DKR",
     NameDataQuality == 2 ~ "Partial",
     NameDataQuality == 99 | is.na(NameDataQuality) | FirstName == 0 ~ "Missing",
-    !(NameDataQuality %in% c(2, 8, 9, 99) | is.na(NameDataQuality) | FirstName == "Anonymous") ~ "ok"),
+    !(NameDataQuality %in% c(2, 8, 9, 99) | 
+        is.na(NameDataQuality) | 
+        FirstName == "Anonymous") ~ "ok"),
     LastName = NULL,
     MiddleName = NULL,
-    NameSuffix = NULL)
-
-Client <- Client %>%
-  mutate(SSN = case_when(
+    NameSuffix = NULL,
+    SSN = case_when(
     is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
     SSNDataQuality %in% c(8, 9) ~ "DKR",
     ifelse((
