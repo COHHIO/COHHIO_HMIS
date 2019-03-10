@@ -43,7 +43,7 @@ Users <- read_xlsx("data/RMisc.xlsx",
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
                     range = cell_cols("A:E"))
-Scores <- mutate(scores, StartDate = as.Date(StartDate, origin = "1899-12-30"))
+Scores <- mutate(Scores, StartDate = as.Date(StartDate, origin = "1899-12-30"))
 
 counties <- read_xlsx("data/RMisc.xlsx",
                       sheet = 2,
@@ -56,3 +56,53 @@ bowmanentryexits <- read_xlsx("data/RMisc.xlsx",
                           range = cell_cols("A:D"))
 Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID")
 rm(bowmanentryexits)
+
+providerextras <- read_xlsx("data/RMisc.xlsx",
+                            sheet = 5,
+                            range = cell_cols("A:E"))
+Project <- left_join(Project, providerextras, by = "ProjectID")
+rm(providerextras)
+
+Client <- Client %>%
+  mutate(FirstName = case_when(
+    NameDataQuality %in% c(8,9) ~ "DKR",
+    NameDataQuality == 2 ~ "Partial",
+    NameDataQuality == 99 | is.na(NameDataQuality) | FirstName == 0 ~ "Missing",
+    !(NameDataQuality %in% c(2, 8, 9, 99) | is.na(NameDataQuality) | FirstName == "Anonymous") ~ "ok"),
+    LastName = NULL,
+    MiddleName = NULL,
+    NameSuffix = NULL)
+
+Client <- Client %>%
+  mutate(SSN = case_when(
+    is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
+    SSNDataQuality %in% c(8, 9) ~ "DKR",
+    ifelse((
+      substr(SSN, 1, 1) != "0" &
+        substr(SSN, 1, 2) != "00"
+    ),
+    nchar(as.numeric(SSN)) != 9, FALSE) |
+      substr(SSN, 1, 3) %in% c("000", "666") |
+      substr(SSN, 1, 1) == 9 |
+      substr(SSN, 4, 5) == "00" |
+      substr(SSN, 6, 9) == "0000" |
+      SSNDataQuality == 2 |
+      SSN %in% c(
+        111111111,
+        222222222,
+        333333333,
+        444444444,
+        555555555,
+        666666666,
+        777777777,
+        888888888,
+        123456789) ~ "Invalid or Incomplete"
+  ))
+
+Client <- Client %>%
+  mutate(SSN = case_when(
+    is.na(SSN) ~ "ok",
+    !is.na(SSN) ~ SSN
+  ))
+
+save.image(file = "data/COHHIOHMIS.RData")
