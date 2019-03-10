@@ -1,10 +1,8 @@
-library(xml2)
 library(tidyverse)
 library(lubridate)
 library(readxl)
-library(data.table)
 library(tools)
-# pulls in the CSV files which comes from the ServicePoint export
+
 # files <- list.files(path= "data/", full.names = TRUE, pattern='*.csv')
 # filenames <-  file_path_sans_ext(basename(files)) 
 # 
@@ -17,52 +15,59 @@ library(tools)
 #   <- read_csv(files[i])
 # }
 
+# Pulling in the CSVs -----------------------------------------------------
+
 Affiliation <- read_csv("data/Affiliation.csv")
 Client <- read_csv("data/Client.csv")
-Disabilities <- read_csv("data/Disabilities.csv")
-EmploymentEducation <- read_csv("data/EmploymentEducation.csv")
-Enrollment <- read_csv("data/Enrollment.csv")
+Disabilities <- read_csv("data/Disabilities.csv",
+                         col_types = "cnnDnnnnnnnnnnTTnln") 
+EmploymentEducation <- read_csv("data/EmploymentEducation.csv") # parsing probs
+Enrollment <- read_csv("data/Enrollment.csv") # parsing probs
 EnrollmentCoC <- read_csv("data/EnrollmentCoC.csv")
-Exit <- read_csv("data/Exit.csv")
+Exit <- read_csv("data/Exit.csv") # parsing probs
 Export <- read_csv("data/Export.csv")
 Funder <- read_csv("data/Funder.csv")
 Geography <- read_csv("data/Geography.csv")
-HealthAndDV <- read_csv("data/HealthAndDV.csv")
-IncomeBenefits <- read_csv("data/IncomeBenefits.csv")
+HealthAndDV <- read_csv("data/HealthAndDV.csv")  # parsing probs
+IncomeBenefits <- read_csv("data/IncomeBenefits.csv")  # parsing probs
 Inventory <- read_csv("data/Inventory.csv")
 Organization <- read_csv("data/Organization.csv")
 Project <- read_csv("data/Project.csv")
 ProjectCoC <- read_csv("data/ProjectCoC.csv")
-Services <- read_csv("data/Services.csv")
+Services <- read_csv("data/Services.csv") # parsing probs
 
-# all other data comes from the RMisc ART report
-Users <- read_xlsx("data/RMisc.xlsx",
-                   sheet = 4,
-                   range = cell_cols("A:G"))
+# --- All other data comes ART > Ohio BoS > COHHIO Only > RMisc ---
 
+# from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
                     range = cell_cols("A:E"))
 Scores <- mutate(Scores, StartDate = as.Date(StartDate, origin = "1899-12-30"))
 
+# from sheets 2 and 3, getting EE-related data, joining both to En --------
 counties <- read_xlsx("data/RMisc.xlsx",
                       sheet = 2,
                       range = cell_cols("A:C"))
-Enrollment <- left_join(Enrollment, counties, by = "EnrollmentID")
-rm(counties)
-
 bowmanentryexits <- read_xlsx("data/RMisc.xlsx",
                           sheet = 3,
                           range = cell_cols("A:D"))
-Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID")
-rm(bowmanentryexits)
+Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID") %>%
+  left_join(., counties, by = "EnrollmentID")
+rm(bowmanentryexits, counties)
 
+# grabbing extra provider data from sheet 5 -------------------------------
 providerextras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
                             range = cell_cols("A:E"))
 Project <- left_join(Project, providerextras, by = "ProjectID")
 rm(providerextras)
 
+# User Contact Info from ART ----------------------------------------------
+Users <- read_xlsx("data/RMisc.xlsx",
+                   sheet = 4,
+                   range = cell_cols("A:G"))
+
+# Masking PII in the Client file (but not DOB) ----------------------------
 Client <- Client %>%
   mutate(FirstName = case_when(
     NameDataQuality %in% c(8,9) ~ "DKR",
@@ -105,4 +110,5 @@ Client <- Client %>%
     !is.na(SSN) ~ SSN
   ))
 
+# Save it out -------------------------------------------------------------
 save.image(file = "data/COHHIOHMIS.RData")
