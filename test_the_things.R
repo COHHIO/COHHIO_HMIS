@@ -38,7 +38,7 @@ View(EnrollmentCoC %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 1
 
 # EmploymentEducation testing ------------ok-------------------------------
 get_dupes(EmploymentEducation, EnrollmentID, DataCollectionStage)
-View(EmploymentEducation %>% filter(PersonalID %in% c(81184, 187291, 56556, 177390, 191280)))
+View(EmploymentEducation %>% filter(PersonalID %in% c(1287, 6570)))
 
 # Connection w SOAR testing --------------ok-------------------------------
 get_dupes(ConnectionWithSOAR, EnrollmentID, DataCollectionStage)
