@@ -1,0 +1,47 @@
+---
+title: "Bed Utilization"
+author: "Genelle Denzin"
+date: "March 9, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+load("data/COHHIOHMIS.RData")
+library(tidyverse)
+library(lubridate)
+```
+
+## Unit Utilization
+
+
+
+```{r units}
+SmallProject <- Project %>%
+  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
+           (OperatingEndDate > today() |
+              is.na(OperatingEndDate)) &
+           is.na(GrantType)) %>%
+  select(ProjectID,
+  ProjectName,
+  OperatingStartDate,
+  OperatingEndDate,
+  ProjectType)
+SmallInventory <- Inventory %>%
+  select(ProjectID,
+  CoCCode,
+  HouseholdType,
+  UnitInventory,
+  BedInventory,
+  InventoryStartDate,
+  InventoryEndDate,
+  HMISParticipatingBeds
+  ) %>%
+  filter(!is.na(HMISParticipatingBeds) & 
+           CoCCode == "OH-507" &
+           (InventoryEndDate > today() |
+              is.na(InventoryEndDate)))
+Beds <- inner_join(SmallProject, SmallInventory, by = "ProjectID")
+rm(SmallProject, SmallInventory)
+```
+
