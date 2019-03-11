@@ -1,19 +1,6 @@
 library(tidyverse)
 library(lubridate)
 library(readxl)
-library(tools)
-
-# files <- list.files(path= "data/", full.names = TRUE, pattern='*.csv')
-# filenames <-  file_path_sans_ext(basename(files)) 
-# 
-# function(files, filenames){
-#   filenames <- read_csv(files)
-# }
-# 
-# for(i in 1:length(files)){
-#   filenames <- filenames[i] 
-#   <- read_csv(files[i])
-# }
 
 # Pulling in the CSVs -----------------------------------------------------
 
@@ -25,7 +12,8 @@ EmploymentEducation <- read_csv("data/EmploymentEducation.csv",
                                 col_types = "cnnDnnnnnnTTnln") 
 Enrollment <- 
   read_csv("data/Enrollment.csv",
-           col_types = "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnln")
+           col_types = 
+             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnln")
 EnrollmentCoC <- read_csv("data/EnrollmentCoC.csv")
 Exit <- read_csv("data/Exit.csv",
                  col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnln")
@@ -36,7 +24,8 @@ HealthAndDV <- read_csv("data/HealthAndDV.csv",
                         col_types = "cnnDnnnnnnnDnTTnln")
 IncomeBenefits <- 
   read_csv("data/IncomeBenefits.csv",
-           col_types = "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnln")
+           col_types = 
+             "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnln")
 Inventory <- read_csv("data/Inventory.csv")
 Organization <- read_csv("data/Organization.csv")
 Project <- read_csv("data/Project.csv")
