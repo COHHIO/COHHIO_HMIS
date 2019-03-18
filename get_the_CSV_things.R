@@ -54,8 +54,9 @@ rm(bowmanentryexits, counties)
 # grabbing extra provider data from sheet 5 -------------------------------
 providerextras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
-                            range = cell_cols("A:E"))
-Project <- left_join(Project, providerextras, by = "ProjectID")
+                            range = cell_cols("A:H"))
+Project <- Project %>% select(-ProjectName, -ProjectCommonName) %>%
+  left_join(., providerextras, by = "ProjectID")
 rm(providerextras)
 
 # User Contact Info from ART ----------------------------------------------
