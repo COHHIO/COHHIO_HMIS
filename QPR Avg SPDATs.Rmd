@@ -1,0 +1,72 @@
+---
+title: "Scores by Geography"
+author: "Genelle Denzin"
+date: "March 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+load("data/COHHIOHMIS.RData")
+rm(Affiliation, 
+   EmploymentEducation, 
+   Export, 
+   Funder, 
+   HealthAndDV, 
+   IncomeBenefits,
+   Geography,
+   Inventory,
+   Organization,
+   ProjectCoC,
+   Services)
+```
+
+## Average VI-SPDAT Scores
+
+```{r scores}
+smallEnrollment <- Enrollment %>% 
+  left_join(Project, by = "ProjectID") %>%
+  select(EnrollmentID, 
+         PersonalID,
+         ProjectID,
+         ProjectType,
+         ProjectName,
+         OperatingStartDate,
+         OperatingEndDate,
+         EntryDate,
+         HouseholdID,
+         RelationshipToHoH,
+         MoveInDate,
+         CountyServed)
+Entries <- smallEnrollment %>%
+  filter(
+  ProjectType %in% c(3, 9, 13) &
+  ymd(OperatingStartDate) < ymd("2019/04/01") &
+    (ymd(OperatingEndDate) > ymd("2019/01/01") |
+       is.na(OperatingEndDate)) &
+  ymd(EntryDate) > ymd("2019/01/01") &
+  ymd(EntryDate) < ymd("2019/04/01")
+  )
+SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
+  select(-ProjectType,
+         -OperatingStartDate,
+         -OperatingEndDate,
+         -SPDATRecordID,
+         -SPDATProvider) %>%
+  filter(!is.na(Score),
+         ymd(StartDate) <= ymd(EntryDate)) %>%
+  group_by(EnrollmentID) %>%
+  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
+  filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
+  mutate(MaxScore = max(Score)) %>%
+  filter(Score == MaxScore) %>%
+  select(-MaxScoreDate, -MaxScore)
+
+SPDATsByProject <- as.data.frame(SPDATsByProject)
+dupes <- get_dupes(SPDATsByProject, EnrollmentID)
+
+
+```
+
