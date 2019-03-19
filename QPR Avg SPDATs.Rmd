@@ -16,11 +16,11 @@ rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, IncomeBenefits
    Geography, Inventory, Organization, ProjectCoC, Services)
 ```
 
-## Average VI-SPDAT Scores at the Provider Level
+## County Averages
 
-The following table counts each Entry into a PH project in a County during the reporting period for Heads of Household only. It is very important that your Duplicate Entry Exits and your Household Data Quality tabs are totally clear for this report to be accurate. It is also important that your VI-SPDAT scores are ON THE HEAD OF HOUSEHOLD'S RECORD. Any scores recorded on non-HoHs will not be counted here. Any Heads of Household who entered your RRH or PSH project without a score will be counted as having a score of 0. Also if a HoH is missing their County data or they were served in a County outside the Ohio Balance of State, they will also not show here.
+The Heads of Households counted here were served and scored in a ES, TH, SH, or Outreach project during the reporting period and the County they were served in was in the Ohio Balance of State. If a Head of Household had a County outside the Balance of State or if that data was missing, they are not being counted.
 
-```{r scores}
+```{r countyscores}
 smallEnrollment <- Enrollment %>% 
   left_join(Project, by = "ProjectID") %>%
   select(EnrollmentID, 
@@ -31,9 +31,7 @@ smallEnrollment <- Enrollment %>%
          OperatingStartDate,
          OperatingEndDate,
          EntryDate,
-         HouseholdID,
          RelationshipToHoH,
-         MoveInDate,
          CountyServed)
 Entries <- smallEnrollment %>%
   filter(
@@ -44,81 +42,7 @@ Entries <- smallEnrollment %>%
   ymd(EntryDate) > ymd("2019/01/01") &
   ymd(EntryDate) < ymd("2019/04/01")
   )
-SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
-  select(-ProjectType,
-         -OperatingStartDate,
-         -OperatingEndDate,
-         -SPDATRecordID,
-         -SPDATProvider) %>%
-  filter(
-    RelationshipToHoH == 1 &
-    (ymd(StartDate) <= ymd(EntryDate) | is.na(StartDate)) &
-      !CountyServed %in% c(
-        "Montgomery",
-        "Cuyahoga",
-        "Mahoning",
-        "Lucas",
-        "Stark",
-        "Summit",
-        "Hamilton",
-        "Franklin",
-        "--Outside of Ohio--"
-        ) &
-    !is.na(CountyServed)
-    ) %>%
-  group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
-  filter(ymd(StartDate) == ymd(MaxScoreDate) | is.na(StartDate)) %>%
-  mutate(MaxScore = max(Score)) %>%
-  filter(Score == MaxScore | is.na(StartDate)) %>%
-  distinct() %>%
-  ungroup() %>%
-  select(-MaxScoreDate, -MaxScore) %>%
-  mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score)) %>%
-  filter(!is.na(ScoreAdjusted))
-# I think this should be based on EnrollmentID not ClientID because each decision
-# to enroll a household should rely on a SPDAT score
-ProviderAverages <- SPDATsByProject %>%
-  select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
-  group_by(ProjectName) %>%
-  summarise(AverageScore = round(mean(ScoreAdjusted), 1),
-            EnrollmentCount = n())
 
-CountyHousedAverageScores <- SPDATsByProject %>%
-  group_by(CountyServed) %>%
-  summarise(HousedAverageScore = round(mean(ScoreAdjusted),1),
-            HHsHousedInCounty = n())
-
-gt(CountyHousedAverageScores)
-
-```
-
-## Duplicate Enrollments Affecting This Report
-
-If you see your Project listed here, please run your Data Quality 1 report and correct your Duplicate Entry Exits tab.
-```{r}
-duplicate_enrollments <- get_dupes(SPDATsByProject, PersonalID, ProjectID)
-
-gt(duplicate_enrollments)
-```
-
-## VI-SPDAT Scores Saved to Non-Heads-of-Households
-
-If you have clients here, you should either verify the scores saved here are valid or the correct client is marked as the Head of Household.
-
-```{r}
-SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
-  filter(RelationshipToHoH != 1 & !is.na(Score)) %>%
-  select(ProjectName, PersonalID, EntryDate, Score) %>%
-  arrange(ProjectName)
-gt(SPDATsOnNonHoHs)
-```
-
-## County Averages
-
-The Heads of Households counted here were served and scored in a ES, TH, SH, or Outreach project during the reporting period and the County they were served in was in the Ohio Balance of State. If a Head of Household had a County outside the Balance of State or if that data was missing, they are not being counted.
-
-```{r}
 SPDATsByCounty <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
   filter(
@@ -159,11 +83,78 @@ CountyAverageScores <- SPDATsByCounty %>%
 gt(CountyAverageScores)
 ```
 
+## Average VI-SPDAT Scores at the Provider Level
+
+The following table counts each Entry into a PH project in a County during the reporting period for Heads of Household only. It is very important that your Duplicate Entry Exits and your Household Data Quality tabs are totally clear for this report to be accurate. It is also important that your VI-SPDAT scores are ON THE HEAD OF HOUSEHOLD'S RECORD. Any scores recorded on non-HoHs will not be counted here. Any Heads of Household who entered your RRH or PSH project without a score will be counted as having a score of 0. Also if a HoH is missing their County data or they were served in a County outside the Ohio Balance of State, they will also not show here.
+
+```{r projectscores}
+
+SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
+  select(-ProjectType,
+         -OperatingStartDate,
+         -OperatingEndDate,
+         -SPDATRecordID,
+         -SPDATProvider) %>%
+  filter(
+    RelationshipToHoH == 1 &
+    (ymd(StartDate) <= ymd(EntryDate) | is.na(StartDate)) &
+      !CountyServed %in% c(
+        "Montgomery",
+        "Cuyahoga",
+        "Mahoning",
+        "Lucas",
+        "Stark",
+        "Summit",
+        "Hamilton",
+        "Franklin",
+        "--Outside of Ohio--"
+        ) &
+    !is.na(CountyServed)
+    ) %>%
+  group_by(EnrollmentID) %>%
+  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
+  filter(ymd(StartDate) == ymd(MaxScoreDate) | is.na(StartDate)) %>%
+  mutate(MaxScore = max(Score)) %>%
+  filter(Score == MaxScore | is.na(StartDate)) %>%
+  distinct() %>%
+  ungroup() %>%
+  select(-MaxScoreDate, -MaxScore) %>%
+  mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score)) %>%
+  filter(!is.na(ScoreAdjusted))
+
+ProviderAverages <- SPDATsByProject %>%
+  select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
+  group_by(ProjectName) %>%
+  summarise(AverageScore = round(mean(ScoreAdjusted), 1),
+            EnrollmentCount = n())
+
+CountyHousedAverageScores <- SPDATsByProject %>%
+  group_by(CountyServed) %>%
+  summarise(HousedAverageScore = round(mean(ScoreAdjusted), 1),
+            HHsHousedInCounty = n())
+
+gt(CountyHousedAverageScores)
+
+```
+
+## VI-SPDAT Scores Saved to Non-Heads-of-Households
+
+If you have clients here, you should either verify the scores saved here are valid or the correct client is marked as the Head of Household.
+
+```{r non_hohs_scores}
+SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
+  filter(RelationshipToHoH != 1 & !is.na(Score)) %>%
+  select(ProjectName, PersonalID, EntryDate, Score) %>%
+  arrange(ProjectName)
+gt(SPDATsOnNonHoHs)
+```
+
+
 ## Compare Average Scores Literally Homeless to Housed in a County
 
 The following compares the Average VI-SPDAT Score of those who have entered a project that would mean they are literally homeless within a County to the Average VI-SPDAT Score of those who have an Entry into a Permanent Housing project type (RRH or PSH).
 
-```{r}
+```{r compare}
 Regions <- read_csv("data/Regions.csv") %>%
   mutate(RegionName = paste0("Homeless Planning Region ", Region))
 
