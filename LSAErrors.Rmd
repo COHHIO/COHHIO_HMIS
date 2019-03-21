@@ -31,8 +31,23 @@ flagdescriptions <- flags %>%
 toptenflagtypes <- flagdescriptions %>% filter(Count > 30) 
 itsonme <- flagdescriptions %>% filter(PossiblyVendorRelated == "No")
 gt(flagdescriptions %>% arrange(desc(flagdescriptions$Count)))
+
+```
+
+## How Much is Possibly Vendor Related
+
+```{r}
 ggplot(flagvendor %>% select(PossiblyVendorRelated, Count),
        aes(PossiblyVendorRelated, Count)) + geom_col()
 ```
 
-##
+## What Errors are Likely Mine?
+
+```{r}
+gt(itsonme)
+```
+
+
+
+
+
