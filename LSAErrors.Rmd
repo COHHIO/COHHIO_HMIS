@@ -1,0 +1,38 @@
+---
+title: "LSA Errors"
+author: "Genelle Denzin"
+date: "March 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Data Quality Flags Summary
+
+Following are all the different kinds of Data Quality Flags:
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(gt)
+flags <- read_xlsx("data/LSA.xlsx", 
+                   sheet = 4, 
+                   skip = 5,
+                   col_types = "text")
+flagvendor <- flags %>%
+  group_by(PossiblyVendorRelated) %>%
+  summarise(Count = n())
+flagdescriptions <- flags %>% 
+  group_by(Category, FlagDescription, PossiblyVendorRelated, Type) %>% 
+  summarise(Count = n()) %>%
+  ungroup()
+toptenflagtypes <- flagdescriptions %>% filter(Count > 30) 
+itsonme <- flagdescriptions %>% filter(PossiblyVendorRelated == "No")
+gt(flagdescriptions %>% arrange(desc(flagdescriptions$Count)))
+ggplot(flagvendor %>% select(PossiblyVendorRelated, Count),
+       aes(PossiblyVendorRelated, Count)) + geom_col()
+```
+
+##
