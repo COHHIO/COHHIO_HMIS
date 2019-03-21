@@ -29,7 +29,6 @@ flagdescriptions <- flags %>%
   summarise(Count = n()) %>%
   ungroup()
 toptenflagtypes <- flagdescriptions %>% filter(Count > 30) 
-itsonme <- flagdescriptions %>% filter(PossiblyVendorRelated == "No")
 gt(flagdescriptions %>% arrange(desc(flagdescriptions$Count)))
 
 ```
@@ -37,17 +36,32 @@ gt(flagdescriptions %>% arrange(desc(flagdescriptions$Count)))
 ## How Much is Possibly Vendor Related
 
 ```{r}
-ggplot(flagvendor %>% select(PossiblyVendorRelated, Count),
-       aes(PossiblyVendorRelated, Count)) + geom_col()
+ggplot(flagvendor %>% 
+         select(PossiblyVendorRelated, Count),
+       aes(PossiblyVendorRelated, Count)) + 
+  geom_col()
 ```
 
 ## What Errors are Likely Mine?
 
 ```{r}
+itsonme <- flagdescriptions %>% filter(PossiblyVendorRelated == "No")
 gt(itsonme)
+ggplot(flagdescriptions %>% 
+         filter(PossiblyVendorRelated == "No") %>% 
+         group_by(Type) %>%
+         summarise(Count = n()), aes(Type, Count)) +
+  geom_col()
 ```
 
 
 
+```{r}
+ggplot(flagdescriptions %>% 
+         filter(PossiblyVendorRelated == "No") %>% 
+         group_by(Category) %>%
+         summarise(Count = n()), aes(Category, Count)) +
+  geom_col() 
+```
 
 
