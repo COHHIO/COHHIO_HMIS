@@ -1,0 +1,107 @@
+---
+title: "Children 2017 - 2018"
+author: "Genelle Denzin"
+date: "March 22, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
+```
+
+### Served in ES, TH, or SH During the Year Excluding Unsheltered Homeless
+
+```{r basicdatasets}
+library(lubridate)
+library(dplyr)
+library(gt)
+library(janitor)
+load("data/COHHIOHMIS.RData")
+smallEnrollment <- Enrollment %>% 
+  select(EnrollmentID, PersonalID, EntryDate, ProjectID)
+smallExit <- Exit %>%
+  select(EnrollmentID, ExitDate)
+smallProject <- Project %>%
+  select(ProjectID, ProjectType)
+smallClient <- Client %>%
+  select(PersonalID, DOB)
+rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Export, Funder, Geography, HealthAndDV, IncomeBenefits, Inventory, Organization, ProjectCoC, Scores, Services, Users)
+```
+
+
+
+```{r ESTHSH}
+ESTHSH <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%
+  mutate(AgeIn2017 = age_years(DOB, ymd("2017-01-01")),
+         AgeIn2018 = age_years(DOB, ymd("2018-01-01")),
+         ServedDuring2017 = ymd(EntryDate) < ymd("2018/01/01") &
+           (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017/01/01")),
+         ServedDuring2018 = ymd(EntryDate) < ymd("2019/01/01") &
+           (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018/01/01"))) %>% 
+  filter(((AgeIn2017 >=0 & AgeIn2017 < 18) | 
+            (AgeIn2018 >=0 & AgeIn2018 < 18)) &
+                 ProjectType %in% c(1, 2, 8) &
+                 (ServedDuring2017 == TRUE | ServedDuring2018 == TRUE)) %>%
+  select(PersonalID, AgeIn2017, AgeIn2018, ServedDuring2017, ServedDuring2018)
+
+Year2017ESTHSH <- ESTHSH %>%
+  filter(AgeIn2017 < 18 & AgeIn2017 >= 0 & ServedDuring2017 == TRUE) %>%
+  select(-AgeIn2018, -ServedDuring2018) %>%
+  mutate(Infant = AgeIn2017 < 1) %>%
+  group_by(Infant) %>%
+  summarise(ServedIn2017 = n()) %>%
+  ungroup()
+Year2018ESTHSH <- ESTHSH %>%
+  filter(AgeIn2018 < 18 & AgeIn2018 >= 0 & ServedDuring2018 == TRUE) %>%
+  select(-AgeIn2017, -ServedDuring2017) %>%
+  mutate(Infant = AgeIn2018 < 1) %>%
+  group_by(Infant) %>%
+  summarise(ServedIn2018 = n()) %>%
+  ungroup()
+
+gt(Year2017ESTHSH)
+gt(Year2018ESTHSH)
+```
+
+
+
+### Served in ES, TH, SH, or Outreach During the Year Including Unsheltered Homeless
+
+```{r ESTHSHOUT}
+ESTHSHOUT <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%
+  mutate(AgeIn2017 = age_years(DOB, ymd("2017-01-01")),
+         AgeIn2018 = age_years(DOB, ymd("2018-01-01")),
+         ServedDuring2017 = ymd(EntryDate) < ymd("2018/01/01") &
+           (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017/01/01")),
+         ServedDuring2018 = ymd(EntryDate) < ymd("2019/01/01") &
+           (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018/01/01"))) %>% 
+  filter(((AgeIn2017 >=0 & AgeIn2017 < 18) | 
+            (AgeIn2018 >=0 & AgeIn2018 < 18)) &
+                 ProjectType %in% c(1, 2, 8, 4) &
+                 (ServedDuring2017 == TRUE | ServedDuring2018 == TRUE)) %>%
+  select(PersonalID, AgeIn2017, AgeIn2018, ServedDuring2017, ServedDuring2018)
+
+Year2017ESTHSHOUT <- ESTHSHOUT %>%
+  filter(AgeIn2017 < 18 & AgeIn2017 >= 0 & ServedDuring2017 == TRUE) %>%
+  select(-AgeIn2018, -ServedDuring2018) %>%
+  mutate(Infant = AgeIn2017 < 1) %>%
+  group_by(Infant) %>%
+  summarise(ServedIn2017 = n()) %>%
+  ungroup()
+Year2018ESTHSHOUT <- ESTHSHOUT %>%
+  filter(AgeIn2018 < 18 & AgeIn2018 >= 0 & ServedDuring2018 == TRUE) %>%
+  select(-AgeIn2017, -ServedDuring2017) %>%
+  mutate(Infant = AgeIn2018 < 1) %>%
+  group_by(Infant) %>%
+  summarise(ServedIn2018 = n()) %>%
+  ungroup()
+
+gt(Year2017ESTHSHOUT)
+gt(Year2018ESTHSHOUT)
+```
+
+I could not get this to work with the Infants being a subset of all the children. I need to learn how to add a total row in dplyr, how can this be that hard? Anyway, I just pulled the numbers out into Excel on the HMIS Share under Reporting > Random Report Requests > Children 2017 2018.
