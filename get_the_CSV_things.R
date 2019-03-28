@@ -107,6 +107,12 @@ Client <- Client %>%
     !is.na(SSN) ~ SSN
   ))
 
+
+# Adding Exit Data to Enrollment ------------------------------------------
+smallExit <- Exit %>% select(EnrollmentID, ExitDate, Destination, OtherDestination)
+Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID")
+rm(smallExit)
+
 # Age Function ------------------------------------------------------------
 
 age_years <- function(earlier, later)
@@ -153,9 +159,10 @@ age_years <- function(earlier, later)
 
 # Served Between Date Range Function --------------------------------------
 
-# servedbetween <- function(start, end){
-#   served <- ymd(EntryDate) <= ymd(end) &
-#     (is.na(ExitDate) | ymd(ExitDate) >= ymd(start))
+# served_between <- function(start, end){
+#   may need to pull in Enrollment table here? but every time? might be slow
+#   served <- ymd(EntryDate) <= mdy(end) &
+#     (is.na(ExitDate) | ymd(ExitDate) >= mdy(start))
 #   served
 # }
 
