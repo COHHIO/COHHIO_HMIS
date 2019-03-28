@@ -53,3 +53,5 @@ funder <- read_csv("data/hudcsvoneday/Funder.csv") %>%
 write_csv(funder, "data/hudcsvoneday/Funder.csv", 
           na = "",  
           quote_escape = "backslash")
+
+#probably doesn't even use lubridate... maybe cut that from libraries
