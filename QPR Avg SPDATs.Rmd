@@ -17,9 +17,12 @@ rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, Disabilities, 
 
 ## County Averages
 
-The Heads of Households counted here were served and scored in a ES, TH, SH, or Outreach project during the reporting period and the County they were served in was in the Ohio Balance of State. If a Head of Household had a County outside the Balance of State or if that data was missing, they are not being counted. When there are multiple entries for the same client, this only counts the most recent entry. When there are multiple scores, this only counts the most recent score. If there are multiple scores recorded on the same day, it is counting the highest score.
+The Heads of Households counted here were served and scored in a ES, TH, SH, or Outreach project during the reporting period and the County they were served in was in the Ohio Balance of State. If a Head of Household had a County outside the Balance of State or if that data was missing, they are not being counted. When there are multiple entries for the same client, this only counts the most recent entry. When there are multiple scores, this only counts the most recent score. There should not be more than 1 score on the same day, but if there are it is counting the highest score.
 
 ```{r countyscores}
+ReportStart <- "01012019"
+ReportEnd <- "03312019"
+
 smallEnrollment <- Enrollment %>% 
   left_join(Project, by = "ProjectID") %>%
   select(EnrollmentID, 
@@ -30,16 +33,15 @@ smallEnrollment <- Enrollment %>%
          OperatingStartDate,
          OperatingEndDate,
          EntryDate,
+         ExitDate,
          RelationshipToHoH,
          CountyServed)
+
 Entries <- smallEnrollment %>%
   filter(
   ProjectType %in% c(3, 9, 13) &
-  ymd(OperatingStartDate) < ymd("2019/04/01") &
-    (ymd(OperatingEndDate) > ymd("2019/01/01") |
-       is.na(OperatingEndDate)) &
-  ymd(EntryDate) > ymd("2019/01/01") &
-  ymd(EntryDate) < ymd("2019/04/01")
+  operating_between(smallEnrollment, ReportStart, ReportEnd) &
+  served_between(smallEnrollment, ReportStart, ReportEnd)
   )
 
 SPDATsByCounty <-
@@ -47,11 +49,8 @@ SPDATsByCounty <-
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
     RelationshipToHoH == 1 & 
-    ymd(OperatingStartDate) < ymd("2019/04/01") &
-     (ymd(OperatingEndDate) > ymd("2019/01/01") 
-      | is.na(OperatingEndDate)) &
-    ymd(EntryDate) > ymd("2019/01/01") & 
-    ymd(EntryDate) < ymd("2019/04/01") & 
+    operating_between(smallEnrollment, ReportStart, ReportEnd) &
+    served_between(smallEnrollment, ReportStart, ReportEnd) & 
     (ymd(StartDate) <= ymd(EntryDate)) & 
     !CountyServed %in% c("Montgomery", 
                          "Cuyahoga", 
@@ -154,7 +153,7 @@ Each county is represented based on whether they are serving higher than the ave
 
 ```{r}
 library(maps)
-Ohio <- map('county', 'ohio', fill = TRUE, col = palette(rainbow(7)))
+Ohio <- map('county', 'ohio', fill = TRUE, col = palette("default"))
 
 ```
 
@@ -176,7 +175,7 @@ Compare <-
   left_join(., Regions, by = c("CountyServed" = "County")) %>%
   group_by(RegionName)
 
-ggplot(Compare %>% filter(Region == 15), 
+ggplot(Compare %>% filter(Region == 5), 
        aes(x = CountyServed, y = AverageScore)) + 
   geom_point(aes(x = CountyServed, y = AverageScore), size = 10, shape = 95) +
   theme(axis.text.x = element_text(size = 10)) +
