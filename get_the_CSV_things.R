@@ -157,23 +157,25 @@ age_years <- function(earlier, later)
   age
 }
 
-# Served Between Date Range Function --------------------------------------
+# Client Entry Exits Between Date Range Function --------------------------------------
 
-# served_between <- function(start, end){
-#   may need to pull in Enrollment table here? but every time? might be slow
-#   served <- ymd(EntryDate) <= mdy(end) &
-#     (is.na(ExitDate) | ymd(ExitDate) >= mdy(start))
-#   served
-# }
+served_between <- function(table, start, end){
+  served <- ymd(table$EntryDate) <= mdy(end) &
+    (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
+  served
+}
 
+entered_between <- function(table, start, end){
+  entered <- between(ymd(table$EntryDate), start, end) 
+  entered
+}
+# Projects Operating Between Date Range Function -----------------------------------
 
-# Operating Between Date Range Function -----------------------------------
-
-# operatingbetween <- function(start, end) {
-#   operating <- ymd(OperatingStartDate) <= ymd(end) &
-#     (is.na(OperatingEndDate) >= ymd(start))
-#   operating
-# }
+operating_between <- function(table, start, end) {
+  operating <- ymd(table$OperatingStartDate) <= mdy(end) &
+    (is.na(table$OperatingEndDate) | table$OperatingEndDate >= mdy(start))
+  operating
+}
 
 # Save it out -------------------------------------------------------------
 save.image(file = "data/COHHIOHMIS.RData")
