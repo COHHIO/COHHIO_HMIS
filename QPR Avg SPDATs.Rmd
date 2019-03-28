@@ -12,13 +12,12 @@ library(lubridate)
 library(janitor)
 library(gt)
 load("data/COHHIOHMIS.RData")
-rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, IncomeBenefits,
-   Geography, Inventory, Organization, ProjectCoC, Services)
+rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, Organization, ProjectCoC, Services)
 ```
 
 ## County Averages
 
-The Heads of Households counted here were served and scored in a ES, TH, SH, or Outreach project during the reporting period and the County they were served in was in the Ohio Balance of State. If a Head of Household had a County outside the Balance of State or if that data was missing, they are not being counted.
+The Heads of Households counted here were served and scored in a ES, TH, SH, or Outreach project during the reporting period and the County they were served in was in the Ohio Balance of State. If a Head of Household had a County outside the Balance of State or if that data was missing, they are not being counted. When there are multiple entries for the same client, this only counts the most recent entry. When there are multiple scores, this only counts the most recent score. If there are multiple scores recorded on the same day, it is counting the highest score.
 
 ```{r countyscores}
 smallEnrollment <- Enrollment %>% 
@@ -148,6 +147,17 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
   arrange(ProjectName)
 gt(SPDATsOnNonHoHs)
 ```
+
+## Map of Counties 
+
+Each county is represented based on whether they are serving higher than the average SPDAT score in their county.
+
+```{r}
+library(maps)
+Ohio <- map('county', 'ohio', fill = TRUE, col = palette(rainbow(7)))
+
+```
+
 
 
 ## Compare Average Scores Literally Homeless to Housed in a County
