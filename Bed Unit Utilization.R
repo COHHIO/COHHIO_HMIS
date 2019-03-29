@@ -91,7 +91,7 @@ Utilizers <- Utilizers %>%
     BedNights = 
         difftime(ymd(ExitAdjust), ymd(EntryAdjust),
                  units = "days"),
-    StayWindow = interval(EntryAdjust, ExitAdjust)#,
+    StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))#,
 #    Month = use StayWindow to determine if it croses a month/year
   ) %>%
   filter(BedNights > 0)
