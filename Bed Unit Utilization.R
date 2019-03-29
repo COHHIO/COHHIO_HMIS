@@ -68,28 +68,31 @@ load("data/BedUtilization.Rdata")
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
 # fake training providers
 Utilizers <- Utilizers %>%
-  mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate)) %>%
+  mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate),
+         ExitDate = NULL,
+         EntryAdjust = case_when(
+           ProjectType %in% c(1, 2, 8) ~ EntryDate,
+           ProjectType %in% c(3, 9, 13) ~ MoveInDate)
+           ) %>%
   filter((
     (
       ProjectType %in% c(3, 9, 13) &
-        !is.na(MoveInDate) &
+        !is.na(EntryAdjust) &
         ymd(MoveInDate) < ymd(EntryDate) &
         ymd(MoveInDate) > ymd(ExitAdjust)
     ) |
       ProjectType %in% c(1, 2, 8)
   ) &
-    !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317))
+    !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
+  select(-EntryDate, -MoveInDate)
 # adding in calculated columns to help get to Bed Nights
 Utilizers <- Utilizers %>%
   mutate(
-    BedNights = case_when(
-      ProjectType %in% c(1, 2, 8) ~
-        difftime(ymd(ExitAdjust), ymd(EntryDate),
+    BedNights = 
+        difftime(ymd(ExitAdjust), ymd(EntryAdjust),
                  units = "days"),
-      ProjectType %in% c(3, 9, 13) ~
-        difftime(ymd(ExitAdjust), ymd(MoveInDate),
-                 units = "days")
-    )
+    StayWindow = interval(EntryAdjust, ExitAdjust)#,
+#    Month = use StayWindow to determine if it croses a month/year
   ) %>%
   filter(BedNights > 0)
 # bare bones list of bed nights per provider (no date ranges)
