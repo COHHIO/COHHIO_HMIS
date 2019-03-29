@@ -1,7 +1,8 @@
 # COHHIO_HMIS
-Code for pulling in HMIS data, writing it out to reports
+Code for pulling in HMIS data, creating custom CoC-level reporting
 
 Files I'm pulling in include:
-1. Bowman_XML_2018 file, as agreed upon by WellSky. Pulling back to October 1 of two years ago.
-2. "County Data Export", as found in SP5's ReportWriter. Modify date range as needed.
-3. "EE IDs User Creating", as found in SP5's ReportWriter. Modify date range as needed.
+1. The HUD CSV files. Pulling back to October 1 of two years ago on all providers that have been active since then.
+2. "RMisc" found in ART > Public > Ohio Balance of State > COHHIO Only.
+3. "Regions" file that simply lists Counties with their Regions.
+
