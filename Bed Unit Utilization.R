@@ -2,6 +2,8 @@ library(tidyverse)
 library(lubridate)
 load("data/COHHIOHMIS.RData")
 
+
+
 # Creating Beds table -----------------------------------------------------
 
 SmallProject <- Project %>%
@@ -62,7 +64,8 @@ Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
 save(Beds, Utilizers, file = "data/BedUtilization.Rdata")
 rm(list = ls())
 load("data/BedUtilization.Rdata")
-
+ReportStart <- "01012019"
+ReportEnd <- "04302019"
 # Bed Nights Utilized -----------------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
@@ -85,16 +88,67 @@ Utilizers <- Utilizers %>%
   ) &
     !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
   select(-EntryDate, -MoveInDate)
+
+
+# Adding Month Intervals --------------------------------------------------
+
+FirstMonth  <-  interval(mdy(ReportStart),
+                      seq(as.Date(mdy(ReportStart) %m+% months(1)),
+                        length = 1, by = "1 month") - 1) 
+SecondMonth  <-  interval(mdy(ReportStart) %m+% months(1),
+                       seq(as.Date(mdy(ReportStart) %m+% months(2)),
+                          length=1, by="1 month") -1)
+ThirdMonth <- interval(mdy(ReportStart) %m+% months(2),
+                       seq(as.Date(mdy(ReportStart) %m+% months(3)),
+                           length=1, by="1 month") -1)
+FourthMonth <- interval(mdy(ReportStart) %m+% months(3),
+                       seq(as.Date(mdy(ReportStart) %m+% months(4)),
+                           length=1, by="1 month") -1)
+FifthMonth <- interval(mdy(ReportStart) %m+% months(4),
+                       seq(as.Date(mdy(ReportStart) %m+% months(5)),
+                           length=1, by="1 month") -1)
+SixthMonth <- interval(mdy(ReportStart) %m+% months(5),
+                       seq(as.Date(mdy(ReportStart) %m+% months(6)),
+                           length=1, by="1 month") -1)
+SeventhMonth <- interval(mdy(ReportStart) %m+% months(6),
+                       seq(as.Date(mdy(ReportStart) %m+% months(7)),
+                           length=1, by="1 month") -1)
+EighthMonth <- interval(mdy(ReportStart) %m+% months(7),
+                       seq(as.Date(mdy(ReportStart) %m+% months(8)),
+                           length=1, by="1 month") -1)
+NinthMonth <- interval(mdy(ReportStart) %m+% months(8),
+                       seq(as.Date(mdy(ReportStart) %m+% months(9)),
+                           length=1, by="1 month") -1)
+TenthMonth <- interval(mdy(ReportStart) %m+% months(9),
+                       seq(as.Date(mdy(ReportStart) %m+% months(10)),
+                           length=1, by="1 month") -1)
+EleventhMonth <- interval(mdy(ReportStart) %m+% months(10),
+                       seq(as.Date(mdy(ReportStart) %m+% months(11)),
+                           length=1, by="1 month") -1)
+TwelfthMonth <- interval(mdy(ReportStart) %m+% months(11),
+                       seq(as.Date(mdy(ReportStart) %m+% months(12)),
+                           length=1, by="1 month") -1)
+
 # adding in calculated columns to help get to Bed Nights
+
 Utilizers <- Utilizers %>%
   mutate(
     BedNights = 
         difftime(ymd(ExitAdjust), ymd(EntryAdjust),
                  units = "days"),
-    StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))#,
-#    Month = use StayWindow to determine if it croses a month/year
+    StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
   ) %>%
-  filter(BedNights > 0)
+  filter(BedNights > 0) 
+
+# grouping and summarising
+Utilizers <- Utilizers %>%
+  group_by(ProjectID, ProjectType) 
+
+
+# LEFT OFF HERE -----------------------------------------------------------
+
+#- need to work out how to group this by whether the intervals overlap
+
 # bare bones list of bed nights per provider (no date ranges)
 Utilization <- Utilizers %>% select(ProjectID, BedNights) %>% 
   group_by(ProjectID) %>% 
