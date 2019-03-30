@@ -177,5 +177,50 @@ operating_between <- function(table, start, end) {
   operating
 }
 
+# Adding Month Intervals --------------------------------------------------
+
+FirstMonth  <-  interval(mdy(ReportStart),
+                         seq(as.Date(mdy(ReportStart) %m+% months(1)),
+                             length = 1, by = "1 month") - 1) 
+SecondMonth  <-  interval(mdy(ReportStart) %m+% months(1),
+                          seq(as.Date(mdy(ReportStart) %m+% months(2)),
+                              length=1, by="1 month") -1)
+ThirdMonth <- interval(mdy(ReportStart) %m+% months(2),
+                       seq(as.Date(mdy(ReportStart) %m+% months(3)),
+                           length=1, by="1 month") -1)
+FourthMonth <- interval(mdy(ReportStart) %m+% months(3),
+                        seq(as.Date(mdy(ReportStart) %m+% months(4)),
+                            length=1, by="1 month") -1)
+FifthMonth <- interval(mdy(ReportStart) %m+% months(4),
+                       seq(as.Date(mdy(ReportStart) %m+% months(5)),
+                           length=1, by="1 month") -1)
+SixthMonth <- interval(mdy(ReportStart) %m+% months(5),
+                       seq(as.Date(mdy(ReportStart) %m+% months(6)),
+                           length=1, by="1 month") -1)
+SeventhMonth <- interval(mdy(ReportStart) %m+% months(6),
+                         seq(as.Date(mdy(ReportStart) %m+% months(7)),
+                             length=1, by="1 month") -1)
+EighthMonth <- interval(mdy(ReportStart) %m+% months(7),
+                        seq(as.Date(mdy(ReportStart) %m+% months(8)),
+                            length=1, by="1 month") -1)
+NinthMonth <- interval(mdy(ReportStart) %m+% months(8),
+                       seq(as.Date(mdy(ReportStart) %m+% months(9)),
+                           length=1, by="1 month") -1)
+TenthMonth <- interval(mdy(ReportStart) %m+% months(9),
+                       seq(as.Date(mdy(ReportStart) %m+% months(10)),
+                           length=1, by="1 month") -1)
+EleventhMonth <- interval(mdy(ReportStart) %m+% months(10),
+                          seq(as.Date(mdy(ReportStart) %m+% months(11)),
+                              length=1, by="1 month") -1)
+TwelfthMonth <- interval(mdy(ReportStart) %m+% months(11),
+                         seq(as.Date(mdy(ReportStart) %m+% months(12)),
+                             length=1, by="1 month") -1)
+
+# ReportDate prompts ------------------------------------------------------
+
+ReportStart <- "01012018"
+ReportEnd <- "12312018"
+ReportingPeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+
 # Save it out -------------------------------------------------------------
 save.image(file = "data/COHHIOHMIS.RData")
