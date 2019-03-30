@@ -2,8 +2,6 @@ library(tidyverse)
 library(lubridate)
 load("data/COHHIOHMIS.RData")
 
-
-
 # Creating Beds table -----------------------------------------------------
 
 SmallProject <- Project %>%
@@ -66,6 +64,8 @@ rm(list = ls())
 load("data/BedUtilization.Rdata")
 ReportStart <- "01012019"
 ReportEnd <- "04302019"
+ReportingPeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+
 # Bed Nights Utilized -----------------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
@@ -75,9 +75,12 @@ Utilizers <- Utilizers %>%
          ExitDate = NULL,
          EntryAdjust = case_when(
            ProjectType %in% c(1, 2, 8) ~ EntryDate,
-           ProjectType %in% c(3, 9, 13) ~ MoveInDate)
+           ProjectType %in% c(3, 9, 13) ~ MoveInDate),
+         StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
            ) %>%
-  filter((
+  filter(
+    int_overlaps(StayWindow, ReportingPeriod) &
+      (
     (
       ProjectType %in% c(3, 9, 13) &
         !is.na(EntryAdjust) &
@@ -136,7 +139,18 @@ Utilizers <- Utilizers %>%
     BedNights = 
         difftime(ymd(ExitAdjust), ymd(EntryAdjust),
                  units = "days"),
-    StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
+    Month1 = int_overlaps(StayWindow, FirstMonth),
+    Month2 = int_overlaps(StayWindow, SecondMonth),
+    Month3 = int_overlaps(StayWindow, ThirdMonth),
+    Month4 = int_overlaps(StayWindow, FourthMonth),
+    Month5 = int_overlaps(StayWindow, FifthMonth),
+    Month6 = int_overlaps(StayWindow, SixthMonth),
+    Month7 = int_overlaps(StayWindow, SeventhMonth),
+    Month8 = int_overlaps(StayWindow, EighthMonth),
+    Month9 = int_overlaps(StayWindow, NinthMonth),
+    Month10 = int_overlaps(StayWindow, TenthMonth),
+    Month11 = int_overlaps(StayWindow, EleventhMonth),
+    Month12 = int_overlaps(StayWindow, TwelfthMonth)
   ) %>%
   filter(BedNights > 0) 
 
