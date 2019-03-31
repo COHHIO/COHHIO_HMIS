@@ -65,7 +65,7 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    Inventory, Organization, Project, ProjectCoC, Scores, Services, 
    SmallEnrollment, SmallInventory, SmallProject, Users)
 
-# Client Bed Nights Utilized ----------------------------------------------
+# Client Utilization of Beds ----------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
 # fake training providers
@@ -288,7 +288,7 @@ BedNights <- ClientUtilizers %>%
             BN11 = sum(Month11, na.rm = TRUE),
             BN12 = sum(Month12, na.rm = TRUE))
 rm(ClientUtilizers)
-# Possible Bed Nights -----------------------------------------------------
+# Bed Capacity ------------------------------------------------------------
 
 BedCapacity <- Beds %>%
   select(ProjectID,
@@ -507,6 +507,8 @@ BedCapacity <- BedCapacity %>%
             BC11 = sum(Month11, na.rm = TRUE),
             BC12 = sum(Month12, na.rm = TRUE))
 
+# Bed Utilization ---------------------------------------------------------
+
 BedUtilization <- left_join(BedCapacity,
                         BedNights,
                         by = c("ProjectID", "ProjectName", "ProjectType")) %>%
@@ -527,11 +529,16 @@ BedUtilization <- left_join(BedCapacity,
 
 rm(BedCapacity, BedNights)
 
+names(BedUtilization) <- 
+  c("ProjectID", "ProjectName", "ProjectType",
+    month.name[month(ymd(int_start(ReportingPeriod))):
+                 month(ymd(int_end(ReportingPeriod)))])
+
 #Inf means there were no beds but there were clients served.
 #%NaN means there were no beds and no clients served that month.
 
 
-# HH Utilization of Units ------------------------------------------------
+# HH Utilization of Units -------------------------------------------------
 
 HHUtilizers <- Utilizers %>%
   mutate(EntryAdjust = case_when(
@@ -972,6 +979,8 @@ UnitCapacity <- UnitCapacity %>%
             UC11 = sum(Month11, na.rm = TRUE),
             UC12 = sum(Month12, na.rm = TRUE))
 
+# Unit Utilization --------------------------------------------------------
+
 UnitUtilization <- left_join(UnitCapacity,
                             HHNights,
                             by = c("ProjectID", "ProjectName", "ProjectType")) %>%
@@ -989,3 +998,11 @@ UnitUtilization <- left_join(UnitCapacity,
          Month12 = percent(HN12/UC12, accuracy = .1)) %>%
   select(ProjectID, ProjectName, ProjectType, Month1, Month2, Month3, Month4,
          Month5, Month6, Month7, Month8, Month9, Month10, Month11, Month12)
+rm(UnitCapacity, HHNights, Beds, Utilizers)
+
+names(UnitUtilization) <- 
+  c("ProjectID", "ProjectName", "ProjectType",
+    month.name[month(ymd(int_start(ReportingPeriod))):
+                 month(ymd(int_end(ReportingPeriod)))])
+
+# wondering about how to allow users to check for accuracy
