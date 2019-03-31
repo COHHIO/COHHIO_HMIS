@@ -177,6 +177,12 @@ operating_between <- function(table, start, end) {
   operating
 }
 
+# ReportDate prompts ------------------------------------------------------
+
+ReportStart <- "01012018"
+ReportEnd <- "12312018"
+ReportingPeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+
 # Adding Month Intervals --------------------------------------------------
 
 FirstMonth  <-  interval(mdy(ReportStart),
@@ -215,12 +221,6 @@ EleventhMonth <- interval(mdy(ReportStart) %m+% months(10),
 TwelfthMonth <- interval(mdy(ReportStart) %m+% months(11),
                          seq(as.Date(mdy(ReportStart) %m+% months(12)),
                              length=1, by="1 month") -1)
-
-# ReportDate prompts ------------------------------------------------------
-
-ReportStart <- "01012018"
-ReportEnd <- "12312018"
-ReportingPeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
 
 # Save it out -------------------------------------------------------------
 save.image(file = "data/COHHIOHMIS.RData")
