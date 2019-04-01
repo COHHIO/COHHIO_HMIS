@@ -95,6 +95,21 @@ ClientUtilizers <- Utilizers %>%
 
 ClientUtilizers <- ClientUtilizers %>%
   mutate(
+    ReportPeriod = if_else(int_overlaps(StayWindow, ReportingPeriod),
+                     as.numeric(difftime(
+                       if_else(
+                         ymd(ExitAdjust) <=  int_end(ReportingPeriod),
+                         as.POSIXct(ExitAdjust) + days(1),
+                         int_end(ReportingPeriod) + days(1)
+                       ),
+                       if_else(
+                         ymd(EntryAdjust) >= int_start(ReportingPeriod),
+                         as.POSIXct(EntryAdjust),
+                         int_start(ReportingPeriod)
+                       ),
+                       units = "days"
+                     )), NULL
+    ),
     Month1 = if_else(int_overlaps(StayWindow, FirstMonth),
                      as.numeric(difftime(
                        if_else(
@@ -269,24 +284,28 @@ ClientUtilizers <- ClientUtilizers %>%
                         units = "days"
                       )), NULL )
   ) %>%
-  select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, starts_with("Month"))
+  select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, ReportPeriod,
+         starts_with("Month"))
 ClientUtilizers <- as.data.frame(ClientUtilizers)
 
 # making granularity by provider instead of by enrollment id
 BedNights <- ClientUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
-  summarise(BN1 = sum(Month1, na.rm = TRUE),
-            BN2 = sum(Month2, na.rm = TRUE),
-            BN3 = sum(Month3, na.rm = TRUE),
-            BN4 = sum(Month4, na.rm = TRUE),
-            BN5 = sum(Month5, na.rm = TRUE),
-            BN6 = sum(Month6, na.rm = TRUE),
-            BN7 = sum(Month7, na.rm = TRUE),
-            BN8 = sum(Month8, na.rm = TRUE),
-            BN9 = sum(Month9, na.rm = TRUE),
-            BN10 = sum(Month10, na.rm = TRUE),
-            BN11 = sum(Month11, na.rm = TRUE),
-            BN12 = sum(Month12, na.rm = TRUE))
+  summarise(
+    BNY = sum(ReportPeriod, na.rm = TRUE),
+    BN1 = sum(Month1, na.rm = TRUE),
+    BN2 = sum(Month2, na.rm = TRUE),
+    BN3 = sum(Month3, na.rm = TRUE),
+    BN4 = sum(Month4, na.rm = TRUE),
+    BN5 = sum(Month5, na.rm = TRUE),
+    BN6 = sum(Month6, na.rm = TRUE),
+    BN7 = sum(Month7, na.rm = TRUE),
+    BN8 = sum(Month8, na.rm = TRUE),
+    BN9 = sum(Month9, na.rm = TRUE),
+    BN10 = sum(Month10, na.rm = TRUE),
+    BN11 = sum(Month11, na.rm = TRUE),
+    BN12 = sum(Month12, na.rm = TRUE)
+  )
 rm(ClientUtilizers)
 # Bed Capacity ------------------------------------------------------------
 
@@ -308,6 +327,21 @@ BedCapacity <- Beds %>%
 
 BedCapacity <- BedCapacity %>%
   mutate(
+    ReportPeriod = if_else(int_overlaps(AvailableWindow, ReportingPeriod),
+                           (as.numeric(difftime(
+                             if_else(
+                               ymd(InventoryEndAdjust) <=  int_end(ReportingPeriod),
+                               as.POSIXct(InventoryEndAdjust),
+                               int_end(ReportingPeriod)
+                             ),
+                             if_else(
+                               ymd(InventoryStartAdjust) >= int_start(ReportingPeriod),
+                               as.POSIXct(InventoryStartAdjust),
+                               int_start(ReportingPeriod)
+                             ),
+                             units = "days"
+                           ))+1) * BedInventory, NULL
+    ),    
     Month1 = if_else(int_overlaps(AvailableWindow, FirstMonth),
                      (as.numeric(difftime(
                        if_else(
@@ -494,43 +528,51 @@ BedCapacity <- BedCapacity %>%
 
 BedCapacity <- BedCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
-  summarise(BC1 = sum(Month1, na.rm = TRUE),
-            BC2 = sum(Month2, na.rm = TRUE),
-            BC3 = sum(Month3, na.rm = TRUE),
-            BC4 = sum(Month4, na.rm = TRUE),
-            BC5 = sum(Month5, na.rm = TRUE),
-            BC6 = sum(Month6, na.rm = TRUE),
-            BC7 = sum(Month7, na.rm = TRUE),
-            BC8 = sum(Month8, na.rm = TRUE),
-            BC9 = sum(Month9, na.rm = TRUE),
-            BC10 = sum(Month10, na.rm = TRUE),
-            BC11 = sum(Month11, na.rm = TRUE),
-            BC12 = sum(Month12, na.rm = TRUE))
+  summarise(
+    BCY = sum(ReportPeriod, na.rm = TRUE),
+    BC1 = sum(Month1, na.rm = TRUE),
+    BC2 = sum(Month2, na.rm = TRUE),
+    BC3 = sum(Month3, na.rm = TRUE),
+    BC4 = sum(Month4, na.rm = TRUE),
+    BC5 = sum(Month5, na.rm = TRUE),
+    BC6 = sum(Month6, na.rm = TRUE),
+    BC7 = sum(Month7, na.rm = TRUE),
+    BC8 = sum(Month8, na.rm = TRUE),
+    BC9 = sum(Month9, na.rm = TRUE),
+    BC10 = sum(Month10, na.rm = TRUE),
+    BC11 = sum(Month11, na.rm = TRUE),
+    BC12 = sum(Month12, na.rm = TRUE)
+  )
 
 # Bed Utilization ---------------------------------------------------------
 
-BedUtilization <- left_join(BedCapacity,
-                        BedNights,
-                        by = c("ProjectID", "ProjectName", "ProjectType")) %>%
-  mutate(Month1 = percent(BN1/BC1, accuracy = .1),
-         Month2 = percent(BN2/BC2, accuracy = .1),
-         Month3 = percent(BN3/BC3, accuracy = .1),
-         Month4 = percent(BN4/BC4, accuracy = .1),
-         Month5 = percent(BN5/BC5, accuracy = .1),
-         Month6 = percent(BN6/BC6, accuracy = .1),
-         Month7 = percent(BN7/BC7, accuracy = .1),
-         Month8 = percent(BN8/BC8, accuracy = .1),
-         Month9 = percent(BN9/BC9, accuracy = .1),
-         Month10 = percent(BN10/BC10, accuracy = .1),
-         Month11 = percent(BN11/BC11, accuracy = .1),
-         Month12 = percent(BN12/BC12, accuracy = .1)) %>%
-  select(ProjectID, ProjectName, ProjectType, Month1, Month2, Month3, Month4,
-         Month5, Month6, Month7, Month8, Month9, Month10, Month11, Month12)
+BedUtilization <- 
+  left_join(BedCapacity,
+            BedNights,
+            by = c("ProjectID", "ProjectName", "ProjectType")) %>%
+  mutate(
+    ReportPeriod = percent(BNY / BCY, accuracy = .1),
+    Month1 = percent(BN1 / BC1, accuracy = .1),
+    Month2 = percent(BN2 / BC2, accuracy = .1),
+    Month3 = percent(BN3 / BC3, accuracy = .1),
+    Month4 = percent(BN4 / BC4, accuracy = .1),
+    Month5 = percent(BN5 / BC5, accuracy = .1),
+    Month6 = percent(BN6 / BC6, accuracy = .1),
+    Month7 = percent(BN7 / BC7, accuracy = .1),
+    Month8 = percent(BN8 / BC8, accuracy = .1),
+    Month9 = percent(BN9 / BC9, accuracy = .1),
+    Month10 = percent(BN10 / BC10, accuracy = .1),
+    Month11 = percent(BN11 / BC11, accuracy = .1),
+    Month12 = percent(BN12 / BC12, accuracy = .1)
+  ) %>% 
+  select(ProjectID, ProjectName, ProjectType, ReportPeriod, Month1, Month2, 
+         Month3, Month4, Month5, Month6, Month7, Month8, Month9, Month10, 
+         Month11, Month12)
 
 rm(BedCapacity, BedNights)
 
 names(BedUtilization) <- 
-  c("ProjectID", "ProjectName", "ProjectType",
+  c("ProjectID", "ProjectName", "ProjectType", "ReportingPeriod",
     month.name[month(ymd(int_start(ReportingPeriod))):
                  month(ymd(int_end(ReportingPeriod)))])
 
@@ -567,7 +609,22 @@ HHUtilizers <- Utilizers %>%
 
 HHUtilizers <- HHUtilizers %>%
   mutate(
-    Month1 = if_else(int_overlaps(StayWindow, FirstMonth),
+      ReportPeriod = if_else(int_overlaps(StayWindow, ReportingPeriod),
+                             as.numeric(difftime(
+                               if_else(
+                                 ymd(ExitAdjust) <=  int_end(ReportingPeriod),
+                                 as.POSIXct(ExitAdjust) + days(1),
+                                 int_end(ReportingPeriod) + days(1)
+                               ),
+                               if_else(
+                                 ymd(EntryAdjust) >= int_start(ReportingPeriod),
+                                 as.POSIXct(EntryAdjust),
+                                 int_start(ReportingPeriod)
+                               ),
+                               units = "days"
+                             )), NULL
+      ),
+      Month1 = if_else(int_overlaps(StayWindow, FirstMonth),
                      round(as.numeric(difftime(
                        if_else(
                          ymd(ExitAdjust) <=  int_end(FirstMonth),
@@ -745,18 +802,21 @@ HHUtilizers <- as.data.frame(HHUtilizers)
 # making granularity by provider instead of by enrollment id
 HHNights <- HHUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
-  summarise(HN1 = sum(Month1, na.rm = TRUE),
-            HN2 = sum(Month2, na.rm = TRUE),
-            HN3 = sum(Month3, na.rm = TRUE),
-            HN4 = sum(Month4, na.rm = TRUE),
-            HN5 = sum(Month5, na.rm = TRUE),
-            HN6 = sum(Month6, na.rm = TRUE),
-            HN7 = sum(Month7, na.rm = TRUE),
-            HN8 = sum(Month8, na.rm = TRUE),
-            HN9 = sum(Month9, na.rm = TRUE),
-            HN10 = sum(Month10, na.rm = TRUE),
-            HN11 = sum(Month11, na.rm = TRUE),
-            HN12 = sum(Month12, na.rm = TRUE))
+  summarise(
+    HNY = sum(ReportPeriod, na.rm = TRUE),
+    HN1 = sum(Month1, na.rm = TRUE),
+    HN2 = sum(Month2, na.rm = TRUE),
+    HN3 = sum(Month3, na.rm = TRUE),
+    HN4 = sum(Month4, na.rm = TRUE),
+    HN5 = sum(Month5, na.rm = TRUE),
+    HN6 = sum(Month6, na.rm = TRUE),
+    HN7 = sum(Month7, na.rm = TRUE),
+    HN8 = sum(Month8, na.rm = TRUE),
+    HN9 = sum(Month9, na.rm = TRUE),
+    HN10 = sum(Month10, na.rm = TRUE),
+    HN11 = sum(Month11, na.rm = TRUE),
+    HN12 = sum(Month12, na.rm = TRUE)
+  )
 rm(HHUtilizers)
 
 # Unit Capacity -----------------------------------------------------------
@@ -782,6 +842,21 @@ UnitCapacity <- Beds %>%
                              UnitInventory, BedInventory)) 
 UnitCapacity <- UnitCapacity %>%
   mutate(
+    ReportPeriod = if_else(int_overlaps(AvailableWindow, ReportingPeriod),
+                           (as.numeric(difftime(
+                             if_else(
+                               ymd(InventoryEndAdjust) <=  int_end(ReportingPeriod),
+                               as.POSIXct(InventoryEndAdjust),
+                               int_end(ReportingPeriod)
+                             ),
+                             if_else(
+                               ymd(InventoryStartAdjust) >= int_start(ReportingPeriod),
+                               as.POSIXct(InventoryStartAdjust),
+                               int_start(ReportingPeriod)
+                             ),
+                             units = "days"
+                           ))+1) * UnitCount, NULL
+    ),
     Month1 = if_else(int_overlaps(AvailableWindow, FirstMonth),
                      (as.numeric(difftime(
                        if_else(
@@ -966,42 +1041,48 @@ UnitCapacity <- UnitCapacity %>%
 
 UnitCapacity <- UnitCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
-  summarise(UC1 = sum(Month1, na.rm = TRUE),
-            UC2 = sum(Month2, na.rm = TRUE),
-            UC3 = sum(Month3, na.rm = TRUE),
-            UC4 = sum(Month4, na.rm = TRUE),
-            UC5 = sum(Month5, na.rm = TRUE),
-            UC6 = sum(Month6, na.rm = TRUE),
-            UC7 = sum(Month7, na.rm = TRUE),
-            UC8 = sum(Month8, na.rm = TRUE),
-            UC9 = sum(Month9, na.rm = TRUE),
-            UC10 = sum(Month10, na.rm = TRUE),
-            UC11 = sum(Month11, na.rm = TRUE),
-            UC12 = sum(Month12, na.rm = TRUE))
+  summarise(
+    UCY = sum(ReportPeriod, na.rm = TRUE),
+    UC1 = sum(Month1, na.rm = TRUE),
+    UC2 = sum(Month2, na.rm = TRUE),
+    UC3 = sum(Month3, na.rm = TRUE),
+    UC4 = sum(Month4, na.rm = TRUE),
+    UC5 = sum(Month5, na.rm = TRUE),
+    UC6 = sum(Month6, na.rm = TRUE),
+    UC7 = sum(Month7, na.rm = TRUE),
+    UC8 = sum(Month8, na.rm = TRUE),
+    UC9 = sum(Month9, na.rm = TRUE),
+    UC10 = sum(Month10, na.rm = TRUE),
+    UC11 = sum(Month11, na.rm = TRUE),
+    UC12 = sum(Month12, na.rm = TRUE)
+  )
 
 # Unit Utilization --------------------------------------------------------
 
 UnitUtilization <- left_join(UnitCapacity,
                             HHNights,
                             by = c("ProjectID", "ProjectName", "ProjectType")) %>%
-  mutate(Month1 = percent(HN1/UC1, accuracy = .1),
-         Month2 = percent(HN2/UC2, accuracy = .1),
-         Month3 = percent(HN3/UC3, accuracy = .1),
-         Month4 = percent(HN4/UC4, accuracy = .1),
-         Month5 = percent(HN5/UC5, accuracy = .1),
-         Month6 = percent(HN6/UC6, accuracy = .1),
-         Month7 = percent(HN7/UC7, accuracy = .1),
-         Month8 = percent(HN8/UC8, accuracy = .1),
-         Month9 = percent(HN9/UC9, accuracy = .1),
-         Month10 = percent(HN10/UC10, accuracy = .1),
-         Month11 = percent(HN11/UC11, accuracy = .1),
-         Month12 = percent(HN12/UC12, accuracy = .1)) %>%
-  select(ProjectID, ProjectName, ProjectType, Month1, Month2, Month3, Month4,
+  mutate(
+    ReportPeriod = percent(HNY / UCY, accuracy = .1),
+    Month1 = percent(HN1 / UC1, accuracy = .1),
+    Month2 = percent(HN2 / UC2, accuracy = .1),
+    Month3 = percent(HN3 / UC3, accuracy = .1),
+    Month4 = percent(HN4 / UC4, accuracy = .1),
+    Month5 = percent(HN5 / UC5, accuracy = .1),
+    Month6 = percent(HN6 / UC6, accuracy = .1),
+    Month7 = percent(HN7 / UC7, accuracy = .1),
+    Month8 = percent(HN8 / UC8, accuracy = .1),
+    Month9 = percent(HN9 / UC9, accuracy = .1),
+    Month10 = percent(HN10 / UC10, accuracy = .1),
+    Month11 = percent(HN11 / UC11, accuracy = .1),
+    Month12 = percent(HN12 / UC12, accuracy = .1)
+  ) %>%
+  select(ProjectID, ProjectName, ProjectType, ReportPeriod, Month1, Month2, Month3, Month4,
          Month5, Month6, Month7, Month8, Month9, Month10, Month11, Month12)
 rm(UnitCapacity, HHNights, Beds, Utilizers)
 
 names(UnitUtilization) <- 
-  c("ProjectID", "ProjectName", "ProjectType",
+  c("ProjectID", "ProjectName", "ProjectType", "ReportingPeriod",
     month.name[month(ymd(int_start(ReportingPeriod))):
                  month(ymd(int_end(ReportingPeriod)))])
 
