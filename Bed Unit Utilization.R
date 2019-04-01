@@ -3,6 +3,9 @@ library(lubridate)
 library(scales)
 load("data/COHHIOHMIS.RData")
 
+#if you want to change the reporting dates, you have to do it in the 
+#get_the_csv_things script
+
 # Creating Beds table -----------------------------------------------------
 
 SmallProject <- Project %>%
@@ -573,8 +576,18 @@ rm(BedCapacity, BedNights)
 
 names(BedUtilization) <- 
   c("ProjectID", "ProjectName", "ProjectType", "ReportingPeriod",
-    month.name[month(ymd(int_start(ReportingPeriod))):
-                 month(ymd(int_end(ReportingPeriod)))])
+    month.name[(month(ymd(int_start(FirstMonth))))],
+    month.name[(month(ymd(int_start(SecondMonth))))],
+    month.name[(month(ymd(int_start(ThirdMonth))))],
+    month.name[(month(ymd(int_start(FourthMonth))))],
+    month.name[(month(ymd(int_start(FifthMonth))))],
+    month.name[(month(ymd(int_start(SixthMonth))))],
+    month.name[(month(ymd(int_start(SeventhMonth))))],
+    month.name[(month(ymd(int_start(EighthMonth))))],
+    month.name[(month(ymd(int_start(NinthMonth))))],
+    month.name[(month(ymd(int_start(TenthMonth))))],
+    month.name[(month(ymd(int_start(EleventhMonth))))],
+    month.name[(month(ymd(int_start(TwelfthMonth))))])
 
 #Inf means there were no beds but there were clients served.
 #%NaN means there were no beds and no clients served that month.
@@ -1077,13 +1090,24 @@ UnitUtilization <- left_join(UnitCapacity,
     Month11 = percent(HN11 / UC11, accuracy = .1),
     Month12 = percent(HN12 / UC12, accuracy = .1)
   ) %>%
-  select(ProjectID, ProjectName, ProjectType, ReportPeriod, Month1, Month2, Month3, Month4,
-         Month5, Month6, Month7, Month8, Month9, Month10, Month11, Month12)
+  select(ProjectID, ProjectName, ProjectType, ReportPeriod, Month1, Month2, 
+         Month3, Month4, Month5, Month6, Month7, Month8, Month9, Month10, 
+         Month11, Month12)
 rm(UnitCapacity, HHNights, Beds, Utilizers)
 
 names(UnitUtilization) <- 
   c("ProjectID", "ProjectName", "ProjectType", "ReportingPeriod",
-    month.name[month(ymd(int_start(ReportingPeriod))):
-                 month(ymd(int_end(ReportingPeriod)))])
+    month.name[(month(ymd(int_start(FirstMonth))))],
+    month.name[(month(ymd(int_start(SecondMonth))))],
+    month.name[(month(ymd(int_start(ThirdMonth))))],
+    month.name[(month(ymd(int_start(FourthMonth))))],
+    month.name[(month(ymd(int_start(FifthMonth))))],
+    month.name[(month(ymd(int_start(SixthMonth))))],
+    month.name[(month(ymd(int_start(SeventhMonth))))],
+    month.name[(month(ymd(int_start(EighthMonth))))],
+    month.name[(month(ymd(int_start(NinthMonth))))],
+    month.name[(month(ymd(int_start(TenthMonth))))],
+    month.name[(month(ymd(int_start(EleventhMonth))))],
+    month.name[(month(ymd(int_start(TwelfthMonth))))])
 
 # wondering about how to allow users to check for accuracy
