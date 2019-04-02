@@ -1,6 +1,7 @@
 library(tidyverse)
 library(lubridate)
 library(scales)
+a1start <- now()
 load("data/COHHIOHMIS.RData")
 
 #if you want to change the reporting dates, you have to do it in the 
@@ -32,7 +33,7 @@ SmallInventory <- Inventory %>%
   ) 
 
 Beds <- inner_join(SmallProject, SmallInventory, by = "ProjectID")
-
+createdbedstable <- now()
 # Creating Utilizers table ------------------------------------------------
 
 SmallEnrollment <- Enrollment %>% 
@@ -60,14 +61,14 @@ Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
     MoveInDate,
     ExitDate
   )
-
+createdutilizerstable <- now() 
 # Cleaning up the house ---------------------------------------------------
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
    Inventory, Organization, Project, ProjectCoC, Scores, Services, 
    SmallEnrollment, SmallInventory, SmallProject, Users)
-
+cleanup <- now() 
 # Client Utilization of Beds ----------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
@@ -93,7 +94,7 @@ ClientUtilizers <- Utilizers %>%
   ) &
     !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
   select(-EntryDate, -MoveInDate)
-
+a2filteredutilizersclients <- now()
 # adding in month columns with utilization numbers
 
 ClientUtilizers <- ClientUtilizers %>%
@@ -290,7 +291,7 @@ ClientUtilizers <- ClientUtilizers %>%
   select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, ReportPeriod,
          starts_with("Month"))
 ClientUtilizers <- as.data.frame(ClientUtilizers)
-
+a3calculatedbednightsperee <- now()
 # making granularity by provider instead of by enrollment id
 BedNights <- ClientUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -310,6 +311,7 @@ BedNights <- ClientUtilizers %>%
     BN12 = sum(Month12, na.rm = TRUE)
   )
 rm(ClientUtilizers)
+a4summarisedtoproviderlevel <- now()
 # Bed Capacity ------------------------------------------------------------
 
 BedCapacity <- Beds %>%
@@ -327,7 +329,7 @@ BedCapacity <- Beds %>%
                                         mdy(ReportStart)),
          AvailableWindow = interval(ymd(InventoryStartAdjust),
                                     ymd(InventoryEndAdjust))) 
-
+a6addedintervalstobeds <- now()
 BedCapacity <- BedCapacity %>%
   mutate(
     ReportPeriod = if_else(int_overlaps(AvailableWindow, ReportingPeriod),
@@ -528,7 +530,7 @@ BedCapacity <- BedCapacity %>%
   ) %>%
   select(-InventoryStartDate, -InventoryEndDate, -InventoryEndAdjust,
          -BedInventory, -InventoryStartAdjust, -AvailableWindow)
-
+a5calculatedpossbednights <- now()
 BedCapacity <- BedCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
   summarise(
@@ -546,7 +548,7 @@ BedCapacity <- BedCapacity %>%
     BC11 = sum(Month11, na.rm = TRUE),
     BC12 = sum(Month12, na.rm = TRUE)
   )
-
+a7summarisedtoproviderlevelbeds <- now()
 # Bed Utilization ---------------------------------------------------------
 
 BedUtilization <- 
@@ -591,7 +593,7 @@ names(BedUtilization) <-
 
 #Inf means there were no beds but there were clients served.
 #%NaN means there were no beds and no clients served that month.
-
+a8calculatedbedutilization <- now()
 
 # HH Utilization of Units -------------------------------------------------
 
@@ -619,7 +621,7 @@ HHUtilizers <- Utilizers %>%
       ) &
       !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
   select(-EntryDate, -MoveInDate, -HouseholdID, -RelationshipToHoH)
-
+a8filteredhhutilizers <- now()
 HHUtilizers <- HHUtilizers %>%
   mutate(
       ReportPeriod = if_else(int_overlaps(StayWindow, ReportingPeriod),
@@ -812,6 +814,7 @@ HHUtilizers <- HHUtilizers %>%
                       )), digits = 0), NULL )
     )
 HHUtilizers <- as.data.frame(HHUtilizers)
+b4hhbednightsperee <- now()
 # making granularity by provider instead of by enrollment id
 HHNights <- HHUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -831,7 +834,7 @@ HHNights <- HHUtilizers %>%
     HN12 = sum(Month12, na.rm = TRUE)
   )
 rm(HHUtilizers)
-
+b1calculatedhhbednights <- now()
 # Unit Capacity -----------------------------------------------------------
 
 UnitCapacity <- Beds %>%
@@ -853,6 +856,7 @@ UnitCapacity <- Beds %>%
                                     ymd(InventoryEndAdjust)),
          UnitCount = if_else(HouseholdType == 3,
                              UnitInventory, BedInventory)) 
+b2addedintervalstounits <- now()
 UnitCapacity <- UnitCapacity %>%
   mutate(
     ReportPeriod = if_else(int_overlaps(AvailableWindow, ReportingPeriod),
@@ -1051,6 +1055,7 @@ UnitCapacity <- UnitCapacity %>%
                       ))+1) * UnitCount, NULL
     ) )
 
+b3calculatedpossunits <- now()
 
 UnitCapacity <- UnitCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
@@ -1069,7 +1074,7 @@ UnitCapacity <- UnitCapacity %>%
     UC11 = sum(Month11, na.rm = TRUE),
     UC12 = sum(Month12, na.rm = TRUE)
   )
-
+b5summarisedpossunits <- now()
 # Unit Utilization --------------------------------------------------------
 
 UnitUtilization <- left_join(UnitCapacity,
@@ -1109,5 +1114,6 @@ names(UnitUtilization) <-
     month.name[(month(ymd(int_start(TenthMonth))))],
     month.name[(month(ymd(int_start(EleventhMonth))))],
     month.name[(month(ymd(int_start(TwelfthMonth))))])
-
+b6end <- now()
+b6end - a1start
 # wondering about how to allow users to check for accuracy
