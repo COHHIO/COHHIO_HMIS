@@ -1,7 +1,6 @@
 library(tidyverse)
 library(lubridate)
 library(scales)
-a1start <- now()
 load("data/COHHIOHMIS.RData")
 
 #if you want to change the reporting dates, you have to do it in the 
@@ -10,18 +9,14 @@ load("data/COHHIOHMIS.RData")
 # Creating Beds table -----------------------------------------------------
 
 SmallProject <- Project %>%
-  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
-           operating_between(Project, ReportStart, ReportEnd) &
-           is.na(GrantType)) %>%
   select(ProjectID,
          ProjectName,
-         ProjectType)
+         ProjectType) %>%
+  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
+           operating_between(Project, ReportStart, ReportEnd) &
+           is.na(Project$GrantType))
+
 SmallInventory <- Inventory %>%
-  filter(!is.na(HMISParticipatingBeds) & 
-           CoCCode == "OH-507" &
-           (ymd(InventoryStartDate) < mdy(ReportEnd) & 
-              (ymd(InventoryEndDate) > mdy(ReportStart) |
-              is.na(InventoryEndDate)))) %>%
   select(
     ProjectID,
     HouseholdType,
@@ -30,10 +25,18 @@ SmallInventory <- Inventory %>%
     InventoryStartDate,
     InventoryEndDate,
     HMISParticipatingBeds
-  ) 
+  )  %>%
+  filter((
+    ymd(InventoryStartDate) <= mdy(ReportEnd) &
+      (
+        ymd(InventoryEndDate) >= mdy(ReportStart) |
+          is.na(InventoryEndDate)
+      )
+  ) &
+    !is.na(HMISParticipatingBeds) &
+    Inventory$CoCCode == "OH-507")
 
 Beds <- inner_join(SmallProject, SmallInventory, by = "ProjectID")
-createdbedstable <- now()
 # Creating Utilizers table ------------------------------------------------
 
 SmallEnrollment <- Enrollment %>% 
@@ -61,14 +64,12 @@ Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
     MoveInDate,
     ExitDate
   )
-createdutilizerstable <- now() 
 # Cleaning up the house ---------------------------------------------------
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
    Inventory, Organization, Project, ProjectCoC, Scores, Services, 
    SmallEnrollment, SmallInventory, SmallProject, Users)
-cleanup <- now() 
 # Client Utilization of Beds ----------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
@@ -94,204 +95,49 @@ ClientUtilizers <- Utilizers %>%
   ) &
     !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
   select(-EntryDate, -MoveInDate)
-a2filteredutilizersclients <- now()
+
+# function for adding bed nights per ee
+
+bed_nights_per_ee <- function(table, interval) {
+  if_else(int_overlaps(table$StayWindow, interval),
+          as.numeric(difftime(
+            if_else(
+              ymd(table$ExitAdjust) <=  int_end(interval),
+              as.POSIXct(table$ExitAdjust) + days(1),
+              int_end(interval) + days(1)
+            ),
+            if_else(
+              ymd(table$EntryAdjust) >= int_start(interval),
+              as.POSIXct(table$EntryAdjust),
+              int_start(interval)
+            ),
+            units = "days"
+          )), NULL
+  )
+}
+
+
 # adding in month columns with utilization numbers
 
 ClientUtilizers <- ClientUtilizers %>%
   mutate(
-    ReportPeriod = if_else(int_overlaps(StayWindow, ReportingPeriod),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(ReportingPeriod),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(ReportingPeriod) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(ReportingPeriod),
-                         as.POSIXct(EntryAdjust),
-                         int_start(ReportingPeriod)
-                       ),
-                       units = "days"
-                     )), NULL
-    ),
-    Month1 = if_else(int_overlaps(StayWindow, FirstMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(FirstMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(FirstMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(FirstMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(FirstMonth)
-                       ),
-                       units = "days"
-                     )), NULL
-                     ),
-    Month2 = if_else(int_overlaps(StayWindow, SecondMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(SecondMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(SecondMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(SecondMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(SecondMonth)
-                       ),
-                       units = "days"
-                     )), NULL
-    ),
-    Month3 = if_else(int_overlaps(StayWindow, ThirdMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(ThirdMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(ThirdMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(ThirdMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(ThirdMonth)
-                       ),
-                       units = "days"
-                     )), NULL
-    ),
-    Month4 = if_else(int_overlaps(StayWindow, FourthMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(FourthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(FourthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(FourthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(FourthMonth)
-                       ),
-                       units = "days"
-                     )), NULL
-    ),
-    Month5 = if_else(int_overlaps(StayWindow, FifthMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(FifthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(FifthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(FifthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(FifthMonth)
-                       ),
-                       units = "days"
-                     )), NULL
-    ),
-    Month6 = if_else(int_overlaps(StayWindow, SixthMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(SixthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(SixthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(SixthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(SixthMonth)
-                       ),
-                       units = "days"
-                     )), NULL),
-    Month7 = if_else(int_overlaps(StayWindow, SeventhMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(SeventhMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(SeventhMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(SeventhMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(SeventhMonth)
-                       ),
-                       units = "days"
-                     )), NULL),
-    Month8 = if_else(int_overlaps(StayWindow, EighthMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(EighthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(EighthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(EighthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(EighthMonth)
-                       ),
-                       units = "days"
-                     )), NULL),
-    Month9 = if_else(int_overlaps(StayWindow, NinthMonth),
-                     as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(NinthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(NinthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(NinthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(NinthMonth)
-                       ),
-                       units = "days"
-                     )), NULL ),
-    Month10 = if_else(int_overlaps(StayWindow, TenthMonth),
-                      as.numeric(difftime(
-                        if_else(
-                          ymd(ExitAdjust) <=  int_end(TenthMonth),
-                          as.POSIXct(ExitAdjust) + days(1),
-                          int_end(TenthMonth) + days(1)
-                        ),
-                        if_else(
-                          ymd(EntryAdjust) >= int_start(TenthMonth),
-                          as.POSIXct(EntryAdjust),
-                          int_start(TenthMonth)
-                        ),
-                        units = "days"
-                      )), NULL ),
-    Month11 = if_else(int_overlaps(StayWindow, EleventhMonth),
-                      as.numeric(difftime(
-                        if_else(
-                          ymd(ExitAdjust) <=  int_end(EleventhMonth),
-                          as.POSIXct(ExitAdjust) + days(1),
-                          int_end(EleventhMonth) + days(1)
-                        ),
-                        if_else(
-                          ymd(EntryAdjust) >= int_start(EleventhMonth),
-                          as.POSIXct(EntryAdjust),
-                          int_start(EleventhMonth)
-                        ),
-                        units = "days"
-                      )), NULL ),
-    Month12 = if_else(int_overlaps(StayWindow, TwelfthMonth),
-                      as.numeric(difftime(
-                        if_else(
-                          ymd(ExitAdjust) <=  int_end(TwelfthMonth),
-                          as.POSIXct(ExitAdjust) + days(1),
-                          int_end(TwelfthMonth) + days(1)
-                        ),
-                        if_else(
-                          ymd(EntryAdjust) >= int_start(TwelfthMonth),
-                          as.POSIXct(EntryAdjust),
-                          int_start(TwelfthMonth)
-                        ),
-                        units = "days"
-                      )), NULL )
+    ReportPeriod = bed_nights_per_ee(ClientUtilizers, ReportingPeriod),
+    Month1 = bed_nights_per_ee(ClientUtilizers, FirstMonth),
+    Month2 = bed_nights_per_ee(ClientUtilizers, SecondMonth),
+    Month3 = bed_nights_per_ee(ClientUtilizers, ThirdMonth),
+    Month4 = bed_nights_per_ee(ClientUtilizers, FourthMonth),
+    Month5 = bed_nights_per_ee(ClientUtilizers, FifthMonth),
+    Month6 = bed_nights_per_ee(ClientUtilizers, SixthMonth),
+    Month7 = bed_nights_per_ee(ClientUtilizers, SeventhMonth),
+    Month8 = bed_nights_per_ee(ClientUtilizers, EighthMonth),
+    Month9 = bed_nights_per_ee(ClientUtilizers, NinthMonth),
+    Month10 = bed_nights_per_ee(ClientUtilizers, TenthMonth),
+    Month11 = bed_nights_per_ee(ClientUtilizers, EleventhMonth),
+    Month12 = bed_nights_per_ee(ClientUtilizers, TwelfthMonth)
   ) %>%
   select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, ReportPeriod,
          starts_with("Month"))
 ClientUtilizers <- as.data.frame(ClientUtilizers)
-a3calculatedbednightsperee <- now()
 # making granularity by provider instead of by enrollment id
 BedNights <- ClientUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -311,7 +157,6 @@ BedNights <- ClientUtilizers %>%
     BN12 = sum(Month12, na.rm = TRUE)
   )
 rm(ClientUtilizers)
-a4summarisedtoproviderlevel <- now()
 # Bed Capacity ------------------------------------------------------------
 
 BedCapacity <- Beds %>%
@@ -329,208 +174,45 @@ BedCapacity <- Beds %>%
                                         mdy(ReportStart)),
          AvailableWindow = interval(ymd(InventoryStartAdjust),
                                     ymd(InventoryEndAdjust))) 
-a6addedintervalstobeds <- now()
+
+# function for bed capacity at the bed record level
+
+bed_capacity <- function(interval) {
+  if_else(int_overlaps(BedCapacity$AvailableWindow, interval),
+          (as.numeric(difftime(
+            if_else(
+              ymd(BedCapacity$InventoryEndAdjust) <=  int_end(interval),
+              as.POSIXct(BedCapacity$InventoryEndAdjust),
+              int_end(interval)
+            ),
+            if_else(
+              ymd(BedCapacity$InventoryStartAdjust) >= int_start(interval),
+              as.POSIXct(BedCapacity$InventoryStartAdjust),
+              int_start(interval)
+            ),
+            units = "days"
+          ))+1) * BedCapacity$BedInventory, NULL
+  )
+}
+
 BedCapacity <- BedCapacity %>%
   mutate(
-    ReportPeriod = if_else(int_overlaps(AvailableWindow, ReportingPeriod),
-                           (as.numeric(difftime(
-                             if_else(
-                               ymd(InventoryEndAdjust) <=  int_end(ReportingPeriod),
-                               as.POSIXct(InventoryEndAdjust),
-                               int_end(ReportingPeriod)
-                             ),
-                             if_else(
-                               ymd(InventoryStartAdjust) >= int_start(ReportingPeriod),
-                               as.POSIXct(InventoryStartAdjust),
-                               int_start(ReportingPeriod)
-                             ),
-                             units = "days"
-                           ))+1) * BedInventory, NULL
-    ),    
-    Month1 = if_else(int_overlaps(AvailableWindow, FirstMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(FirstMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(FirstMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(FirstMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(FirstMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month2 = if_else(int_overlaps(AvailableWindow, SecondMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(SecondMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(SecondMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(SecondMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(SecondMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month3 = if_else(int_overlaps(AvailableWindow, ThirdMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(ThirdMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(ThirdMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(ThirdMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(ThirdMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month4 = if_else(int_overlaps(AvailableWindow, FourthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(FourthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(FourthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(FourthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(FourthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month5 = if_else(int_overlaps(AvailableWindow, FifthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(FifthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(FifthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(FifthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(FifthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month6 = if_else(int_overlaps(AvailableWindow, SixthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(SixthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(SixthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(SixthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(SixthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month7 = if_else(int_overlaps(AvailableWindow, SeventhMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(SeventhMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(SeventhMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(SeventhMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(SeventhMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month8 = if_else(int_overlaps(AvailableWindow, EighthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(EighthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(EighthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(EighthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(EighthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month9 = if_else(int_overlaps(AvailableWindow, NinthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(NinthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(NinthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(NinthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(NinthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month10 = if_else(int_overlaps(AvailableWindow, TenthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(TenthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(TenthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(TenthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(TenthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month11 = if_else(int_overlaps(AvailableWindow, EleventhMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(EleventhMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(EleventhMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(EleventhMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(EleventhMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ),
-    Month12 = if_else(int_overlaps(AvailableWindow, TwelfthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(TwelfthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(TwelfthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(TwelfthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(TwelfthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * BedInventory, NULL
-    ) 
-  ) %>%
+    ReportPeriod = bed_capacity(ReportingPeriod),
+    Month1 = bed_capacity(FirstMonth),
+    Month2 = bed_capacity(SecondMonth),
+    Month3 = bed_capacity(ThirdMonth),
+    Month4 = bed_capacity(FourthMonth),
+    Month5 = bed_capacity(FifthMonth),
+    Month6 = bed_capacity(SixthMonth),
+    Month7 = bed_capacity(SeventhMonth),
+    Month8 = bed_capacity(EighthMonth),
+    Month9 = bed_capacity(NinthMonth),
+    Month10 = bed_capacity(TenthMonth),
+    Month11 = bed_capacity(EleventhMonth),
+    Month12 = bed_capacity(TwelfthMonth)) %>%
   select(-InventoryStartDate, -InventoryEndDate, -InventoryEndAdjust,
          -BedInventory, -InventoryStartAdjust, -AvailableWindow)
-a5calculatedpossbednights <- now()
+
 BedCapacity <- BedCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
   summarise(
@@ -548,7 +230,6 @@ BedCapacity <- BedCapacity %>%
     BC11 = sum(Month11, na.rm = TRUE),
     BC12 = sum(Month12, na.rm = TRUE)
   )
-a7summarisedtoproviderlevelbeds <- now()
 # Bed Utilization ---------------------------------------------------------
 
 BedUtilization <- 
@@ -593,7 +274,6 @@ names(BedUtilization) <-
 
 #Inf means there were no beds but there were clients served.
 #%NaN means there were no beds and no clients served that month.
-a8calculatedbedutilization <- now()
 
 # HH Utilization of Units -------------------------------------------------
 
@@ -621,200 +301,24 @@ HHUtilizers <- Utilizers %>%
       ) &
       !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
   select(-EntryDate, -MoveInDate, -HouseholdID, -RelationshipToHoH)
-a8filteredhhutilizers <- now()
+
 HHUtilizers <- HHUtilizers %>%
   mutate(
-      ReportPeriod = if_else(int_overlaps(StayWindow, ReportingPeriod),
-                             as.numeric(difftime(
-                               if_else(
-                                 ymd(ExitAdjust) <=  int_end(ReportingPeriod),
-                                 as.POSIXct(ExitAdjust) + days(1),
-                                 int_end(ReportingPeriod) + days(1)
-                               ),
-                               if_else(
-                                 ymd(EntryAdjust) >= int_start(ReportingPeriod),
-                                 as.POSIXct(EntryAdjust),
-                                 int_start(ReportingPeriod)
-                               ),
-                               units = "days"
-                             )), NULL
-      ),
-      Month1 = if_else(int_overlaps(StayWindow, FirstMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(FirstMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(FirstMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(FirstMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(FirstMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL
-    ),
-    Month2 = if_else(int_overlaps(StayWindow, SecondMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(SecondMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(SecondMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(SecondMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(SecondMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL
-    ),
-    Month3 = if_else(int_overlaps(StayWindow, ThirdMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(ThirdMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(ThirdMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(ThirdMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(ThirdMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL
-    ),
-    Month4 = if_else(int_overlaps(StayWindow, FourthMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(FourthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(FourthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(FourthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(FourthMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL
-    ),
-    Month5 = if_else(int_overlaps(StayWindow, FifthMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(FifthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(FifthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(FifthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(FifthMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL
-    ),
-    Month6 = if_else(int_overlaps(StayWindow, SixthMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(SixthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(SixthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(SixthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(SixthMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL),
-    Month7 = if_else(int_overlaps(StayWindow, SeventhMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(SeventhMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(SeventhMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(SeventhMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(SeventhMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL),
-    Month8 = if_else(int_overlaps(StayWindow, EighthMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(EighthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(EighthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(EighthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(EighthMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL),
-    Month9 = if_else(int_overlaps(StayWindow, NinthMonth),
-                     round(as.numeric(difftime(
-                       if_else(
-                         ymd(ExitAdjust) <=  int_end(NinthMonth),
-                         as.POSIXct(ExitAdjust) + days(1),
-                         int_end(NinthMonth) + days(1)
-                       ),
-                       if_else(
-                         ymd(EntryAdjust) >= int_start(NinthMonth),
-                         as.POSIXct(EntryAdjust),
-                         int_start(NinthMonth)
-                       )-1,
-                       units = "days"
-                     )), digits = 0), NULL ),
-    Month10 = if_else(int_overlaps(StayWindow, TenthMonth),
-                      round(as.numeric(difftime(
-                        if_else(
-                          ymd(ExitAdjust) <=  int_end(TenthMonth),
-                          as.POSIXct(ExitAdjust) + days(1),
-                          int_end(TenthMonth) + days(1)
-                        ),
-                        if_else(
-                          ymd(EntryAdjust) >= int_start(TenthMonth),
-                          as.POSIXct(EntryAdjust),
-                          int_start(TenthMonth)
-                        )-1,
-                        units = "days"
-                      )), digits = 0), NULL ),
-    Month11 = if_else(int_overlaps(StayWindow, EleventhMonth),
-                      round(as.numeric(difftime(
-                        if_else(
-                          ymd(ExitAdjust) <=  int_end(EleventhMonth),
-                          as.POSIXct(ExitAdjust) + days(1),
-                          int_end(EleventhMonth) + days(1)
-                        ),
-                        if_else(
-                          ymd(EntryAdjust) >= int_start(EleventhMonth),
-                          as.POSIXct(EntryAdjust),
-                          int_start(EleventhMonth)
-                        )-1,
-                        units = "days"
-                      )), digits = 0), NULL ),
-    Month12 = if_else(int_overlaps(StayWindow, TwelfthMonth),
-                      round(as.numeric(difftime(
-                        if_else(
-                          ymd(ExitAdjust) <=  int_end(TwelfthMonth),
-                          as.POSIXct(ExitAdjust) + days(1),
-                          int_end(TwelfthMonth) + days(1)
-                        ),
-                        if_else(
-                          ymd(EntryAdjust) >= int_start(TwelfthMonth),
-                          as.POSIXct(EntryAdjust),
-                          int_start(TwelfthMonth)
-                        ),
-                        units = "days"
-                      )), digits = 0), NULL )
+    ReportPeriod = bed_nights_per_ee(HHUtilizers, ReportingPeriod),
+    Month1 = bed_nights_per_ee(HHUtilizers, FirstMonth),
+    Month2 = bed_nights_per_ee(HHUtilizers, SecondMonth),
+    Month3 = bed_nights_per_ee(HHUtilizers, ThirdMonth),
+    Month4 = bed_nights_per_ee(HHUtilizers, FourthMonth),
+    Month5 = bed_nights_per_ee(HHUtilizers, FifthMonth),
+    Month6 = bed_nights_per_ee(HHUtilizers, SixthMonth),
+    Month7 = bed_nights_per_ee(HHUtilizers, SeventhMonth),
+    Month8 = bed_nights_per_ee(HHUtilizers, EighthMonth),
+    Month9 = bed_nights_per_ee(HHUtilizers, NinthMonth),
+    Month10 = bed_nights_per_ee(HHUtilizers, TenthMonth),
+    Month11 = bed_nights_per_ee(HHUtilizers, EleventhMonth),
+    Month12 = bed_nights_per_ee(HHUtilizers, TwelfthMonth)
     )
 HHUtilizers <- as.data.frame(HHUtilizers)
-b4hhbednightsperee <- now()
 # making granularity by provider instead of by enrollment id
 HHNights <- HHUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -834,7 +338,6 @@ HHNights <- HHUtilizers %>%
     HN12 = sum(Month12, na.rm = TRUE)
   )
 rm(HHUtilizers)
-b1calculatedhhbednights <- now()
 # Unit Capacity -----------------------------------------------------------
 
 UnitCapacity <- Beds %>%
@@ -856,206 +359,46 @@ UnitCapacity <- Beds %>%
                                     ymd(InventoryEndAdjust)),
          UnitCount = if_else(HouseholdType == 3,
                              UnitInventory, BedInventory)) 
-b2addedintervalstounits <- now()
+
+# function to calculate unit capacity at the bed record level
+
+unit_capacity <- function(interval) {
+  if_else(
+    int_overlaps(UnitCapacity$AvailableWindow, interval),
+    (as.numeric(
+      difftime(
+        if_else(
+          ymd(UnitCapacity$InventoryEndAdjust) <=  int_end(interval),
+          as.POSIXct(UnitCapacity$InventoryEndAdjust),
+          int_end(interval)
+        ),
+        if_else(
+          ymd(UnitCapacity$InventoryStartAdjust) >= int_start(interval),
+          as.POSIXct(UnitCapacity$InventoryStartAdjust),
+          int_start(interval)
+        ),
+        units = "days"
+      )
+    ) + 1) * UnitCapacity$UnitCount,
+    NULL
+  )
+}
+
 UnitCapacity <- UnitCapacity %>%
   mutate(
-    ReportPeriod = if_else(int_overlaps(AvailableWindow, ReportingPeriod),
-                           (as.numeric(difftime(
-                             if_else(
-                               ymd(InventoryEndAdjust) <=  int_end(ReportingPeriod),
-                               as.POSIXct(InventoryEndAdjust),
-                               int_end(ReportingPeriod)
-                             ),
-                             if_else(
-                               ymd(InventoryStartAdjust) >= int_start(ReportingPeriod),
-                               as.POSIXct(InventoryStartAdjust),
-                               int_start(ReportingPeriod)
-                             ),
-                             units = "days"
-                           ))+1) * UnitCount, NULL
-    ),
-    Month1 = if_else(int_overlaps(AvailableWindow, FirstMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(FirstMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(FirstMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(FirstMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(FirstMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month2 = if_else(int_overlaps(AvailableWindow, SecondMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(SecondMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(SecondMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(SecondMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(SecondMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month3 = if_else(int_overlaps(AvailableWindow, ThirdMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(ThirdMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(ThirdMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(ThirdMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(ThirdMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month4 = if_else(int_overlaps(AvailableWindow, FourthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(FourthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(FourthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(FourthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(FourthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month5 = if_else(int_overlaps(AvailableWindow, FifthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(FifthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(FifthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(FifthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(FifthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month6 = if_else(int_overlaps(AvailableWindow, SixthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(SixthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(SixthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(SixthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(SixthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month7 = if_else(int_overlaps(AvailableWindow, SeventhMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(SeventhMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(SeventhMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(SeventhMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(SeventhMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month8 = if_else(int_overlaps(AvailableWindow, EighthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(EighthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(EighthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(EighthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(EighthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month9 = if_else(int_overlaps(AvailableWindow, NinthMonth),
-                     (as.numeric(difftime(
-                       if_else(
-                         ymd(InventoryEndAdjust) <=  int_end(NinthMonth),
-                         as.POSIXct(InventoryEndAdjust),
-                         int_end(NinthMonth)
-                       ),
-                       if_else(
-                         ymd(InventoryStartAdjust) >= int_start(NinthMonth),
-                         as.POSIXct(InventoryStartAdjust),
-                         int_start(NinthMonth)
-                       ),
-                       units = "days"
-                     ))+1) * UnitCount, NULL
-    ),
-    Month10 = if_else(int_overlaps(AvailableWindow, TenthMonth),
-                      (as.numeric(difftime(
-                        if_else(
-                          ymd(InventoryEndAdjust) <=  int_end(TenthMonth),
-                          as.POSIXct(InventoryEndAdjust),
-                          int_end(TenthMonth)
-                        ),
-                        if_else(
-                          ymd(InventoryStartAdjust) >= int_start(TenthMonth),
-                          as.POSIXct(InventoryStartAdjust),
-                          int_start(TenthMonth)
-                        ),
-                        units = "days"
-                      ))+1) * UnitCount, NULL
-    ),
-    Month11 = if_else(int_overlaps(AvailableWindow, EleventhMonth),
-                      (as.numeric(difftime(
-                        if_else(
-                          ymd(InventoryEndAdjust) <=  int_end(EleventhMonth),
-                          as.POSIXct(InventoryEndAdjust),
-                          int_end(EleventhMonth)
-                        ),
-                        if_else(
-                          ymd(InventoryStartAdjust) >= int_start(EleventhMonth),
-                          as.POSIXct(InventoryStartAdjust),
-                          int_start(EleventhMonth)
-                        ),
-                        units = "days"
-                      ))+1) * UnitCount, NULL
-    ),
-    Month12 = if_else(int_overlaps(AvailableWindow, TwelfthMonth),
-                      (as.numeric(difftime(
-                        if_else(
-                          ymd(InventoryEndAdjust) <=  int_end(TwelfthMonth),
-                          as.POSIXct(InventoryEndAdjust),
-                          int_end(TwelfthMonth)
-                        ),
-                        if_else(
-                          ymd(InventoryStartAdjust) >= int_start(TwelfthMonth),
-                          as.POSIXct(InventoryStartAdjust),
-                          int_start(TwelfthMonth)
-                        ),
-                        units = "days"
-                      ))+1) * UnitCount, NULL
-    ) )
-
-b3calculatedpossunits <- now()
+    ReportPeriod = unit_capacity(ReportingPeriod),
+    Month1 = unit_capacity(FirstMonth),
+    Month2 = unit_capacity(SecondMonth),
+    Month3 = unit_capacity(ThirdMonth),
+    Month4 = unit_capacity(FourthMonth),
+    Month5 = unit_capacity(FifthMonth),
+    Month6 = unit_capacity(SixthMonth),
+    Month7 = unit_capacity(SeventhMonth),
+    Month8 = unit_capacity(EighthMonth),
+    Month9 = unit_capacity(NinthMonth),
+    Month10 = unit_capacity(TenthMonth),
+    Month11 = unit_capacity(EleventhMonth),
+    Month12 = unit_capacity(TwelfthMonth))
 
 UnitCapacity <- UnitCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
@@ -1074,7 +417,7 @@ UnitCapacity <- UnitCapacity %>%
     UC11 = sum(Month11, na.rm = TRUE),
     UC12 = sum(Month12, na.rm = TRUE)
   )
-b5summarisedpossunits <- now()
+
 # Unit Utilization --------------------------------------------------------
 
 UnitUtilization <- left_join(UnitCapacity,
@@ -1114,6 +457,3 @@ names(UnitUtilization) <-
     month.name[(month(ymd(int_start(TenthMonth))))],
     month.name[(month(ymd(int_start(EleventhMonth))))],
     month.name[(month(ymd(int_start(TwelfthMonth))))])
-b6end <- now()
-b6end - a1start
-# wondering about how to allow users to check for accuracy
