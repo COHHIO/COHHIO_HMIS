@@ -135,8 +135,8 @@ ClientUtilizers <- ClientUtilizers %>%
     Month11 = bed_nights_per_ee(ClientUtilizers, EleventhMonth),
     Month12 = bed_nights_per_ee(ClientUtilizers, TwelfthMonth)
   ) %>%
-  select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, ReportPeriod,
-         starts_with("Month"))
+  select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, 
+         ReportPeriod, starts_with("Month"))
 ClientUtilizers <- as.data.frame(ClientUtilizers)
 # making granularity by provider instead of by enrollment id
 BedNights <- ClientUtilizers %>%
