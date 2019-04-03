@@ -4,33 +4,55 @@ library(readxl)
 
 # Pulling in the CSVs -----------------------------------------------------
 
-Affiliation <- read_csv("data/Affiliation.csv")
-Client <- read_csv("data/Client.csv")
-Disabilities <- read_csv("data/Disabilities.csv",
-                         col_types = "cnnDnnnnnnnnnnTTnln") 
-EmploymentEducation <- read_csv("data/EmploymentEducation.csv",
-                                col_types = "cnnDnnnnnnTTnln") 
-Enrollment <- 
+Affiliation <- 
+  read_csv("data/Affiliation.csv", col_types = "nnnTTnTn")
+Client <-
+  read_csv("data/Client.csv",
+           col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+Disabilities <-
+  read_csv("data/Disabilities.csv",
+           col_types = "cnnDnnnnnnnnnnTTnTn")
+EmploymentEducation <-
+  read_csv("data/EmploymentEducation.csv",
+           col_types = "cnnDnnnnnnTTnTn")
+Enrollment <-
   read_csv("data/Enrollment.csv",
-           col_types = 
-             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnln")
-EnrollmentCoC <- read_csv("data/EnrollmentCoC.csv")
-Exit <- read_csv("data/Exit.csv",
-                 col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnln")
-Export <- read_csv("data/Export.csv")
-Funder <- read_csv("data/Funder.csv")
-Geography <- read_csv("data/Geography.csv")
-HealthAndDV <- read_csv("data/HealthAndDV.csv",
-                        col_types = "cnnDnnnnnnnDnTTnln")
+           col_types =
+             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+EnrollmentCoC <- 
+  read_csv("data/EnrollmentCoC.csv", 
+           col_types = "cncnnDcnTTnTn")
+Exit <-
+  read_csv("data/Exit.csv",
+           col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
+Export <- 
+  read_csv("data/Export.csv",
+           col_types = "nnnccccncTDDccnnn")
+Funder <- 
+  read_csv("data/Funder.csv",
+           col_types = "nnncDDTTnTn")
+Geography <- 
+  read_csv("data/Geography.csv",
+           col_types = "nncDnnccccnTTnTn")
+HealthAndDV <-
+  read_csv("data/HealthAndDV.csv",
+           col_types = "cnnDnnnnnnnDnTTnTn")
 IncomeBenefits <- 
   read_csv("data/IncomeBenefits.csv",
            col_types = 
-             "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnln")
-Inventory <- read_csv("data/Inventory.csv")
-Organization <- read_csv("data/Organization.csv")
-Project <- read_csv("data/Project.csv")
-ProjectCoC <- read_csv("data/ProjectCoC.csv")
-Services <- read_csv("data/Services.csv", col_types = "cnnDnncnnnTTnln")
+             "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
+Inventory <- 
+  read_csv("data/Inventory.csv",
+           col_types = "nncnnnnnnnnDDnTTDnTn")
+Organization <- 
+  read_csv("data/Organization.csv",
+           col_types = "")
+Project <- 
+  read_csv("data/Project.csv")
+ProjectCoC <- 
+  read_csv("data/ProjectCoC.csv")
+Services <- 
+  read_csv("data/Services.csv", col_types = "cnnDnncnnnTTnTn")
 
 # --- All other data comes ART > Ohio BoS > COHHIO Only > RMisc ---
 
@@ -58,6 +80,30 @@ providerextras <- read_xlsx("data/RMisc.xlsx",
 Project <- Project %>% select(-ProjectName, -ProjectCommonName) %>%
   left_join(., providerextras, by = "ProjectID")
 rm(providerextras)
+
+
+# Custom Veteran Data -----------------------------------------------------
+VeteranCE <- read_xlsx("data/RMisc.xlsx",
+                         sheet = 6,
+                         range = cell_cols("A:J"))
+VeteranCE <- 
+  mutate(
+    VeteranCE,
+    DateVeteranIdentified = as.Date(DateVeteranIdentified, origin = "1899-12-30"),
+    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30")
+  )
+
+# Offers of Housing -------------------------------------------------------
+Offers <- read_xlsx("data/RMisc.xlsx",
+                    sheet = 7,
+                    range = cell_cols("A:G"))
+Offers <- 
+  mutate(
+    Offers,
+    DateAdded = as.Date(DateAdded, origin = "1899-12-30"),
+    OfferDate = as.Date(OfferDate, origin = "1899-12-30"),
+    AcceptDeclineDate = as.Date(AcceptDeclineDate, origin = "1899-12-30")
+  )
 
 # User Contact Info from ART ----------------------------------------------
 Users <- read_xlsx("data/RMisc.xlsx",
