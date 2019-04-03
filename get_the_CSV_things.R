@@ -5,7 +5,8 @@ library(readxl)
 # Pulling in the CSVs -----------------------------------------------------
 
 Affiliation <- 
-  read_csv("data/Affiliation.csv", col_types = "nnnTTnTn")
+  read_csv("data/Affiliation.csv", 
+           col_types = "nnnTTnTn")
 Client <-
   read_csv("data/Client.csv",
            col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
@@ -46,13 +47,16 @@ Inventory <-
            col_types = "nncnnnnnnnnDDnTTDnTn")
 Organization <- 
   read_csv("data/Organization.csv",
-           col_types = "")
+           col_types = "nccTTnTn")
 Project <- 
-  read_csv("data/Project.csv")
+  read_csv("data/Project.csv",
+           col_types = "nnccDDnnnnnnnnTTnTn")
 ProjectCoC <- 
-  read_csv("data/ProjectCoC.csv")
+  read_csv("data/ProjectCoC.csv",
+           col_types = "nncTTnTn")
 Services <- 
-  read_csv("data/Services.csv", col_types = "cnnDnncnnnTTnTn")
+  read_csv("data/Services.csv", 
+           col_types = "cnnDnncnnnTTnTn")
 
 # --- All other data comes ART > Ohio BoS > COHHIO Only > RMisc ---
 
@@ -115,7 +119,9 @@ Client <- Client %>%
   mutate(FirstName = case_when(
     NameDataQuality %in% c(8,9) ~ "DKR",
     NameDataQuality == 2 ~ "Partial",
-    NameDataQuality == 99 | is.na(NameDataQuality) | FirstName == 0 ~ "Missing",
+    NameDataQuality == 99 | 
+      is.na(NameDataQuality) | 
+      FirstName == "Anonymous" ~ "Missing",
     !(NameDataQuality %in% c(2, 8, 9, 99) | 
         is.na(NameDataQuality) | 
         FirstName == "Anonymous") ~ "ok"),
@@ -125,11 +131,9 @@ Client <- Client %>%
     SSN = case_when(
     is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
     SSNDataQuality %in% c(8, 9) ~ "DKR",
-    ifelse((
-      substr(SSN, 1, 1) != "0" &
-        substr(SSN, 1, 2) != "00"
-    ),
-    nchar(as.numeric(SSN)) != 9, FALSE) |
+    ifelse((substr(SSN, 1, 1) != "0" &
+              substr(SSN, 1, 2) != "00"),
+           nchar(as.numeric(SSN)) != 9, FALSE) |
       substr(SSN, 1, 3) %in% c("000", "666") |
       substr(SSN, 1, 1) == 9 |
       substr(SSN, 4, 5) == "00" |
@@ -144,8 +148,9 @@ Client <- Client %>%
         666666666,
         777777777,
         888888888,
-        123456789) ~ "Invalid or Incomplete"
-  ))
+        123456789
+      ) ~ "Invalid or Incomplete"
+    ))
 
 Client <- Client %>%
   mutate(SSN = case_when(
@@ -154,7 +159,7 @@ Client <- Client %>%
   ))
 
 
-# Adding Exit Data to Enrollment ------------------------------------------
+# Adding Exit Data to Enrollment because c'mon ----------------------------
 smallExit <- Exit %>% select(EnrollmentID, ExitDate, Destination, OtherDestination)
 Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID")
 rm(smallExit)
