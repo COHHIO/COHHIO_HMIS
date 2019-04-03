@@ -5,6 +5,7 @@
 *.xml
 *.csv
 *.xls
+*.html
 data/
 QPR_Avg_SPDATs.html
 LSAErrors.html
