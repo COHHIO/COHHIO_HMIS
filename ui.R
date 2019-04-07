@@ -10,15 +10,29 @@ navbarPage(
     pickerInput(
       inputId = "providerList",
       choices = c(providerids$ProjectName),
-      options = list(`live-search` = TRUE)
+      options = list(`live-search` = TRUE),
+      width = "100%"
     ),
     verbatimTextOutput("currentHHs"),
     verbatimTextOutput("currentClients"),
     verbatimTextOutput("currentUnits")
   ), 
-  navbarMenu("Prioritization",
+
+    navbarMenu("Prioritization",
+               
              tabPanel("Prioritization List"),
+             
              tabPanel("Contacts"),
-             tabPanel("For Download")),
-  tabPanel("Data Quality")
+             
+             tabPanel("Veteran Active List")),
+  
+  tabPanel("Data Quality"),
+  
+  tabPanel("CoC Competition"),
+  
+  navbarMenu("Performance and Outcomes",
+             
+             tabPanel("Bed and Unit Utilization"),
+             
+             tabPanel("Recurrence"))
   )
