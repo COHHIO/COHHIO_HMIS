@@ -1,29 +1,36 @@
 
-function(input, output) {
-  
-  # produce data
-  
-  # theData <-  reactive({
-  #   
-  #   input$d_startDate <- ReportStart
-  #   
-  # })
-
-  # Summary 
-  
-  output$summary  <-  renderText({
+function(input, output, session) {
+  observeEvent(c(input$providerList), {
     
-    paste0("this is the roughest of rough drafts you've ever seen.")
+    output$currentHHs <- renderPrint({
+      Enrollment %>%
+        left_join(., providerids, by = "ProjectID") %>%
+        filter(is.na(ExitDate) &
+                 ProjectName == input$providerList) %>%
+        group_by(HouseholdID) %>%
+        summarise(Total = n_distinct(HouseholdID)) %>%
+        ungroup() %>%
+        summarise(Households = sum(Total))
+    })
+    
+    output$currentClients <- renderPrint({
+      Enrollment %>%
+        left_join(., providerids, by = "ProjectID") %>%
+        filter(is.na(ExitDate) &
+                 ProjectName == input$providerList) %>%
+        group_by(PersonalID) %>%
+        summarise(Total = n_distinct(PersonalID)) %>%
+        ungroup() %>%
+        summarise(Clients = sum(Total))
+    })
+    
+    output$currentUnits <- renderPrint({
+      UnitCapacity %>%
+        filter(ProjectName == input$providerList) %>%
+        select(UnitCount)
+    })
+    
   })
   
-  # trend
-  
-  output$project  <-  renderDataTable({ 
-    
-    Project %>% filter(ymd(OperatingEndDate) > mdy(input$d_startdate) | is.na(OperatingEndDate))
-
-  })
-  
-
   
 }
