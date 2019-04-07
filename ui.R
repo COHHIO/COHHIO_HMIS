@@ -1,23 +1,24 @@
 
-fluidPage(
+
+navbarPage(
+  title = "R Minor",
+  position = "static-top",
+  collapsible = TRUE,
   
-  titlePanel("DRAFT"),
-  
-  sidebarLayout(
-    sidebarPanel(
-      dateInput(
-        inputId = "d_startdate",
-        label = "Report Start Date",
-        format = "mm/dd/yyyy",
-        value = mdy("1/1/2019")
-      )
+  tabPanel(
+    "Provider Dashboard",
+    pickerInput(
+      inputId = "providerList",
+      choices = c(providerids$ProjectName),
+      options = list(`live-search` = TRUE)
     ),
-    
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Summary", textOutput("summary")),
-        tabPanel("Project", dataTableOutput("project"))
-      )
-    )
+    verbatimTextOutput("currentHHs"),
+    verbatimTextOutput("currentClients"),
+    verbatimTextOutput("currentUnits")
+  ), 
+  navbarMenu("Prioritization",
+             tabPanel("Prioritization List"),
+             tabPanel("Contacts"),
+             tabPanel("For Download")),
+  tabPanel("Data Quality")
   )
-)
