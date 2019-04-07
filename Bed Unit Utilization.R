@@ -69,7 +69,7 @@ Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
    Inventory, Organization, Project, ProjectCoC, Scores, Services, 
-   SmallEnrollment, SmallInventory, SmallProject, Users)
+   SmallEnrollment, SmallInventory, SmallProject, Users, Offers, VeteranCE)
 # Client Utilization of Beds ----------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
@@ -457,3 +457,7 @@ names(UnitUtilization) <-
     month.name[(month(ymd(int_start(TenthMonth))))],
     month.name[(month(ymd(int_start(EleventhMonth))))],
     month.name[(month(ymd(int_start(TwelfthMonth))))])
+
+rm(bed_capacity, bed_nights_per_ee, unit_capacity)
+
+save.image("data/Utilization.RData")
