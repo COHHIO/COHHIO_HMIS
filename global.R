@@ -6,6 +6,8 @@ library(shinydashboard)
 
 load("data/COHHIOHMIS.Rdata")
 
+updatedate <- file.info("data/COHHIOHMIS.Rdata")$mtime
+
 providerids <- Project %>% 
   select(ProjectID, ProjectName, OrganizationName) %>%
   arrange(ProjectName)
@@ -56,7 +58,18 @@ UnitCapacity <- SmallInventory %>%
   summarise(UnitCount = sum(UnitCount)) %>%
   ungroup()
 
-
+BedCapacity <- SmallInventory %>%
+  select(ProjectID,
+         ProjectName,
+         ProjectType,
+         HouseholdType,
+         UnitInventory,
+         BedInventory,
+         InventoryStartDate,
+         InventoryEndDate) %>%
+  group_by(ProjectID, ProjectName, ProjectType) %>%
+  summarise(BedCount = sum(BedInventory)) %>%
+  ungroup()
 
 
 
