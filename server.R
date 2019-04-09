@@ -1,32 +1,37 @@
 
+
 function(input, output, session) {
   observeEvent(c(input$providerList), {
-    
     output$currentHHs <- renderInfoBox({
       infoBox(
         "Households",
         color = "aqua",
         icon = icon("users"),
-        width = 1,
-        Enrollment %>%
-          left_join(., providerids, by = "ProjectID") %>%
-          filter(is.na(ExitDate) &
-                   ProjectName == input$providerList) %>%
-          group_by(HouseholdID) %>%
-          summarise(Total = n_distinct(HouseholdID)) %>%
-          ungroup() %>%
-          summarise(Households = sum(Total))
+        Utilization %>%
+          filter(ProjectName == input$providerList) %>%
+          select(Households)
       )
     })
     
-    output$currentUnits <- renderValueBox({
-      valueBox(
-        UnitCapacity %>%
-          filter(ProjectName == input$providerList) %>%
-          select(UnitCount),
+    output$currentUnits <- renderInfoBox({
+      infoBox(
         "Unit Capacity",
         color = "aqua",
-        width = 1
+        icon = icon("building"),
+        Utilization %>%
+          filter(ProjectName == input$providerList) %>%
+          select(UnitCount)
+      )
+    })
+    
+    output$currentUnitUtilization <- renderInfoBox({
+      infoBox(
+        "Unit Utilization",
+        color = "aqua",
+        icon = icon("building"),
+        Utilization %>%
+          filter(ProjectName == input$providerList) %>%
+          select(UnitUtilization)
       )
     })
     
@@ -34,30 +39,34 @@ function(input, output, session) {
       infoBox(
         "Clients",
         color = "purple",
-        width = 1,
         icon = icon("user"),
-        Enrollment %>%
-          left_join(., providerids, by = "ProjectID") %>%
-          filter(is.na(ExitDate) &
-                   ProjectName == input$providerList) %>%
-          group_by(PersonalID) %>%
-          summarise(Total = n_distinct(PersonalID)) %>%
-          ungroup() %>%
-          summarise(Clients = sum(Total))
+        Utilization %>%
+          filter(ProjectName == input$providerList) %>%
+          select(Clients)
       )
     })
     
-    output$currentBeds <- renderValueBox({
-      valueBox(
-        BedCapacity %>%
-          filter(ProjectName == input$providerList) %>%
-          select(BedCount),
+    output$currentBeds <- renderInfoBox({
+      infoBox(
         "Bed Capacity",
         color = "purple",
-        width = 1
+        icon = icon("bed"),
+        Utilization %>%
+          filter(ProjectName == input$providerList) %>%
+          select(BedCount)
       )
     })
-    
+
+    output$currentBedUtilization <- renderInfoBox({
+      infoBox(
+        "Bed Utilization",
+        color = "purple",
+        icon = icon("bed"),
+        Utilization %>%
+          filter(ProjectName == input$providerList) %>%
+          select(BedUtilization)
+      )
+    })    
   })
   
   
