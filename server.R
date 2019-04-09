@@ -1,66 +1,122 @@
 
-
 function(input, output, session) {
   observeEvent(c(input$providerList), {
-    output$currentHHs <- renderInfoBox({
-      infoBox(
-        "Households",
-        color = "aqua",
-        icon = icon("users"),
-        Utilization %>%
-          filter(ProjectName == input$providerList) %>%
-          select(Households)
-      )
-    })
+    output$currentHHs <-
+      if (nrow(Utilization %>%
+               filter(
+                 ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9)
+               )) > 0)
+      {
+        renderInfoBox({
+          infoBox(
+            "Households",
+            color = "aqua",
+            icon = icon("users"),
+            Utilization %>%
+              filter(ProjectName == input$providerList) %>%
+              select(Households)
+          )
+        })
+      }
+    else{
+      
+    }
     
-    output$currentUnits <- renderInfoBox({
-      infoBox(
-        "Unit Capacity",
-        color = "aqua",
-        icon = icon("building"),
-        Utilization %>%
-          filter(ProjectName == input$providerList) %>%
-          select(UnitCount)
-      )
-    })
+    output$currentUnits <-
+      if (nrow(Utilization %>%
+               filter(
+                 ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9)
+               )) > 0)
+      {
+        renderInfoBox({
+          infoBox(
+            "Unit Capacity",
+            color = "aqua",
+            icon = icon("building"),
+            Utilization %>%
+              filter(ProjectName == input$providerList) %>%
+              select(UnitCount)
+          )
+        })
+      }
+    else{
+      
+    }
     
-    output$currentUnitUtilization <- renderInfoBox({
-      infoBox(
-        "Unit Utilization",
-        color = "aqua",
-        icon = icon("building"),
-        Utilization %>%
-          filter(ProjectName == input$providerList) %>%
-          select(UnitUtilization)
-      )
-    })
+    output$currentUnitUtilization <-
+      if (nrow(Utilization %>%
+               filter(
+                 ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9)
+               )) > 0)
+      {
+        renderInfoBox({
+          infoBox(
+            "Unit Utilization",
+            color = "aqua",
+            icon = icon("building"),
+            Utilization %>%
+              filter(ProjectName == input$providerList) %>%
+              select(UnitUtilization)
+          )
+        })
+      }
+    else{
+      
+    }
     
-    output$currentClients <- renderInfoBox({
-      infoBox(
-        "Clients",
-        color = "purple",
-        icon = icon("user"),
-        Utilization %>%
-          filter(ProjectName == input$providerList) %>%
-          select(Clients)
-      )
-    })
+    output$currentClients <-
+      if (nrow(Utilization %>%
+               filter(
+                 ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9)
+               )) > 0)
+      {
+        renderInfoBox({
+          infoBox(
+            "Clients",
+            color = "purple",
+            icon = icon("user"),
+            Utilization %>%
+              filter(ProjectName == input$providerList) %>%
+              select(Clients)
+          )
+        })
+      }
+    else{
+      
+    }
     
-    output$currentBeds <- renderInfoBox({
-      infoBox(
-        "Bed Capacity",
-        color = "purple",
-        icon = icon("bed"),
-        Utilization %>%
-          filter(ProjectName == input$providerList) %>%
-          select(BedCount)
-      )
-    })
+    output$currentBeds <-
+      if (nrow(Utilization %>%
+               filter(
+                 ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9)
+               )) > 0)
+      {
+        renderInfoBox({
+          infoBox(
+            "Bed Capacity",
+            color = "purple",
+            icon = icon("bed"),
+            Utilization %>%
+              filter(ProjectName == input$providerList) %>%
+              select(BedCount)
+          )
+        })
+      }
+    else{
+      
+    }
     
     output$currentBedUtilization <-
       if (nrow(Utilization %>%
-          filter(ProjectName == input$providerList &
-                 ProjectType %in% c(1, 2, 3, 8, 9))) > 0) {
+               filter(
+                 ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9)
+               )) > 0) {
         renderInfoBox({
           infoBox(
             "Bed Utilization",
