@@ -1,16 +1,13 @@
-
-
 dashboardPage(
   skin = "black",
-  dashboardHeader(
-    title = "R Minor"),
+  dashboardHeader(title = "R Minor"),
   dashboardSidebar(
     sidebarMenu(
       id = "sidebarmenuid",
+      menuItem("Provider Dashboard",
+               tabName = "providerDashboardTab"),
       menuItem(
-        "Provider Dashboard",
-        tabName = "providerDashboardTab"),
-      menuItem("Prioritization",
+        "Prioritization",
         menuSubItem("Prioritization List",
                     tabName = "prioritizationListTab"),
         menuSubItem("Contact",
@@ -22,7 +19,8 @@ dashboardPage(
                tabName = "dqTab"),
       menuItem("CoC Competition",
                tabName = "cocCompetitionTab"),
-      menuItem("Performance and Outcomes",
+      menuItem(
+        "Performance and Outcomes",
         menuSubItem("Bed and Unit Utilization",
                     tabName = "utilizationTab"),
         menuSubItem("Recurrence",
@@ -33,81 +31,36 @@ dashboardPage(
       "<br>&emsp;Last update:&emsp;",
       format(updatedate, "%m-%d-%Y %I:%M %p", tz = "US/Eastern")#,
       #      "<br>&emsp;Happy Valentine's Day!"
-    ))),
-  dashboardBody(tabItems(
-    tabItem(
+    ))
+  ),
+  dashboardBody(
+    tabItems(
+      tabItem(
         tabName = "providerDashboardTab",
-      fluidRow(
-      column(
-        width = 3,
-      pickerInput(
-        inputId = "providerList",
-        choices = c(providerids$ProjectName),
-        options = list(`live-search` = TRUE),
-        width = "100%"
+        pickerInput(
+          inputId = "providerList",
+          choices = c(providerids$ProjectName),
+          options = list(`live-search` = TRUE),
+          width = "100%"
+        ),
+        fluidRow(
+          box(infoBoxOutput("currentHHs"),
+              infoBoxOutput("currentUnits"),
+              infoBoxOutput("currentUnitUtilization"),
+              title = "Current Unit Utilization"),
+          box(infoBoxOutput("currentClients"),
+              infoBoxOutput("currentBeds"),
+              infoBoxOutput("currentBedUtilization"),
+              title = "Current Bed Utilization")
+        )
       ),
-      box(
-        title = "Current",
-        status = "primary",
-        solidHeader = TRUE,
-        infoBoxOutput("currentHHs"),
-        valueBoxOutput("currentUnits"),
-        infoBoxOutput("currentClients"),
-        valueBoxOutput("currentBeds")
-      )))
-    ), 
-    tabItem(
-      tabName = "prioritizationListTab"
-    ),
-    tabItem(
-      tabName = "contactTab"
-    ),
-    tabItem(
-      tabName = "vetActiveListTab"
-    ),
-    tabItem(
-      tabName = "dqTab"
-    ),
-    tabItem(
-      tabName = "cocCompetitionTab"
-    ),
-    tabItem(
-      tabName = "utilizationTab"
-    ),
-    tabItem(
-      tabName = "recurrenceTab"
+      tabItem(tabName = "prioritizationListTab"),
+      tabItem(tabName = "contactTab"),
+      tabItem(tabName = "vetActiveListTab"),
+      tabItem(tabName = "dqTab"),
+      tabItem(tabName = "cocCompetitionTab"),
+      tabItem(tabName = "utilizationTab"),
+      tabItem(tabName = "recurrenceTab")
     )
   )
-  )
-
-  # tabPanel(
-  #   "Provider Dashboard",
-  #   pickerInput(
-  #     inputId = "providerList",
-  #     choices = c(providerids$ProjectName),
-  #     options = list(`live-search` = TRUE),
-  #     width = "100%"
-  #   ),
-  #   infoBoxOutput("currentHHs"),
-  #   infoBoxOutput("currentClients"),
-  #   valueBoxOutput("currentUnits")
-  # ), 
-  # 
-  #   navbarMenu("Prioritization",
-  #              
-  #            tabPanel("Prioritization List"),
-  #            
-  #            tabPanel("Contacts"),
-  #            
-  #            tabPanel("Veteran Active List")),
-  # 
-  # tabPanel("Data Quality"),
-  # 
-  # tabPanel("CoC Competition"),
-  # 
-  # navbarMenu("Performance and Outcomes",
-  #            
-  #            tabPanel("Bed and Unit Utilization"),
-  #            
-  #            tabPanel("Recurrence"))
-  )
+)
