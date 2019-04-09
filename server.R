@@ -57,11 +57,10 @@ function(input, output, session) {
       )
     })
     
-    x <- Utilization %>%
-      filter(ProjectName == input$providerList)
-    
     output$currentBedUtilization <-
-      if (x$ProjectType %in% c(1, 2, 3, 8, 9)) {
+      if (nrow(Utilization %>%
+          filter(ProjectName == input$providerList &
+                 ProjectType %in% c(1, 2, 3, 8, 9))) > 0) {
         renderInfoBox({
           infoBox(
             "Bed Utilization",
