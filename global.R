@@ -3,25 +3,23 @@ library(shiny)
 library(shinyWidgets)
 library(lubridate)
 library(shinydashboard)
+library(scales)
 
 load("data/COHHIOHMIS.Rdata")
 
 updatedate <- file.info("data/COHHIOHMIS.Rdata")$mtime
 
-providerids <- Project %>% 
-  select(ProjectID, ProjectName, OrganizationName) %>%
-  arrange(ProjectName)
-
 # load("data/Utilization.Rdata")
 
 SmallProject <- Project %>%
-  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
+  filter(ProjectType %in% c(1, 2, 3, 8, 9, 13) &
            ymd(OperatingStartDate) <= today() &
            (is.na(OperatingEndDate) | OperatingEndDate >= today()) &
            is.na(Project$GrantType)) %>%
   select(ProjectID,
          ProjectName,
-         ProjectType)
+         ProjectType, 
+         OrganizationName)
 
 SmallInventory <- Inventory %>%
   filter((ymd(InventoryStartDate) <= today() &
@@ -43,10 +41,11 @@ SmallInventory <- Inventory %>%
 
 SmallInventory <- inner_join(SmallProject, SmallInventory, by = "ProjectID")
 
-UnitCapacity <- SmallInventory %>%
+Capacity <- SmallInventory %>%
   select(ProjectID,
          ProjectName,
          ProjectType,
+         OrganizationName,
          HouseholdType,
          UnitInventory,
          BedInventory,
@@ -54,24 +53,36 @@ UnitCapacity <- SmallInventory %>%
          InventoryEndDate) %>%
   mutate(UnitCount = if_else(HouseholdType == 3,
                              UnitInventory, BedInventory)) %>%
-  group_by(ProjectID, ProjectName, ProjectType) %>%
-  summarise(UnitCount = sum(UnitCount)) %>%
+  group_by(ProjectID, ProjectName, ProjectType, OrganizationName) %>%
+  summarise(UnitCount = sum(UnitCount),
+            BedCount = sum(BedInventory)) %>%
   ungroup()
 
-BedCapacity <- SmallInventory %>%
-  select(ProjectID,
-         ProjectName,
-         ProjectType,
-         HouseholdType,
-         UnitInventory,
-         BedInventory,
-         InventoryStartDate,
-         InventoryEndDate) %>%
-  group_by(ProjectID, ProjectName, ProjectType) %>%
-  summarise(BedCount = sum(BedInventory)) %>%
+providerids <- Capacity %>% 
+  select(ProjectID, ProjectName, OrganizationName) %>%
+  arrange(ProjectName)
+
+Clients <- Enrollment %>%
+  left_join(., providerids, by = "ProjectID") %>%
+  filter(is.na(ExitDate)) %>%
+  group_by(ProjectID, ProjectName) %>%
+  summarise(Clients = n_distinct(PersonalID)) %>%
   ungroup()
 
+Households <- Enrollment %>%
+  left_join(., providerids, by = "ProjectID") %>%
+  filter(is.na(ExitDate)) %>%
+  group_by(ProjectID, ProjectName) %>%
+  summarise(Households = n_distinct(HouseholdID)) %>%
+  ungroup()
 
-
-
+Utilization <-
+  left_join(Capacity, Clients,
+            by = c("ProjectID", "ProjectName")) %>%
+  left_join(., Households, 
+            by = c("ProjectID", "ProjectName")) %>%
+  filter(ProjectType %in% c(1, 2, 3, 8, 9)) %>%
+  mutate(BedUtilization = percent(Clients/BedCount),
+         UnitUtilization = percent(Households/UnitCount))
+rm(Households, Clients, Capacity)
 
