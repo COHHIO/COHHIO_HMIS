@@ -56,17 +56,26 @@ function(input, output, session) {
           select(BedCount)
       )
     })
-
-    output$currentBedUtilization <- renderInfoBox({
-      infoBox(
-        "Bed Utilization",
-        color = "purple",
-        icon = icon("bed"),
-        Utilization %>%
-          filter(ProjectName == input$providerList) %>%
-          select(BedUtilization)
-      )
-    })    
+    
+    x <- Utilization %>%
+      filter(ProjectName == input$providerList)
+    
+    output$currentBedUtilization <-
+      if (x$ProjectType %in% c(1, 2, 3, 8, 9)) {
+        renderInfoBox({
+          infoBox(
+            "Bed Utilization",
+            color = "purple",
+            icon = icon("bed"),
+            Utilization %>%
+              filter(ProjectName == input$providerList) %>%
+              select(BedUtilization)
+          )
+        })
+      }
+    else{
+      
+    }
   })
   
   
