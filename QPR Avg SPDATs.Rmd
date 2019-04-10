@@ -12,7 +12,7 @@ library(lubridate)
 library(janitor)
 library(gt)
 load("data/COHHIOHMIS.RData")
-rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, Organization, ProjectCoC, Services)
+rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, Offers, Organization, ProjectCoC, Services, VeteranCE)
 ```
 
 ## County Averages
