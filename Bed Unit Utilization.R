@@ -508,7 +508,7 @@ Capacity <- SmallInventory %>%
   ungroup()
 
 providerids <- Capacity %>% 
-  select(ProjectID, ProjectName, OrganizationName) %>%
+  select(ProjectID, ProjectName, OrganizationName, ProjectType) %>%
   arrange(ProjectName)
 
 Clients <- Enrollment %>%
