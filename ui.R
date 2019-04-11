@@ -30,7 +30,7 @@ dashboardPage(
     HTML(paste0(
       "<br>&emsp;Last update:&emsp;",
       format(updatedate, "%m-%d-%Y %I:%M %p", tz = "US/Eastern")#,
-      #      "<br>&emsp;Happy Valentine's Day!"
+      #      "<br>&emsp;Happy Passover and Easter and Spring Equinox!"
     ))
   ),
   dashboardBody(
@@ -44,16 +44,21 @@ dashboardPage(
           width = "100%"
         ),
         fluidRow(
-          box(infoBoxOutput("currentHHs"),
-              infoBoxOutput("currentUnits"),
-              infoBoxOutput("currentUnitUtilization"),
-              title = "Current Unit Utilization"),
-          box(infoBoxOutput("currentClients"),
-              infoBoxOutput("currentBeds"),
-              infoBoxOutput("currentBedUtilization"),
-              title = "Current Bed Utilization")
+          box(
+            infoBoxOutput("currentHHs"),
+            infoBoxOutput("currentUnits"),
+            infoBoxOutput("currentUnitUtilization"),
+            title = "Current Unit Utilization"
+          ),
+          box(
+            infoBoxOutput("currentClients"),
+            infoBoxOutput("currentBeds"),
+            infoBoxOutput("currentBedUtilization"),
+            title = "Current Bed Utilization"
+          )
         )
       ),
+      
       tabItem(tabName = "prioritizationListTab"),
       tabItem(tabName = "contactTab"),
       tabItem(tabName = "vetActiveListTab"),
