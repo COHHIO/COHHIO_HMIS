@@ -5,7 +5,8 @@ library(lubridate)
 library(shinydashboard)
 library(scales)
 
-updatedate <- file.info("data/COHHIOHMIS.Rdata")$mtime
+updatedate <- file.info("data/COHHIOHMIS.RData")$mtime
 
-load("data/Utilization.Rdata")
+load("data/Utilization.RData")
 
+load("data/QPR_SPDATs.RData")
