@@ -9,4 +9,3 @@ updatedate <- file.info("data/COHHIOHMIS.Rdata")$mtime
 
 load("data/Utilization.Rdata")
 
-RRHProject <- providerids$ProjectType == 13
