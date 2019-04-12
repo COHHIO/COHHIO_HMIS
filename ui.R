@@ -43,18 +43,20 @@ dashboardPage(
           options = list(`live-search` = TRUE),
           width = "100%"
         ),
-        fluidRow(
-          box(
+        tabBox(
+          title = "Utilization",
+          height = "200px",
+          tabPanel(
+            title = "Unit",
             infoBoxOutput("currentHHs"),
             infoBoxOutput("currentUnits"),
-            infoBoxOutput("currentUnitUtilization"),
-            title = "Current Unit Utilization"
+            infoBoxOutput("currentUnitUtilization")
           ),
-          box(
+          tabPanel(
+            title = "Bed",
             infoBoxOutput("currentClients"),
             infoBoxOutput("currentBeds"),
-            infoBoxOutput("currentBedUtilization"),
-            title = "Current Bed Utilization"
+            infoBoxOutput("currentBedUtilization")
           )
         )
       ),
