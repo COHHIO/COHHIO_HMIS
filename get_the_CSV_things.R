@@ -74,7 +74,7 @@ bowmanentryexits <- read_xlsx("data/RMisc.xlsx",
                           sheet = 3,
                           range = cell_cols("A:D"))
 Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID") %>%
-  left_join(., counties, by = "EnrollmentID")
+  left_join(., counties, by = "EnrollmentID") 
 rm(bowmanentryexits, counties)
 
 # grabbing extra provider data from sheet 5 -------------------------------
@@ -161,7 +161,8 @@ Client <- Client %>%
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------
 smallExit <- Exit %>% select(EnrollmentID, ExitDate, Destination, OtherDestination)
-Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID")
+Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID") %>%
+  mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
 rm(smallExit)
 
 # Age Function ------------------------------------------------------------
