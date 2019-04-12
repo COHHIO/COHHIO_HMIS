@@ -49,9 +49,7 @@ SPDATsByCounty <-
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
     RelationshipToHoH == 1 & 
-    operating_between(smallEnrollment, ReportStart, ReportEnd) &
-    served_between(smallEnrollment, ReportStart, ReportEnd) & 
-    (ymd(StartDate) <= ymd(EntryDate)) & 
+    ymd(StartDate) <= ymd(EntryDate) & 
     !CountyServed %in% c("Montgomery", 
                          "Cuyahoga", 
                          "Mahoning", 
