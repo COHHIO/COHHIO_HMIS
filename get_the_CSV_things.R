@@ -224,8 +224,14 @@ entered_between <- function(table, start, end){
 # Projects Operating Between Date Range Function -----------------------------------
 
 operating_between <- function(table, start, end) {
-  operating <- ymd(table$OperatingStartDate) <= mdy(end) &
-    (is.na(table$OperatingEndDate) | table$OperatingEndDate >= mdy(start))
+  operating <-  if_else(
+    is.na(table$OperatingStartDate) |
+      ymd(table$OperatingStartDate) > mdy(end) |
+      (!is.na(table$OperatingEndDate) &
+         ymd(table$OperatingEndDate) < mdy(start)),
+    FALSE,
+    TRUE
+  )
   operating
 }
 
