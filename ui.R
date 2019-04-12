@@ -43,23 +43,13 @@ dashboardPage(
           options = list(`live-search` = TRUE),
           width = "100%"
         ),
-        tabBox(
-          title = "Utilization",
-          height = "200px",
-          tabPanel(
-            title = "Unit",
-            infoBoxOutput("currentHHs"),
-            infoBoxOutput("currentUnits"),
-            infoBoxOutput("currentUnitUtilization")
-          ),
-          tabPanel(
-            title = "Bed",
-            infoBoxOutput("currentClients"),
-            infoBoxOutput("currentBeds"),
-            infoBoxOutput("currentBedUtilization")
-          )
-        )
-      ),
+        infoBoxOutput("currentHHs"),
+        infoBoxOutput("currentUnits"),
+        infoBoxOutput("currentUnitUtilization"),
+        infoBoxOutput("currentClients"),
+        infoBoxOutput("currentBeds"),
+        infoBoxOutput("currentBedUtilization")
+      ), 
       
       tabItem(tabName = "prioritizationListTab"),
       tabItem(tabName = "contactTab"),
