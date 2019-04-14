@@ -10,7 +10,7 @@ function(input, output, session) {
       {
         renderInfoBox({
           infoBox(
-            "Households",
+            "Current Households",
             color = "aqua",
             icon = icon("users"),
             Utilization %>%
@@ -54,7 +54,7 @@ function(input, output, session) {
       {
         renderInfoBox({
           infoBox(
-            "Unit Utilization",
+            "Current Unit Utilization",
             color = "aqua",
             icon = icon("building"),
             Utilization %>%
@@ -76,7 +76,7 @@ function(input, output, session) {
       {
         renderInfoBox({
           infoBox(
-            "Clients",
+            "Current Clients",
             color = "purple",
             icon = icon("user"),
             Utilization %>%
@@ -119,7 +119,7 @@ function(input, output, session) {
                )) > 0) {
         renderInfoBox({
           infoBox(
-            "Bed Utilization",
+            "Current Bed Utilization",
             color = "purple",
             icon = icon("bed"),
             Utilization %>%
@@ -131,6 +131,23 @@ function(input, output, session) {
     else{
       
     }
+  })
+  
+  observeEvent(
+    c(input$regionList),
+    {
+      output$SPDATScoresByCounty <-
+        renderDataTable(
+          Compare %>%
+            filter(RegionName == input$regionList) %>%
+            select(
+              "County Where Served" = CountyServed,
+              "Avg County Score" = AverageScore,
+              "# Households in County" = HHsLHinCounty,
+              "Housed Avg Score" = HousedAverageScore,
+              "# Households Housed in County" = HHsHousedInCounty
+            )
+        )
   })
   
   
