@@ -1,6 +1,6 @@
 dashboardPage(
   skin = "black",
-  dashboardHeader(title = "R Minor"),
+  dashboardHeader(title = "R minor"),
   dashboardSidebar(
     sidebarMenu(
       id = "sidebarmenuid",
@@ -23,8 +23,8 @@ dashboardPage(
         "Performance and Outcomes",
         menuSubItem("Bed and Unit Utilization",
                     tabName = "utilizationTab"),
-        menuSubItem("Recurrence",
-                    tabName = "recurrenceTab")
+        menuSubItem("Community Need (by County)",
+                    tabName = "spdatTab")
       )
     ),
     HTML(paste0(
@@ -57,7 +57,14 @@ dashboardPage(
       tabItem(tabName = "dqTab"),
       tabItem(tabName = "cocCompetitionTab"),
       tabItem(tabName = "utilizationTab"),
-      tabItem(tabName = "recurrenceTab")
+      tabItem(tabName = "spdatTab",
+              pickerInput(
+                inputId = "regionList",
+                choices = c(unique(Regions$RegionName)),
+                options = list(`live-search` = TRUE),
+                width = "50%"
+              ),
+              dataTableOutput("SPDATScoresByCounty"))
     )
   )
 )
