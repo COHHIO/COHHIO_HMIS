@@ -149,9 +149,10 @@ Compare <-
             CountyHousedAverageScores, 
             by = "CountyServed") %>%
   arrange(CountyServed) %>%
-  left_join(., Regions, by = c("CountyServed" = "County")) %>%
-  group_by(RegionName)
+  left_join(., Regions, by = c("CountyServed" = "County"))
+
 rm(CountyAverageScores, CountyHousedAverageScores)
+
 ggplot(Compare %>% filter(Region == 5), 
        aes(x = CountyServed, y = AverageScore)) + 
   geom_point(aes(x = CountyServed, y = AverageScore), size = 10, shape = 95) +
