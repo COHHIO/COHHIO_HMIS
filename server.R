@@ -133,22 +133,36 @@ function(input, output, session) {
     }
   })
   
-  observeEvent(
-    c(input$regionList),
-    {
-      output$SPDATScoresByCounty <-
-        renderDataTable(
-          Compare %>%
-            filter(RegionName == input$regionList) %>%
-            select(
-              "County Where Served" = CountyServed,
-              "Avg County Score" = AverageScore,
-              "# Households in County" = HHsLHinCounty,
-              "Housed Avg Score" = HousedAverageScore,
-              "# Households Housed in County" = HHsHousedInCounty
-            )
-        )
-  })
+  observeEvent(c(input$regionList, input$qpr_startdate, input$qpr_enddate),
+               {
+                 output$SPDATScoresByCounty <-
+                   renderPlot(
+                     ggplot(
+                       Compare %>% filter(RegionName == input$regionList),
+                       aes(x = CountyServed, y = AverageScore)
+                     ) +
+                       geom_point(
+                         aes(x = CountyServed, y = AverageScore),
+                         size = 10,
+                         shape = 95
+                       ) +
+                       theme(axis.text.x = element_text(size = 10)) +
+                       geom_point(
+                         aes(x = CountyServed, y = HousedAverageScore),
+                         size = 4,
+                         shape = 17
+                       ) +
+                       xlab(input$regionList)
+                   )
+                 
+               })
   
+  output$CountyScoresText <- 
+    renderText(hhsServedInCounty)
   
+  output$HHsServedScoresText <- 
+    renderText(hhsHousedInCounty)
+  
+  output$NoteToUsers <- 
+    renderText(noteToUsers)
 }
