@@ -57,14 +57,30 @@ dashboardPage(
       tabItem(tabName = "dqTab"),
       tabItem(tabName = "cocCompetitionTab"),
       tabItem(tabName = "utilizationTab"),
-      tabItem(tabName = "spdatTab",
-              pickerInput(
-                inputId = "regionList",
-                choices = c(unique(Regions$RegionName)),
-                options = list(`live-search` = TRUE),
-                width = "50%"
-              ),
-              dataTableOutput("SPDATScoresByCounty"))
-    )
+      tabItem(
+        tabName = "spdatTab",
+        pickerInput(
+          inputId = "regionList",
+          choices = c(unique(Regions$RegionName)),
+          options = list(`live-search` = TRUE),
+          width = "75%"
+        ),
+        dateInput(
+          inputId = "qpr_startdate",
+          label = "Report Start Date",
+          format = "mm/dd/yyyy",
+          value = mdy("1/1/2019")
+        ),
+        dateInput(
+          inputId = "qpr_enddate",
+          label = "Report End Date",
+          format = "mm/dd/yyyy",
+          value = mdy("12/31/2019"),
+          plotOutput("SPDATScoresByCounty"),
+          textOutput("CountyScoresText"),
+          textOutput("HHsServedScoresText"),
+          textOutput("NoteToUsers")
+        )
+      )
   )
 )
