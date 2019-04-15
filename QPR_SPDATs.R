@@ -25,15 +25,17 @@ smallEnrollment <- Enrollment %>%
 
 Entries <- smallEnrollment %>%
   filter(ProjectType %in% c(3, 9, 13))
+
 rm(Enrollment, Project)
-# The Heads of Households counted here were served and scored in a ES, TH, SH, 
-# or Outreach project during the reporting period and the County they were 
-# served in was in the Ohio Balance of State. If a Head of Household had a 
-# County outside the Balance of State or if that data was missing, they are not 
-# being counted. When there are multiple entries for the same client, this only 
-# counts the most recent entry. When there are multiple scores, this only counts 
-# the most recent score. There should not be more than 1 score on the same day, 
-# but if there are it is counting the highest score.
+
+hhsServedInCounty <- "The horizontal lines represent the average scores of Heads 
+of Household who were served in the County in a ES, TH, SH, or Outreach project 
+during the reporting period and who were scored. If a Head of Household was 
+served in a County outside the Balance of State or if that data was missing, 
+they are not being counted. When there are multiple project entries for the same 
+client, this only counts the most recent entry. When there are multiple scores, 
+this only counts the most recent score. There should not be more than 1 score on 
+the same day, but if there are it is counting the highest score."
 
 SPDATsByCounty <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
@@ -67,15 +69,19 @@ CountyAverageScores <- SPDATsByCounty %>%
   summarise(AverageScore = round(mean(Score), 1), 
             HHsLHinCounty = n())
 
-# The following table counts each Entry into a PH project in a County during the 
-# reporting period for Heads of Household only. It is very important that your 
-# Duplicate Entry Exits and your Household Data Quality tabs are totally clear 
-# for this report to be accurate. It is also important that your VI-SPDAT scores 
-# are ON THE HEAD OF HOUSEHOLD'S RECORD. Any scores recorded on non-HoHs will 
-# not be counted here. Any Heads of Household who entered your RRH or PSH 
-# project without a score will be counted as having a score of 0. Also if a HoH 
-# is missing their County data or they were served in a County outside the Ohio 
-# Balance of State, they will also not show here.
+hhsHousedInCounty <- "The triangle represents the average score of each 
+household entering into a permanent housing project in a County during the 
+reporting period. This will necessarily leave out households coming from 
+Domestic Violence shelters since they are not scored. Any Heads of Household 
+who entered a permanent housing project without a score will be counted as 
+having a score of 0."
+
+noteToUsers <- "It is very important that your Duplicate Entry Exits and your 
+Household Data Quality tabs are totally clear for this report to be accurate. 
+It is also important that your VI-SPDAT scores are ON THE HEAD OF HOUSEHOLD'S 
+RECORD. Any scores recorded on non-HoHs will not be counted here.  Also if a 
+HoH is missing their County data or they were served in a County outside the 
+Ohio Balance of State, they will also not show here."
 
 SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
@@ -153,14 +159,14 @@ Compare <-
 
 rm(CountyAverageScores, CountyHousedAverageScores)
 
-ggplot(Compare %>% filter(Region == 5), 
-       aes(x = CountyServed, y = AverageScore)) + 
-  geom_point(aes(x = CountyServed, y = AverageScore), size = 10, shape = 95) +
-  theme(axis.text.x = element_text(size = 10)) +
-  geom_point(aes(x = CountyServed, y = HousedAverageScore), 
-             size = 4, 
-             shape = 17) +
-  xlab(Compare$RegionName)
+# spdatPlot <- ggplot(Compare, 
+#        aes(x = CountyServed, y = AverageScore)) + 
+#   geom_point(aes(x = CountyServed, y = AverageScore), size = 10, shape = 95) +
+#   theme(axis.text.x = element_text(size = 10)) +
+#   geom_point(aes(x = CountyServed, y = HousedAverageScore), 
+#              size = 4, 
+#              shape = 17) +
+#   xlab(Compare$RegionName)
 
 rm(EighthMonth, EleventhMonth, FifthMonth, FirstMonth, FourthMonth, NinthMonth,
    ReportEnd, ReportingPeriod, ReportStart, SecondMonth, SeventhMonth, SixthMonth,
