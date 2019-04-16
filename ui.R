@@ -49,7 +49,7 @@ dashboardPage(
         infoBoxOutput("currentClients"),
         infoBoxOutput("currentBeds"),
         infoBoxOutput("currentBedUtilization")
-      ), 
+      ),
       
       tabItem(tabName = "prioritizationListTab"),
       tabItem(tabName = "contactTab"),
@@ -75,12 +75,13 @@ dashboardPage(
           inputId = "qpr_enddate",
           label = "Report End Date",
           format = "mm/dd/yyyy",
-          value = mdy("12/31/2019"),
-          plotOutput("SPDATScoresByCounty"),
-          textOutput("CountyScoresText"),
-          textOutput("HHsServedScoresText"),
-          textOutput("NoteToUsers")
-        )
+          value = mdy("12/31/2019")
+        ),
+        plotOutput("SPDATScoresByCounty"),
+        textOutput("CountyScoresText"),
+        textOutput("HHsServedScoresText"),
+        textOutput("NoteToUsers")
       )
+    )
   )
 )
