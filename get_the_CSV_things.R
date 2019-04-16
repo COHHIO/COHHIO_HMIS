@@ -237,8 +237,8 @@ operating_between <- function(table, start, end) {
 
 # ReportDate prompts ------------------------------------------------------
 
-ReportStart <- "04012018"
-ReportEnd <- "03312019"
+ReportStart <- "10012017"
+ReportEnd <- "09302018"
 ReportingPeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
 
 # Adding Month Intervals --------------------------------------------------
