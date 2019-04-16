@@ -12,7 +12,7 @@ SmallProject <- Project %>%
   select(ProjectID,
          ProjectName,
          ProjectType) %>%
-  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
+  filter(ProjectType %in% c(1, 2, 3, 8, 9, 13) &
            operating_between(Project, ReportStart, ReportEnd) &
            is.na(Project$GrantType))
 
@@ -78,7 +78,7 @@ ClientUtilizers <- Utilizers %>%
   mutate(EntryAdjust = case_when(
            ProjectType %in% c(1, 2, 8) ~ EntryDate,
            ProjectType %in% c(3, 9, 13) ~ MoveInDate),
-         ExitAdjust = if_else(is.na(ExitDate), mdy(ReportEnd), ymd(ExitDate)),
+         ExitAdjust = if_else(is.na(ExitDate), today(), ymd(ExitDate)),
          ExitDate = NULL,
          StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
            ) %>%
