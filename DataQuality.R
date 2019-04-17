@@ -17,7 +17,7 @@ missingClient <- Client %>%
       Ethnicity == 99 |
       Gender == 99 |
       VeteranStatus == 99
-  ) # needs more logic (adult/child)
+  ) 
 
 missingEnrollment <- Enrollment %>%
   filter(
