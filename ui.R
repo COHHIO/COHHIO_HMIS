@@ -65,17 +65,12 @@ dashboardPage(
           options = list(`live-search` = TRUE),
           width = "75%"
         ),
-        dateInput(
-          inputId = "qpr_startdate",
-          label = "Report Start Date",
+        dateRangeInput(
+          inputId = "qpr_daterange",
+          label = NULL,
           format = "mm/dd/yyyy",
-          value = mdy("1/1/2019")
-        ),
-        dateInput(
-          inputId = "qpr_enddate",
-          label = "Report End Date",
-          format = "mm/dd/yyyy",
-          value = mdy("12/31/2019")
+          start = mdy("1/1/2019"),
+          end = mdy("12/31/2019")
         ),
         plotOutput("SPDATScoresByCounty"),
         textOutput("CountyScoresText"),
