@@ -133,7 +133,7 @@ function(input, output, session) {
     }
   })
   
-  observeEvent(c(input$regionList, input$qpr_startdate, input$qpr_enddate),
+  observeEvent(c(input$regionList, input$qpr_daterange),
                {
                  output$SPDATScoresByCounty <-
                    renderPlot(
