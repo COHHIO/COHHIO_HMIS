@@ -235,6 +235,20 @@ operating_between <- function(table, start, end) {
   operating
 }
 
+# Beds Available Between --------------------------------------------------
+
+beds_available_between <- function(table, start, end) {
+  available <-  if_else(
+    is.na(table$InventoryStartDate) |
+      ymd(table$InventoryStartDate) > mdy(end) |
+      (!is.na(table$InventoryEndDate) &
+         ymd(table$InventoryEndDate) < mdy(start)),
+    FALSE,
+    TRUE
+  )
+  available
+}
+
 # ReportDate prompts ------------------------------------------------------
 
 ReportStart <- "10012017"
