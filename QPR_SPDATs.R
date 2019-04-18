@@ -37,7 +37,7 @@ client, this only counts the most recent entry. When there are multiple scores,
 this only counts the most recent score. There should not be more than 1 score on 
 the same day, but if there are it is counting the highest score."
 
-SPDATsByCounty <-
+CountyData <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
@@ -60,9 +60,14 @@ SPDATsByCounty <-
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>% # highest score
   filter(Score == MaxScore) %>%
-  select(CountyServed, PersonalID, Score) %>%
-  distinct() %>%
   ungroup()
+
+# you might have to leave things here so the data can be filtered by date 
+# in the app, moving the following smushings into the app.
+
+SPDATsByCounty <- CountyData %>%
+  select(CountyServed, PersonalID, Score) %>%
+  distinct()
 
 CountyAverageScores <- SPDATsByCounty %>%
   group_by(CountyServed) %>%
