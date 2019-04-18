@@ -63,14 +63,24 @@ dashboardPage(
           inputId = "regionList",
           choices = c(unique(Regions$RegionName)),
           options = list(`live-search` = TRUE),
-          width = "75%"
+          width = "60%"
         ),
-        dateRangeInput(
-          inputId = "qpr_daterange",
-          label = NULL,
-          format = "mm/dd/yyyy",
-          start = mdy("1/1/2019"),
-          end = mdy("12/31/2019")
+        dateRangeInput("inDateRange", "Input date range"),
+        sliderInput(
+          "y",
+          "",
+          year(today()) - 2,
+          year(today()),
+          year(today()),
+          sep = "",
+          ticks = FALSE
+        ),
+        sliderInput(
+          "q", "", 1, 4,
+          if_else(quarter(today()) - 1 == 0, 1,
+                  quarter(today()) - 1),
+          ticks = FALSE,
+          pre = "Q"
         ),
         plotOutput("SPDATScoresByCounty"),
         textOutput("CountyScoresText"),
