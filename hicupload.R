@@ -65,6 +65,8 @@ write_csv(geography, "data/hudcsvoneday/Geography.csv",
           na = "",  
           quote_escape = "backslash")
 
+rm(addresses)
+
 # Funder file -------------------------------------------------------------
 funder <- read_csv("data/hudcsvoneday/Funder.csv") %>%
   mutate(StartDate = format.Date(StartDate, "%Y-%m-%d"),
@@ -75,7 +77,5 @@ funder <- read_csv("data/hudcsvoneday/Funder.csv") %>%
 write_csv(funder, "data/hudcsvoneday/Funder.csv", 
           na = "",  
           quote_escape = "backslash")
-
-
 
 
