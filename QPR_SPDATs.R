@@ -60,7 +60,9 @@ CountyData <-
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>% # highest score
   filter(Score == MaxScore) %>%
-  ungroup()
+  ungroup() %>%
+  select(PersonalID, CountyServed, Score, EntryDate, ExitDate) %>%
+  mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
 
 # you might have to leave things here so the data can be filtered by date 
 # in the app, moving the following smushings into the app.
