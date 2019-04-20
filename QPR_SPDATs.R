@@ -53,6 +53,7 @@ CountyData <-
                            "Franklin",
                            "--Outside of Ohio--") &
       !is.na(CountyServed)) %>%
+  select(EnrollmentID, PersonalID, ProjectID, EntryDate, ExitDate, CountyServed, StartDate, Score) %>%
   group_by(PersonalID) %>%
   mutate(MaxEntry = max(ymd(EntryDate))) %>% # most recent EE
   filter(ymd(MaxEntry) == ymd(EntryDate)) %>%  
@@ -61,17 +62,17 @@ CountyData <-
   mutate(MaxScore = max(Score)) %>% # highest score
   filter(Score == MaxScore) %>%
   ungroup() %>%
-  select(PersonalID, CountyServed, Score, EntryDate, ExitDate) %>%
-  mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
+  select(PersonalID, CountyServed, Score, EntryDate, ExitDate) 
 
 # you might have to leave things here so the data can be filtered by date 
 # in the app, moving the following smushings into the app.
 
-SPDATsByCounty <- CountyData %>%
+ClientScoresInCounty <- CountyData %>%
+  filter(served_between(CountyData, ReportStart, ReportEnd)) %>%
   select(CountyServed, PersonalID, Score) %>%
   distinct()
 
-CountyAverageScores <- SPDATsByCounty %>%
+CountyAverageScores <- ClientScoresInCounty %>%
   group_by(CountyServed) %>%
   summarise(AverageScore = round(mean(Score), 1), 
             HHsLHinCounty = n())
@@ -123,13 +124,17 @@ SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
   mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score)) %>%
   filter(!is.na(ScoreAdjusted))
 
+# Also send these smushings over to the app as they're using Report Date Range
+
 ProviderAverages <- SPDATsByProject %>%
+  filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
   select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
   group_by(ProjectName) %>%
   summarise(AverageScore = round(mean(ScoreAdjusted), 1),
             EnrollmentCount = n())
 
 CountyHousedAverageScores <- SPDATsByProject %>%
+  filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
   group_by(CountyServed) %>%
   summarise(HousedAverageScore = round(mean(ScoreAdjusted), 1),
             HHsHousedInCounty = n())
@@ -138,8 +143,10 @@ CountyHousedAverageScores <- SPDATsByProject %>%
 # valid or the correct client is marked as the Head of Household.
 
 SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
-  filter(RelationshipToHoH != 1 & !is.na(Score)) %>%
-  select(ProjectName, PersonalID, EntryDate, Score) %>%
+  filter(RelationshipToHoH != 1 & 
+           !is.na(Score) & 
+           served_between(., ReportStart, ReportEnd)) %>%
+  select(ProjectName, PersonalID, EntryDate, ExitDate, Score) %>%
   arrange(ProjectName)
 
 rm(Entries, Scores, smallEnrollment)
