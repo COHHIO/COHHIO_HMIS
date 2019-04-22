@@ -64,6 +64,8 @@ CountyData <-
   ungroup() %>%
   select(PersonalID, CountyServed, Score, EntryDate, ExitDate) 
 
+ReportStart <- "01012019"
+ReportEnd <- "03312019"
 # you might have to leave things here so the data can be filtered by date 
 # in the app, moving the following smushings into the app.
 
@@ -171,7 +173,27 @@ Compare <-
   arrange(CountyServed) %>%
   left_join(., Regions, by = c("CountyServed" = "County"))
 
-rm(CountyAverageScores, CountyHousedAverageScores)
+mapdata <- Compare %>%
+  mutate(
+    Difference = HousedAverageScore - AverageScore,
+    COUNTY_CD = toupper(case_when(
+      !CountyServed %in% c("Morrow", "Morgan") ~ substr(CountyServed, 1, 3),
+      CountyServed == "Morrow" ~ "MRW",
+      CountyServed == "Morgan" ~ "MRG"
+    ))
+  ) %>%
+  select(COUNTY_CD, Difference)
+
+oh507 <- read_shape("Ohio/OH_507/OH_507.shp")
+ohio <- read_shape("Ohio/ODOT_County_Boundaries.shp")
+
+# need to verify that the County names are correct. mapdata$COUNTY_CD vs ohio$COUNTY_CD
+
+save(mapdata, file = "data/mapdata.rda")
+tm_shape(ohio) +
+  tm_polygons("white") +
+  tm_shape(oh507) +
+  tm_polygons(lwd = 2, alpha = 0.2)
 
 # spdatPlot <- ggplot(Compare, 
 #        aes(x = CountyServed, y = AverageScore)) + 
@@ -182,7 +204,7 @@ rm(CountyAverageScores, CountyHousedAverageScores)
 #              shape = 17) +
 #   xlab(Compare$RegionName)
 
-rm(EighthMonth, EleventhMonth, FifthMonth, FirstMonth, FourthMonth, NinthMonth,
+rm(CountyAverageScores, CountyHousedAverageScores, EighthMonth, EleventhMonth, FifthMonth, FirstMonth, FourthMonth, NinthMonth,
    ReportEnd, ReportingPeriod, ReportStart, SecondMonth, SeventhMonth, SixthMonth,
    TenthMonth, ThirdMonth, TwelfthMonth)
 
