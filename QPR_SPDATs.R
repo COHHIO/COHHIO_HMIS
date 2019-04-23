@@ -174,22 +174,36 @@ Compare <-
   left_join(., Regions, by = c("CountyServed" = "County"))
 
 mapdata <- Compare %>%
-  mutate(
-    Difference = HousedAverageScore - AverageScore,
-    COUNTY_CD = toupper(case_when(
-      !CountyServed %in% c("Morrow", "Morgan") ~ substr(CountyServed, 1, 3),
-      CountyServed == "Morrow" ~ "MRW",
-      CountyServed == "Morgan" ~ "MRG"
-    ))
-  ) %>%
+  mutate(Difference = HousedAverageScore - AverageScore,
+         COUNTY_CD = toupper(
+           case_when(
+             !CountyServed %in% c(
+               "Morrow",
+               "Morgan",
+               "Ashland",
+               "Ashtabula",
+               "Champaign",
+               "Meigs",
+               "Monroe",
+               "Harrison"
+             ) ~ substr(CountyServed, 1, 3),
+             CountyServed == "Morrow" ~ "MRW",
+             CountyServed == "Morgan" ~ "MRG",
+             CountyServed == "Ashland" ~ "ASD",
+             CountyServed == "Ashtabula" ~ "ATB",
+             CountyServed == "Champaign" ~ "CHP",
+             CountyServed == "Meigs" ~ "MEG",
+             CountyServed == "Monroe" ~ "MOE",
+             CountyServed == "Harrison" ~ "HAS"
+           )
+         )) %>%
   select(COUNTY_CD, Difference)
 
+library(tmap)
+library(tmaptools)
 oh507 <- read_shape("Ohio/OH_507/OH_507.shp")
 ohio <- read_shape("Ohio/ODOT_County_Boundaries.shp")
 
-# need to verify that the County names are correct. mapdata$COUNTY_CD vs ohio$COUNTY_CD
-
-save(mapdata, file = "data/mapdata.rda")
 tm_shape(ohio) +
   tm_polygons("white") +
   tm_shape(oh507) +
