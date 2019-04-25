@@ -16,7 +16,8 @@ pit <- read_csv("data/hudcsvoneday/PIT2019.csv")
 project <- project %>% select(-PITCount) %>%
   left_join(., pit, by = "ProjectID") %>%
   select(1:13, 19, 14:18) %>%
-  mutate(ProjectName = if_else(is.na(ProjectCommonName), ProjectName, ProjectCommonName))
+  mutate(ProjectName = if_else(is.na(ProjectCommonName), ProjectName, ProjectCommonName),
+         PITCount = if_else(is.na(PITCount), 0, PITCount))
 
 rm(pit)
 
