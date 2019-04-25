@@ -9,6 +9,17 @@ project <- read_csv("data/hudcsvoneday/Project.csv") %>%
          DateUpdated = format.Date(DateUpdated, "%Y-%m-%d %T")) %>%
   filter(!is.na(ProjectType) & ProjectType %in% c(1:3, 8:11, 13))
 
+# Pulling in PIT data - this data comes from the 0630 and 0628 reports. i just had to 
+# force-by-Excel the data into these columns. ugly but effective.
+pit <- read_csv("data/hudcsvoneday/PIT2019.csv")
+
+project <- project %>% select(-PITCount) %>%
+  left_join(., pit, by = "ProjectID") %>%
+  select(1:13, 19, 14:18) %>%
+  mutate(ProjectName = if_else(is.na(ProjectCommonName), ProjectName, ProjectCommonName))
+
+rm(pit)
+
 write_csv(project, "data/hudcsvoneday/Project.csv", 
           na = "",  
           quote_escape = "backslash")
@@ -77,5 +88,7 @@ funder <- read_csv("data/hudcsvoneday/Funder.csv") %>%
 write_csv(funder, "data/hudcsvoneday/Funder.csv", 
           na = "",  
           quote_escape = "backslash")
+
+
 
 
