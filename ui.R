@@ -65,7 +65,7 @@ dashboardPage(
           options = list(`live-search` = TRUE),
           width = "60%"
         ),
-        dateRangeInput("inDateRange", "Input date range"),
+        dateRangeInput("inDateRange", "Input date range", format = "yyyy-mm-dd"),
         sliderInput(
           "y",
           "",
@@ -83,6 +83,7 @@ dashboardPage(
           pre = "Q"
         ),
         plotOutput("SPDATScoresByCounty"),
+        textOutput("qprDateRange"),
         textOutput("CountyScoresText"),
         textOutput("HHsServedScoresText"),
         textOutput("NoteToUsers")
