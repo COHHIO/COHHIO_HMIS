@@ -46,6 +46,7 @@ function(input, output, session) {
       
     }
     
+
     output$currentUnitUtilization <-
       if (nrow(Utilization %>%
                filter(
@@ -134,10 +135,10 @@ function(input, output, session) {
     }
   })
   output$ReportStart  <- renderText({
-    format(input$inDateRange[1])
+    ymd(input$inDateRange[1])
   })
   output$ReportEnd  <- renderText({
-    format(input$inDateRange[2])
+    ymd(input$inDateRange[2])
   })
   observeEvent(c(input$regionList, 
                  input$inDateRange,
@@ -158,28 +159,90 @@ function(input, output, session) {
         input$y
       ))
     )
-    
-    output$SPDATScoresByCounty <-
-      renderPlot(
-        ggplot(
-          Compare %>% filter(RegionName == input$regionList),
-          aes(x = CountyServed, y = AverageScore)
-        ) +
-          geom_point(
-            aes(x = CountyServed, y = AverageScore),
-            size = 10,
-            shape = 95
-          ) +
-          theme(axis.text.x = element_text(size = 10)) +
-          geom_point(
-            aes(x = CountyServed, y = HousedAverageScore),
-            size = 4,
-            shape = 17
-          ) +
-          xlab(input$regionList)
-      )
-  })
+  })    
   
+  reactiveA <- reactive(
+    ClientScoresInCounty <- CountyData %>%
+        filter(
+          served_between(CountyData, 
+                         ymd(input$inDateRange[1]), 
+                         ymd(input$inDateRange[2]))
+        ) %>%
+        select(CountyServed, PersonalID, Score) %>%
+        distinct()
+  )
+  
+  reactiveB <- reactive(
+    CountyAverageScores <- ClientScoresInCounty %>%
+        group_by(CountyServed) %>%
+        summarise(
+          AverageScore = round(mean(Score), 1),
+          HHsLHinCounty = n()
+        )
+  )
+  
+  reactiveC <- reactive(
+    ProviderAverages <- SPDATsByProject %>%
+        filter(
+          served_between(SPDATsByProject, 
+                         ymd(input$inDateRange[1]), 
+                         ymd(input$inDateRange[2]))
+        ) %>%
+        select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
+        group_by(ProjectName) %>%
+        summarise(
+          AverageScore = round(mean(ScoreAdjusted), 1),
+          EnrollmentCount = n()
+        )
+  )
+  
+  reactiveD <- reactive(quote({
+     CountyHousedAverageScores <- SPDATsByProject %>%
+        filter(
+          served_between(SPDATsByProject, 
+                         ymd(input$inDateRange[1]), 
+                         ymd(input$inDateRange[2]))
+        ) %>%
+        group_by(CountyServed) %>%
+        summarise(
+          HousedAverageScore = round(mean(ScoreAdjusted), 1),
+          HHsHousedInCounty = n())
+  }), quoted = TRUE)
+  
+  reactiveE <- reactive(
+    Compare <-
+        full_join(CountyAverageScores,
+                  CountyHousedAverageScores,
+                  by = "CountyServed") %>%
+        arrange(CountyServed) %>%
+        left_join(., Regions, by = c("CountyServed" = "County")) %>% 
+      filter(RegionName == input$regionList)
+  )
+  
+  output$SPDATScoresByCounty <- reactive(
+    renderPlot(
+       ggplot(
+        Compare,
+        aes(x = CountyServed, y = AverageScore)
+      ) +
+        geom_point(
+          aes(x = CountyServed, y = AverageScore),
+          size = 10,
+          shape = 95
+        ) +
+        theme(axis.text.x = element_text(size = 10)) +
+        geom_point(
+          aes(x = CountyServed, y = HousedAverageScore),
+          size = 4,
+          shape = 17
+        ) +
+        xlab(input$regionList)
+    ))
+  
+  output$qprDateRange <- renderText({
+    paste(ymd(input$inDateRange[1]), "to", ymd(input$inDateRange[2]))
+  })
+    
   output$CountyScoresText <-
     renderText(hhsServedInCounty)
   
