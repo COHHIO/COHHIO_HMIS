@@ -11,22 +11,20 @@ load("data/Utilization.RData")
 
 load("data/QPR_SPDATs.RData")
 
-ClientScoresInCounty <- CountyData %>%
+CountyAverageScores <- CountyData %>%
   filter(served_between(CountyData, ReportStart, ReportEnd)) %>%
   select(CountyServed, PersonalID, Score) %>%
-  distinct()
-
-CountyAverageScores <- ClientScoresInCounty %>%
+  distinct() %>%
   group_by(CountyServed) %>%
   summarise(AverageScore = round(mean(Score), 1), 
             HHsLHinCounty = n())
 
-ProviderAverages <- SPDATsByProject %>%
-  filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
-  select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
-  group_by(ProjectName) %>%
-  summarise(AverageScore = round(mean(ScoreAdjusted), 1),
-            EnrollmentCount = n())
+# ProviderAverages <- SPDATsByProject %>%
+#   filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
+#   select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
+#   group_by(ProjectName) %>%
+#   summarise(AverageScore = round(mean(ScoreAdjusted), 1),
+#             EnrollmentCount = n())
 
 CountyHousedAverageScores <- SPDATsByProject %>%
   filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
