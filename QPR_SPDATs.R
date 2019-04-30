@@ -1,12 +1,17 @@
+# this script uses the COHHIOHMIS data to compare the avg SPDAT score of
+# clients served in a county during the reporting period to the avg 
+# SPDAt score of those who enrolled into a PSH or RRH project during the 
+# reporting period.
+
 library(tidyverse)
 library(lubridate)
 library(janitor)
-
+# loading the COHHIOHMIS data, dropping unnecessary objects
 load("data/COHHIOHMIS.RData")
 rm(Affiliation, Client, EnrollmentCoC, EmploymentEducation, Export, Exit, 
    Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, 
    Offers, Organization, ProjectCoC, Services, VeteranCE)
-
+# more paring down, only taking what variables I need from Enrollment
 smallEnrollment <- Enrollment %>%
   left_join(Project, by = "ProjectID") %>%
   select(
@@ -22,7 +27,7 @@ smallEnrollment <- Enrollment %>%
     RelationshipToHoH,
     CountyServed
   )
-
+# Entries will give us all the times a hh has an Entry into a PH project
 Entries <- smallEnrollment %>%
   filter(ProjectType %in% c(3, 9, 13))
 
@@ -36,6 +41,10 @@ they are not being counted. When there are multiple project entries for the same
 client, this only counts the most recent entry. When there are multiple scores, 
 this only counts the most recent score. There should not be more than 1 score on 
 the same day, but if there are it is counting the highest score."
+
+# this object is used in the app to create the plot. it has date variables 
+# included so the numbers can be filtered by date range in the app. it takes
+# long to run.
 
 CountyData <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
@@ -64,21 +73,6 @@ CountyData <-
   ungroup() %>%
   select(PersonalID, CountyServed, Score, EntryDate, ExitDate) 
 
-# you might have to leave things here so the data can be filtered by date 
-# in the app, moving the following smushings into the app.
-
-## MOVED TO APP
-# ClientScoresInCounty <- CountyData %>%
-#   filter(served_between(CountyData, ReportStart, ReportEnd)) %>%
-#   select(CountyServed, PersonalID, Score) %>%
-#   distinct()
-# 
-# CountyAverageScores <- ClientScoresInCounty %>%
-#   group_by(CountyServed) %>%
-#   summarise(AverageScore = round(mean(Score), 1), 
-#             HHsLHinCounty = n())
-## - - - - - - - - - - - - 
-
 hhsHousedInCounty <- "The triangle represents the average score of each 
 household entering into a permanent housing project in a County during the 
 reporting period. This will necessarily leave out households coming from 
@@ -92,6 +86,8 @@ It is also important that your VI-SPDAT scores are ON THE HEAD OF HOUSEHOLD'S
 RECORD. Any scores recorded on non-HoHs will not be counted here.  Also if a 
 HoH is missing their County data or they were served in a County outside the 
 Ohio Balance of State, they will also not show here."
+
+# this pulls all entries into PSH or RRH
 
 SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
@@ -126,24 +122,6 @@ SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
   mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score)) %>%
   filter(!is.na(ScoreAdjusted))
 
-# Also send these smushings over to the app as they're using Report Date Range
-
-
-## MOVED TO APP
-# ProviderAverages <- SPDATsByProject %>%
-#   filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
-#   select(EnrollmentID, ProjectName, ScoreAdjusted) %>%
-#   group_by(ProjectName) %>%
-#   summarise(AverageScore = round(mean(ScoreAdjusted), 1),
-#             EnrollmentCount = n())
-# 
-# CountyHousedAverageScores <- SPDATsByProject %>%
-#   filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
-#   group_by(CountyServed) %>%
-#   summarise(HousedAverageScore = round(mean(ScoreAdjusted), 1),
-#             HHsHousedInCounty = n())
-##- - - - - - - - - - -
-
 # If you have clients here, you should either verify the scores saved here are 
 # valid or the correct client is marked as the Head of Household.
 
@@ -154,30 +132,9 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(ProjectName, PersonalID, EntryDate, ExitDate, Score) %>%
   arrange(ProjectName)
 
-rm(Entries, Scores, smallEnrollment)
-
-# Each county is represented based on whether they are serving higher than the 
-# average SPDAT score in their county.
-
-
-
-# The following compares the Average VI-SPDAT Score of those who have entered a 
-# project that would mean they are literally homeless within a County to the 
-# Average VI-SPDAT Score of those who have an Entry into a Permanent Housing 
-# project type (RRH or PSH).
-
-Regions <- read_csv("data/Regions.csv") %>%
-  mutate(RegionName = paste0("Homeless Planning Region ", Region))
-
-# Compare <- 
-#   full_join(CountyAverageScores, 
-#             CountyHousedAverageScores, 
-#             by = "CountyServed") %>%
-#   arrange(CountyServed) %>%
-#   left_join(., Regions, by = c("CountyServed" = "County"))
-
-rm(EighthMonth, EleventhMonth, FifthMonth, FirstMonth, FourthMonth, NinthMonth,
-   ReportEnd, ReportingPeriod, ReportStart, SecondMonth, SeventhMonth, SixthMonth,
-   TenthMonth, ThirdMonth, TwelfthMonth, Users)
+rm(Entries, Scores, smallEnrollment, EighthMonth, EleventhMonth, FifthMonth, 
+   FirstMonth, FourthMonth, NinthMonth, ReportEnd, ReportingPeriod, ReportStart, 
+   SecondMonth, SeventhMonth, SixthMonth, TenthMonth, ThirdMonth, TwelfthMonth, 
+   Users)
 
 save.image("data/QPR_SPDATs.RData")
