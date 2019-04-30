@@ -63,9 +63,9 @@ dashboardPage(
           inputId = "regionList",
           choices = c(unique(Regions$RegionName)),
           options = list(`live-search` = TRUE),
-          width = "60%"
+          width = "70%"
         ),
-        dateRangeInput("inDateRange", "Input date range", format = "yyyy-mm-dd"),
+        dateRangeInput("inDateRange", "Input date range", format = "mm-dd-yyyy"),
         sliderInput(
           "y",
           "",
