@@ -135,13 +135,11 @@ function(input, output, session) {
     }
   })
 
-  observeEvent(c(input$y, input$q), {
-    updateDateRangeInput(
-      session,
-      "inDateRange",
-      label = "",
-      start = mdy(paste0("01-01-", input$y)),
-      end = mdy(paste0(
+  output$SPDATScoresByCounty <- 
+    renderPlot({
+      ReportStart <- format.Date(mdy(paste0("01-01-", input$y)), "%m-%d-%Y")
+      
+      ReportEnd <- format.Date(mdy(paste0(
         case_when(
           input$q == 1 ~ "03-31-",
           input$q == 2 ~ "06-30",
@@ -149,30 +147,26 @@ function(input, output, session) {
           input$q == 4 ~ "12-31-"
         ),
         input$y
-      ))
-    )
-  })    
-  
-  output$SPDATScoresByCounty <- 
-    renderPlot({
+      )), "%m-%d-%Y")
+# counting all households who were scored AND SERVED between the report dates
       CountyAverageScores <- CountyData %>%
         filter(served_between(CountyData, 
-                              format.Date(input$inDateRange[1], "%m-%d-%Y"), 
-                              format.Date(input$inDateRange[2], "%m-%d-%Y"))) %>%
+                              ReportStart, 
+                              ReportEnd)) %>%
         select(CountyServed, PersonalID, Score) %>%
         distinct() %>%
         group_by(CountyServed) %>%
         summarise(AverageScore = round(mean(Score), 1),
                   HHsLHinCounty = n())
-      
+# counting all households who ENTERED either RRH or PSH between the report dates
       CountyHousedAverageScores <- SPDATsByProject %>%
-        filter(served_between(SPDATsByProject, 
-                              format.Date(input$inDateRange[1], "%m-%d-%Y"), 
-                              format.Date(input$inDateRange[2], "%m-%d-%Y"))) %>%
+        filter(entered_between(SPDATsByProject, 
+                              ReportStart, 
+                              ReportEnd)) %>%
         group_by(CountyServed) %>%
         summarise(HousedAverageScore = round(mean(ScoreAdjusted), 1),
                   HHsHousedInCounty = n())
-      
+# pulling in both averages for each county plus adding Region for grouping      
       Compare <-
         full_join(CountyAverageScores,
                   CountyHousedAverageScores,
@@ -180,7 +174,7 @@ function(input, output, session) {
         arrange(CountyServed) %>%
         left_join(., Regions, by = c("CountyServed" = "County")) %>%
         filter(RegionName == input$regionList)
-      
+# the plot      
       ggplot(
         Compare,
         aes(x = CountyServed, y = AverageScore)
@@ -196,17 +190,16 @@ function(input, output, session) {
           size = 4,
           shape = 17
         ) +
-        xlab(input$regionList)
+        xlab(input$regionList) +
+        ylab("Average SPDAT Score") +
+        ggtitle(paste("Date Range:", ReportStart, "to", ReportEnd)) + 
+        theme(plot.title = element_text(lineheight = 1, size = rel(1.8)),
+              axis.text.x = element_text(size = rel(1.8)),
+              axis.text.y = element_text(size = rel(1.8)),
+              axis.title = element_text(size = rel(1.8)),
+              plot.margin = margin(t = 15, r = 15, b = 15, l = 15))
     })
   
-  output$qprDateRange <- renderText({
-    paste(format.Date(input$inDateRange[1], "%m-%d-%Y"), "start",
-          format.Date(input$inDateRange[2], "%m-%d-%Y"), "end",
-          input$y, "year", 
-          input$q, "quarter", 
-          input$regionList, "region")
-  })
-    
   output$CountyScoresText <-
     renderText(hhsServedInCounty)
   
