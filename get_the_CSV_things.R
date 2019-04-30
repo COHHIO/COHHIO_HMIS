@@ -86,6 +86,10 @@ Project <- Project %>% select(-ProjectName, -ProjectCommonName) %>%
 rm(providerextras)
 
 
+# Region data -------------------------------------------------------------
+Regions <- read_csv("data/Regions.csv") %>%
+  mutate(RegionName = paste0("Homeless Planning Region ", Region))
+
 # Custom Veteran Data -----------------------------------------------------
 VeteranCE <- read_xlsx("data/RMisc.xlsx",
                          sheet = 6,
@@ -218,7 +222,7 @@ served_between <- function(table, start, end){
 }
 
 entered_between <- function(table, start, end){
-  entered <- between(ymd(table$EntryDate), start, end) 
+  entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
   entered
 }
 # Projects Operating Between Date Range Function -----------------------------------
