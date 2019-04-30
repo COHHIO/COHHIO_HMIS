@@ -134,37 +134,31 @@ function(input, output, session) {
       
     }
   })
-  output$ReportStart  <- renderText({
-    ymd(input$inDateRange[1])
-  })
-  output$ReportEnd  <- renderText({
-    ymd(input$inDateRange[2])
-  })
-  observeEvent(c(input$regionList, 
-                 input$inDateRange,
-                 input$y,
-                 input$q), {
+
+  observeEvent(c(input$y, input$q), {
     updateDateRangeInput(
       session,
       "inDateRange",
       label = "",
-      start = mdy(paste("01/01/", input$y)),
-      end = mdy(paste(
+      start = mdy(paste0("01-01-", input$y)),
+      end = mdy(paste0(
         case_when(
-          input$q == 1 ~ "03/31/",
-          input$q == 2 ~ "06/30/",
-          input$q == 3 ~ "09/30/",
-          input$q == 4 ~ "12/31/"
+          input$q == 1 ~ "03-31-",
+          input$q == 2 ~ "06-30",
+          input$q == 3 ~ "09-30-",
+          input$q == 4 ~ "12-31-"
         ),
         input$y
       ))
     )
   })    
   
-  output$SPDATScoresByCounty <- reactive(
+  output$SPDATScoresByCounty <- 
     renderPlot({
       CountyAverageScores <- CountyData %>%
-        filter(served_between(CountyData, ReportStart, ReportEnd)) %>%
+        filter(served_between(CountyData, 
+                              format.Date(input$inDateRange[1], "%m-%d-%Y"), 
+                              format.Date(input$inDateRange[2], "%m-%d-%Y"))) %>%
         select(CountyServed, PersonalID, Score) %>%
         distinct() %>%
         group_by(CountyServed) %>%
@@ -172,7 +166,9 @@ function(input, output, session) {
                   HHsLHinCounty = n())
       
       CountyHousedAverageScores <- SPDATsByProject %>%
-        filter(served_between(SPDATsByProject, ReportStart, ReportEnd)) %>%
+        filter(served_between(SPDATsByProject, 
+                              format.Date(input$inDateRange[1], "%m-%d-%Y"), 
+                              format.Date(input$inDateRange[2], "%m-%d-%Y"))) %>%
         group_by(CountyServed) %>%
         summarise(HousedAverageScore = round(mean(ScoreAdjusted), 1),
                   HHsHousedInCounty = n())
@@ -182,7 +178,8 @@ function(input, output, session) {
                   CountyHousedAverageScores,
                   by = "CountyServed") %>%
         arrange(CountyServed) %>%
-        left_join(., Regions, by = c("CountyServed" = "County"))
+        left_join(., Regions, by = c("CountyServed" = "County")) %>%
+        filter(RegionName == input$regionList)
       
       ggplot(
         Compare,
@@ -200,10 +197,14 @@ function(input, output, session) {
           shape = 17
         ) +
         xlab(input$regionList)
-    }))
+    })
   
   output$qprDateRange <- renderText({
-    paste(ymd(input$inDateRange[1]), "to", ymd(input$inDateRange[2]))
+    paste(format.Date(input$inDateRange[1], "%m-%d-%Y"), "start",
+          format.Date(input$inDateRange[2], "%m-%d-%Y"), "end",
+          input$y, "year", 
+          input$q, "quarter", 
+          input$regionList, "region")
   })
     
   output$CountyScoresText <-
