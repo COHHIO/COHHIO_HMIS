@@ -89,7 +89,9 @@ rm(providerextras)
 
 # Region data -------------------------------------------------------------
 Regions <- read_csv("data/Regions.csv") %>%
-  mutate(RegionName = paste0("Homeless Planning Region ", Region))
+  mutate(RegionName = paste0("Homeless Planning Region ", Region)) %>%
+  select(Region, County, RegionName) %>%
+  arrange(Region)
 
 # Custom Veteran Data -----------------------------------------------------
 VeteranCE <- read_xlsx("data/RMisc.xlsx",
