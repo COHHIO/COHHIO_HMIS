@@ -75,6 +75,7 @@ bowmanentryexits <- read_xlsx("data/RMisc.xlsx",
                           range = cell_cols("A:D"))
 Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID") %>%
   left_join(., counties, by = "EnrollmentID") 
+
 rm(bowmanentryexits, counties)
 
 # grabbing extra provider data from sheet 5 -------------------------------
@@ -117,51 +118,6 @@ Offers <-
 Users <- read_xlsx("data/RMisc.xlsx",
                    sheet = 4,
                    range = cell_cols("A:G"))
-
-# Masking PII in the Client file (but not DOB) ----------------------------
-Client <- Client %>%
-  mutate(FirstName = case_when(
-    NameDataQuality %in% c(8,9) ~ "DKR",
-    NameDataQuality == 2 ~ "Partial",
-    NameDataQuality == 99 | 
-      is.na(NameDataQuality) | 
-      FirstName == "Anonymous" ~ "Missing",
-    !(NameDataQuality %in% c(2, 8, 9, 99) | 
-        is.na(NameDataQuality) | 
-        FirstName == "Anonymous") ~ "ok"),
-    LastName = NULL,
-    MiddleName = NULL,
-    NameSuffix = NULL,
-    SSN = case_when(
-    is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
-    SSNDataQuality %in% c(8, 9) ~ "DKR",
-    ifelse((substr(SSN, 1, 1) != "0" &
-              substr(SSN, 1, 2) != "00"),
-           nchar(as.numeric(SSN)) != 9, FALSE) |
-      substr(SSN, 1, 3) %in% c("000", "666") |
-      substr(SSN, 1, 1) == 9 |
-      substr(SSN, 4, 5) == "00" |
-      substr(SSN, 6, 9) == "0000" |
-      SSNDataQuality == 2 |
-      SSN %in% c(
-        111111111,
-        222222222,
-        333333333,
-        444444444,
-        555555555,
-        666666666,
-        777777777,
-        888888888,
-        123456789
-      ) ~ "Invalid or Incomplete"
-    ))
-
-Client <- Client %>%
-  mutate(SSN = case_when(
-    is.na(SSN) ~ "ok",
-    !is.na(SSN) ~ SSN
-  ))
-
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------
 smallExit <- Exit %>% select(EnrollmentID, ExitDate, Destination, OtherDestination)
@@ -213,6 +169,14 @@ age_years <- function(earlier, later)
   age
 }
 
+# Adding Age at Entry to Enrollment ---------------------------------------
+smallClient <- Client %>% select(PersonalID, DOB)
+Enrollment <- Enrollment %>%
+  left_join(smallClient, by = "PersonalID") %>%
+  mutate(AgeAtEntry = age_years(DOB, EntryDate)) %>%
+  select(-DOB)
+rm(smallClient)
+
 # Client Entry Exits Between Date Range Function --------------------------------------
 
 served_between <- function(table, start, end){
@@ -225,7 +189,7 @@ entered_between <- function(table, start, end){
   entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
   entered
 }
-# Projects Operating Between Date Range Function -----------------------------------
+# Projects Operating Between Date Range Function --------------------------
 
 operating_between <- function(table, start, end) {
   operating <-  if_else(
@@ -297,6 +261,49 @@ EleventhMonth <- interval(mdy(ReportStart) %m+% months(10),
 TwelfthMonth <- interval(mdy(ReportStart) %m+% months(11),
                          seq(as.Date(mdy(ReportStart) %m+% months(12)),
                              length=1, by="1 month") -1)
+# Masking PII in the Client file (but not DOB) ----------------------------
+Client <- Client %>%
+  mutate(FirstName = case_when(
+    NameDataQuality %in% c(8,9) ~ "DKR",
+    NameDataQuality == 2 ~ "Partial",
+    NameDataQuality == 99 | 
+      is.na(NameDataQuality) | 
+      FirstName == "Anonymous" ~ "Missing",
+    !(NameDataQuality %in% c(2, 8, 9, 99) | 
+        is.na(NameDataQuality) | 
+        FirstName == "Anonymous") ~ "ok"),
+    LastName = NULL,
+    MiddleName = NULL,
+    NameSuffix = NULL,
+    SSN = case_when(
+      is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
+      SSNDataQuality %in% c(8, 9) ~ "DKR",
+      ifelse((substr(SSN, 1, 1) != "0" &
+                substr(SSN, 1, 2) != "00"),
+             nchar(as.numeric(SSN)) != 9, FALSE) |
+        substr(SSN, 1, 3) %in% c("000", "666") |
+        substr(SSN, 1, 1) == 9 |
+        substr(SSN, 4, 5) == "00" |
+        substr(SSN, 6, 9) == "0000" |
+        SSNDataQuality == 2 |
+        SSN %in% c(
+          111111111,
+          222222222,
+          333333333,
+          444444444,
+          555555555,
+          666666666,
+          777777777,
+          888888888,
+          123456789
+        ) ~ "Invalid or Incomplete"
+    ))
+
+Client <- Client %>%
+  mutate(SSN = case_when(
+    is.na(SSN) ~ "ok",
+    !is.na(SSN) ~ SSN
+  ))
 
 # Save it out -------------------------------------------------------------
 save.image(file = "data/COHHIOHMIS.RData")
