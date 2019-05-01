@@ -79,7 +79,6 @@ ClientUtilizers <- Utilizers %>%
            ProjectType %in% c(1, 2, 8) ~ EntryDate,
            ProjectType %in% c(3, 9, 13) ~ MoveInDate),
          ExitAdjust = if_else(is.na(ExitDate), today(), ymd(ExitDate)),
-         ExitDate = NULL,
          StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
            ) %>%
   filter(
@@ -94,7 +93,7 @@ ClientUtilizers <- Utilizers %>%
       ProjectType %in% c(1, 2, 8)
   ) &
     !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
-  select(-EntryDate, -MoveInDate)
+  select(-EntryDate, -MoveInDate, -ExitDate)
 
 # function for adding bed nights per ee
 
