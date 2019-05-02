@@ -83,9 +83,19 @@ dashboardPage(
           pre = "Q"
         ),
         plotOutput("SPDATScoresByCounty"),
-        textOutput("CountyScoresText"),
-        textOutput("HHsServedScoresText"),
-        textOutput("NoteToUsers")
+        HTML("<br>"),
+        box(textOutput("CountyScoresText"), 
+            title = "The Lines",
+            collapsible = TRUE, 
+            collapsed = TRUE),
+        box(textOutput("HHsServedScoresText"), 
+            title = "The Triangles",
+            collapsible = TRUE, 
+            collapsed = TRUE),
+        box(textOutput("NoteToUsers"), 
+            title = "A Note about Data Quality",
+            collapsible = TRUE, 
+            collapsed = TRUE)
       )
     )
   )
