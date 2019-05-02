@@ -508,7 +508,8 @@ Capacity <- SmallInventory %>%
 
 providerids <- Capacity %>% 
   select(ProjectID, ProjectName, OrganizationName, ProjectType) %>%
-  arrange(ProjectName)
+  arrange(ProjectName) 
+#here is where you could add a left join to the Regions object and add in Region
 
 Clients <- Enrollment %>%
   left_join(., providerids, by = "ProjectID") %>%
@@ -532,6 +533,7 @@ Utilization <-
   filter(ProjectType %in% c(1, 2, 3, 8, 9)) %>%
   mutate(BedUtilization = percent(Clients/BedCount),
          UnitUtilization = percent(Households/UnitCount))
+
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
    SmallInventory, SmallProject)
 
