@@ -181,18 +181,21 @@ function(input, output, session) {
       ) +
         geom_point(
           aes(x = CountyServed, y = AverageScore),
-          size = 10,
+          size = 14,
           shape = 95
         ) +
+        scale_y_continuous(limits = c(0,17)) +
         theme(axis.text.x = element_text(size = 10)) +
         geom_point(
           aes(x = CountyServed, y = HousedAverageScore),
-          size = 4,
-          shape = 17
+          size = 8,
+          shape = 17,
+          colour = "#56B4E9"
         ) +
         xlab(input$regionList) +
         ylab("Average SPDAT Score") +
-        ggtitle(paste("Date Range:", ReportStart, "to", ReportEnd)) + 
+        ggtitle(paste("Date Range:", ReportStart, "to", ReportEnd)) +
+        theme_light() + 
         theme(plot.title = element_text(lineheight = 1, size = rel(1.8)),
               axis.text.x = element_text(size = rel(1.8)),
               axis.text.y = element_text(size = rel(1.8)),
