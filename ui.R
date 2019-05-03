@@ -65,7 +65,7 @@ dashboardPage(
           options = list(`live-search` = TRUE),
           width = "70%"
         ),
-        chooseSliderSkin("Square"),
+        chooseSliderSkin("Round"),
         sliderInput(
           "y",
           "",
