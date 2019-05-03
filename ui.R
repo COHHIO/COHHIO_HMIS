@@ -6,17 +6,17 @@ dashboardPage(
       id = "sidebarmenuid",
       menuItem("Provider Dashboard",
                tabName = "providerDashboardTab"),
-      menuItem(
-        "Prioritization",
-        menuSubItem("Prioritization List",
-                    tabName = "prioritizationListTab"),
-        menuSubItem("Contact",
-                    tabName = "contactTab"),
-        menuSubItem("Veteran Active List",
-                    tabName = "vetActiveListTab")
-      ),
-      menuItem("Data Quality",
-               tabName = "dqTab"),
+      # menuItem(
+      #   "Prioritization",
+      #   menuSubItem("Prioritization List",
+      #               tabName = "prioritizationListTab"),
+      #   menuSubItem("Contact",
+      #               tabName = "contactTab"),
+      #   menuSubItem("Veteran Active List",
+      #               tabName = "vetActiveListTab")
+      # ),
+      # menuItem("Data Quality",
+      #          tabName = "dqTab"),
       menuItem("CoC Competition",
                tabName = "cocCompetitionTab"),
       menuItem(
@@ -51,10 +51,10 @@ dashboardPage(
         infoBoxOutput("currentBedUtilization")
       ),
       
-      tabItem(tabName = "prioritizationListTab"),
-      tabItem(tabName = "contactTab"),
-      tabItem(tabName = "vetActiveListTab"),
-      tabItem(tabName = "dqTab"),
+      # tabItem(tabName = "prioritizationListTab"),
+      # tabItem(tabName = "contactTab"),
+      # tabItem(tabName = "vetActiveListTab"),
+      # tabItem(tabName = "dqTab"),
       tabItem(tabName = "cocCompetitionTab"),
       tabItem(tabName = "utilizationTab"),
       tabItem(
