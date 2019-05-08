@@ -1,0 +1,63 @@
+---
+title: "LoTH Unsheltered"
+author: "Genelle Denzin"
+date: "5/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+```
+
+## Data to Help with Extrapolating Length of Time Homeless data for Unsheltered
+
+This is looking at all Unsheltered adults with Entries in 2019 who were entered by anyone on the CoC team. The following is a Summary of the table we are using for the following analysis.
+
+```{r summary}
+
+load("data/COHHIOHMIS.RData")
+
+unshelteredLoTH <- Enrollment %>%
+  select(EnrollmentID, 
+         PersonalID, 
+         EntryDate, 
+         ProjectID,
+         AgeAtEntry,
+         UserCreating,
+         DateToStreetESSH, 
+         TimesHomelessPastThreeYears,
+         MonthsHomelessPastThreeYears) %>%
+  filter(ProjectID == 1695 &
+           AgeAtEntry > 17,
+           UserCreating %in% c("Mulryan, Erica/@COHHIO(1239)",
+                               "Basting, Hannah/@COHHIO(1563)",
+                               "Sechang, Sandy/@COHHIO(1426)",
+                               "Walton, Valerie/@COHHIO(1628)",
+                               "Hoffman, Carolyn/@COHHIO(1624)") &
+           ymd(EntryDate) > mdy(01012019))
+summary(unshelteredLoTH)
+```
+
+## Times Homeless 
+
+Distribution of the Times Homeless data element. 1 = 1 time, 2, = 2 times, 3 = 3 times, and 4 = 4 or more times. I excluded the missings and DKRs.
+
+```{r timesplot}
+ggplot(filter(unshelteredLoTH, !TimesHomelessPastThreeYears %in% c(99, 8, 9) &
+                !is.na(TimesHomelessPastThreeYears)), aes(TimesHomelessPastThreeYears)) +
+  geom_histogram(binwidth = 1)
+```
+
+## Months Homeless 
+
+Distribution of the Months Homeless data element. 101 = 1 month, 102, = 2 months, ... 113 = more than 12 months. I excluded the missings and DKRs.
+
+```{r monthsplot}
+ggplot(filter(unshelteredLoTH, !MonthsHomelessPastThreeYears %in% c(8, 9, 99) &
+                !is.na(MonthsHomelessPastThreeYears)), aes(MonthsHomelessPastThreeYears)) +
+  geom_histogram(binwidth = 1)
+```
+
+
