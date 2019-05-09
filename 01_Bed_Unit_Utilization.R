@@ -1,7 +1,8 @@
 library(tidyverse)
 library(lubridate)
 library(scales)
-load("data/COHHIOHMIS.RData")
+
+load("images/COHHIOHMIS.RData")
 
 # Creating Beds table -----------------------------------------------------
 
@@ -722,4 +723,4 @@ Utilization <-
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
    SmallInventory, SmallProject)
 
-save.image("data/Utilization.RData")
+save.image("images/Utilization.RData")
