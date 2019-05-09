@@ -60,6 +60,14 @@ Services <-
 
 # --- All other data comes ART > Ohio BoS > COHHIO Only > RMisc ---
 
+# Youth Beds not coming through correctly ---------------------------------
+
+YouthBeds <- read_xlsx("data/RMisc.xlsx",
+                       sheet = 8,
+                       range = cell_cols("A:B"))
+Inventory <- left_join(Inventory, YouthBeds, by = "ProjectID") %>%
+  select(1:9, YouthBedInventory = 21, 11:20) 
+
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
@@ -271,4 +279,4 @@ Client <- Client %>%
   ))
 
 # Save it out -------------------------------------------------------------
-save.image(file = "data/COHHIOHMIS.RData")
+save.image(file = "images/COHHIOHMIS.RData")
