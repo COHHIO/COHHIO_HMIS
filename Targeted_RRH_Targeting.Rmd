@@ -1,0 +1,44 @@
+---
+title: "Targeted RRH"
+author: "Genelle Denzin"
+date: "5/9/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(gt)
+library(lubridate)
+load("images/COHHIOHMIS.RData")
+```
+
+## Are Targeted RRH projects serving TAY
+
+Looking at projects with Youth beds and checking the max age in each household.
+
+```{r maxAge}
+youthProjects <- Inventory %>%
+  filter(YouthBedInventory > 0) %>%
+  select(ProjectID)
+
+smallEnrollment <- Enrollment %>%
+  select(EnrollmentID, ProjectID, EntryDate, AgeAtEntry) %>%
+  filter(served_between(Enrollment, "01012019", "05092019"))
+
+youthEnrollments <- 
+  inner_join(youthProjects, smallEnrollment, by = "ProjectID") %>%
+  group_by(EnrollmentID, ProjectID, EntryDate) %>%
+  summarise(maxAgeInHH = max(AgeAtEntry, na.rm = TRUE)) %>%
+  ungroup()
+
+notYouthEnrollments <- youthEnrollments %>%
+  filter(maxAgeInHH < 10 | maxAgeInHH > 24)
+
+potentialIssues <- notYouthEnrollments %>%
+  left_join(Project, by = "ProjectID") %>%
+  select(ProjectID, ProjectName, EnrollmentID, EntryDate, maxAgeInHH)
+  
+gt(potentialIssues %>% select(-ProjectID, -EnrollmentID) %>%
+     arrange(ProjectName))
+```
