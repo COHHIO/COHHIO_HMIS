@@ -7,7 +7,7 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 # loading the COHHIOHMIS data, dropping unnecessary objects
-load("data/COHHIOHMIS.RData")
+load("images/COHHIOHMIS.RData")
 rm(Affiliation, Client, EnrollmentCoC, EmploymentEducation, Export, Exit, 
    Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, 
    Offers, Organization, ProjectCoC, Services, VeteranCE)
@@ -134,4 +134,4 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
 
 rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, Users)
 
-save.image("data/QPR_SPDATs.RData")
+save.image("images/QPR_SPDATs.RData")
