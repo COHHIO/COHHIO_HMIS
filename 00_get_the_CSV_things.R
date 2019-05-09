@@ -122,7 +122,10 @@ Users <- read_xlsx("data/RMisc.xlsx",
                    range = cell_cols("A:G"))
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------
-smallExit <- Exit %>% select(EnrollmentID, ExitDate, Destination, OtherDestination)
+smallExit <- Exit %>% select(EnrollmentID, 
+                             ExitDate, 
+                             Destination, 
+                             OtherDestination)
 Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID") %>%
   mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
 rm(smallExit)
@@ -219,50 +222,10 @@ beds_available_between <- function(table, start, end) {
   available
 }
 
-# ReportDate prompts ------------------------------------------------------
+FileEnd <- format.Date(file.info("data/Client.csv")$mtime, "%m-%d-%Y")
+FileStart <- format.Date(mdy(FileEnd) - years(2), "%m-%d-%Y")
+FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 
-ReportStart <- "10012017"
-ReportEnd <- "09302018"
-ReportingPeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
-
-# Adding Month Intervals --------------------------------------------------
-
-FirstMonth  <-  interval(mdy(ReportStart),
-                         seq(as.Date(mdy(ReportStart) %m+% months(1)),
-                             length = 1, by = "1 month") - 1) 
-SecondMonth  <-  interval(mdy(ReportStart) %m+% months(1),
-                          seq(as.Date(mdy(ReportStart) %m+% months(2)),
-                              length=1, by="1 month") -1)
-ThirdMonth <- interval(mdy(ReportStart) %m+% months(2),
-                       seq(as.Date(mdy(ReportStart) %m+% months(3)),
-                           length=1, by="1 month") -1)
-FourthMonth <- interval(mdy(ReportStart) %m+% months(3),
-                        seq(as.Date(mdy(ReportStart) %m+% months(4)),
-                            length=1, by="1 month") -1)
-FifthMonth <- interval(mdy(ReportStart) %m+% months(4),
-                       seq(as.Date(mdy(ReportStart) %m+% months(5)),
-                           length=1, by="1 month") -1)
-SixthMonth <- interval(mdy(ReportStart) %m+% months(5),
-                       seq(as.Date(mdy(ReportStart) %m+% months(6)),
-                           length=1, by="1 month") -1)
-SeventhMonth <- interval(mdy(ReportStart) %m+% months(6),
-                         seq(as.Date(mdy(ReportStart) %m+% months(7)),
-                             length=1, by="1 month") -1)
-EighthMonth <- interval(mdy(ReportStart) %m+% months(7),
-                        seq(as.Date(mdy(ReportStart) %m+% months(8)),
-                            length=1, by="1 month") -1)
-NinthMonth <- interval(mdy(ReportStart) %m+% months(8),
-                       seq(as.Date(mdy(ReportStart) %m+% months(9)),
-                           length=1, by="1 month") -1)
-TenthMonth <- interval(mdy(ReportStart) %m+% months(9),
-                       seq(as.Date(mdy(ReportStart) %m+% months(10)),
-                           length=1, by="1 month") -1)
-EleventhMonth <- interval(mdy(ReportStart) %m+% months(10),
-                          seq(as.Date(mdy(ReportStart) %m+% months(11)),
-                              length=1, by="1 month") -1)
-TwelfthMonth <- interval(mdy(ReportStart) %m+% months(11),
-                         seq(as.Date(mdy(ReportStart) %m+% months(12)),
-                             length=1, by="1 month") -1)
 # Masking PII in the Client file (but not DOB) ----------------------------
 Client <- Client %>%
   mutate(FirstName = case_when(
