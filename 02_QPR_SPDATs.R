@@ -62,7 +62,7 @@ CountyData <-
                            "Franklin",
                            "--Outside of Ohio--") &
       !is.na(CountyServed)) %>%
-  select(EnrollmentID, PersonalID, ProjectID, EntryDate, ExitDate, CountyServed, StartDate, Score) %>%
+  select(EnrollmentID, PersonalID, ProjectName, EntryDate, ExitDate, CountyServed, StartDate, Score) %>%
   group_by(PersonalID) %>%
   mutate(MaxEntry = max(ymd(EntryDate))) %>% # most recent EE
   filter(ymd(MaxEntry) == ymd(EntryDate)) %>%  
@@ -71,7 +71,7 @@ CountyData <-
   mutate(MaxScore = max(Score)) %>% # highest score
   filter(Score == MaxScore) %>%
   ungroup() %>%
-  select(PersonalID, CountyServed, Score, EntryDate, ExitDate) 
+  select(PersonalID, ProjectName, CountyServed, Score, EntryDate, ExitDate) 
 
 hhsHousedInCounty <- "The triangle represents the average score of each 
 household entering into a permanent housing project in a County during the 
