@@ -717,8 +717,8 @@ Utilization <-
   left_join(., Households, 
             by = c("ProjectID", "ProjectName")) %>%
   filter(ProjectType %in% c(1, 2, 3, 8, 9)) %>%
-  mutate(BedUtilization = Clients/BedCount,
-         UnitUtilization = Households/UnitCount)
+  mutate(BedUtilization = percent(Clients/BedCount),
+         UnitUtilization = percent(Households/UnitCount))
 
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
    SmallInventory, SmallProject)
