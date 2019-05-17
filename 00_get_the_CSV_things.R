@@ -230,6 +230,21 @@ beds_available_between <- function(table, start, end) {
   available
 }
 
+# HMIS participating Between --------------------------------------------------
+
+HMIS_participating_between <- function(table, start, end) {
+  HMISParticipating <-  if_else(
+    (table$HMISParticipatingBeds == 0 | is.na(table$HMISParticipatingBeds)) |
+    (is.na(table$InventoryStartDate) |
+      ymd(table$InventoryStartDate) > mdy(end)) |
+      (!is.na(table$InventoryEndDate) &
+         ymd(table$InventoryEndDate) < mdy(start)),
+    FALSE,
+    TRUE
+  )
+  HMISParticipating
+}
+
 FileEnd <- format.Date(file.info("data/Client.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(mdy(FileEnd) - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
