@@ -68,6 +68,7 @@ YouthBeds <- read_xlsx("data/RMisc.xlsx",
 Inventory <- left_join(Inventory, YouthBeds, by = "ProjectID") %>%
   select(1:9, YouthBedInventory = 21, 11:20) 
 
+rm(YouthBeds)
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
