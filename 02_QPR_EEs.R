@@ -6,6 +6,9 @@ library(janitor)
 
 load("images/COHHIOHMIS.RData")
 
+rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
+   Export, Funder, Geography, HealthAndDV, IncomeBenefits, Offers,
+   Organization, ProjectCoC, Scores, Services, VeteranCE, Users)
 # Successful Placement ----------------------------------------------------
 
 smallProject <- Project %>%
@@ -21,11 +24,12 @@ hpOutreach <- Project %>%
   filter(ProjectType %in% c(4, 12) &
            operating_between(., FileStart, FileEnd)) %>% 
   select(ProjectID)
-
-x <- rbind(hmisbeds, hpOutreach)
-
-smallProject <- smallProject %>% semi_join(x, by = "ProjectID") 
-
+rm(Project, Inventory)
+allHMISParticipating <- rbind(hmisbeds, hpOutreach)
+rm(hmisbeds, hpOutreach)
+smallProject <- smallProject %>% 
+  semi_join(allHMISParticipating, by = "ProjectID") 
+rm(allHMISParticipating)
 smallProject <- as.data.frame(smallProject)
 
 smallEnrollment <- Enrollment %>%
@@ -74,6 +78,9 @@ QPREEs <- smallProject %>%
       ProjectType %in% c(3, 9, 13) & is.na(MoveInDateAdjust) ~ EntryDate),
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
   )
+rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
+
+save.image("images/QPR_EEs.RData")
 
 PermAndRetention <- QPREEs %>%
   filter((DestinationGroup == "Permanent" | is.na(ExitDate)) &
