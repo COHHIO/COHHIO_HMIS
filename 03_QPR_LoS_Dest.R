@@ -47,6 +47,7 @@ smallEnrollment <- Enrollment %>%
               RelationshipToHoH == 1))
 
 smallEnrollment <- as.data.frame(smallEnrollment)
+
 # captures all leavers PLUS all ee's in either HP or PSH
 # also limits records to singles and HoHs only
 QPREEs <- smallProject %>%
@@ -60,9 +61,17 @@ QPREEs <- smallProject %>%
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other"
     ),
+    MoveInDateAdjust = if_else(
+      ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(MoveInDate) <= ExitAdjust &
+        ProjectType %in% c(3, 9, 13),
+      MoveInDate,
+      NULL
+    ),
     EntryAdjust = case_when(
-      ProjectType %in% c(1, 2, 8) ~ EntryDate,
-      ProjectType %in% c(3, 9, 13) ~ MoveInDate),
+      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
+      ProjectType %in% c(3, 9, 13) & !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
+      ProjectType %in% c(3, 9, 13) & is.na(MoveInDateAdjust) ~ EntryDate),
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
   )
 
@@ -93,15 +102,48 @@ PermAndRetentionByProject <- PermAndRetention %>%
 
 # Length of Stay ----------------------------------------------------------
 
+LoSDetail <- QPREEs %>% 
+  filter(((!is.na(MoveInDateAdjust) & ProjectType %in% c(3, 9, 13)) |
+           ProjectType %in% c(1, 2, 4, 8, 12)) &
+           !is.na(ExitDate)) 
 
+LoSSummary <- LoSDetail %>%
+  group_by(ProjectID) %>%
+  summarise(avg = mean(DaysinProject, na.rm = TRUE),
+            median = median(DaysinProject, na.rm = TRUE))
 
-QPREEs <- QPREEs %>% 
-  mutate(daysinproject = difftime(ExitAdjust, EntryAdjust, units = "days"))
+# Rapid Placement RRH -----------------------------------------------------
 
-QPREEs %>% group_by(ProjectID) %>% summarise(avg = mean(daysinproject))
+RapidPlacement <- QPREEs %>%
+  filter(ProjectType == 13) %>%
+  mutate(DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days")) %>%
+  select(
+    EnrollmentID,
+    PersonalID,
+    ProjectID,
+    EntryDate,
+    MoveInDate,
+    MoveInDateAdjust,
+    ExitDate,
+    DaysToHouse
+  ) %>%
+  view()
 
-
-
+DataQualityRapidPlacement <- QPREEs %>%
+  filter(ProjectType == 13) %>%
+  mutate(DaysToHouse = difftime(MoveInDate, EntryDate, units = "days")) %>%
+  filter(DaysToHouse < 0 | DaysToHouse > 120) %>%
+  select(
+    EnrollmentID,
+    PersonalID,
+    ProjectID,
+    EntryDate,
+    MoveInDate,
+    MoveInDateAdjust,
+    DaysToHouse,
+    ExitDate
+  ) %>%
+  view()
 
 
 
