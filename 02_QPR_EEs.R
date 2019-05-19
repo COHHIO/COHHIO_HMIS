@@ -3,6 +3,7 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(plotly)
 
 load("images/COHHIOHMIS.RData")
 
@@ -13,10 +14,12 @@ rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
 
 smallProject <- Project %>%
   select(ProjectID,
+         OrganizationName,
          ProjectName,
          ProjectType,
          County,
          Region) 
+
 
 hmisbeds <- Inventory %>%
   filter(HMIS_participating_between(Inventory, FileStart, FileEnd)) %>%
@@ -112,46 +115,49 @@ PermAndRetentionByProject <- PermAndRetention %>%
 # Length of Stay ----------------------------------------------------------
 
 LoSDetail <- QPR_EEs %>% 
-  filter(((!is.na(MoveInDateAdjust) & ProjectType %in% c(3, 9, 13)) |
-           ProjectType %in% c(1, 2, 4, 8, 12)) &
+  filter(ProjectType %in% c(1, 2, 4, 8, 12) &
            !is.na(ExitDate)) 
 
 LoSSummary <- LoSDetail %>%
-  mutate(Short_Provider = paste(substr(ProjectName, 1, 10), "...", 
-                                substr(ProjectName, 
-                                       str_length(ProjectName)-10, 
-                                       str_length(ProjectName))),
-         ProjectType = case_when(
-           ProjectType == 1 ~ "Emergency Shelter",
-           ProjectType == 2 ~ "Transitional Housing",
-           ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
-           ProjectType == 4 ~ "Street Outreach",
-           ProjectType == 8 ~ "Safe Haven",
-           ProjectType == 12 ~ "Prevention",
-           ProjectType == 13 ~ "Rapid Rehousing"
-         )) %>%
-  group_by(ProjectName, Short_Provider, Region, County, ProjectType) %>%
-  summarise(avg = mean(DaysinProject, na.rm = TRUE),
-            median = median(DaysinProject, na.rm = TRUE)) %>%
+  mutate(
+    AbbProjectType = case_when(
+      ProjectType == 1 ~ "ES",
+      ProjectType == 2 ~ "TH",
+      ProjectType %in% c(3, 9) ~ "PSH",
+      ProjectType == 4 ~ "OUTREACH",
+      ProjectType == 8 ~ "Safe Haven",
+      ProjectType == 12 ~ "Prevention",
+      ProjectType == 13 ~ "RRH"
+    ),
+    Provider = paste(OrganizationName, AbbProjectType),
+    ProjectType = case_when(
+      ProjectType == 1 ~ "Emergency Shelter",
+      ProjectType == 2 ~ "Transitional Housing",
+      ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
+      ProjectType == 4 ~ "Street Outreach",
+      ProjectType == 8 ~ "Safe Haven",
+      ProjectType == 12 ~ "Prevention",
+      ProjectType == 13 ~ "Rapid Rehousing"
+    )
+  ) %>%
+  group_by(ProjectName, Provider, Region, County, ProjectType) %>%
+  summarise(avg = as.numeric(mean(DaysinProject, na.rm = TRUE)),
+            median = as.numeric(median(DaysinProject, na.rm = TRUE))) %>%
   arrange(ProjectType)
 
-LoSSummary$ProjectType <- LoSSummary$ProjectType %>% factor(
-  levels = c(
-  "Emergency Shelter",
-  "Transitional Housing",
-  "Safe Haven",
-  "Street Outreach",
-  "Permanent Supportive Housing",
-  "Rapid Rehousing",
-  "Prevention"))
-
 ggplot(LoSSummary %>% filter(Region == 1), 
-       aes(x = fct_inorder(Short_Provider))) +
-  geom_col(aes(y = as.numeric(avg), fill = ProjectType)) +
+       aes(x = OrganizationName)) +
+  geom_col(aes(y = avg, fill = ProjectType)) +
   coord_flip() +
-  theme(axis.text.x = element_text(angle = 45)) +
   xlab("Project Name") + 
   ylab("Average")
+
+plot_ly(LoSSummary %>% filter(Region == 1), 
+        x = ~ProjectName, 
+        y = ~avg, type = "bar",
+        name = "Average") %>%
+  layout(yaxis = list(title = "Days"), 
+         xaxis = list(title = "Provider"))
 
 # Rapid Placement RRH -----------------------------------------------------
 
