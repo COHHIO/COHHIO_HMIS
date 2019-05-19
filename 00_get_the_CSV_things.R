@@ -102,6 +102,15 @@ Regions <- read_csv("data/Regions.csv") %>%
   select(Region, County, RegionName) %>%
   arrange(Region)
 
+x <- Project %>%
+  mutate(County = str_remove(ProjectName, "zz"),
+         County = if_else(word(County, 1) == "Van", "Van Wert",
+                          word(County, 1))
+         ) 
+
+Project <- left_join(x, Regions, by = "County")
+
+rm(x)
 # Custom Veteran Data -----------------------------------------------------
 VeteranCE <- read_xlsx("data/RMisc.xlsx",
                          sheet = 6,
@@ -203,6 +212,12 @@ entered_between <- function(table, start, end){
   entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
   entered
 }
+
+exited_between <- function(table, start, end){
+  exited <- between(ymd(table$ExitDate), mdy(start), mdy(end)) 
+  exited
+}
+
 # Projects Operating Between Date Range Function --------------------------
 
 operating_between <- function(table, start, end) {
