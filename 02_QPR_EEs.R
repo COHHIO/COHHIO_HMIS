@@ -17,6 +17,7 @@ smallProject <- Project %>%
          OrganizationName,
          ProjectName,
          ProjectType,
+         GrantType,
          County,
          Region) 
 
@@ -35,6 +36,8 @@ rm(hmisbeds, hpOutreach)
 smallProject <- smallProject %>% 
   semi_join(allHMISParticipating, by = "ProjectID") 
 rm(allHMISParticipating)
+smallProject <- smallProject %>%
+  filter(!is.na(Region))
 smallProject <- as.data.frame(smallProject)
 
 smallEnrollment <- Enrollment %>%
@@ -125,11 +128,11 @@ LoSSummary <- LoSDetail %>%
       ProjectType == 2 ~ "TH",
       ProjectType %in% c(3, 9) ~ "PSH",
       ProjectType == 4 ~ "OUTREACH",
-      ProjectType == 8 ~ "Safe Haven",
-      ProjectType == 12 ~ "Prevention",
+      ProjectType == 8 ~ "SH",
+      ProjectType == 12 ~ "HP",
       ProjectType == 13 ~ "RRH"
     ),
-    Provider = paste(OrganizationName, AbbProjectType),
+    Provider = paste(OrganizationName, if_else(is.na(GrantType), "", GrantType), AbbProjectType),
     ProjectType = case_when(
       ProjectType == 1 ~ "Emergency Shelter",
       ProjectType == 2 ~ "Transitional Housing",
@@ -146,18 +149,20 @@ LoSSummary <- LoSDetail %>%
   arrange(ProjectType)
 
 ggplot(LoSSummary %>% filter(Region == 1), 
-       aes(x = OrganizationName)) +
+       aes(x = fct_inorder(Provider))) +
   geom_col(aes(y = avg, fill = ProjectType)) +
   coord_flip() +
   xlab("Project Name") + 
   ylab("Average")
 
-plot_ly(LoSSummary %>% filter(Region == 1), 
-        x = ~ProjectName, 
+plot_ly(LoSSummary %>% filter(Region == 5), 
+        x = ~Provider, 
         y = ~avg, type = "bar",
-        name = "Average") %>%
+        color = ~ProjectType) %>%
   layout(yaxis = list(title = "Days"), 
-         xaxis = list(title = "Provider"))
+         xaxis = list(title = "Provider", 
+                      categoryorder = "array",
+                      categoryarray = ~ProjectType))
 
 # Rapid Placement RRH -----------------------------------------------------
 
