@@ -14,7 +14,9 @@ rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
 smallProject <- Project %>%
   select(ProjectID,
          ProjectName,
-         ProjectType) 
+         ProjectType,
+         County,
+         Region) 
 
 hmisbeds <- Inventory %>%
   filter(HMIS_participating_between(Inventory, FileStart, FileEnd)) %>%
@@ -54,7 +56,7 @@ smallEnrollment <- as.data.frame(smallEnrollment)
 
 # captures all leavers PLUS all ee's in either HP or PSH
 # also limits records to singles and HoHs only
-QPREEs <- smallProject %>%
+QPR_EEs <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter((!is.na(ExitDate) | ProjectType %in% c(3, 9, 12)) &
            served_between(., FileStart, FileEnd)) %>%
@@ -82,22 +84,22 @@ rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
 
 save.image("images/QPR_EEs.RData")
 
-PermAndRetention <- QPREEs %>%
+PermAndRetention <- QPR_EEs %>%
   filter((DestinationGroup == "Permanent" | is.na(ExitDate)) &
            ProjectType %in% c(3, 9, 12))
 
-PermLeavers <- QPREEs %>%
+PermLeavers <- QPR_EEs %>%
   filter(DestinationGroup == "Permanent" &
            ProjectType %in% c(1, 2, 4, 8, 13))
 
 # this is useless without dates- should be moved into the app
 # for all project types except PSH and HP
-TotalHHLeavers <- QPREEs %>%
+TotalHHLeavers <- QPR_EEs %>%
   filter(!is.na(ExitDate)) %>%
   group_by(ProjectName) %>%
   summarise(Leavers = n())
 # for PSH and HP only
-TotalHHLeaversAndStayers <- QPREEs %>%
+TotalHHLeaversAndStayers <- QPR_EEs %>%
   group_by(ProjectName) %>%
   summarise(LeaversAndStayers = n())
 
@@ -109,19 +111,51 @@ PermAndRetentionByProject <- PermAndRetention %>%
 
 # Length of Stay ----------------------------------------------------------
 
-LoSDetail <- QPREEs %>% 
+LoSDetail <- QPR_EEs %>% 
   filter(((!is.na(MoveInDateAdjust) & ProjectType %in% c(3, 9, 13)) |
            ProjectType %in% c(1, 2, 4, 8, 12)) &
            !is.na(ExitDate)) 
 
 LoSSummary <- LoSDetail %>%
-  group_by(ProjectID) %>%
+  mutate(Short_Provider = paste(substr(ProjectName, 1, 10), "...", 
+                                substr(ProjectName, 
+                                       str_length(ProjectName)-10, 
+                                       str_length(ProjectName))),
+         ProjectType = case_when(
+           ProjectType == 1 ~ "Emergency Shelter",
+           ProjectType == 2 ~ "Transitional Housing",
+           ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
+           ProjectType == 4 ~ "Street Outreach",
+           ProjectType == 8 ~ "Safe Haven",
+           ProjectType == 12 ~ "Prevention",
+           ProjectType == 13 ~ "Rapid Rehousing"
+         )) %>%
+  group_by(ProjectName, Short_Provider, Region, County, ProjectType) %>%
   summarise(avg = mean(DaysinProject, na.rm = TRUE),
-            median = median(DaysinProject, na.rm = TRUE))
+            median = median(DaysinProject, na.rm = TRUE)) %>%
+  arrange(ProjectType)
+
+LoSSummary$ProjectType <- LoSSummary$ProjectType %>% factor(
+  levels = c(
+  "Emergency Shelter",
+  "Transitional Housing",
+  "Safe Haven",
+  "Street Outreach",
+  "Permanent Supportive Housing",
+  "Rapid Rehousing",
+  "Prevention"))
+
+ggplot(LoSSummary %>% filter(Region == 1), 
+       aes(x = fct_inorder(Short_Provider))) +
+  geom_col(aes(y = as.numeric(avg), fill = ProjectType)) +
+  coord_flip() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  xlab("Project Name") + 
+  ylab("Average")
 
 # Rapid Placement RRH -----------------------------------------------------
 
-RapidPlacement <- QPREEs %>%
+RapidPlacement <- QPR_EEs %>%
   filter(ProjectType == 13) %>%
   mutate(DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days")) %>%
   select(
@@ -133,10 +167,9 @@ RapidPlacement <- QPREEs %>%
     MoveInDateAdjust,
     ExitDate,
     DaysToHouse
-  ) %>%
-  view()
+  ) 
 
-DataQualityRapidPlacement <- QPREEs %>%
+DataQualityRapidPlacement <- QPR_EEs %>%
   filter(ProjectType == 13) %>%
   mutate(DaysToHouse = difftime(MoveInDate, EntryDate, units = "days")) %>%
   filter(DaysToHouse < 0 | DaysToHouse > 120) %>%
@@ -149,8 +182,7 @@ DataQualityRapidPlacement <- QPREEs %>%
     MoveInDateAdjust,
     DaysToHouse,
     ExitDate
-  ) %>%
-  view()
+  ) 
 
 
 
