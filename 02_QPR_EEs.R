@@ -2,7 +2,6 @@
 
 library(tidyverse)
 library(lubridate)
-library(janitor)
 library(plotly)
 
 load("images/COHHIOHMIS.RData")
@@ -10,6 +9,15 @@ load("images/COHHIOHMIS.RData")
 rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
    Export, Funder, Geography, HealthAndDV, IncomeBenefits, Offers,
    Organization, ProjectCoC, Scores, Services, VeteranCE, Users)
+
+goals <- read_xlsx("data/Goals.xlsx")
+
+goals <- goals %>%
+  gather(key = "ProjectType", 
+         value = "Goal", 
+         -SummaryMeasure, -Measure, -Operator)
+
+
 # Successful Placement ----------------------------------------------------
 
 smallProject <- Project %>%
@@ -117,52 +125,54 @@ PermAndRetentionByProject <- PermAndRetention %>%
 
 # Length of Stay ----------------------------------------------------------
 
-LoSDetail <- QPR_EEs %>% 
-  filter(ProjectType %in% c(1, 2, 4, 8, 12) &
-           !is.na(ExitDate)) 
+LoSGoals <- goals %>%
+  select(-Measure) %>% 
+  filter(SummaryMeasure == "Length of Stay") %>%
+  unique()
 
-LoSSummary <- LoSDetail %>%
+LoSDetail <- QPR_EEs %>%
+  filter(ProjectType %in% c(1, 2, 8) &
+           !is.na(ExitDate)) %>%
   mutate(
-    AbbProjectType = case_when(
+    ProjectType = case_when(
       ProjectType == 1 ~ "ES",
       ProjectType == 2 ~ "TH",
       ProjectType %in% c(3, 9) ~ "PSH",
-      ProjectType == 4 ~ "OUTREACH",
+      ProjectType == 4 ~ "OUT",
       ProjectType == 8 ~ "SH",
       ProjectType == 12 ~ "HP",
       ProjectType == 13 ~ "RRH"
-    ),
-    Provider = paste(OrganizationName, if_else(is.na(GrantType), "", GrantType), AbbProjectType),
-    ProjectType = case_when(
-      ProjectType == 1 ~ "Emergency Shelter",
-      ProjectType == 2 ~ "Transitional Housing",
-      ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
-      ProjectType == 4 ~ "Street Outreach",
-      ProjectType == 8 ~ "Safe Haven",
-      ProjectType == 12 ~ "Prevention",
-      ProjectType == 13 ~ "Rapid Rehousing"
     )
   ) %>%
-  group_by(ProjectName, Provider, Region, County, ProjectType) %>%
+  left_join(LoSGoals, by = "ProjectType")
+
+LoSSummary <- LoSDetail %>%
+  group_by(ProjectName, Region, County, ProjectType, Operator, Goal) %>%
   summarise(avg = as.numeric(mean(DaysinProject, na.rm = TRUE)),
             median = as.numeric(median(DaysinProject, na.rm = TRUE))) %>%
   arrange(ProjectType)
 
-ggplot(LoSSummary %>% filter(Region == 1), 
-       aes(x = fct_inorder(Provider))) +
-  geom_col(aes(y = avg, fill = ProjectType)) +
-  coord_flip() +
-  xlab("Project Name") + 
-  ylab("Average")
-
-plot_ly(LoSSummary %>% filter(Region == 5), 
-        x = ~Provider, 
-        y = ~avg, type = "bar",
-        color = ~ProjectType) %>%
-  layout(yaxis = list(title = "Days"), 
-         xaxis = list(title = "Provider", 
-                      categoryorder = "array",
-                      categoryarray = ~ProjectType))
+plot_ly(LoSSummary %>% filter(Region == 6)) %>%
+  add_trace(
+    x = ~ ProjectName,
+    y = ~ avg,
+    type = "bar",
+    color = ~ ProjectType
+  ) %>%
+  add_trace(x = ~ ProjectName,
+            y = ~ Goal,
+            type = "bar",
+            opacity =.5,
+            marker = list(color = "gray"),
+            name = "Goal") %>%
+  layout(
+    yaxis = list(title = "Days"),
+    xaxis = list(
+      title = "Provider",
+      categoryorder = "array",
+      categoryarray = ~ ProjectType
+    )
+  )
 
 # Rapid Placement RRH -----------------------------------------------------
 
