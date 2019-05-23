@@ -90,8 +90,7 @@ ClientUtilizers <- Utilizers %>%
     ) |
       ProjectType %in% c(1, 2, 8)
   ) &
-    !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
-  select(-EntryDate, -MoveInDate, -ExitDate)
+    !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317))
 
 # function for adding bed nights per ee
 
@@ -114,8 +113,8 @@ bed_nights_per_ee <- function(table, interval) {
 }
 
 nth_Month <- function(n) {
-  interval(mdy(FileStart) %m+% months(n - 1),
-           seq(as.Date(mdy(FileStart) %m+% months(n)),
+  interval(floor_date(mdy(FileStart) %m+% months(n - 1), unit = "months"),
+           seq(as.Date(floor_date(mdy(FileStart) %m+% months(n), unit = "months")),
                length = 1, by = "1 month") - 1)
 }
 FirstMonth <- nth_Month(1)
@@ -173,8 +172,10 @@ ClientUtilizers <- ClientUtilizers %>%
     Month24 = bed_nights_per_ee(ClientUtilizers, TwentyfourthMonth)
   ) %>%
   select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, 
-         FilePeriod, starts_with("Month"))
+         EntryDate, MoveInDate, ExitDate, FilePeriod, starts_with("Month"))
+
 ClientUtilizers <- as.data.frame(ClientUtilizers)
+
 # making granularity by provider instead of by enrollment id
 BedNights <- ClientUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -719,6 +720,43 @@ Utilization <-
   filter(ProjectType %in% c(1, 2, 3, 8, 9)) %>%
   mutate(BedUtilization = percent(Clients/BedCount),
          UnitUtilization = percent(Households/UnitCount))
+
+names(ClientUtilizers) <-
+  c(
+    "ProjectName",
+    "ProjectID",
+    "ProjectType",
+    "PersonalID",
+    "EnrollmentID",
+    "EntryDate",
+    "MoveInDate",
+    "ExitDate",
+    "FilePeriod",
+    format.Date(int_start(FirstMonth), "%m%d%Y"),
+    format.Date(int_start(SecondMonth), "%m%d%Y"),
+    format.Date(int_start(ThirdMonth), "%m%d%Y"),
+    format.Date(int_start(FourthMonth), "%m%d%Y"),
+    format.Date(int_start(FifthMonth), "%m%d%Y"),
+    format.Date(int_start(SixthMonth), "%m%d%Y"),
+    format.Date(int_start(SeventhMonth), "%m%d%Y"),
+    format.Date(int_start(EighthMonth), "%m%d%Y"),
+    format.Date(int_start(NinthMonth), "%m%d%Y"),
+    format.Date(int_start(TenthMonth), "%m%d%Y"),
+    format.Date(int_start(EleventhMonth), "%m%d%Y"),
+    format.Date(int_start(TwelfthMonth), "%m%d%Y"),
+    format.Date(int_start(ThirteenthMonth), "%m%d%Y"),
+    format.Date(int_start(FourteenthMonth), "%m%d%Y"),
+    format.Date(int_start(FifteenthMonth), "%m%d%Y"),
+    format.Date(int_start(SixteenthMonth), "%m%d%Y"),
+    format.Date(int_start(SeventeenthMonth), "%m%d%Y"),
+    format.Date(int_start(EighteenthMonth), "%m%d%Y"),
+    format.Date(int_start(NineteenthMonth), "%m%d%Y"),
+    format.Date(int_start(TwentiethMonth), "%m%d%Y"),
+    format.Date(int_start(TwentyfirstMonth), "%m%d%Y"),
+    format.Date(int_start(TwentysecondMonth), "%m%d%Y"),
+    format.Date(int_start(TwentythirdMonth), "%m%d%Y"),
+    format.Date(int_start(TwentyfourthMonth), "%m%d%Y")
+  )
 
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
    SmallInventory, SmallProject)
