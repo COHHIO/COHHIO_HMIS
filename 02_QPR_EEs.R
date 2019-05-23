@@ -3,6 +3,8 @@
 library(tidyverse)
 library(lubridate)
 library(plotly)
+library(readxl)
+library(patchwork)
 
 load("images/COHHIOHMIS.RData")
 
@@ -152,7 +154,35 @@ LoSSummary <- LoSDetail %>%
             median = as.numeric(median(DaysinProject, na.rm = TRUE))) %>%
   arrange(ProjectType)
 
-plot_ly(LoSSummary %>% filter(Region == 6)) %>%
+es <-
+  ggplotly(
+    ggplot(
+      LoSSummary %>% filter(Region == 5, ProjectType == "ES"),
+      aes(x = ProjectName)
+    ) +
+      geom_col(aes(y = as.numeric(avg))) +
+      geom_hline(yintercept = LoSSummary$Goal[LoSSummary$ProjectType == "ES"]) +
+      theme(axis.text.x = element_text(angle = 45))
+  )
+es
+th <-
+  ggplotly(
+    ggplot(
+      x %>% filter(Region == 5, ProjectType == "TH"),
+      aes(x = brokenProjectNames)
+    ) +
+      geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
+      geom_hline(yintercept = LoSSummary$Goal[LoSSummary$ProjectType == "TH"]) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  ) %>%
+  layout(yaxis = list(title = "Average Length of Stay"),
+         xaxis = list(title = ""))
+th
+
+somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
+                "#e95684")
+somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe','#08589e')
+plot_ly(LoSSummary %>% filter(Region == 6), type = "bar") %>%
   add_trace(
     x = ~ ProjectName,
     y = ~ avg,
@@ -170,7 +200,8 @@ plot_ly(LoSSummary %>% filter(Region == 6)) %>%
     xaxis = list(
       title = "Provider",
       categoryorder = "array",
-      categoryarray = ~ ProjectType
+      categoryarray = ~ ProjectType,
+      barmode = "group"
     )
   )
 
