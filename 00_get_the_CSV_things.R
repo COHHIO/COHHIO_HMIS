@@ -267,25 +267,13 @@ FileStart <- format.Date(mdy(FileEnd) - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 
 # Function that breaks up long strings ------------------------------------
-# thanks to Karsten from StackOverflow!
-strBreakInLines <- function(s, breakAt=90, prepend="") {
-  words <- unlist(strsplit(s, " "))
-  if (length(words)<2) return(s)
-  wordLen <- unlist(Map(nchar, words))
-  lineLen <- wordLen[1]
-  res <- words[1]
-  lineBreak <- paste("\n", prepend, sep="")
-  for (i in 2:length(words)) {
-    lineLen <- lineLen+wordLen[i]
-    if (lineLen < breakAt) 
-      res <- paste(res, words[i], sep=" ")
-    else {
-      res <- paste(res, words[i], sep=lineBreak)
-      lineLen <- wordLen[i]
-    }
+# thanks to Karsten and Dave Gruenewald from StackOverflow!
+trimmer <- function(x,break_limit){ 
+  sapply(strwrap(x, break_limit, simplify=FALSE), 
+         paste, 
+         collapse="\n") 
   }
-  return(res)
-}
+
 
 # Masking PII in the Client file (but not DOB) ----------------------------
 Client <- Client %>%
