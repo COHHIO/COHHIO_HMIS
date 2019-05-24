@@ -40,14 +40,23 @@ hpOutreach <- Project %>%
   filter(ProjectType %in% c(4, 12) &
            operating_between(., FileStart, FileEnd)) %>% 
   select(ProjectID)
+
 rm(Project, Inventory)
+
 allHMISParticipating <- rbind(hmisbeds, hpOutreach)
+
 rm(hmisbeds, hpOutreach)
+
 smallProject <- smallProject %>% 
   semi_join(allHMISParticipating, by = "ProjectID") 
+
 rm(allHMISParticipating)
+
 smallProject <- smallProject %>%
-  filter(!is.na(Region))
+  filter(!is.na(Region)) %>%
+  mutate(
+    brokenProjectNames = trimmer(ProjectName, 30))
+
 smallProject <- as.data.frame(smallProject)
 
 smallEnrollment <- Enrollment %>%
@@ -149,7 +158,7 @@ LoSDetail <- QPR_EEs %>%
   left_join(LoSGoals, by = "ProjectType")
 
 LoSSummary <- LoSDetail %>%
-  group_by(ProjectName, Region, County, ProjectType, Operator, Goal) %>%
+  group_by(brokenProjectNames, ProjectName, Region, County, ProjectType, Operator, Goal) %>%
   summarise(avg = as.numeric(mean(DaysinProject, na.rm = TRUE)),
             median = as.numeric(median(DaysinProject, na.rm = TRUE))) %>%
   arrange(ProjectType)
@@ -158,7 +167,7 @@ es <-
   ggplotly(
     ggplot(
       LoSSummary %>% filter(Region == 5, ProjectType == "ES"),
-      aes(x = ProjectName)
+      aes(x = brokenProjectNames)
     ) +
       geom_col(aes(y = as.numeric(avg))) +
       geom_hline(yintercept = LoSSummary$Goal[LoSSummary$ProjectType == "ES"]) +
@@ -168,7 +177,7 @@ es
 th <-
   ggplotly(
     ggplot(
-      x %>% filter(Region == 5, ProjectType == "TH"),
+      LoSSummary %>% filter(Region == 5, ProjectType == "TH"),
       aes(x = brokenProjectNames)
     ) +
       geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
