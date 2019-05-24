@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
+load("images/COHHIOHMIS.RData")
 ```
 
 ## Data to Help with Extrapolating Length of Time Homeless data for Unsheltered
@@ -16,8 +17,6 @@ library(lubridate)
 This is looking at all Unsheltered adults with Entries in 2019 who were entered by anyone on the CoC team. The following is a Summary of the table we are using for the following analysis.
 
 ```{r summary}
-
-load("data/COHHIOHMIS.RData")
 
 unshelteredLoTH <- Enrollment %>%
   select(EnrollmentID, 

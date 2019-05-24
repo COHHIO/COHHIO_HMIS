@@ -1,7 +1,7 @@
 library(tidyverse)
 library(lubridate)
 
-load("data/COHHIOHMIS.Rdata")
+load("images/COHHIOHMIS.Rdata")
 
 rm(Affiliation, EmploymentEducation, EnrollmentCoC, Export, ProjectCoC, Services)
 

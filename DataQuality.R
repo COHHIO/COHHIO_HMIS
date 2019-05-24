@@ -2,7 +2,7 @@ library(tidyverse)
 library(janitor)
 library(lubridate)
 
-load("~/R/COHHIO_HMIS/data/COHHIOHMIS.RData")
+load("images/COHHIOHMIS.RData")
 
 
 # Missing Data ------------------------------------------------------------

@@ -7,16 +7,17 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
+library(lubridate)
+library(dplyr)
+library(gt)
+library(janitor)
+load("images/COHHIOHMIS.RData")
 ```
 
 ### Served in ES, TH, or SH During the Year Excluding Unsheltered Homeless
 
 ```{r basicdatasets}
-library(lubridate)
-library(dplyr)
-library(gt)
-library(janitor)
-load("data/COHHIOHMIS.RData")
+
 smallEnrollment <- Enrollment %>% 
   select(EnrollmentID, PersonalID, EntryDate, ProjectID)
 smallExit <- Exit %>%
