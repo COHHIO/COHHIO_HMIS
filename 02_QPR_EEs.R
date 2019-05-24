@@ -174,23 +174,22 @@ es <-
       theme(axis.text.x = element_text(angle = 45))
   )
 es
-th <-
-  ggplotly(
-    ggplot(
-      LoSSummary %>% filter(Region == 5, ProjectType == "TH"),
-      aes(x = brokenProjectNames)
-    ) +
-      geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
-      geom_hline(yintercept = LoSSummary$Goal[LoSSummary$ProjectType == "TH"]) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  ) %>%
-  layout(yaxis = list(title = "Average Length of Stay"),
-         xaxis = list(title = ""))
+th <- ggplot(LoSSummary %>% filter(Region == 5, ProjectType == "TH"),
+             aes(x = brokenProjectNames)) +
+  ylab("Average Length of Stay") +
+  xlab("") +
+  ggtitle("Transitional Housing", subtitle = "date range") +
+  geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
+  geom_hline(yintercept = LoSSummary$Goal[LoSSummary$ProjectType == "TH"]) +
+  annotate("text", x = 0.6, y = LoSSummary$Goal[LoSSummary$ProjectType == "TH"] + 1,
+           label = "CoC Goal") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 th
 
 somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
                 "#e95684")
 somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe','#08589e')
+
 plot_ly(LoSSummary %>% filter(Region == 6), type = "bar") %>%
   add_trace(
     x = ~ ProjectName,
