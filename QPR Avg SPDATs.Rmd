@@ -6,12 +6,13 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+#THIS IS NOT A FINAL DOCUMENT. Please see the logic in R minor and 02_QPR_SPDATs.R in this project for updated logic.
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
 library(janitor)
 library(gt)
-load("data/COHHIOHMIS.RData")
+load("images/COHHIOHMIS.RData")
 rm(Affiliation, EmploymentEducation, Export, Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, Offers, Organization, ProjectCoC, Services, VeteranCE)
 ```
 
