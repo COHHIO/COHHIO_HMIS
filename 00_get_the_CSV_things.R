@@ -321,3 +321,5 @@ Client <- Client %>%
 
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
+
+rm(list = ls())
