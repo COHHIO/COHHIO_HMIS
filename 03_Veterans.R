@@ -47,41 +47,55 @@ CurrentVeteranCounts <- CurrentVeterans %>%
   summarise(Veterans = n()) %>%
   ungroup()
 
-VeteransWithHousingPlan <- CurrentVeterans %>%
-  filter(!is.na(PHTrack) & ymd(ExpectedPHDate) >= today())
+VeteranEngagement <- CurrentVeterans %>%
+  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  mutate(EngagementStatus = case_when(
+    !is.na(PHTrack) & PHTrack != "None" &
+      ymd(ExpectedPHDate) >= today() ~ "Has Current Housing Plan",
+    is.na(PHTrack) | PHTrack == "None" |
+      (!is.na(PHTrack) & (ymd(ExpectedPHDate) < today() |
+                            is.na(ExpectedPHDate))) ~ "No Current Housing Plan"
+  )) %>%
+  select(ProjectName, ProjectType, RegionName, PersonalID, PHTrack, 
+         ExpectedPHDate, EngagementStatus)
 
-WithHousingPlanCount <- VeteransWithHousingPlan %>%
-  group_by(ProjectName, RegionName)  %>%
-  summarise(HasHousingPlan = n()) %>%
-  ungroup()
+VetEngagementSummary <- VeteranEngagement %>%
+  group_by(ProjectName, ProjectType, RegionName, EngagementStatus) %>%
+  summarise(CurrentVeteranCount = n()) %>%
+  spread(key = EngagementStatus, value = CurrentVeteranCount) %>%
+  rename(HasCurrentHousingPlan = `Has Current Housing Plan`,
+         NoCurrentHousingPlan = `No Current Housing Plan`) 
 
-VeteransCurrentHousingOffers <- CurrentVeterans %>%
-  filter(!is.na(MostRecentOfferStatus) &
-               ymd(MostRecentOfferDate) > today() - 14
-           )
+VetEngagementSummary[is.na(VetEngagementSummary)] <- 0 
 
-WithHousingOffersCount <- VeteransCurrentHousingOffers %>%
-  group_by(ProjectName, RegionName) %>%
-  summarise(HasCurrentOffer = n()) %>%
-  ungroup()
+VetEngagementSummary <- VetEngagementSummary %>%
+  mutate(
+    Summary =
+      case_when(
+        HasCurrentHousingPlan == 0 &
+          NoCurrentHousingPlan == 1 ~
+          "This veteran has no current Housing Plan",
+        HasCurrentHousingPlan == 0 &
+          NoCurrentHousingPlan > 1  ~
+          "None of these veterans have current Housing Plans",
+        HasCurrentHousingPlan == 1 &
+          NoCurrentHousingPlan == 0 ~
+          "This veteran has a current Housing Plan!",
+        HasCurrentHousingPlan > 1 &
+          NoCurrentHousingPlan == 0  ~
+          "All veterans in this project have current Housing Plans!",
+        HasCurrentHousingPlan == 1 &
+          NoCurrentHousingPlan > 0 ~
+          paste(HasCurrentHousingPlan, 
+                "of these veterans has a current Housing Plan"),
+        HasCurrentHousingPlan > 1 &
+          NoCurrentHousingPlan > 0 ~
+          paste(HasCurrentHousingPlan, 
+                "of these veterans have current Housing Plans")
+      )
+  )
 
-CurrentVeteranCounts <- CurrentVeteranCounts %>%
-  left_join(WithHousingOffersCount, by = c("ProjectName", "RegionName")) %>%
-  left_join(WithHousingPlanCount, by = c("ProjectName", "RegionName"))
-
-#replace all the NAs with zeros
-CurrentVeteranCounts[is.na(CurrentVeteranCounts)] <- 0
-
-plotVetsData <- CurrentVeteranCounts %>% gather(key = "CountType", value = "Counts",
-                                -ProjectName, -RegionName, -Veterans)
-
-rm(Client, Enrollment, Inventory, Project, Regions, VeteranCE, Veterans, 
-   VeteransCurrentHousingOffers, VeteransWithHousingPlan, WithHousingOffersCount,
-   WithHousingPlanCount)
-
-ggplot(plotVetsData, aes(x = ProjectName, fill = CountType)) +
-  geom_col(aes(y = Veterans)) +
-  geom_col(aes(y = Counts))
+rm(Client, Enrollment, Inventory, Project, Regions, VeteranCE, Veterans)
 
 save.image("images/Veterans.RData")
 
