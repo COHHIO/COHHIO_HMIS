@@ -120,7 +120,8 @@ VeteranCE <-
   mutate(
     VeteranCE,
     DateVeteranIdentified = as.Date(DateVeteranIdentified, origin = "1899-12-30"),
-    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30")
+    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30"),
+    MostRecentOfferDate = as.Date(MostRecentOfferDate, origin = "1899-12-30")
   )
 
 # Offers of Housing -------------------------------------------------------
