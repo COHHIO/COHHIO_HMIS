@@ -136,6 +136,12 @@ PermAndRetentionByProject <- PermAndRetention %>%
 
 
 # Length of Stay ----------------------------------------------------------
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+
+load("images/QPR_EEs.RData")
+
 LoSGoals <- goals %>%
   select(-Measure) %>% 
   filter(SummaryMeasure == "Length of Stay" & !is.na(Goal)) %>%
@@ -194,6 +200,26 @@ th <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 th
+es <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
+  ylab("Average Length of Stay") +
+  xlab("") +
+  ggtitle("Emergency Shelters", subtitle = "date range") +
+  geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
+  geom_hline(yintercept = as.integer(LoSGoals %>% 
+                                       filter(ProjectType == 1) %>% 
+                                       select(Goal))) +
+  annotate(
+    "text",
+    x = 0.65,
+    y = as.integer(LoSGoals %>% 
+                     filter(ProjectType == 1) %>% 
+                     select(Goal)) + 1,
+    label = "CoC Goal") +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+es <- if_else(1=2, es, NULL)
+es+th
+
 
 somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
                 "#e95684")
