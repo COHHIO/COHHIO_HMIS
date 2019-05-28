@@ -4,7 +4,7 @@ library(tidyverse)
 library(lubridate)
 library(plotly)
 library(readxl)
-library(patchwork)
+library(cowplot)
 
 load("images/COHHIOHMIS.RData")
 
@@ -217,8 +217,8 @@ es <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
     label = "CoC Goal") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-es <- if_else(1=2, es, NULL)
-es+th
+
+plot_grid(es, th)
 
 
 somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
