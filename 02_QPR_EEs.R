@@ -26,6 +26,7 @@ goals <- goals %>%
 smallProject <- Project %>%
   select(ProjectID,
          OrganizationName,
+         ProjectAKA,
          ProjectName,
          ProjectType,
          GrantType,
@@ -56,7 +57,8 @@ rm(allHMISParticipating)
 smallProject <- smallProject %>%
   filter(!is.na(Region)) %>%
   mutate(
-    brokenProjectNames = trimmer(ProjectName, 30))
+    FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA),
+    brokenProjectNames = trimmer(FriendlyProjectName, 30))
 
 smallProject <- as.data.frame(smallProject)
 
@@ -122,16 +124,16 @@ PermLeavers <- QPR_EEs %>%
 # for all project types except PSH and HP
 TotalHHLeavers <- QPR_EEs %>%
   filter(!is.na(ExitDate)) %>%
-  group_by(ProjectName) %>%
+  group_by(ProjectAKA) %>%
   summarise(Leavers = n())
 # for PSH and HP only
 TotalHHLeaversAndStayers <- QPR_EEs %>%
-  group_by(ProjectName) %>%
+  group_by(ProjectAKA) %>%
   summarise(LeaversAndStayers = n())
 
 #also useless without dates, should be moved into app
 PermAndRetentionByProject <- PermAndRetention %>%
-  group_by(ProjectName) %>%
+  group_by(ProjectAKA) %>%
   summarise(PermanentDestOrStayer = n())
 
 
@@ -223,7 +225,8 @@ plot_grid(es, th)
 
 somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
                 "#e95684")
-somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe','#08589e')
+somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
+                    '#08589e')
 
 # Rapid Placement RRH -----------------------------------------------------
 
