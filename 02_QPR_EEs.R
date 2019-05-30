@@ -4,7 +4,6 @@ library(tidyverse)
 library(lubridate)
 library(plotly)
 library(readxl)
-library(cowplot)
 
 load("images/COHHIOHMIS.RData")
 
