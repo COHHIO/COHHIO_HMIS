@@ -99,7 +99,7 @@ bed_nights_per_ee <- function(table, interval) {
           as.numeric(difftime(
             if_else(
               ymd(table$ExitAdjust) <=  int_end(interval),
-              as.POSIXct(table$ExitAdjust) + days(1),
+              as.POSIXct(table$ExitAdjust),
               int_end(interval) + days(1)
             ),
             if_else(
