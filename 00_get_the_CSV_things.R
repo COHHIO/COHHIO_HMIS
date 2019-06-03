@@ -320,6 +320,10 @@ Client <- Client %>%
     !is.na(SSN) ~ SSN
   ))
 
+# Update Date -------------------------------------------------------------
+
+updatedate <- file.info("data/Utilization.RData")$mtime
+
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
 
