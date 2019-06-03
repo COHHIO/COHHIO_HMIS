@@ -5,19 +5,49 @@ library(lubridate)
 load("images/COHHIOHMIS.RData")
 
 
+# Providers to Check ------------------------------------------------------
+
+hmisParticipatingCurrent <- Project %>%
+  left_join(Inventory, by = "ProjectID") %>%
+  filter(HMIS_participating_between(., FileStart, FileEnd) &
+         operating_between(., FileStart, FileEnd) &
+         (GrantType != "HOPWA" | is.na(GrantType))) %>%
+  select(ProjectID, OrganizationID, OperatingStartDate, OperatingEndDate,
+         ProjectType, GrantType, FacilityType, ProjectName, ProjectAKA,
+         OrganizationName, County, Region) %>% unique()
+    
+# Clients to Check --------------------------------------------------------
+
+servedInDateRange <- Enrollment %>%
+  filter(served_between(., FileStart, FileEnd)) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(PersonalID, FirstName, NameDataQuality, SSN, SSNDataQuality,
+         DOB, DOBDataQuality, AmIndAKNative, Asian, BlackAfAmerican,
+         NativeHIOtherPacific, White, RaceNone, Ethnicity, Gender, VeteranStatus,
+         EnrollmentID, ProjectID, EntryDate, HouseholdID, RelationshipToHoH,
+         LivingSituation, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH,
+         DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears,
+         DisablingCondition, DateOfEngagement, MoveInDate, EEType, CountyServed,
+         CountyPrior, ExitDate, Destination, ExitAdjust, AgeAtEntry) %>%
+  inner_join(hmisParticipatingCurrent, by = "ProjectID")
+
 # Missing Data ------------------------------------------------------------
 
-missingClient <- Client %>%
-  filter(
-    is.na(DOB) |
-      NameDataQuality == 99 |
-      SSN == "missing" |
-      DOBDataQuality == 99 |
-      RaceNone == 1 |
-      Ethnicity == 99 |
-      Gender == 99 |
-      VeteranStatus == 99
-  ) 
+missingUDEs <- servedInDateRange %>%
+  mutate(
+    Issue = case_when(
+      is.na(DOB) | DOBDataQuality == 99 ~ "Missing DOB",
+      NameDataQuality == 99 ~ "Missing Name DQ",
+      SSN == "missing" ~ "Missing SSN",
+      RaceNone == 1 ~ "Missing Race",
+      Ethnicity == 99 ~ "Missing Ethnicity",
+      Gender == 99 ~ "Missing Gender",
+      VeteranStatus == 99 ~ "Missing Veteran Status"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(PersonalID, ProjectName, Issue, EntryDate, MoveInDate, ExitDate, HouseholdID,
+         RelationshipToHoH, ProjectType, County, Region)
 
 missingEnrollment <- Enrollment %>%
   filter(
