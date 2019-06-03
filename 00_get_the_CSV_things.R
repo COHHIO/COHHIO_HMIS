@@ -322,7 +322,7 @@ Client <- Client %>%
 
 # Update Date -------------------------------------------------------------
 
-updatedate <- file.info("data/Utilization.RData")$mtime
+updatedate <- file.info("data/Client.csv")$mtime
 
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
