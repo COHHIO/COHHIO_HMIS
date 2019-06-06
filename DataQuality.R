@@ -49,9 +49,12 @@ missingUDEs <- servedInDateRange %>%
   select(PersonalID, ProjectName, Issue, EntryDate, MoveInDate, ExitDate, HouseholdID,
          RelationshipToHoH, ProjectType, County, Region)
 
-missingEnrollment <- Enrollment %>%
-  filter(
-    RelationshipToHoH == 99 |
+# Missing Enrollment ------------------------------------------------------
+
+missingEnrollment <- servedInDateRange %>%
+  mutate(
+    Issue = case_when(
+    RelationshipToHoH == 99 ~ "Missing Relationship to HoH",
       LivingSituation == 99 |
       LengthOfStay == 99 |
       is.na(PreviousStreetESSH) | # needs more logic
@@ -59,4 +62,33 @@ missingEnrollment <- Enrollment %>%
       is.na(TimesHomelessPastThreeYears) |
       is.na(MonthsHomelessPastThreeYears) |
       is.na(DisablingCondition)
-  )
+  ))
+
+
+# Children Only HH
+# Missing HoH
+# Multiple HoHs
+# Missing or Incorrect SSN
+# Missing UDEs
+# Missing Data at Entry
+# Missing Destination
+# Missing SSVF Data
+# Missing PATH Data at Entry
+# Incorrect PATH Contact Date
+# Missing PATH Contact End Date
+# Missing PATH Contacts
+# Missing PATH Data at Exit
+# Questionable Housing Data
+# Duplicate EE
+# Future Entry Exit
+# Incorrect EE Type
+# HoHs Entering PH without SPDATs
+# HoHs in Shelter without a SPDAT
+# Missing Income at Entry
+# Missing Income at Exit
+# Missing Health Ins at Entry
+# Missing NCBs at Entry
+# Missing NCBs at Exit
+# Disability Subs Not Matching
+# Old Disability Type
+# SSI/SSDI but no Disability (Q)
