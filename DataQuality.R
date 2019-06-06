@@ -32,22 +32,36 @@ servedInDateRange <- Enrollment %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
 # Missing Data ------------------------------------------------------------
-
+# Missing UDEs
 missingUDEs <- servedInDateRange %>%
   mutate(
     Issue = case_when(
-      is.na(DOB) | DOBDataQuality == 99 ~ "Missing DOB",
-      NameDataQuality == 99 ~ "Missing Name DQ",
-      SSN == "missing" ~ "Missing SSN",
-      RaceNone == 1 ~ "Missing Race",
+      FirstName == "Missing" ~ "Missing Name DQ",
+      FirstName %in% c("DKR", "Partial") ~ "Incomplete or DKR Name",
+      DOBDataQuality == 99 ~ "Missing DOB",
+      DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx DOB",
+      AgeAtEntry < 0 | AgeAtEntry > 95 ~ "Unlikely DOB or Entry Date",
+      SSN == "Missing" ~ "Missing SSN",
+      SSN %in% c("Invalid or Incomplete", "DKR") ~ "Invalid or Incomplete SSN",
+      RaceNone == 99 ~ "Missing Race",
+      RaceNone %in% c(8, 9) ~ "DKR Race",
       Ethnicity == 99 ~ "Missing Ethnicity",
+      Ethnicity %in% c(8, 9) ~ "DKR Ethnicity",
       Gender == 99 ~ "Missing Gender",
-      VeteranStatus == 99 ~ "Missing Veteran Status"
+      Gender %in% c(8, 9) ~ "DKR Gender",
+      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) & 
+        VeteranStatus == 99 ~ "Missing Veteran Status",
+      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) & 
+        VeteranStatus %in% c(8, 9) ~ "DKR Veteran Status",
+      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) & 
+        RelationshipToHoH == 1 &
+        VeteranStatus == 0 &
+        Destination %in% c(19, 28) ~ "Check Veteran Status for Accuracy"
     )
   ) %>%
   filter(!is.na(Issue)) %>%
-  select(PersonalID, ProjectName, Issue, EntryDate, MoveInDate, ExitDate, HouseholdID,
-         RelationshipToHoH, ProjectType, County, Region)
+  select(PersonalID, ProjectName, Issue, EntryDate, MoveInDate, ExitDate, 
+         HouseholdID, RelationshipToHoH, ProjectType, County, Region)
 
 # Missing Enrollment ------------------------------------------------------
 
@@ -69,7 +83,6 @@ missingEnrollment <- servedInDateRange %>%
 # Missing HoH
 # Multiple HoHs
 # Missing or Incorrect SSN
-# Missing UDEs
 # Missing Data at Entry
 # Missing Destination
 # Missing SSVF Data
@@ -92,3 +105,14 @@ missingEnrollment <- servedInDateRange %>%
 # Disability Subs Not Matching
 # Old Disability Type
 # SSI/SSDI but no Disability (Q)
+# Non HoHs w Svcs or Referrals
+# Unpaired Needs
+# Service Date Before Entry
+# Open Service/Referral
+# Unmet Needs
+# AP No Recent Referrals
+# Need Status Referral Outcomes
+# Veterans with No Referral
+# Side Door
+# Old Outstanding Referrals
+
