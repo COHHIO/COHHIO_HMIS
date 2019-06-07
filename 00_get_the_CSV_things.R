@@ -88,6 +88,7 @@ Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID") %>%
 rm(bowmanentryexits, counties)
 
 # grabbing extra provider data from sheet 5 -------------------------------
+# overwriting HUD CSV columns bc of the 50 character limit
 providerextras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
                             range = cell_cols("A:H")) %>%
@@ -98,8 +99,8 @@ rm(providerextras)
 
 
 # Region data -------------------------------------------------------------
-Regions <- read_csv("data/Regions.csv") %>%
-  mutate(RegionName = paste0("Homeless Planning Region ", Region)) %>%
+Regions <- read_csv("data/Regions.csv", col_types = "cd") %>%
+  mutate(RegionName = paste("Homeless Planning Region", Region)) %>%
   select(Region, County, RegionName) %>%
   arrange(Region)
 
@@ -278,24 +279,28 @@ trimmer <- function(x,break_limit){
 
 # Masking PII in the Client file (but not DOB) ----------------------------
 Client <- Client %>%
-  mutate(FirstName = case_when(
-    NameDataQuality %in% c(8,9) ~ "DKR",
-    NameDataQuality == 2 ~ "Partial",
-    NameDataQuality == 99 | 
-      is.na(NameDataQuality) | 
-      FirstName == "Anonymous" ~ "Missing",
-    !(NameDataQuality %in% c(2, 8, 9, 99) | 
-        is.na(NameDataQuality) | 
-        FirstName == "Anonymous") ~ "ok"),
+  mutate(
+    FirstName = case_when(
+      NameDataQuality %in% c(8, 9) ~ "DKR",
+      NameDataQuality == 2 ~ "Partial",
+      NameDataQuality == 99 |
+        is.na(NameDataQuality) |
+        FirstName == "Anonymous" ~ "Missing",!(
+          NameDataQuality %in% c(2, 8, 9, 99) |
+            is.na(NameDataQuality) |
+            FirstName == "Anonymous"
+        ) ~ "ok"
+    ),
     LastName = NULL,
     MiddleName = NULL,
     NameSuffix = NULL,
     SSN = case_when(
-      is.na(SSN) | is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
+      is.na(SSN) |
+        is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
       SSNDataQuality %in% c(8, 9) ~ "DKR",
-      ifelse((substr(SSN, 1, 1) != "0" &
-                substr(SSN, 1, 2) != "00"),
-             nchar(as.numeric(SSN)) != 9, FALSE) |
+      substr(SSN, 1, 1) == 0 |
+        substr(SSN, 1, 2) == "00" |
+        nchar(SSN) != 9 |
         substr(SSN, 1, 3) %in% c("000", "666") |
         substr(SSN, 1, 1) == 9 |
         substr(SSN, 4, 5) == "00" |
@@ -312,7 +317,8 @@ Client <- Client %>%
           888888888,
           123456789
         ) ~ "Invalid or Incomplete"
-    ))
+    )
+  )
 
 Client <- Client %>%
   mutate(SSN = case_when(
