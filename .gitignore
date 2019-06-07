@@ -12,3 +12,4 @@ LSAErrors.html
 2017-18Children.html
 *.png
 images/
+.DS_Store
