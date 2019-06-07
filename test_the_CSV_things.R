@@ -1,7 +1,8 @@
 library(tidyverse)
 library(janitor)
 library(skimr)
-library(tidylog)
+# library(tidylog)
+library(testthat)
 
 load("images/COHHIOHMIS.RData")
 
@@ -90,10 +91,42 @@ smallClient <-
 map2(smallClient, smallFromART, setdiff) %>% 
   map_int(length)
 
+a <- inner_join(smallClient, smallFromART, by = c("PersonalID" = "ClientID")) %>%
+  mutate(DOBDiff = if_else(ymd(DOB.x) == mdy(DOB.y), "same", "different"),
+         EthnicityDiff = if_else(Ethnicity.x == Ethnicity.y, "same", "different"),
+         GenderDiff = if_else(Gender.x == Gender.y, "same", "different")
+         ) %>%
+  select(PersonalID, DOBDiff, EthnicityDiff, GenderDiff)
+
 # Enrollment table testing ------------------------------------------------
 get_dupes(Enrollment, EnrollmentID)
 
 View(Enrollment %>% filter(PersonalID %in% c(105108, 54017, 188869, 192304, 144707)))
+
+fromARTEEs <- read_csv("data/BOST_EntryExit_.csv")
+fromCSVEEs <- Enrollment
+
+fromARTEEs <- fromARTEEs %>%
+  select(
+    EnrollmentID = EntryExitID,
+    GroupUID,
+    ClientID,
+    ProgramEntryDate,
+    ProgramExitDate,
+    DomesticViolenceSurvivor,
+    LiterallyHomelessDate,
+    RRHMoveInDate
+  )
+
+fromCSVEEs <- fromCSVEEs %>%
+  select(EnrollmentID, HouseholdID, PersonalID, MoveInDate, DateToStreetESSH)
+
+b <- inner_join(fromARTEEs, fromCSVEEs, by = "EnrollmentID") %>%
+  mutate(
+    MoveInDateDiff = if_else(mdy(RRHMoveInDate) == ymd(MoveInDate), "same", "different"),
+    ApproxDateDiff = if_else(ymd(DateToStreetESSH) == mdy(LiterallyHomelessDate),
+                             "same", "different")
+  )
 
 # Domestic Violence testing -----------------------------------------------
 get_dupes(HealthAndDV, EnrollmentID)
