@@ -60,8 +60,8 @@ missingUDEs <- servedInDateRange %>%
     )
   ) %>%
   filter(!is.na(Issue)) %>%
-  select(PersonalID, ProjectName, Issue, EntryDate, MoveInDate, ExitDate, 
-         HouseholdID, RelationshipToHoH, ProjectType, County, Region)
+  select(HouseholdID, PersonalID, ProjectName, Issue, EntryDate, MoveInDate, 
+         ExitDate, RelationshipToHoH, ProjectType, County, Region)
 
 # Missing Enrollment ------------------------------------------------------
 
