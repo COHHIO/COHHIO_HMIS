@@ -7,14 +7,29 @@ load("images/COHHIOHMIS.RData")
 
 # Providers to Check ------------------------------------------------------
 
+
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(HMIS_participating_between(., FileStart, FileEnd) &
-         operating_between(., FileStart, FileEnd) &
-         (GrantType != "HOPWA" | is.na(GrantType))) %>%
-  select(ProjectID, OrganizationID, OperatingStartDate, OperatingEndDate,
-         ProjectType, GrantType, FacilityType, ProjectName, ProjectAKA,
-         OrganizationName, County, Region) %>% unique()
+  filter(ProjectType == 12 |
+           (
+             HMIS_participating_between(., FileStart, FileEnd) &
+               operating_between(., FileStart, FileEnd) &
+               (GrantType != "HOPWA" | is.na(GrantType))
+           )) %>%
+  select(
+    ProjectID,
+    OrganizationID,
+    OperatingStartDate,
+    OperatingEndDate,
+    ProjectType,
+    GrantType,
+    FacilityType,
+    ProjectName,
+    ProjectAKA,
+    OrganizationName,
+    County,
+    Region
+  ) %>% unique()
     
 # Clients to Check --------------------------------------------------------
 
@@ -26,13 +41,14 @@ servedInDateRange <- Enrollment %>%
          NativeHIOtherPacific, White, RaceNone, Ethnicity, Gender, VeteranStatus,
          EnrollmentID, ProjectID, EntryDate, HouseholdID, RelationshipToHoH,
          LivingSituation, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH,
-         DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears,
-         DisablingCondition, DateOfEngagement, MoveInDate, EEType, CountyServed,
-         CountyPrior, ExitDate, Destination, ExitAdjust, AgeAtEntry) %>%
+         DateToStreetESSH, TimesHomelessPastThreeYears, 
+         MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement, 
+         MoveInDate, EEType, CountyServed, CountyPrior, ExitDate, Destination, 
+         ExitAdjust, AgeAtEntry, DateCreated = DateCreated.x) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-# Missing Data ------------------------------------------------------------
-# Missing UDEs
+# Missing UDEs ------------------------------------------------------------
+
 missingUDEs <- servedInDateRange %>%
   mutate(
     Issue = case_when(
@@ -40,60 +56,185 @@ missingUDEs <- servedInDateRange %>%
       FirstName %in% c("DKR", "Partial") ~ "Incomplete or DKR Name",
       DOBDataQuality == 99 ~ "Missing DOB",
       DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx DOB",
-      AgeAtEntry < 0 | AgeAtEntry > 95 ~ "Unlikely DOB or Entry Date",
+      AgeAtEntry < 0 |
+        AgeAtEntry > 95 ~ "Incorrect DOB or Entry Date",
       SSN == "Missing" ~ "Missing SSN",
-      SSN %in% c("Invalid or Incomplete", "DKR") ~ "Invalid or Incomplete SSN",
+      SSN %in% c("Invalid or Incomplete", "DKR") ~ "Invalid SSN",
       RaceNone == 99 ~ "Missing Race",
       RaceNone %in% c(8, 9) ~ "DKR Race",
       Ethnicity == 99 ~ "Missing Ethnicity",
       Ethnicity %in% c(8, 9) ~ "DKR Ethnicity",
       Gender == 99 ~ "Missing Gender",
       Gender %in% c(8, 9) ~ "DKR Gender",
-      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) & 
+      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
         VeteranStatus == 99 ~ "Missing Veteran Status",
-      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) & 
+      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
         VeteranStatus %in% c(8, 9) ~ "DKR Veteran Status",
-      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) & 
+      (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
         RelationshipToHoH == 1 &
         VeteranStatus == 0 &
         Destination %in% c(19, 28) ~ "Check Veteran Status for Accuracy"
     )
   ) %>%
   filter(!is.na(Issue)) %>%
-  select(HouseholdID, PersonalID, ProjectName, Issue, EntryDate, MoveInDate, 
-         ExitDate, RelationshipToHoH, ProjectType, County, Region)
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
-# Missing Enrollment ------------------------------------------------------
+# Household Issues --------------------------------------------------------
 
-missingEnrollment <- servedInDateRange %>%
-  mutate(
-    Issue = case_when(
-    RelationshipToHoH == 99 ~ "Missing Relationship to HoH",
-      LivingSituation == 99 |
-      LengthOfStay == 99 |
-      is.na(PreviousStreetESSH) | # needs more logic
-      is.na(DateToStreetESSH) | # needs more logic
-      is.na(TimesHomelessPastThreeYears) |
-      is.na(MonthsHomelessPastThreeYears) |
-      is.na(DisablingCondition)
-  ))
+childrenOnly <- servedInDateRange %>%
+  group_by(HouseholdID, ProjectType, ProjectName, County, Region) %>%
+  summarise(
+    hhMembers = n(),
+    maxAge = max(AgeAtEntry),
+    maxPersonalID = max(PersonalID),
+    minEntryDate = min(EntryDate),
+    Issue = "Children Only Household"
+  ) %>%
+  filter(maxAge < 18) %>%
+  ungroup() %>%
+  select(HouseholdID,
+         maxPersonalID,
+         ProjectName,
+         Issue,
+         EntryDate = minEntryDate,
+         ProjectType)
+
+noHoH <- servedInDateRange %>%
+  group_by(HouseholdID, ProjectType, ProjectName, County, Region) %>%
+  summarise(
+    hasHoH = if_else(min(RelationshipToHoH, na.rm = TRUE) != 1,
+                     FALSE,
+                     TRUE),
+    maxPersonalID = max(PersonalID),
+    minEntryDate = min(EntryDate),
+    Issue = "No Head of Household"
+  ) %>%
+  filter(hasHoH == FALSE) %>%
+  ungroup() %>%
+  select(HouseholdID,
+         maxPersonalID,
+         ProjectName,
+         Issue,
+         EntryDate = minEntryDate,
+         ProjectType)
+
+tooManyHoHs <- servedInDateRange %>%
+  filter(RelationshipToHoH == 1) %>%
+  group_by(HouseholdID, ProjectType, ProjectName, County, Region) %>%
+  summarise(
+    HoHsinHousehold = n(),
+    maxPersonalID = max(PersonalID),
+    minEntryDate = min(EntryDate),
+    Issue = "Too Many Heads of Household"
+  ) %>%
+  filter(HoHsinHousehold > 1) %>%
+  ungroup() %>%
+  select(HouseholdID,
+         maxPersonalID,
+         ProjectName,
+         Issue,
+         EntryDate = minEntryDate,
+         ProjectType)
+
+householdIssues <- rbind(tooManyHoHs, noHoH, childrenOnly)
+rm(tooManyHoHs, noHoH, childrenOnly)
 
 
-# Children Only HH
-# Missing HoH
-# Multiple HoHs
-# Missing or Incorrect SSN
-# Missing Data at Entry
+# Missing Data at Entry ---------------------------------------------------
+# Living Situation
+# Length of Stay
+# LoSUnderThreshold
+# PreviousStreetESSH
+# DateToStreetESSH
+# TimesHomelessPastThreeYears
+# MonthsHomelessPastThreeYears
+# DisablingCondition
+# MoveInDate
+# CountyServed
+# CountyPrior
+
+
+# Check Eligibility, Project Type, Residence Prior
+checkEligibility <- servedInDateRange %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    RelationshipToHoH,
+    LivingSituation,
+    LengthOfStay,
+    LOSUnderThreshold
+  ) %>%
+  filter(RelationshipToHoH == 1 &
+           (ProjectType %in% c(2, 3, 9, 10, 13) & # PTC that requires LH status
+           (
+             is.na(LivingSituation) |
+               (
+                 LivingSituation %in% c(4:7, 15, 24, 26) & # institution
+                   (
+                     !LengthOfStay %in% c(2, 3, 11, 12) | # <90 days
+                       is.na(LengthOfStay) |
+                       
+                       LOSUnderThreshold == FALSE | # LH prior
+                       is.na(LOSUnderThreshold)
+                   ) 
+               ) |
+               (
+                 LivingSituation %in% c(2:3, 8, 9, 12:14, 19:23, 25) &
+                   # not homeless
+                   (
+                     !LengthOfStay %in% c(10, 11) |  # <1 week
+                       is.na(LengthOfStay) |
+                       LOSUnderThreshold == FALSE |
+                       is.na(LOSUnderThreshold) # LH prior
+                   ) 
+               )
+           ))|
+           (ProjectType == 12 &
+              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25))) %>%
+  mutate(Issue = "Check Eligibility")
+
+# Missing PATH Data at Entry
 # Missing Destination
 # Missing SSVF Data
-# Missing PATH Data at Entry
 # Incorrect PATH Contact Date
 # Missing PATH Contact End Date
 # Missing PATH Contacts
 # Missing PATH Data at Exit
-# Questionable Housing Data
+
 # Duplicate EE
+
+duplicateEEs <- get_dupes(servedInDateRange, PersonalID, ProjectID, EntryDate) %>%
+  mutate(Issue = "Duplicate Entry Exits") %>%
+  select(HouseholdID, PersonalID, ProjectName, Issue, EntryDate, MoveInDate, 
+         ExitDate, ProjectType, County, Region)
+
 # Future Entry Exit
+
+futureEEs <- servedInDateRange %>%
+  filter(ymd(EntryDate) > ymd_hms(DateCreated) &
+           (ProjectType %in% c(1, 2, 4, 8) |
+           (ProjectType %in% c(3, 9) & ymd(EntryDate) > mdy("10012017"))))  %>%
+  mutate(Issue = "Future Entry Date") %>%
+  select(HouseholdID, PersonalID, ProjectName, Issue, DateCreated, EntryDate, 
+         MoveInDate, ExitDate, ProjectType, County, Region)
+  
 # Incorrect EE Type
 # HoHs Entering PH without SPDATs
 # HoHs in Shelter without a SPDAT
