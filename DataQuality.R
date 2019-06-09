@@ -41,7 +41,7 @@ servedInDateRange <- Enrollment %>%
          NativeHIOtherPacific, White, RaceNone, Ethnicity, Gender, VeteranStatus,
          EnrollmentID, ProjectID, EntryDate, HouseholdID, RelationshipToHoH,
          LivingSituation, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH,
-         DateToStreetESSH, TimesHomelessPastThreeYears, 
+         DateToStreetESSH, TimesHomelessPastThreeYears, AgeAtEntry,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement, 
          MoveInDate, EEType, CountyServed, CountyPrior, ExitDate, Destination, 
          ExitAdjust, AgeAtEntry, DateCreated = DateCreated.x) %>%
@@ -159,6 +159,86 @@ rm(tooManyHoHs, noHoH, childrenOnly)
 # DateToStreetESSH
 # TimesHomelessPastThreeYears
 # MonthsHomelessPastThreeYears
+missingLivingSituation <- servedInDateRange %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    AgeAtEntry,
+    RelationshipToHoH,
+    LivingSituation,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH,
+    DateToStreetESSH,
+    MonthsHomelessPastThreeYears,
+    TimesHomelessPastThreeYears
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) > mdy("10012016") &
+           ((
+             ProjectType %in% c(1, 4, 8, 12) & # ES, OUT, HP, and SH
+               (
+                 is.na(DateToStreetESSH) |
+                   is.na(MonthsHomelessPastThreeYears) |
+                   is.na(TimesHomelessPastThreeYears) |
+                   MonthsHomelessPastThreeYears %in% c(8, 9, 99) |
+                   TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                   is.na(LivingSituation) |
+                   LivingSituation %in% c(8, 9, 99)
+               )
+           ) |
+             (
+               ProjectType %in% c(2, 3, 9, 10, 13) & # TH, PSH, RRH
+                 (
+                   is.na(LivingSituation) |
+                     LivingSituation %in% c(8, 9, 99) |
+                     (
+                       LivingSituation %in% c(2:9, 12:15, 19:26) &
+                         # institution or not homeless
+                         (is.na(LOSUnderThreshold) |
+                            is.na(PreviousStreetESSH))
+                     )
+                 )
+             ))) %>%
+  mutate(Issue = "Incomplete Living Situation")
+
+DKRLivingSituation <- servedInDateRange %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    AgeAtEntry,
+    RelationshipToHoH,
+    LivingSituation,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH,
+    DateToStreetESSH,
+    MonthsHomelessPastThreeYears,
+    TimesHomelessPastThreeYears
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) > mdy("10012016") &
+           (
+             MonthsHomelessPastThreeYears %in% c(8, 9) |
+               TimesHomelessPastThreeYears %in% c(8, 9) |
+               LivingSituation %in% c(8, 9)
+             
+           )
+  ) %>%
+  mutate(Issue = "DKR Living Situation")
+
 # DisablingCondition
 # MoveInDate
 # CountyServed
@@ -176,33 +256,34 @@ checkEligibility <- servedInDateRange %>%
     EntryDate,
     MoveInDate,
     ExitDate,
+    AgeAtEntry,
     RelationshipToHoH,
     LivingSituation,
     LengthOfStay,
-    LOSUnderThreshold
+    LOSUnderThreshold,
+    PreviousStreetESSH
   ) %>%
-  filter(RelationshipToHoH == 1 &
-           (ProjectType %in% c(2, 3, 9, 10, 13) & # PTC that requires LH status
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & ymd(EntryDate) > mdy("10012016") &
+           (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
            (
              is.na(LivingSituation) |
                (
-                 LivingSituation %in% c(4:7, 15, 24, 26) & # institution
+                 LivingSituation %in% c(4:7, 15, 24) & # institution
                    (
-                     !LengthOfStay %in% c(2, 3, 11, 12) | # <90 days
+                     !LengthOfStay %in% c(2, 3, 10, 11) | # <90 days
                        is.na(LengthOfStay) |
-                       
-                       LOSUnderThreshold == FALSE | # LH prior
-                       is.na(LOSUnderThreshold)
+                       PreviousStreetESSH == 0 | # LH prior
+                       is.na(PreviousStreetESSH)
                    ) 
                ) |
                (
-                 LivingSituation %in% c(2:3, 8, 9, 12:14, 19:23, 25) &
+                 LivingSituation %in% c(2:3, 8, 9, 12:14, 19:23, 25, 26) &
                    # not homeless
                    (
                      !LengthOfStay %in% c(10, 11) |  # <1 week
                        is.na(LengthOfStay) |
-                       LOSUnderThreshold == FALSE |
-                       is.na(LOSUnderThreshold) # LH prior
+                       PreviousStreetESSH == 0 | # LH prior
+                       is.na(PreviousStreetESSH)
                    ) 
                )
            ))|
@@ -218,14 +299,20 @@ checkEligibility <- servedInDateRange %>%
 # Missing PATH Contacts
 # Missing PATH Data at Exit
 
-# Duplicate EE
+
+
+# Duplicate EEs -----------------------------------------------------------
 
 duplicateEEs <- get_dupes(servedInDateRange, PersonalID, ProjectID, EntryDate) %>%
   mutate(Issue = "Duplicate Entry Exits") %>%
   select(HouseholdID, PersonalID, ProjectName, Issue, EntryDate, MoveInDate, 
          ExitDate, ProjectType, County, Region)
 
-# Future Entry Exit
+
+# Future Entry Exits ------------------------------------------------------
+# PSHs in the old days before Move In Dates would definitely have been entering
+# their clients prior to their Entry Date since back then the Entry Date was the
+# day they moved in. So they're excused from this prior to Move In Date's existence.
 
 futureEEs <- servedInDateRange %>%
   filter(ymd(EntryDate) > ymd_hms(DateCreated) &
@@ -235,25 +322,86 @@ futureEEs <- servedInDateRange %>%
   select(HouseholdID, PersonalID, ProjectName, Issue, DateCreated, EntryDate, 
          MoveInDate, ExitDate, ProjectType, County, Region)
   
-# Incorrect EE Type
-# HoHs Entering PH without SPDATs
-# HoHs in Shelter without a SPDAT
-# Missing Income at Entry
-# Missing Income at Exit
-# Missing Health Ins at Entry
-# Missing NCBs at Entry
-# Missing NCBs at Exit
-# Disability Subs Not Matching
-# Old Disability Type
-# SSI/SSDI but no Disability (Q)
-# Non HoHs w Svcs or Referrals
-# Unpaired Needs
-# Service Date Before Entry
-# Open Service/Referral
-# Unmet Needs
-# AP No Recent Referrals
-# Need Status Referral Outcomes
-# Veterans with No Referral
-# Side Door
-# Old Outstanding Referrals
+# Incorrect Entry Exit Type -----------------------------------------------
+
+
+
+# HoHs Entering PH without SPDATs -----------------------------------------
+
+
+
+# HoHs in Shelter without a SPDAT -----------------------------------------
+
+
+
+# Missing Income at Entry -------------------------------------------------
+
+
+
+# Missing Income at Exit --------------------------------------------------
+
+
+
+# Missing Health Ins at Entry ---------------------------------------------
+
+
+
+# Missing NCBs at Entry ---------------------------------------------------
+
+
+
+# Missing NCBs at Exit ----------------------------------------------------
+
+
+
+# Disability Subs Not Matching --------------------------------------------
+
+
+
+# Old Disability Type -----------------------------------------------------
+
+
+
+# SSI/SSDI but no Disability (Q) ------------------------------------------
+
+
+
+# Non HoHs w Svcs or Referrals --------------------------------------------
+
+
+
+# Unpaired Needs ----------------------------------------------------------
+
+
+
+# Service Date Before Entry -----------------------------------------------
+
+
+
+# Unmet Needs -------------------------------------------------------------
+
+
+
+# AP No Recent Referrals --------------------------------------------------
+
+
+
+# Need Status Referral Outcomes -------------------------------------------
+
+
+
+# Veterans with No Referral -----------------------------------------------
+
+
+
+# Side Door ---------------------------------------------------------------
+
+
+
+# Old Outstanding Referrals -----------------------------------------------
+
+
+
+# Service Date Before Entry -----------------------------------------------
+
 
