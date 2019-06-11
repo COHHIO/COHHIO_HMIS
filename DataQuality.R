@@ -97,14 +97,14 @@ childrenOnly <- servedInDateRange %>%
   summarise(
     hhMembers = n(),
     maxAge = max(AgeAtEntry),
-    maxPersonalID = max(PersonalID),
+    minPersonalID = min(PersonalID),
     minEntryDate = min(EntryDate),
     Issue = "Children Only Household"
   ) %>%
   filter(maxAge < 18) %>%
   ungroup() %>%
   select(HouseholdID,
-         maxPersonalID,
+         minPersonalID,
          ProjectName,
          Issue,
          EntryDate = minEntryDate,
@@ -116,14 +116,14 @@ noHoH <- servedInDateRange %>%
     hasHoH = if_else(min(RelationshipToHoH, na.rm = TRUE) != 1,
                      FALSE,
                      TRUE),
-    maxPersonalID = max(PersonalID),
+    minPersonalID = min(PersonalID),
     minEntryDate = min(EntryDate),
     Issue = "No Head of Household"
   ) %>%
   filter(hasHoH == FALSE) %>%
   ungroup() %>%
   select(HouseholdID,
-         maxPersonalID,
+         minPersonalID,
          ProjectName,
          Issue,
          EntryDate = minEntryDate,
@@ -134,14 +134,14 @@ tooManyHoHs <- servedInDateRange %>%
   group_by(HouseholdID, ProjectType, ProjectName, County, Region) %>%
   summarise(
     HoHsinHousehold = n(),
-    maxPersonalID = max(PersonalID),
+    minPersonalID = min(PersonalID),
     minEntryDate = min(EntryDate),
     Issue = "Too Many Heads of Household"
   ) %>%
   filter(HoHsinHousehold > 1) %>%
   ungroup() %>%
   select(HouseholdID,
-         maxPersonalID,
+         minPersonalID,
          ProjectName,
          Issue,
          EntryDate = minEntryDate,
