@@ -239,13 +239,101 @@ DKRLivingSituation <- servedInDateRange %>%
   ) %>%
   mutate(Issue = "DKR Living Situation")
 
-# DisablingCondition
+# DisablingCondition at Entry
+
+missingDisabilities <- servedInDateRange %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    HouseholdID,
+    RelationshipToHoH,
+    DisablingCondition,
+    County,
+    Region
+  ) %>%
+  filter(DisablingCondition == 99 |
+      is.na(DisablingCondition)) %>%
+  mutate(Issue = "Missing Disabling Condition")
+
+smallDisabilities <- Disabilities %>%
+  filter(DataCollectionStage == 1, DisabilityResponse != 0) %>%
+  select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
+         IndefiniteAndImpairs)
+
+incongruentDisabilities <- servedInDateRange %>%
+  select(PersonalID,
+         EnrollmentID,
+         AgeAtEntry,
+         ProjectName,
+         EntryDate,
+         HouseholdID,
+         RelationshipToHoH,
+         DisablingCondition,
+         County,
+         Region) %>%
+  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
+  group_by(PersonalID,
+           EnrollmentID,
+           AgeAtEntry,
+           ProjectName,
+           EntryDate,
+           HouseholdID,
+           RelationshipToHoH,
+           DisablingCondition,
+           County,
+           Region) %>%
+  filter(IndefiniteAndImpairs %in% c(0, 1), DisablingCondition %in% c(0, 1)) %>%
+  summarise(HasLongDurationSub = max(IndefiniteAndImpairs)) %>%
+  ungroup() %>%
+  mutate(Issue = case_when(
+    DisablingCondition != HasLongDurationSub ~ 
+      "Client's subassessments don't match the Yes/No"
+  )) %>%
+  filter(!is.na(Issue))
+
+# INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
+missingDisabilitySubs <- servedInDateRange %>%
+  select(PersonalID,
+         EnrollmentID,
+         AgeAtEntry,
+         ProjectName,
+         EntryDate,
+         HouseholdID,
+         RelationshipToHoH,
+         DisablingCondition,
+         County,
+         Region) %>%
+  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
+  filter(DisablingCondition == 1 & is.na(DisabilitiesID)) %>%
+  mutate(Issue = "Missing Disability Subs")
+
+missingLongDuration <- servedInDateRange %>%
+  select(PersonalID,
+         EnrollmentID,
+         AgeAtEntry,
+         ProjectName,
+         EntryDate,
+         HouseholdID,
+         RelationshipToHoH,
+         DisablingCondition,
+         County,
+         Region) %>%
+  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
+  filter(IndefiniteAndImpairs == 99) %>%
+  mutate(Issue = "Indefinite Duration not answered in subassessment") %>%
+  filter(!is.na(Issue))
+
 # MoveInDate
 # CountyServed
 # CountyPrior
 
 
-# Check Eligibility, Project Type, Residence Prior
+
+# Check Eligibility, Project Type, Residence Prior ------------------------
+
 checkEligibility <- servedInDateRange %>%
   select(
     PersonalID,
@@ -263,7 +351,8 @@ checkEligibility <- servedInDateRange %>%
     LOSUnderThreshold,
     PreviousStreetESSH
   ) %>%
-  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & ymd(EntryDate) > mdy("10012016") &
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
+           ymd(EntryDate) > mdy("10012016") &
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
            (
              is.na(LivingSituation) |
@@ -293,6 +382,7 @@ checkEligibility <- servedInDateRange %>%
 
 # Missing PATH Data at Entry
 # Missing Destination
+
 # Missing SSVF Data
 # Incorrect PATH Contact Date
 # Missing PATH Contact End Date
