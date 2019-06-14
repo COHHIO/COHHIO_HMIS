@@ -294,7 +294,7 @@ incongruentDisabilities <- servedInDateRange %>%
   )) %>%
   filter(!is.na(Issue))
 
-#e INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
+# INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
 missingDisabilitySubs <- servedInDateRange %>%
   select(PersonalID,
          EnrollmentID,
@@ -324,8 +324,7 @@ missingLongDuration <- servedInDateRange %>%
          Region) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(IndefiniteAndImpairs == 99) %>%
-  mutate(Issue = "Long Duration not answered in subassessment") %>%
-  filter(!is.na(Issue))
+  mutate(Issue = "Long Duration not answered in subassessment")
 
 # MoveInDate
 # CountyServed
