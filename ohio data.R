@@ -97,6 +97,12 @@ getData <- function(agebracket, year){
 AllAges2010 <- getData(AllAges, 2010)
 AllAges2017 <- getData(AllAges, 2017)
 
+ohio <- map_data("county") %>%
+  filter(region == "ohio")
+
+z <- left_join(AllAges2017, ohio, 
+                         by = c("CTYNAME" = "subregion")) 
+
 
 
 
