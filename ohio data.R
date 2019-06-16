@@ -64,28 +64,30 @@ y <- x %>%
     AsianAlone = NHAA_MALE + NHAA_FEMALE,
     NHAlone = NHNA_MALE + NHNA_FEMALE,
     Multi = NHTOM_MALE + NHTOM_FEMALE,
-    Latino = H_MALE + H_FEMALE
-  ) %>%
-  select(COUNTY, CTYNAME, YEAR, AGEGRP, TOT_POP, TOT_FEMALE, TOT_MALE, WhiteAlone,
+    Latino = H_MALE + H_FEMALE,
+    STATE = "ohio",
+    CTYNAME = tolower(str_remove(CTYNAME, " County"))
+    ) %>%
+  select(COUNTY, CTYNAME, STATE, YEAR, AGEGRP, TOT_POP, TOT_FEMALE, TOT_MALE, WhiteAlone,
          BlackAlone, AIAlone, AsianAlone, NHAlone, Multi, Latino)
 
-AllAges <- x %>% filter(AGEGRP == "Total")
-Babies <- x %>% filter(AGEGRP == "4")
-ZeroTo19 <- x %>% filter(AGEGRP %in% c("4", "9", "14", "19")) %>%
-  group_by(COUNTY, CTYNAME, YEAR) %>%
+AllAges <- y %>% filter(AGEGRP == "Total") %>% select(-AGEGRP)
+Babies <- y %>% filter(AGEGRP == "4") %>% select(-AGEGRP)
+ZeroTo19 <- y %>% filter(AGEGRP %in% c("4", "9", "14", "19")) %>%
+  group_by(STATE, COUNTY, CTYNAME, YEAR) %>%
   summarise_if(is.numeric, sum, na.rm = TRUE)
-To24 <- x %>% filter(AGEGRP == "24")
-To34 <- x %>% filter(AGEGRP %in% c("29", "34")) %>%
-  group_by(COUNTY, CTYNAME, YEAR) %>%
+To24 <- y %>% filter(AGEGRP == "24") %>% select(-AGEGRP)
+To34 <- y %>% filter(AGEGRP %in% c("29", "34")) %>%
+  group_by(STATE, COUNTY, CTYNAME, YEAR) %>%
   summarise_if(is.numeric, sum, na.rm = TRUE)
-To49 <- x %>% filter(AGEGRP %in% c("39", "44", "49")) %>%
-  group_by(COUNTY, CTYNAME, YEAR) %>%
+To49 <- y %>% filter(AGEGRP %in% c("39", "44", "49")) %>%
+  group_by(STATE, COUNTY, CTYNAME, YEAR) %>%
   summarise_if(is.numeric, sum, na.rm = TRUE)
-To64 <- x %>% filter(AGEGRP %in% c("54", "59", "64")) %>%
-  group_by(COUNTY, CTYNAME, YEAR) %>%
+To64 <- y %>% filter(AGEGRP %in% c("54", "59", "64")) %>%
+  group_by(STATE, COUNTY, CTYNAME, YEAR) %>%
   summarise_if(is.numeric, sum, na.rm = TRUE)
-Over64 <- x %>% filter(AGEGRP %in% c("69", "74", "79", "84", "85+")) %>%
-  group_by(COUNTY, CTYNAME, YEAR) %>%
+Over64 <- y %>% filter(AGEGRP %in% c("69", "74", "79", "84", "85+")) %>%
+  group_by(STATE, COUNTY, CTYNAME, YEAR) %>%
   summarise_if(is.numeric, sum, na.rm = TRUE)
 
 getData <- function(agebracket, year){
@@ -94,5 +96,10 @@ getData <- function(agebracket, year){
 
 AllAges2010 <- getData(AllAges, 2010)
 AllAges2017 <- getData(AllAges, 2017)
+
+
+
+
+
 
 
