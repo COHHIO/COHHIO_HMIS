@@ -1,10 +1,10 @@
-# R Minor
+# COHHIO HMIS
 
-This repository would be helpful to any HUD-designated Continuum of Care looking for a way to get more out of their HMIS data.
+This repository would be helpful to any HUD-designated Continuum of Care looking for a way to get more out of their HMIS data. While there are some reports here, this repository's most important function is getting data from HMIS to a tidy form that can be used in other projects (and repositories). 
 
 If you are interested in using this code, welcome! Also please be sure you have read the licensing and then follow the instructions here to get started. All the code in this repository is written using R and R Studio. Please consult the book [R for Data Science](https://r4ds.had.co.nz/) for help getting started with R and R Studio.
 
-Once this is ready for production, I will be running the HUD CSV export and the RMisc file daily and saving it to the data directory in my R Project. There will be no actual data backed up here, only the code that interacts with the data. 
+Once this is ready for production, I will be running the HUD CSV export and the RMisc file every few days and saving it to the data directory in my R Project. There will be no actual data backed up here, only the code that interacts with the data. 
 
 Data I'm using:
 
@@ -17,9 +17,9 @@ Data I'm using:
    * Provider level: full names (beyond the 50 character limit), Grant Type, Facility Type, Operational, Uses SP (All specific to ServicePoint.)
    * Veteran data for Coordinated Entry (Custom fields)
    * Housing Offers data (Custom fields)
-3. "Regions" file that simply lists Counties with their Regions. As a Balance of State, we have 17 sub-regions we sometimes group our reporting on.
+3. A static "Regions" file that simply lists Counties with their Regions. As a Balance of State, we have 17 sub-regions we sometimes group our reporting on.
 
-You may not need this extra data file, so whatever you use from this repository will need to be adjusted to leave it out.
+You may not need the extra data files, so whatever you use from this repository will need to be adjusted to leave it out.
 
 The workflow I'm currently using (which I expect to become less tedious eventually) is the following:
 
