@@ -1,24 +1,8 @@
 library(tidyverse)
 library(readr)
-# library(tidycensus)
-# 
-# Sys.getenv("CENSUS_API_KEY")
-# 
-# vars10 <- c("P005003", "P005004", "P005006", "P004003")
-# 
-# oh <- get_acs(geography = "county", variables = "B02001", year = 2017, 
-#               state = "OH") %>%
-#   mutate(pct = 100 * (value / summary_value))
-# 
-# ggplot(oh, aes(fill = pct, color = pct)) +
-#   geom_sf() +
-#   facet_wrap(~variable)
-# 
-# varsf1 <- load_variables(2010, "sf1")
 
 # I'm using the following dataset for the analysis here:
 #https://www.census.gov/data/tables/2017/demo/popest/counties-detail.html#ds
-
 
 x <-
   read_csv("data/cc-est2017-alldata-39.csv",
@@ -68,8 +52,8 @@ y <- x %>%
     STATE = "ohio",
     CTYNAME = tolower(str_remove(CTYNAME, " County"))
     ) %>%
-  select(COUNTY, CTYNAME, STATE, YEAR, AGEGRP, TOT_POP, TOT_FEMALE, TOT_MALE, WhiteAlone,
-         BlackAlone, AIAlone, AsianAlone, NHAlone, Multi, Latino)
+  select(COUNTY, CTYNAME, STATE, YEAR, AGEGRP, TOT_POP, TOT_FEMALE, TOT_MALE, 
+         WhiteAlone, BlackAlone, AIAlone, AsianAlone, NHAlone, Multi, Latino)
 
 AllAges <- y %>% filter(AGEGRP == "Total") %>% select(-AGEGRP)
 Babies <- y %>% filter(AGEGRP == "4") %>% select(-AGEGRP)
