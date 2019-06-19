@@ -593,10 +593,6 @@ checkEligibility <- servedInDateRange %>%
     Region
   )
 
-visualEligibility <- checkEligibility %>%
-  select(ProjectType) %>% 
-  inspect_num() %>% show_plot(high_cardinality = 1)
-
 # Missing PATH Data at Entry
 # Missing Destination
 
