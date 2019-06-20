@@ -69,6 +69,11 @@ Inventory <- left_join(Inventory, YouthBeds, by = "InventoryID") %>%
   select(1, ProjectID = 2, 3:9, YouthBedInventory = 22, 11:20) 
 
 rm(YouthBeds)
+
+
+# Adding Addresses to Provider --------------------------------------------
+
+
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
