@@ -96,7 +96,7 @@ rm(bowmanentryexits, counties)
 # overwriting HUD CSV columns bc of the 50 character limit
 providerextras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
-                            range = cell_cols("A:H")) %>%
+                            range = cell_cols("A:M")) %>%
   mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
 Project <- Project %>% select(-ProjectName, -ProjectCommonName) %>%
   left_join(., providerextras, by = "ProjectID")
@@ -272,14 +272,6 @@ HMIS_participating_between <- function(table, start, end) {
 FileEnd <- format.Date(file.info("data/Client.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(mdy(FileEnd) - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-
-# Function that breaks up long strings ------------------------------------
-# thanks to Karsten and Dave Gruenewald from StackOverflow!
-trimmer <- function(x,break_limit){ 
-  sapply(strwrap(x, break_limit, simplify=FALSE), 
-         paste, 
-         collapse="\n") 
-  }
 
 
 # Masking PII in the Client file (but not DOB) ----------------------------
