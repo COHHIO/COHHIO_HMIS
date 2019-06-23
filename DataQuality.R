@@ -113,29 +113,29 @@ missingUDEs <- servedInDateRange %>%
     Region
   )
 
-stagingMissingUDEs <- missingUDEs %>%
-  filter(Type == "Error") %>%
-  group_by(ProjectName, Issue, ProjectType, Type, County, Region) %>%
-  summarise(ClientCount = n())
+# stagingMissingUDEs <- missingUDEs %>%
+#   filter(Type == "Error") %>%
+#   group_by(ProjectName, Issue, ProjectType, Type, County, Region) %>%
+#   summarise(ClientCount = n())
 # 
 # visualUDEs <- missingUDEs %>% 
 #   select(County, Issue, ProjectName) %>% 
 #   inspect_cat() %>% 
 #   show_plot()
-visualUDEErrors <- stagingMissingUDEs %>%
-  treemap(index = c("Issue", "ProjectName"),
-          vSize = "ClientCount",
-          title = "Universal Data Elements Errors")
-
-stagingUDEWarningss <- missingUDEs %>%
-  filter(Type == "Warning") %>%
-  group_by(ProjectName, Issue, ProjectType, Type, County, Region) %>%
-  summarise(ClientCount = n())
-
-visualUDEWarnings <- stagingUDEWarningss %>%
-  treemap(index = c("Issue", "ProjectName"),
-          vSize = "ClientCount",
-          title = "Universal Data Elements Warnings")
+# visualUDEErrors <- stagingMissingUDEs %>%
+#   treemap(index = c("Issue", "ProjectName"),
+#           vSize = "ClientCount",
+#           title = "Universal Data Elements Errors")
+# 
+# stagingUDEWarningss <- missingUDEs %>%
+#   filter(Type == "Warning") %>%
+#   group_by(ProjectName, Issue, ProjectType, Type, County, Region) %>%
+#   summarise(ClientCount = n())
+# 
+# visualUDEWarnings <- stagingUDEWarningss %>%
+#   treemap(index = c("Issue", "ProjectName"),
+#           vSize = "ClientCount",
+#           title = "Universal Data Elements Warnings")
 
 # Household Issues --------------------------------------------------------
 
@@ -222,23 +222,19 @@ householdIssues <- rbind(tooManyHoHs, noHoH, childrenOnly) %>%
   mutate(Type = "Error")
 rm(tooManyHoHs, noHoH, childrenOnly)
 
-stagingHHs <- householdIssues  %>%
-  group_by(ProjectName, Issue) %>%
-  summarise(HHCount = n())
-
-visualHHs <- stagingHHs %>%
-  treemap(index = c("Issue", "ProjectName"),
-          vSize = "HHCount",
-          title = "Household Issues")
+# stagingHHs <- householdIssues  %>%
+#   group_by(ProjectName, Issue) %>%
+#   summarise(HHCount = n())
+# 
+# visualHHs <- stagingHHs %>%
+#   treemap(index = c("Issue", "ProjectName"),
+#           vSize = "HHCount",
+#           title = "Household Issues")
 
 # Missing Data at Entry ---------------------------------------------------
-# Living Situation
-# Length of Stay
-# LoSUnderThreshold
-# PreviousStreetESSH
-# DateToStreetESSH
-# TimesHomelessPastThreeYears
-# MonthsHomelessPastThreeYears
+# Living Situation,  Length of Stay, LoSUnderThreshold, PreviousStreetESSH,
+# DateToStreetESSH, TimesHomelessPastThreeYears, MonthsHomelessPastThreeYears
+
 missingLivingSituationDetail <- servedInDateRange %>%
   select(
     PersonalID,
@@ -524,10 +520,63 @@ missingLongDuration <- servedInDateRange %>%
   )
 
 # MoveInDate
+# check that these aren't just bad data from WellSky
+# also check the ART report to see what logic I'm using exactly
+incorrectMoveInDate <- servedInDateRange %>%
+  filter(ProjectType %in% c(3, 9, 12),
+         (ymd(MoveInDate) < ymd(EntryDate) |
+           ymd(MoveInDate) > ymd(ExitDate))) %>%
+  mutate(Issue = "Incorrect Move In Date",
+         Type = "Error") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region) 
+  
 # CountyServed
+
+missingCountyServed <- servedInDateRange %>%
+  filter(is.na(CountyServed)) %>%
+  mutate(Issue = "Missing County Served",
+         Type = "Error") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region) 
+
 # CountyPrior
-
-
+# check to see if all hh members have to answer this or if just adults or all?
+missingCountyPrior <- servedInDateRange %>%
+  filter(is.na(CountyPrior)) %>%
+  mutate(Issue = "Missing County Prior",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  ) 
 
 # Check Eligibility, Project Type, Residence Prior ------------------------
 
@@ -648,12 +697,57 @@ futureEEs <- servedInDateRange %>%
   )
   
 # Incorrect Entry Exit Type -----------------------------------------------
-
-
+# check ART report for exact logic. This is an approximation.
+incorrectEntryExitType <- servedInDateRange %>%
+  filter(EEType != "HUD" & is.na(GrantType)) %>%
+  mutate(Issue = "Incorrect EE Type",
+         Type = "Error") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region)
 
 # HoHs Entering PH without SPDATs -----------------------------------------
 
+EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
+  select(PersonalID, RelationshipToHoH, EnrollmentID, ProjectID, EntryDate,
+         MoveInDate, ExitDate, HouseholdID, ProjectType, ProjectName, County,
+         Region, SPDATRecordID, SPDATProvider, StartDate, Score) %>%
+  filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
+    ymd(EntryDate) >= ymd(StartDate)) %>% # score is on or before Entry Date
+  group_by(EnrollmentID) %>%
+  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
+  filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
+  mutate(MaxScore = max(Score)) %>%
+  filter(Score == MaxScore) %>%
+  distinct() %>%
+  ungroup() %>%
+  select(-MaxScoreDate, -MaxScore) %>%
+  mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
 
+enteredPHwithoutSPDAT <- 
+  anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
+  filter(ProjectType %in% c(3, 9, 13)) %>%
+  mutate(Issue = "HoHs Entering PH w/o SPDAT",
+         Type = "Warning") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region)
 
 # HoHs in Shelter without a SPDAT -----------------------------------------
 
@@ -742,7 +836,11 @@ DataQualityHMIS <- rbind(checkEligibility,
                          missingDisabilitySubs,
                          missingLivingSituation,
                          missingLongDuration,
-                         missingUDEs)
+                         missingUDEs,
+                         incorrectMoveInDate,
+                         missingCountyServed,
+                         missingCountyPrior,
+                         incorrectEntryExitType)
 
 stagingDQErrors <- DataQualityHMIS %>%
   filter(Type == "Error") %>%
@@ -753,3 +851,4 @@ visualDataQuality <- stagingDQErrors %>%
   treemap(index = c("Issue", "ProjectName"),
           vSize = "Count",
           title = "Data Quality Errors")
+
