@@ -751,7 +751,24 @@ enteredPHwithoutSPDAT <-
 
 # HoHs in Shelter without a SPDAT -----------------------------------------
 
-
+LHwithoutSPDAT <- 
+  anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
+  filter(ProjectType %in% c(1, 2, 4) &
+         ymd(EntryDate) < today() - days(8) &
+            is.na(ExitDate)) %>%
+  mutate(Issue = "HoHs in ES, TH, SH w/o SPDAT",
+         Type = "Warning") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region)
 
 # Missing Income at Entry -------------------------------------------------
 
