@@ -877,7 +877,9 @@ conflictingIncomeYN <- servedInDateRange %>%
     County,
     Region
   )
-
+# I think this turns up with 0 records bc they're calculating the TMI from the
+# subs instead of using the field itself. Understandable but that means I'll 
+# have to pull the TMI data in through RMisc. :(
 conflictingIncomeDollars <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
