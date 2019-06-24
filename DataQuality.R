@@ -750,7 +750,8 @@ enteredPHwithoutSPDAT <-
          Region)
 
 # HoHs in Shelter without a SPDAT -----------------------------------------
-
+# this is a little different than the ART report; it only flags stayers
+# since users can't do anything about leavers
 LHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(ProjectType %in% c(1, 2, 4) &
@@ -771,8 +772,184 @@ LHwithoutSPDAT <-
          Region)
 
 # Missing Income at Entry -------------------------------------------------
+IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
+missingIncome <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
+         MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
+         TotalMonthlyIncome, IncomeFromAnySource) %>%
+  filter(DataCollectionStage == 1 & 
+           (AgeAtEntry > 17 | 
+              is.na(AgeAtEntry)) &
+           (IncomeFromAnySource == 99 | 
+              is.na(IncomeFromAnySource))) %>%
+  mutate(Issue = "Income Missing",
+         Type = "Error") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region)
 
+conflictingIncomeYN <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    TotalMonthlyIncome,
+    IncomeFromAnySource,
+    Earned,
+    EarnedAmount,
+    Unemployment,
+    UnemploymentAmount,
+    SSI,
+    SSIAmount,
+    SSDI,
+    SSDIAmount,
+    VADisabilityService,
+    VADisabilityServiceAmount,
+    VADisabilityNonService,
+    VADisabilityNonServiceAmount,
+    PrivateDisability,
+    PrivateDisabilityAmount,
+    WorkersComp,
+    WorkersCompAmount,
+    TANF,
+    TANFAmount,
+    GA,
+    GAAmount,
+    SocSecRetirement,
+    SocSecRetirementAmount,
+    Pension,
+    PensionAmount,
+    ChildSupport,
+    ChildSupportAmount,
+    Alimony,
+    AlimonyAmount,
+    OtherIncomeSource,
+    OtherIncomeAmount,
+    OtherIncomeSourceIdentify
+  ) %>%
+  filter(DataCollectionStage == 1 &
+           (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+           ((
+             IncomeFromAnySource == 1 &
+               Earned + Unemployment + SSI + SSDI + VADisabilityService +
+               VADisabilityNonService + PrivateDisability + WorkersComp +
+               TANF + GA + SocSecRetirement + Pension + ChildSupport +
+               Alimony + OtherIncomeSource == 0
+           ) |
+             (
+               IncomeFromAnySource == 0 &
+                 Earned + Unemployment + SSI + SSDI + VADisabilityService +
+                 VADisabilityNonService + PrivateDisability + WorkersComp +
+                 TANF + GA + SocSecRetirement + Pension + ChildSupport +
+                 Alimony + OtherIncomeSource > 0
+             )
+           )) %>%
+  mutate(Issue = "Conflicting Income yes/no",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
+conflictingIncomeDollars <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    TotalMonthlyIncome,
+    IncomeFromAnySource,
+    Earned,
+    EarnedAmount,
+    Unemployment,
+    UnemploymentAmount,
+    SSI,
+    SSIAmount,
+    SSDI,
+    SSDIAmount,
+    VADisabilityService,
+    VADisabilityServiceAmount,
+    VADisabilityNonService,
+    VADisabilityNonServiceAmount,
+    PrivateDisability,
+    PrivateDisabilityAmount,
+    WorkersComp,
+    WorkersCompAmount,
+    TANF,
+    TANFAmount,
+    GA,
+    GAAmount,
+    SocSecRetirement,
+    SocSecRetirementAmount,
+    Pension,
+    PensionAmount,
+    ChildSupport,
+    ChildSupportAmount,
+    Alimony,
+    AlimonyAmount,
+    OtherIncomeSource,
+    OtherIncomeAmount,
+    OtherIncomeSourceIdentify
+  ) %>%
+  filter(
+    DataCollectionStage == 1 &
+      (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+      TotalMonthlyIncome != EarnedAmount + UnemploymentAmount + SSIAmount + 
+      SSDIAmount + VADisabilityServiceAmount + VADisabilityNonServiceAmount +
+      PrivateDisabilityAmount + WorkersCompAmount + TANFAmount +
+      GAAmount + SocSecRetirementAmount + PensionAmount +
+      ChildSupportAmount + AlimonyAmount + OtherIncomeAmount
+  ) %>%
+  mutate(Issue = "Conflicting Income Amounts",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
 # Missing Income at Exit --------------------------------------------------
 
