@@ -877,6 +877,7 @@ conflictingIncomeYN <- servedInDateRange %>%
     County,
     Region
   )
+
 # I think this turns up with 0 records bc they're calculating the TMI from the
 # subs instead of using the field itself. Understandable but that means I'll 
 # have to pull the TMI data in through RMisc. :(
@@ -955,6 +956,49 @@ conflictingIncomeDollars <- servedInDateRange %>%
 
 # Missing Income at Exit --------------------------------------------------
 
+
+
+# Overlapping Enrollment/Move In Dates ------------------------------------
+
+overlaps <- servedInDateRange %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ExitAdjust,
+    ProjectType,
+    County,
+    Region
+  ) %>%
+  mutate(
+    MoveInDateAdjust = if_else(
+      ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(MoveInDate) <= ExitAdjust &
+        ProjectType %in% c(3, 9, 13),
+      MoveInDate,
+      NULL
+    ),
+    EntryAdjust = case_when(
+      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
+      ProjectType %in% c(3, 9, 13) &
+        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
+      ProjectType %in% c(3, 9, 13) &
+        is.na(MoveInDateAdjust) ~ EntryDate
+    ),
+    LiterallyInProject = if_else(
+      ProjectType %in% c(3, 9, 13),
+      interval(MoveInDateAdjust, ExitAdjust),
+      interval(EntryAdjust, ExitAdjust)
+    ),
+    Issue = "Overlap",
+    Type = "Error"
+  ) %>%
+  filter(!is.na(LiterallyInProject)) %>%
+  group_by(PersonalID)
+# ^^ not finished at all. this is a little advanced..
 
 
 # Missing Health Ins at Entry ---------------------------------------------
