@@ -960,6 +960,8 @@ conflictingIncomeDollars <- servedInDateRange %>%
 
 # Overlapping Enrollment/Move In Dates ------------------------------------
 
+# a problem with this is it pulls in every EE for any client with an overlap
+# another problem is an exit and an entry on the same day = an overlap
 overlaps <- servedInDateRange %>%
   select(
     HouseholdID,
@@ -975,6 +977,7 @@ overlaps <- servedInDateRange %>%
   ) %>%
   mutate(
     MoveInDateAdjust = if_else(
+      # only counts movein dates between entry & exit
       ymd(EntryDate) <= ymd(MoveInDate) &
         ymd(MoveInDate) <= ExitAdjust &
         ProjectType %in% c(3, 9, 13),
@@ -982,6 +985,7 @@ overlaps <- servedInDateRange %>%
       NULL
     ),
     EntryAdjust = case_when(
+      #for PSH and RRH, EntryAdjust = MoveInDate
       ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
       ProjectType %in% c(3, 9, 13) &
         !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
@@ -993,16 +997,31 @@ overlaps <- servedInDateRange %>%
       interval(MoveInDateAdjust, ExitAdjust),
       interval(EntryAdjust, ExitAdjust)
     ),
-    Issue = "Overlap",
+    Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
   filter(!is.na(LiterallyInProject)) %>%
+  get_dupes(., PersonalID) %>%
   group_by(PersonalID) %>%
-  mutate(Overlap = 
-           sapply(LiterallyInProject, 
-                  function(x) sum(x %within% LiterallyInProject)))
-# ^^ not finished at all. this is a little advanced..
-
+  mutate(Overlap =
+           sapply(LiterallyInProject,
+                  function(x)
+                    sum(x %within% LiterallyInProject))) %>%
+  mutate(HasOverlap = if_else(max(Overlap) > 1, TRUE, FALSE)) %>%
+  filter(HasOverlap == TRUE) %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
 # Missing Health Ins at Entry ---------------------------------------------
 
