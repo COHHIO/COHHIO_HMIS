@@ -997,7 +997,10 @@ overlaps <- servedInDateRange %>%
     Type = "Error"
   ) %>%
   filter(!is.na(LiterallyInProject)) %>%
-  group_by(PersonalID)
+  group_by(PersonalID) %>%
+  mutate(Overlap = 
+           sapply(LiterallyInProject, 
+                  function(x) sum(x %within% LiterallyInProject)))
 # ^^ not finished at all. this is a little advanced..
 
 
