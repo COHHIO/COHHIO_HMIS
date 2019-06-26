@@ -56,8 +56,7 @@ rm(allHMISParticipating)
 smallProject <- smallProject %>%
   filter(!is.na(Region)) %>%
   mutate(
-    FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA),
-    brokenProjectNames = trimmer(FriendlyProjectName, 30))
+    FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA))
 
 smallProject <- as.data.frame(smallProject)
 
