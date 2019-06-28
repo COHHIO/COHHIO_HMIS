@@ -956,7 +956,187 @@ conflictingIncomeDollars <- servedInDateRange %>%
 
 # Missing Income at Exit --------------------------------------------------
 
+IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
+missingIncome <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
+         MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
+         TotalMonthlyIncome, IncomeFromAnySource) %>%
+  filter(DataCollectionStage == 3 & 
+           (AgeAtEntry > 17 | 
+              is.na(AgeAtEntry)) &
+           (IncomeFromAnySource == 99 | 
+              is.na(IncomeFromAnySource))) %>%
+  mutate(Issue = "Income Missing",
+         Type = "Error") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region)
 
+conflictingIncomeYN <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    TotalMonthlyIncome,
+    IncomeFromAnySource,
+    Earned,
+    EarnedAmount,
+    Unemployment,
+    UnemploymentAmount,
+    SSI,
+    SSIAmount,
+    SSDI,
+    SSDIAmount,
+    VADisabilityService,
+    VADisabilityServiceAmount,
+    VADisabilityNonService,
+    VADisabilityNonServiceAmount,
+    PrivateDisability,
+    PrivateDisabilityAmount,
+    WorkersComp,
+    WorkersCompAmount,
+    TANF,
+    TANFAmount,
+    GA,
+    GAAmount,
+    SocSecRetirement,
+    SocSecRetirementAmount,
+    Pension,
+    PensionAmount,
+    ChildSupport,
+    ChildSupportAmount,
+    Alimony,
+    AlimonyAmount,
+    OtherIncomeSource,
+    OtherIncomeAmount,
+    OtherIncomeSourceIdentify
+  ) %>%
+  filter(DataCollectionStage == 3 &
+           (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+           ((
+             IncomeFromAnySource == 1 &
+               Earned + Unemployment + SSI + SSDI + VADisabilityService +
+               VADisabilityNonService + PrivateDisability + WorkersComp +
+               TANF + GA + SocSecRetirement + Pension + ChildSupport +
+               Alimony + OtherIncomeSource == 0
+           ) |
+             (
+               IncomeFromAnySource == 0 &
+                 Earned + Unemployment + SSI + SSDI + VADisabilityService +
+                 VADisabilityNonService + PrivateDisability + WorkersComp +
+                 TANF + GA + SocSecRetirement + Pension + ChildSupport +
+                 Alimony + OtherIncomeSource > 0
+             )
+           )) %>%
+  mutate(Issue = "Conflicting Income yes/no",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
+
+# I think this turns up with 0 records bc they're calculating the TMI from the
+# subs instead of using the field itself. Understandable but that means I'll 
+# have to pull the TMI data in through RMisc. :(
+conflictingIncomeDollars <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    TotalMonthlyIncome,
+    IncomeFromAnySource,
+    Earned,
+    EarnedAmount,
+    Unemployment,
+    UnemploymentAmount,
+    SSI,
+    SSIAmount,
+    SSDI,
+    SSDIAmount,
+    VADisabilityService,
+    VADisabilityServiceAmount,
+    VADisabilityNonService,
+    VADisabilityNonServiceAmount,
+    PrivateDisability,
+    PrivateDisabilityAmount,
+    WorkersComp,
+    WorkersCompAmount,
+    TANF,
+    TANFAmount,
+    GA,
+    GAAmount,
+    SocSecRetirement,
+    SocSecRetirementAmount,
+    Pension,
+    PensionAmount,
+    ChildSupport,
+    ChildSupportAmount,
+    Alimony,
+    AlimonyAmount,
+    OtherIncomeSource,
+    OtherIncomeAmount,
+    OtherIncomeSourceIdentify
+  ) %>%
+  filter(
+    DataCollectionStage == 3 &
+      (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+      TotalMonthlyIncome != EarnedAmount + UnemploymentAmount + SSIAmount + 
+      SSDIAmount + VADisabilityServiceAmount + VADisabilityNonServiceAmount +
+      PrivateDisabilityAmount + WorkersCompAmount + TANFAmount +
+      GAAmount + SocSecRetirementAmount + PensionAmount +
+      ChildSupportAmount + AlimonyAmount + OtherIncomeAmount
+  ) %>%
+  mutate(Issue = "Conflicting Income Amounts",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
 # Overlapping Enrollment/Move In Dates ------------------------------------
 
@@ -1003,12 +1183,13 @@ overlaps <- servedInDateRange %>%
   filter(!is.na(LiterallyInProject)) %>%
   get_dupes(., PersonalID) %>%
   group_by(PersonalID) %>%
+  arrange(PersonalID, EntryDate) %>%
   mutate(Overlap =
            sapply(LiterallyInProject,
                   function(x)
                     sum(x %within% LiterallyInProject))) %>%
-  mutate(HasOverlap = if_else(max(Overlap) > 1, TRUE, FALSE)) %>%
-  filter(HasOverlap == TRUE) %>%
+  # mutate(HasOverlap = if_else(max(Overlap) > 1, TRUE, FALSE)) %>%
+  filter(Overlap > 1) %>%
   select(
     HouseholdID,
     PersonalID,
