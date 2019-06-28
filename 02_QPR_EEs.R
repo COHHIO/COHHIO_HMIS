@@ -20,7 +20,7 @@ goals <- goals %>%
   mutate(ProjectType = as.numeric(ProjectType))
 
 
-# Successful Placement ----------------------------------------------------
+# Building QPR_EEs ----------------------------------------------------
 
 smallProject <- Project %>%
   select(ProjectID,
@@ -48,6 +48,12 @@ allHMISParticipating <- rbind(hmisbeds, hpOutreach)
 
 rm(hmisbeds, hpOutreach)
 
+# the problem with this is you're pulling in all the projects that participated
+# during the fileperiod, which would include those who are no longer 
+# participating, but have a year's worth of PIT data entered. Like 126 for 
+# example. I am not sure how to remedy this except to literally move ALL of this
+# to the app, which I think is too much.
+
 smallProject <- smallProject %>% 
   semi_join(allHMISParticipating, by = "ProjectID") 
 
@@ -71,6 +77,8 @@ smallEnrollment <- Enrollment %>%
     EntryDate,
     MoveInDate,
     ExitDate,
+    EntryAdjust,
+    MoveInDateAdjust,
     ExitAdjust,
     Destination
   ) %>%
@@ -110,30 +118,43 @@ rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
 
 save.image("images/QPR_EEs.RData")
 
-PermAndRetention <- QPR_EEs %>%
-  filter((DestinationGroup == "Permanent" | is.na(ExitDate)) &
-           ProjectType %in% c(3, 9, 12))
+# Successful Placement ----------------------------------------------------
 
-PermLeavers <- QPR_EEs %>%
-  filter(DestinationGroup == "Permanent" &
-           ProjectType %in% c(1, 2, 4, 8, 13))
+SuccessfullyPlaced <- QPR_EEs %>%
+  filter(
+    exited_between(., FileStart, FileEnd) &
+      ((ProjectType %in% c(3, 9, 13) & !is.na(MoveInDateAdjust)) |
+         ProjectType %in% c(1, 2, 4, 8, 12)) & # excluding non-mover-inners
+      ((DestinationGroup == "Permanent" | #exited to ph or still in PSH/HP
+          is.na(ExitDate)) &
+         ProjectType %in% c(3, 9, 12) # PSH & HP
+      ) | 
+      (DestinationGroup == "Permanent" & # exited to ph
+         ProjectType %in% c(1, 2, 4, 8, 13)) # ES, TH, SH, RRH, OUT
+  ) %>%
+  group_by(FriendlyProjectName, ProjectType, County, Region) %>%
+  summarise(SuccessfullyPlacedHHs = n())
 
-# this is useless without dates- should be moved into the app
-# for all project types except PSH and HP
-TotalHHLeavers <- QPR_EEs %>%
-  filter(!is.na(ExitDate)) %>%
-  group_by(ProjectAKA) %>%
-  summarise(Leavers = n())
-# for PSH and HP only
-TotalHHLeaversAndStayers <- QPR_EEs %>%
-  group_by(ProjectAKA) %>%
-  summarise(LeaversAndStayers = n())
+# calculating the total households to compare successful placements to
+TotalHHsSuccessfulPlacement <- QPR_EEs %>%
+  filter((
+    served_between(., FileStart, FileEnd) &
+      ProjectType %in% c(3, 9, 12) # PSH & HP
+  ) |
+    (
+      exited_between(., FileStart, FileEnd) &
+        ProjectType %in% c(1, 2, 4, 8, 13) # ES, TH, SH, OUT, RRH
+    )) %>%
+  group_by(FriendlyProjectName, ProjectType, County, Region) %>%
+  summarise(TotalHHs = n()) # For PSH & HP, it's total hhs served; 
+# otherwise, it's total hhs *exited* during the reporting period
 
-#also useless without dates, should be moved into app
-PermAndRetentionByProject <- PermAndRetention %>%
-  group_by(ProjectAKA) %>%
-  summarise(PermanentDestOrStayer = n())
+SuccessfulPlacement <- TotalHHsSuccessfulPlacement %>%
+  left_join(SuccessfullyPlaced,
+            by = c("FriendlyProjectName", "ProjectType", "County", "Region")) %>%
+  mutate(Percent = SuccessfullyPlacedHHs / TotalHHs)
 
+SuccessfulPlacement[is.na(SuccessfulPlacement)] <- 0
 
 # Length of Stay ----------------------------------------------------------
 library(tidyverse)
