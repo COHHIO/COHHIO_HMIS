@@ -154,7 +154,34 @@ smallExit <- Exit %>% select(EnrollmentID,
                              OtherDestination)
 Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID") %>%
   mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
+
 rm(smallExit)
+
+#Adding ProjectType to Enrollment too bc we need EntryAdjust & MoveInAdjust here
+
+smallProject <- Project %>%
+  select(ProjectID, ProjectType) 
+
+Enrollment <- Enrollment %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  mutate(
+    MoveInDateAdjust = if_else(
+      ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(MoveInDate) <= ExitAdjust &
+        ProjectType %in% c(3, 9, 13),
+      MoveInDate,
+      NULL
+    ),
+    EntryAdjust = case_when(
+      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
+      ProjectType %in% c(3, 9, 13) &
+        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
+      ProjectType %in% c(3, 9, 13) &
+        is.na(MoveInDateAdjust) ~ EntryDate
+    )
+  )
+
+rm(smallProject)
 
 # Age Function ------------------------------------------------------------
 
@@ -224,6 +251,12 @@ entered_between <- function(table, start, end){
 exited_between <- function(table, start, end){
   exited <- between(ymd(table$ExitDate), mdy(start), mdy(end)) 
   exited
+}
+
+stayed_between <- function(table, start, end){
+  stayed <- between(ymd(table$EntryAdjust) <= mdy(end) &
+                      ymd(table$ExitAdjust > mdy(start)))
+  stayed
 }
 
 # Projects Operating Between Date Range Function --------------------------
