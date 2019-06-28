@@ -156,6 +156,8 @@ SuccessfulPlacement <- TotalHHsSuccessfulPlacement %>%
 
 SuccessfulPlacement[is.na(SuccessfulPlacement)] <- 0
 
+rm(TotalHHsSuccessfulPlacement, SuccessfullyPlaced)
+
 # Length of Stay ----------------------------------------------------------
 library(tidyverse)
 library(lubridate)
@@ -247,36 +249,7 @@ somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9"
 somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
                     '#08589e')
 
-# Rapid Placement RRH -----------------------------------------------------
 
-RapidPlacement <- QPR_EEs %>%
-  filter(ProjectType == 13) %>%
-  mutate(DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days")) %>%
-  select(
-    EnrollmentID,
-    PersonalID,
-    ProjectID,
-    EntryDate,
-    MoveInDate,
-    MoveInDateAdjust,
-    ExitDate,
-    DaysToHouse
-  ) 
-
-DataQualityRapidPlacement <- QPR_EEs %>%
-  filter(ProjectType == 13) %>%
-  mutate(DaysToHouse = difftime(MoveInDate, EntryDate, units = "days")) %>%
-  filter(DaysToHouse < 0 | DaysToHouse > 120) %>%
-  select(
-    EnrollmentID,
-    PersonalID,
-    ProjectID,
-    EntryDate,
-    MoveInDate,
-    MoveInDateAdjust,
-    DaysToHouse,
-    ExitDate
-  ) 
 
 
 
