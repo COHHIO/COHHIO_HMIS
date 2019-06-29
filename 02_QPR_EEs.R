@@ -158,90 +158,92 @@ SuccessfulPlacement[is.na(SuccessfulPlacement)] <- 0
 
 rm(TotalHHsSuccessfulPlacement, SuccessfullyPlaced)
 
-# Length of Stay ----------------------------------------------------------
-library(tidyverse)
-library(lubridate)
-library(patchwork)
 
-load("images/QPR_EEs.RData")
 
-LoSGoals <- goals %>%
-  select(-Measure) %>% 
-  filter(SummaryMeasure == "Length of Stay" & !is.na(Goal)) %>%
-  unique()
-
-LoSDetail <- QPR_EEs %>%
-  filter((((!is.na(MoveInDateAdjust) &
-              ProjectType %in% c(13)) |
-             (ProjectType %in% c(1, 2, 8)) &
-             !is.na(ExitDate)
-  )) &
-    exited_between(., "01012019", "05012019")) %>%
-  left_join(LoSGoals, by = "ProjectType") %>% 
-  mutate(
-    ProjectType = case_when(
-      ProjectType == 1 ~ "Emergency Shelter",
-      ProjectType == 2 ~ "Transitional Housing",
-      ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
-      ProjectType == 4 ~ "Street Outreach",
-      ProjectType == 8 ~ "Safe Haven",
-      ProjectType == 12 ~ "Homelessness Prevention",
-      ProjectType == 13 ~ "Rapid Rehousing"
-    ),
-    Region = paste("Homeless Planning Region", Region)
-  ) %>%
-  filter(Region == "Homeless Planning Region 5") # this filter needs
-  # to be here so the selection text matches the mutated data
-  
-
-LoSSummary <- LoSDetail %>%
-  group_by(brokenProjectNames,
-           ProjectName,
-           Region,
-           County,
-           ProjectType,
-           Operator,
-           Goal) %>%
-  summarise(avg = as.numeric(mean(DaysinProject, na.rm = TRUE)),
-            median = as.numeric(median(DaysinProject, na.rm = TRUE)))
-
-th <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
-  ylab("Average Length of Stay") +
-  xlab("") +
-  ggtitle("Transitional Housing", subtitle = "date range") +
-  geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
-  geom_hline(yintercept = as.integer(LoSGoals %>% 
-               filter(ProjectType == 2) %>% 
-               select(Goal))) +
-  annotate(
-    "text",
-    x = 0.65,
-    y = as.integer(LoSGoals %>% 
-                     filter(ProjectType == 2) %>% 
-                     select(Goal)) + 1,
-    label = "CoC Goal") +
-  theme_light() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-th
-es <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
-  ylab("Average Length of Stay") +
-  xlab("") +
-  ggtitle("Emergency Shelters", subtitle = "date range") +
-  geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
-  geom_hline(yintercept = as.integer(LoSGoals %>% 
-                                       filter(ProjectType == 1) %>% 
-                                       select(Goal))) +
-  annotate(
-    "text",
-    x = 0.65,
-    y = as.integer(LoSGoals %>% 
-                     filter(ProjectType == 1) %>% 
-                     select(Goal)) + 1,
-    label = "CoC Goal") +
-  theme_light() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-plot_grid(es, th)
+# # Length of Stay ----------------------------------------------------------
+# library(tidyverse)
+# library(lubridate)
+# library(patchwork)
+# 
+# load("images/QPR_EEs.RData")
+# 
+# LoSGoals <- goals %>%
+#   select(-Measure) %>% 
+#   filter(SummaryMeasure == "Length of Stay" & !is.na(Goal)) %>%
+#   unique()
+# 
+# LoSDetail <- QPR_EEs %>%
+#   filter((((!is.na(MoveInDateAdjust) &
+#               ProjectType %in% c(13)) |
+#              (ProjectType %in% c(1, 2, 8)) &
+#              !is.na(ExitDate)
+#   )) &
+#     exited_between(., "01012019", "05012019")) %>%
+#   left_join(LoSGoals, by = "ProjectType") %>% 
+#   mutate(
+#     ProjectType = case_when(
+#       ProjectType == 1 ~ "Emergency Shelter",
+#       ProjectType == 2 ~ "Transitional Housing",
+#       ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
+#       ProjectType == 4 ~ "Street Outreach",
+#       ProjectType == 8 ~ "Safe Haven",
+#       ProjectType == 12 ~ "Homelessness Prevention",
+#       ProjectType == 13 ~ "Rapid Rehousing"
+#     ),
+#     Region = paste("Homeless Planning Region", Region)
+#   ) %>%
+#   filter(Region == "Homeless Planning Region 5") # this filter needs
+#   # to be here so the selection text matches the mutated data
+#   
+# 
+# LoSSummary <- LoSDetail %>%
+#   group_by(brokenProjectNames,
+#            ProjectName,
+#            Region,
+#            County,
+#            ProjectType,
+#            Operator,
+#            Goal) %>%
+#   summarise(avg = as.numeric(mean(DaysinProject, na.rm = TRUE)),
+#             median = as.numeric(median(DaysinProject, na.rm = TRUE)))
+# 
+# th <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
+#   ylab("Average Length of Stay") +
+#   xlab("") +
+#   ggtitle("Transitional Housing", subtitle = "date range") +
+#   geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
+#   geom_hline(yintercept = as.integer(LoSGoals %>% 
+#                filter(ProjectType == 2) %>% 
+#                select(Goal))) +
+#   annotate(
+#     "text",
+#     x = 0.65,
+#     y = as.integer(LoSGoals %>% 
+#                      filter(ProjectType == 2) %>% 
+#                      select(Goal)) + 1,
+#     label = "CoC Goal") +
+#   theme_light() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# th
+# es <- ggplot(LoSSummary, aes(x = brokenProjectNames)) +
+#   ylab("Average Length of Stay") +
+#   xlab("") +
+#   ggtitle("Emergency Shelters", subtitle = "date range") +
+#   geom_col(aes(y = as.numeric(avg)), fill = "#56B4E9") +
+#   geom_hline(yintercept = as.integer(LoSGoals %>% 
+#                                        filter(ProjectType == 1) %>% 
+#                                        select(Goal))) +
+#   annotate(
+#     "text",
+#     x = 0.65,
+#     y = as.integer(LoSGoals %>% 
+#                      filter(ProjectType == 1) %>% 
+#                      select(Goal)) + 1,
+#     label = "CoC Goal") +
+#   theme_light() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# 
+# plot_grid(es, th)
 
 
 somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
