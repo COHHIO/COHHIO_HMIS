@@ -159,6 +159,55 @@ SuccessfulPlacement[is.na(SuccessfulPlacement)] <- 0
 rm(TotalHHsSuccessfulPlacement, SuccessfullyPlaced)
 
 
+rrhPlacementData <- 
+  SuccessfulPlacement %>% 
+  filter(ProjectType == 13 & Region == 2)
+
+rrhPlacementGoal <-
+  as.numeric(
+    goals %>%
+      filter(
+        ProjectType == 13 &
+          SummaryMeasure == "Obtaining and Maintaining Permanent Housing" &
+          !is.na(Goal)
+      ) %>%
+      select(Goal)
+  )
+
+plot_ly(
+  data = rrhPlacementData,
+  x = ~ FriendlyProjectName,
+  y = ~ Percent
+) %>%
+  add_trace(type = "bar") %>%
+  layout(
+    shapes = list(
+      type = 'line',
+      xref = "paper",
+      yref = "y",
+      x0 = 0,
+      x1 = 1,
+      y0 = rrhPlacementGoal,
+      y1 = rrhPlacementGoal,
+      line = list(width = 1),
+      name = "CoC Goal"
+    ),
+    title = 'Rapid Rehousing',
+    margin = list(
+      l = 50,
+      r = 50,
+      b = 100,
+      t = 100,
+      pad = 4
+    ),
+    yaxis = list(title = "Exits to Permanent Housing", 
+                 showgrid = TRUE,
+                 rangemode = "tozero"),
+    xaxis = list(title = "", 
+                 showgrid = TRUE,
+                 rangemode = "tozero")
+  )%>% 
+  layout(yaxis = list(tickformat = "%"))
 
 # # Length of Stay ----------------------------------------------------------
 # library(tidyverse)
