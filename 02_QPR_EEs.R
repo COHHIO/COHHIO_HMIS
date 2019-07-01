@@ -17,7 +17,8 @@ goals <- goals %>%
   gather(key = "ProjectType", 
          value = "Goal", 
          -SummaryMeasure, -Measure, -Operator) %>%
-  mutate(ProjectType = as.numeric(ProjectType))
+  mutate(ProjectType = as.numeric(ProjectType)) %>%
+  filter(!is.na(Goal))
 
 
 # Building QPR_EEs ----------------------------------------------------
