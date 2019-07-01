@@ -102,6 +102,7 @@ QPR_EEs <- smallProject %>%
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other"
     ),
+    Region = paste("Homeless Planning Region", Region),
     MoveInDateAdjust = if_else(
       ymd(EntryDate) <= ymd(MoveInDate) &
         ymd(MoveInDate) <= ExitAdjust &
