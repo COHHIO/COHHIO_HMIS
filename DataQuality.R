@@ -1,8 +1,7 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(treemap)
-
+start <- now()
 load("images/COHHIOHMIS.RData")
 
 # Providers to Check ------------------------------------------------------
@@ -113,30 +112,6 @@ missingUDEs <- servedInDateRange %>%
     Region
   )
 
-# stagingMissingUDEs <- missingUDEs %>%
-#   filter(Type == "Error") %>%
-#   group_by(ProjectName, Issue, ProjectType, Type, County, Region) %>%
-#   summarise(ClientCount = n())
-# 
-# visualUDEs <- missingUDEs %>% 
-#   select(County, Issue, ProjectName) %>% 
-#   inspect_cat() %>% 
-#   show_plot()
-# visualUDEErrors <- stagingMissingUDEs %>%
-#   treemap(index = c("Issue", "ProjectName"),
-#           vSize = "ClientCount",
-#           title = "Universal Data Elements Errors")
-# 
-# stagingUDEWarningss <- missingUDEs %>%
-#   filter(Type == "Warning") %>%
-#   group_by(ProjectName, Issue, ProjectType, Type, County, Region) %>%
-#   summarise(ClientCount = n())
-# 
-# visualUDEWarnings <- stagingUDEWarningss %>%
-#   treemap(index = c("Issue", "ProjectName"),
-#           vSize = "ClientCount",
-#           title = "Universal Data Elements Warnings")
-
 # Household Issues --------------------------------------------------------
 
 childrenOnly <- servedInDateRange %>%
@@ -221,15 +196,6 @@ tooManyHoHs <- servedInDateRange %>%
 householdIssues <- rbind(tooManyHoHs, noHoH, childrenOnly) %>%
   mutate(Type = "Error")
 rm(tooManyHoHs, noHoH, childrenOnly)
-
-# stagingHHs <- householdIssues  %>%
-#   group_by(ProjectName, Issue) %>%
-#   summarise(HHCount = n())
-# 
-# visualHHs <- stagingHHs %>%
-#   treemap(index = c("Issue", "ProjectName"),
-#           vSize = "HHCount",
-#           title = "Household Issues")
 
 # Missing Data at Entry ---------------------------------------------------
 # Living Situation,  Length of Stay, LoSUnderThreshold, PreviousStreetESSH,
@@ -1140,70 +1106,82 @@ conflictingIncomeDollars <- servedInDateRange %>%
 
 # Overlapping Enrollment/Move In Dates ------------------------------------
 
-# a problem with this is it pulls in every EE for any client with an overlap
-# another problem is an exit and an entry on the same day = an overlap
-# ALSO IT TAKES TOO DANG LONG. YOU NEED TO REWRITE THIS.
-# overlaps <- servedInDateRange %>%
-#   select(
-#     HouseholdID,
-#     PersonalID,
-#     ProjectName,
-#     EntryDate,
-#     MoveInDate,
-#     ExitDate,
-#     ExitAdjust,
-#     ProjectType,
-#     County,
-#     Region
-#   ) %>%
-#   mutate(
-#     MoveInDateAdjust = if_else(
-#       # only counts movein dates between entry & exit
-#       ymd(EntryDate) <= ymd(MoveInDate) &
-#         ymd(MoveInDate) <= ExitAdjust &
-#         ProjectType %in% c(3, 9, 13),
-#       MoveInDate,
-#       NULL
-#     ),
-#     EntryAdjust = case_when(
-#       #for PSH and RRH, EntryAdjust = MoveInDate
-#       ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
-#       ProjectType %in% c(3, 9, 13) &
-#         !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
-#       ProjectType %in% c(3, 9, 13) &
-#         is.na(MoveInDateAdjust) ~ EntryDate
-#     ),
-#     LiterallyInProject = if_else(
-#       ProjectType %in% c(3, 9, 13),
-#       interval(MoveInDateAdjust, ExitAdjust),
-#       interval(EntryAdjust, ExitAdjust)
-#     ),
-#     Issue = "Overlapping Project Stays",
-#     Type = "Error"
-#   ) %>%
-#   filter(!is.na(LiterallyInProject)) %>%
-#   get_dupes(., PersonalID) %>%
-#   group_by(PersonalID) %>%
-#   arrange(PersonalID, EntryDate) %>%
-#   mutate(Overlap =
-#            sapply(LiterallyInProject,
-#                   function(x)
-#                     sum(x %within% LiterallyInProject))) %>%
-#   # mutate(HasOverlap = if_else(max(Overlap) > 1, TRUE, FALSE)) %>%
-#   filter(Overlap > 1) %>%
-#   select(
-#     HouseholdID,
-#     PersonalID,
-#     ProjectName,
-#     Issue,
-#     Type,
-#     EntryDate,
-#     MoveInDate,
-#     ExitDate,
-#     ProjectType,
-#     County,
-#     Region
-#   )
+# this only pulls the most recent EE in the overlap and I think that's fine but
+# some users won't like being flagged for it if it's someone else's fault
+# but you can't tell whose fault it is from the data so...
+
+stagingOverlaps <- servedInDateRange %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ExitAdjust,
+    ProjectType,
+    County,
+    Region
+  ) %>%
+  mutate(
+    MoveInDateAdjust = if_else(
+      # only counts movein dates between entry & exit
+      ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(MoveInDate) <= ExitAdjust &
+        ProjectType %in% c(3, 9, 13),
+      MoveInDate,
+      NULL
+    ),
+    EntryAdjust = case_when(
+      #for PSH and RRH, EntryAdjust = MoveInDate
+      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
+      ProjectType %in% c(3, 9, 13) &
+        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
+      ProjectType %in% c(3, 9, 13) &
+        is.na(MoveInDateAdjust) ~ EntryDate
+    ),
+    ExitAdjust = ExitAdjust - days(1),
+    # bc a client can exit&enter same day
+    LiterallyInProject = if_else(
+      ProjectType %in% c(3, 9, 13),
+      interval(MoveInDateAdjust, ExitAdjust),
+      interval(EntryAdjust, ExitAdjust)
+    ),
+    Issue = "Overlapping Project Stays",
+    Type = "Error"
+  ) %>%
+  filter(!is.na(LiterallyInProject)) %>%
+  get_dupes(., PersonalID) %>%
+  group_by(PersonalID) %>%
+  arrange(PersonalID, EntryAdjust) %>%
+  mutate(
+    PreviousEntryAdjust = lag(EntryAdjust),
+    PreviousExitAdjust = lag(ExitAdjust)
+  ) %>%
+  filter(!is.na(PreviousEntryAdjust)) %>%
+  ungroup()
+
+overlaps <- stagingOverlaps %>%
+  mutate(
+    PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
+    Overlap = int_overlaps(LiterallyInProject, PreviousStay)
+  ) %>%
+  filter(Overlap == TRUE) %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
+
+rm(stagingOverlaps)
 
 # Missing Health Ins at Entry ---------------------------------------------
 
@@ -1291,8 +1269,7 @@ stagingDQErrors <- DataQualityHMIS %>%
   group_by(ProjectName, Issue, Type, ProjectType, County, Region) %>%
   summarise(Count = n())
 
-visualDataQuality <- stagingDQErrors %>%
-  treemap(index = c("Issue", "ProjectName"),
-          vSize = "Count",
-          title = "Data Quality Errors")
+end <- now()
+total <- end - start
+total
 
