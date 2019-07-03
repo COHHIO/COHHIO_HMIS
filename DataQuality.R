@@ -527,7 +527,8 @@ missingCountyServed <- servedInDateRange %>%
 # CountyPrior
 # check to see if all hh members have to answer this or if just adults or all?
 missingCountyPrior <- servedInDateRange %>%
-  filter(is.na(CountyPrior)) %>%
+  filter(is.na(CountyPrior),
+         RelationshipToHoH == 1) %>%
   mutate(Issue = "Missing County Prior",
          Type = "Error") %>%
   select(
@@ -922,7 +923,7 @@ conflictingIncomeDollars <- servedInDateRange %>%
 
 # Missing Income at Exit --------------------------------------------------
 
-IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
+IncomeBenefits <- IncomeBenefits %>%
 missingIncome <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
@@ -1185,7 +1186,84 @@ rm(stagingOverlaps)
 
 # Missing Health Ins at Entry ---------------------------------------------
 
+missingHealthInsurance <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
+         MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
+         InsuranceFromAnySource) %>%
+  filter(DataCollectionStage == 1 & 
+           (InsuranceFromAnySource == 99 | 
+              is.na(InsuranceFromAnySource))) %>%
+  mutate(Issue = "Health Insurance Missing",
+         Type = "Error") %>%
+  select(HouseholdID,
+         PersonalID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region)
 
+conflictingHealthInsuranceYN <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    InsuranceFromAnySource,
+    Medicaid,
+    SCHIP,
+    VAMedicalServices,
+    EmployerProvided,
+    COBRA,
+    PrivatePay,
+    StateHealthIns,
+    IndianHealthServices,
+    OtherInsurance,
+    HIVAIDSAssistance,
+    ADAP
+  ) %>%
+  filter(DataCollectionStage == 1 &
+           ((
+             InsuranceFromAnySource == 1 &
+               Medicaid + SCHIP + VAMedicalServices + EmployerProvided +
+               COBRA + PrivatePay + StateHealthIns + IndianHealthServices +
+               OtherInsurance + HIVAIDSAssistance + ADAP == 0
+           ) |
+             (
+               InsuranceFromAnySource == 0 &
+                 Medicaid + SCHIP + VAMedicalServices + EmployerProvided +
+                 COBRA + PrivatePay + StateHealthIns + IndianHealthServices +
+                 OtherInsurance + HIVAIDSAssistance + ADAP > 0
+             )
+           )) %>%
+  mutate(Issue = "Conflicting Health Insurance yes/no",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
 # Missing NCBs at Entry ---------------------------------------------------
 
@@ -1262,14 +1340,81 @@ DataQualityHMIS <- rbind(checkEligibility,
                          incorrectMoveInDate,
                          missingCountyServed,
                          missingCountyPrior,
-                         incorrectEntryExitType)
+                         incorrectEntryExitType,
+                         conflictingHealthInsuranceYN,
+                         conflictingIncomeYN,
+                         conflictingIncomeDollars,
+                         missingIncome,
+                         missingHealthInsurance,
+                         DKRLivingSituation,
+                         enteredPHwithoutSPDAT,
+                         incorrectEntryExitType,
+                         LHwithoutSPDAT,
+                         overlaps)
 
 stagingDQErrors <- DataQualityHMIS %>%
   filter(Type == "Error") %>%
   group_by(ProjectName, Issue, Type, ProjectType, County, Region) %>%
   summarise(Count = n())
 
+stagingDQWarnings <- DataQualityHMIS %>%
+  filter(Type == "Warning") %>%
+  group_by(ProjectName, Issue, Type, ProjectType, County, Region) %>%
+  summarise(Count = n())
+
+rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
+   EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
+   Inventory, Offers, Organization, Project, ProjectCoC, Regions, Scores,
+   Users, VeteranCE)
+
 end <- now()
 total <- end - start
 total
 
+# Errors by Provider ------------------------------------------------------
+
+plotErrors <- stagingDQErrors %>%
+  group_by(ProjectName) %>%
+  summarise(Errors = sum(Count)) %>%
+  ungroup() %>%
+  arrange(desc(Errors))
+
+plotErrors$hover <-
+  with(
+    plotErrors,
+    paste(Errors, "Errors")
+  )
+
+errorsProviderPlot <- plot_ly(plotErrors, 
+             x = ~ProjectName, 
+             y = ~Errors, 
+             type = 'bar', 
+             text = ~hover,
+             marker = list(color = 'rgb(158,202,225)',
+                           line = list(color = 'rgb(8,48,107)',
+                                       width = 1.5))) %>%
+  layout(title = "HMIS Errors by Provider",
+         xaxis = list(title = ~ProjectName,
+                      categoryorder = "array",
+                      categoryarray = ~Errors),
+         yaxis = list(title = "All Errors"))
+
+# Error Types Plot --------------------------------------------------------
+errorTypes <- stagingDQErrors %>%
+  group_by(Issue) %>%
+  summarise(Errors = sum(Count)) %>%
+  ungroup() %>%
+  arrange(desc(Errors))
+
+errorTypePlot <- plot_ly(errorTypes, 
+                              x = ~Issue, 
+                              y = ~Errors, 
+                              type = 'bar', 
+                              marker = list(color = 'rgb(158,202,225)',
+                                            line = list(color = 'rgb(8,48,107)',
+                                                        width = 1.5))) %>%
+  layout(title = "HMIS Errors Across the Ohio BoS CoC",
+         xaxis = list(title = ~Issue,
+                      categoryorder = "array",
+                      categoryarray = ~Errors),
+         yaxis = list(title = "All Errors"))
