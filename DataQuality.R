@@ -740,7 +740,7 @@ LHwithoutSPDAT <-
 
 # Missing Income at Entry -------------------------------------------------
 IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
-missingIncome <- servedInDateRange %>%
+missingIncomeAtEntry <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
          MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
@@ -848,7 +848,7 @@ conflictingIncomeYN <- servedInDateRange %>%
 # I think this turns up with 0 records bc they're calculating the TMI from the
 # subs instead of using the field itself. Understandable but that means I'll 
 # have to pull the TMI data in through RMisc. :(
-conflictingIncomeDollars <- servedInDateRange %>%
+conflictingIncomeAmountAtEntry <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
@@ -923,8 +923,8 @@ conflictingIncomeDollars <- servedInDateRange %>%
 
 # Missing Income at Exit --------------------------------------------------
 
-IncomeBenefits <- IncomeBenefits %>%
-missingIncome <- servedInDateRange %>%
+IncomeBenefitsAtExit <- IncomeBenefits %>%
+missingIncomeAtExit <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
          MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
@@ -1032,7 +1032,7 @@ conflictingIncomeYN <- servedInDateRange %>%
 # I think this turns up with 0 records bc they're calculating the TMI from the
 # subs instead of using the field itself. Understandable but that means I'll 
 # have to pull the TMI data in through RMisc. :(
-conflictingIncomeDollars <- servedInDateRange %>%
+conflictingIncomeAmountAtExit <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
@@ -1267,47 +1267,277 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
 
 # Missing NCBs at Entry ---------------------------------------------------
 
+missingNCBsAtEntry <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    BenefitsFromAnySource
+  ) %>%
+  filter(
+    DataCollectionStage == 1 &
+      (AgeAtEntry > 17 |
+         is.na(AgeAtEntry)) &
+      (BenefitsFromAnySource == 99 |
+         is.na(BenefitsFromAnySource))
+  ) %>%
+  mutate(Issue = "Non-cash Benefits Missing",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
+conflictingNCBsAtEntry <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    BenefitsFromAnySource,
+    SNAP,
+    WIC,
+    TANFChildCare,
+    TANFTransportation,
+    OtherTANF,
+    OtherBenefitsSource,
+    OtherBenefitsSourceIdentify
+  ) %>%
+  filter(DataCollectionStage == 1 &
+           (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+           ((
+             BenefitsFromAnySource == 1 &
+               SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
+               OtherBenefitsSource == 0
+           ) |
+             (
+               BenefitsFromAnySource == 0 &
+                 SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
+                 OtherBenefitsSource > 0
+             )
+           )) %>%
+  mutate(Issue = "Conflicting Non-cash Benefits yes/no",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
 # Missing NCBs at Exit ----------------------------------------------------
+missingNCBsAtEntry <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    BenefitsFromAnySource
+  ) %>%
+  filter(
+    DataCollectionStage == 3 &
+      (AgeAtEntry > 17 |
+         is.na(AgeAtEntry)) &
+      (BenefitsFromAnySource == 99 |
+         is.na(BenefitsFromAnySource))
+  ) %>%
+  mutate(Issue = "Non-cash Benefits Missing",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
-
-
-# Disability Subs Not Matching --------------------------------------------
-
-
-
-# Old Disability Type -----------------------------------------------------
-
+conflictingNCBsAtEntry <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region,
+    DataCollectionStage,
+    BenefitsFromAnySource,
+    SNAP,
+    WIC,
+    TANFChildCare,
+    TANFTransportation,
+    OtherTANF,
+    OtherBenefitsSource,
+    OtherBenefitsSourceIdentify
+  ) %>%
+  filter(DataCollectionStage == 3 &
+           (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+           ((
+             BenefitsFromAnySource == 1 &
+               SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
+               OtherBenefitsSource == 0
+           ) |
+             (
+               BenefitsFromAnySource == 0 &
+                 SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
+                 OtherBenefitsSource > 0
+             )
+           )) %>%
+  mutate(Issue = "Conflicting Non-cash Benefits yes/no",
+         Type = "Error") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    ProjectType,
+    County,
+    Region
+  )
 
 
 # SSI/SSDI but no Disability (Q) ------------------------------------------
+smallIncome <- IncomeBenefits %>%
+  select(EnrollmentID, PersonalID, SSI, SSDI)
 
-
+checkDisabilityForAccuracy <- servedInDateRange %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectName,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region, 
+         AgeAtEntry, 
+         DisablingCondition) %>%
+  left_join(smallIncome, by = c("EnrollmentID", "PersonalID")) %>%
+  mutate(SSI = if_else(is.na(SSI), 0, SSI),
+         SSDI = if_else(is.na(SSDI), 0, SSDI)) %>%
+  filter(SSI + SSDI > 0 & DisablingCondition == 0 & AgeAtEntry > 17) %>%
+  select(-DisablingCondition, -SSI, -SSDI, -EnrollmentID, -AgeAtEntry) %>%
+  unique() %>%
+  mutate(Issue = "Client with No Disability Receiving SSI/SSDI (could be ok)",
+         Type = "Warning")
 
 # Non HoHs w Svcs or Referrals --------------------------------------------
+# I have a feeling not all Referrals are coming in.
+Referrals <- Services %>%
+  filter(RecordType == 161)
+# I have a feeling not all the Services are coming in.
+Services <- Services %>%
+  filter(RecordType %in% c(141, 143, 151, 144, 152))
 
+servicesOnHHMembers <- servedInDateRange %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectName,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region,
+         RelationshipToHoH) %>%
+  filter(RelationshipToHoH != 1) %>%
+  semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
+  mutate(Issue = "Service Transaction on a non Head of Household",
+         Type = "Warning")
 
+# why isn't this catching any records, i don't know.
+referralsOnHHMembers <- servedInDateRange %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectName,
+         EntryDate,
+         MoveInDate,
+         ExitDate,
+         ProjectType,
+         County,
+         Region,
+         RelationshipToHoH) %>%
+  filter(RelationshipToHoH != 1) %>%
+  semi_join(Referrals, by = c("PersonalID", "EnrollmentID")) %>%
+  mutate(Issue = "Referral on a non Head of Household",
+         Type = "Warning")
 
 # Unpaired Needs ----------------------------------------------------------
-
-
+# can't get this from the CSV Export
 
 # Service Date Before Entry -----------------------------------------------
-
-
+# can't get this from the CSV Export
 
 # Unmet Needs -------------------------------------------------------------
-
-
+# can't get this from the CSV Export
 
 # AP No Recent Referrals --------------------------------------------------
 
 
+# AP entering project stays -----------------------------------------------
+
 
 # Need Status Referral Outcomes -------------------------------------------
 
-
+#can't get this from the HUD CSV Export
 
 # Veterans with No Referral -----------------------------------------------
 
@@ -1322,7 +1552,76 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
 
 
 # Service Date Before Entry -----------------------------------------------
+# can't get this from the CSV Export
 
+# Diversion Incorrect Destination -----------------------------------------
+
+
+
+# Diversion Exit Date Missing or Incorrect --------------------------------
+
+
+# Diversion Missing # in HH -----------------------------------------------
+
+
+# Diversion No Provider in CM Record --------------------------------------
+
+
+# Diversion Missing CM ----------------------------------------------------
+
+
+# Diversion Entered all HH members ----------------------------------------
+
+
+# Unsheltered Incorrect Residence Prior -----------------------------------
+
+
+# Unshletered Incorrect Provider in CM Record -----------------------------
+
+
+# Unsheltered HoHs w no SPDAT ---------------------------------------------
+
+
+# Unsheltered Incorrect EE Type -------------------------------------------
+
+
+# Unsheltered Missing County ----------------------------------------------
+
+
+# Unsheltered Missing DOB -------------------------------------------------
+
+
+# Missing End Date on Outreach Contacct -----------------------------------
+
+
+# Unsheltered Missing LoTH questions --------------------------------------
+
+
+# Unsheltered Missing Outreach Contact Note -------------------------------
+
+
+# Unsheltered Missing Outreach Contact Record -----------------------------
+
+
+# Unsheltered Missing Rel to HoH ------------------------------------------
+
+
+# Unsheltered Missing Vet Status ------------------------------------------
+
+
+# Unsheltered Missing Res Prior -------------------------------------------
+
+
+# Unsheltered Outreach Contact Incorrect Start Date -----------------------
+
+
+# Unsheltered 30+ Days Exited w No Referral -------------------------------
+
+
+# Unsheltered Currently Unsheltered 30+ Days w No Referral ----------------
+
+
+# Unsheltered No Case Manager ---------------------------------------------
 
 
 # All together now --------------------------------------------------------
