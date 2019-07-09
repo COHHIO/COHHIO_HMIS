@@ -762,3 +762,5 @@ rm(Households, Clients, Capacity, Enrollment, Project, Inventory,
    SmallInventory, SmallProject)
 
 save.image("images/Utilization.RData")
+
+rm(list = ls())
