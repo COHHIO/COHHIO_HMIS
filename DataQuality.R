@@ -923,7 +923,6 @@ conflictingIncomeAmountAtEntry <- servedInDateRange %>%
 
 # Missing Income at Exit --------------------------------------------------
 
-IncomeBenefitsAtExit <- IncomeBenefits %>%
 missingIncomeAtExit <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
@@ -1642,8 +1641,8 @@ DataQualityHMIS <- rbind(checkEligibility,
                          incorrectEntryExitType,
                          conflictingHealthInsuranceYN,
                          conflictingIncomeYN,
-                         conflictingIncomeDollars,
-                         missingIncome,
+                         missingIncomeAtEntry,
+                         missingIncomeAtExit,
                          missingHealthInsurance,
                          DKRLivingSituation,
                          enteredPHwithoutSPDAT,
@@ -1669,6 +1668,63 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
 end <- now()
 total <- end - start
 total
+
+
+# map ---------------------------------------------------------------------
+
+county_geo <- map_data("county") %>%
+  filter(region == 'ohio')
+
+county_data <- stagingDQErrors %>%
+  group_by(County) %>%
+  summarise(Errors = n()) %>%
+  ungroup() %>%
+  mutate(State = "Ohio",
+         County = tolower(County))
+
+plotErrors <- merge(county_geo, 
+                    county_data, 
+                    by.x = "subregion", 
+                    by.y = "County")
+
+plotErrors$buckets <- cut(plotErrors$Errors, 
+                          breaks = c(seq(0, 150, by = 30)), 
+                          labels=1:5)
+
+plotErrors <- plotErrors %>%
+  group_by(group) %>%
+  arrange(group, order) %>% # <---- This is how I fixed the county boundaries
+  mutate(subregion = str_to_title(subregion))
+
+plotErrors$hover <- with(plotErrors, paste("County:", subregion, "<br>",
+                                           "Errors:", Errors))
+
+p <- plot_ly(plotErrors) %>%
+  add_polygons(x = ~long,
+               y = ~lat,
+               text = ~hover, 
+               locations = ~subregion,
+               color = ~buckets) %>%
+  # add_polygons(x = ~ long,
+  #              y = ~ lat,
+  #              line = list(color = 'black', width = 0.5),
+  #              showlegend = FALSE) %>%
+  layout(
+    title = "Ohio BoS HMIS Errors by County",
+    xaxis = list(
+      title = "",
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showticklabels = FALSE
+    ),
+    yaxis = list(
+      title = "",
+      showgrid = FALSE,
+      zeroline = FALSE,
+      showticklabels = FALSE
+    )
+  )
+p
 
 # Errors by Provider ------------------------------------------------------
 
