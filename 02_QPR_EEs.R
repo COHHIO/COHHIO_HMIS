@@ -163,26 +163,55 @@ rm(TotalHHsSuccessfulPlacement, SuccessfullyPlaced)
 PlacementGoal <-
   goals %>%
   filter(SummaryMeasure == "Obtaining and Maintaining Permanent Housing" &
-           Measure != "Exits to Temporary or Permanent Housing" &
-           !is.na(Goal))
+           Measure != "Exits to Temporary or Permanent Housing")
 
-SuccessfulPlacement <- SuccessfulPlacement %>%
-  left_join(PlacementGoal, by = "ProjectType") 
+region <- "Homeless Planning Region 4"
+ptc <- 13
 
-stagingExitToPH <- SuccessfulPlacement %>% filter(ProjectType == 4)
+stagingExitsToPH <- SuccessfulPlacement %>%
+  left_join(PlacementGoal, by = "ProjectType") %>%
+  filter(ProjectType == ptc, Region == region) %>%
+  mutate(
+    hover = paste0(
+      FriendlyProjectName,
+      "\nExited to PH: ",
+      SuccessfullyPlacedHHs,
+      "\nTotal Leavers: ",
+      TotalHHs, "\n",
+      as.integer(Percent * 100), "%", sep = "\n"
+    )
+  )
 
-plot_ly(SuccessfulPlacement,
-       x = ~FriendlyProjectName,
-       y = ~Percent,
-       type = "bar",
-       marker = list(color = 'rgb(158,202,225)',
-                     line = list(color = 'rgb(8,48,107)',
-                                 width = 1.5))) %>%
-  layout(title = "Obtaining and Maintaining Permanent Housing",
-         xaxis = list(title = ~FriendlyProjectName,
-                      categoryorder = "array",
-                      categoryarray = ~Percent),
-         yaxis = list(title = "All Errors"))
+plot_ly(
+  stagingExitsToPH,
+  x = ~ FriendlyProjectName,
+  y = ~ Percent,
+  text = ~hover,
+  hoverinfo = 'text',
+  type = "bar"
+) %>%
+  layout(
+    xaxis = list(
+      title = ~ FriendlyProjectName
+    ),
+    yaxis = list(title = "Percent Exited to Permanent Housing",
+                 tickformat = "%"),
+    shapes = list(
+      type = "rect",
+      name = "CoC Goal",
+      fillcolor = "#41ae76",
+      line = list(color = "white"),     
+      layer = "below",
+      xref = "paper",
+      yref = "y",
+      x0 = 0,
+      x1 = 1,
+      y0 = ~Goal[1],
+      y1 = 1,
+      opacity = .2
+    ),
+    title = "Obtaining and Maintaining Permanent Housing"
+  )
 
 # straight from the app ---------------------------------------------------
 
