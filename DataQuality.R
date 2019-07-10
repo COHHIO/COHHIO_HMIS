@@ -226,7 +226,7 @@ missingLivingSituationDetail <- servedInDateRange %>%
     TimesHomelessPastThreeYears
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) > mdy("10012016") &
+           ymd(EntryDate) > mdy("10012016") & # not req'd prior to this
            ((
              ProjectType %in% c(1, 4, 8, 12) & # ES, OUT, HP, and SH
                (
@@ -361,7 +361,7 @@ smallDisabilities <- Disabilities %>%
   select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
          IndefiniteAndImpairs)
 
-incongruentDisabilitiesDetail <- servedInDateRange %>%
+conflictingDisabilitiesDetail <- servedInDateRange %>%
   select(
     PersonalID,
     EnrollmentID,
@@ -406,7 +406,7 @@ incongruentDisabilitiesDetail <- servedInDateRange %>%
   ) %>%
   filter(!is.na(Issue)) 
 
-incongruentDisabilities <- incongruentDisabilitiesDetail %>%
+conflictingDisabilities <- conflictingDisabilitiesDetail %>%
   select(
     HouseholdID,
     PersonalID,
@@ -1626,39 +1626,35 @@ referralsOnHHMembers <- servedInDateRange %>%
 
 # All together now --------------------------------------------------------
 
-DataQualityHMIS <- rbind(checkEligibility,
-                         checkDisabilityForAccuracy,
-                         DKRLivingSituation,
-                         duplicateEEs,
-                         futureEEs,
-                         householdIssues,
-                         incongruentDisabilities,
-                         missingDisabilities,
-                         missingDisabilitySubs,
-                         missingLivingSituation,
-                         missingLongDuration,
-                         missingUDEs,
-                         conflictingHealthInsuranceYN,
-                         conflictingIncomeAmountAtEntry,
-                         conflictingIncomeAmountAtExit,
-                         conflictingIncomeYN,
-                         conflictingNCBsAtEntry,
-                         incorrectMoveInDate,
-                         missingCountyServed,
-                         missingCountyPrior,
-                         incorrectEntryExitType,
-                         conflictingHealthInsuranceYN,
-                         conflictingIncomeYN,
-                         missingIncomeAtEntry,
-                         missingIncomeAtExit,
-                         missingHealthInsurance,
-                         DKRLivingSituation,
-                         enteredPHwithoutSPDAT,
-                         incorrectMoveInDate,
-                         missingCountyPrior,
-                         missingCountyServed,
-                         LHwithoutSPDAT,
-                         overlaps)
+DataQualityHMIS <- rbind(
+  checkDisabilityForAccuracy,
+  checkEligibility,
+  conflictingDisabilities,
+  conflictingHealthInsuranceYN,
+  conflictingIncomeAmountAtEntry,
+  conflictingIncomeAmountAtExit,
+  conflictingIncomeYN,
+  conflictingNCBsAtEntry,
+  DKRLivingSituation,
+  duplicateEEs,
+  enteredPHwithoutSPDAT,
+  futureEEs,
+  householdIssues,
+  incorrectEntryExitType,
+  incorrectMoveInDate,
+  LHwithoutSPDAT,
+  missingCountyServed,
+  missingCountyPrior,
+  missingDisabilities,
+  missingDisabilitySubs,
+  missingIncomeAtEntry,
+  missingIncomeAtExit,
+  missingHealthInsurance,
+  missingLivingSituation,
+  missingLongDuration,
+  missingUDEs,
+  overlaps
+)
 
 stagingDQErrors <- DataQualityHMIS %>%
   filter(Type == "Error") %>%
@@ -1679,8 +1675,6 @@ end <- now()
 total <- end - start
 total
 
-
-
 # Errors by Provider ------------------------------------------------------
 
 plotErrors <- stagingDQErrors %>%
@@ -1695,19 +1689,27 @@ plotErrors$hover <-
     paste(Errors, "Errors")
   )
 
-errorsProviderPlot <- plot_ly(plotErrors, 
-             x = ~ProjectName, 
-             y = ~Errors, 
-             type = 'bar', 
-             text = ~hover,
-             marker = list(color = 'rgb(158,202,225)',
-                           line = list(color = 'rgb(8,48,107)',
-                                       width = 1.5))) %>%
-  layout(title = "HMIS Errors by Provider",
-         xaxis = list(title = ~ProjectName,
-                      categoryorder = "array",
-                      categoryarray = ~Errors),
-         yaxis = list(title = "All Errors"))
+errorsProviderPlot <- plot_ly(
+  plotErrors,
+  x = ~ ProjectName,
+  y = ~ Errors,
+  type = 'bar',
+  text = ~ hover,
+  marker = list(
+    color = 'rgb(158,202,225)',
+    line = list(color = 'rgb(8,48,107)',
+                width = 1.5)
+  )
+) %>%
+  layout(
+    title = "HMIS Errors by Provider",
+    xaxis = list(
+      title = ~ ProjectName,
+      categoryorder = "array",
+      categoryarray = ~ Errors
+    ),
+    yaxis = list(title = "All Errors")
+  )
 
 # Error Types Plot --------------------------------------------------------
 errorTypes <- stagingDQErrors %>%
@@ -1716,16 +1718,30 @@ errorTypes <- stagingDQErrors %>%
   ungroup() %>%
   arrange(desc(Errors))
 
-errorTypePlot <- plot_ly(errorTypes, 
-                              x = ~Issue, 
-                              y = ~Errors, 
-                              type = 'bar', 
-                              marker = list(color = 'rgb(158,202,225)',
-                                            line = list(color = 'rgb(8,48,107)',
-                                                        width = 1.5))) %>%
-  layout(title = "HMIS Errors Across the Ohio BoS CoC",
-         xaxis = list(title = ~Issue,
-                      categoryorder = "array",
-                      categoryarray = ~Errors),
-         yaxis = list(title = "All Errors"))
+errorTypePlot <- plot_ly(
+  errorTypes,
+  x = ~ Issue,
+  y = ~ Errors,
+  type = 'bar',
+  marker = list(
+    color = 'rgb(158,202,225)',
+    line = list(color = 'rgb(8,48,107)',
+                width = 1.5)
+  )
+) %>%
+  layout(
+    title = "HMIS Errors Across the Ohio BoS CoC",
+    xaxis = list(
+      title = ~ Issue,
+      categoryorder = "array",
+      categoryarray = ~ Errors
+    ),
+    yaxis = list(title = "All Errors")
+  )
 
+ widespreadIssue <- DataQualityHMIS %>%
+   select(Issue, ProjectName, Type) %>%
+   unique() %>%
+   group_by(Issue, Type) %>%
+   summarise(HowManyProjects = n()) %>%
+   arrange(desc(HowManyProjects))
