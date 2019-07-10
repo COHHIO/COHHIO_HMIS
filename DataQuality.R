@@ -1,6 +1,7 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
+library(plotly)
 start <- now()
 load("images/COHHIOHMIS.RData")
 
@@ -1626,6 +1627,8 @@ referralsOnHHMembers <- servedInDateRange %>%
 # All together now --------------------------------------------------------
 
 DataQualityHMIS <- rbind(checkEligibility,
+                         checkDisabilityForAccuracy,
+                         DKRLivingSituation,
                          duplicateEEs,
                          futureEEs,
                          householdIssues,
@@ -1635,6 +1638,11 @@ DataQualityHMIS <- rbind(checkEligibility,
                          missingLivingSituation,
                          missingLongDuration,
                          missingUDEs,
+                         conflictingHealthInsuranceYN,
+                         conflictingIncomeAmountAtEntry,
+                         conflictingIncomeAmountAtExit,
+                         conflictingIncomeYN,
+                         conflictingNCBsAtEntry,
                          incorrectMoveInDate,
                          missingCountyServed,
                          missingCountyPrior,
@@ -1646,7 +1654,9 @@ DataQualityHMIS <- rbind(checkEligibility,
                          missingHealthInsurance,
                          DKRLivingSituation,
                          enteredPHwithoutSPDAT,
-                         incorrectEntryExitType,
+                         incorrectMoveInDate,
+                         missingCountyPrior,
+                         missingCountyServed,
                          LHwithoutSPDAT,
                          overlaps)
 
@@ -1670,61 +1680,6 @@ total <- end - start
 total
 
 
-# map ---------------------------------------------------------------------
-
-county_geo <- map_data("county") %>%
-  filter(region == 'ohio')
-
-county_data <- stagingDQErrors %>%
-  group_by(County) %>%
-  summarise(Errors = n()) %>%
-  ungroup() %>%
-  mutate(State = "Ohio",
-         County = tolower(County))
-
-plotErrors <- merge(county_geo, 
-                    county_data, 
-                    by.x = "subregion", 
-                    by.y = "County")
-
-plotErrors$buckets <- cut(plotErrors$Errors, 
-                          breaks = c(seq(0, 150, by = 30)), 
-                          labels=1:5)
-
-plotErrors <- plotErrors %>%
-  group_by(group) %>%
-  arrange(group, order) %>% # <---- This is how I fixed the county boundaries
-  mutate(subregion = str_to_title(subregion))
-
-plotErrors$hover <- with(plotErrors, paste("County:", subregion, "<br>",
-                                           "Errors:", Errors))
-
-p <- plot_ly(plotErrors) %>%
-  add_polygons(x = ~long,
-               y = ~lat,
-               text = ~hover, 
-               locations = ~subregion,
-               color = ~buckets) %>%
-  # add_polygons(x = ~ long,
-  #              y = ~ lat,
-  #              line = list(color = 'black', width = 0.5),
-  #              showlegend = FALSE) %>%
-  layout(
-    title = "Ohio BoS HMIS Errors by County",
-    xaxis = list(
-      title = "",
-      showgrid = FALSE,
-      zeroline = FALSE,
-      showticklabels = FALSE
-    ),
-    yaxis = list(
-      title = "",
-      showgrid = FALSE,
-      zeroline = FALSE,
-      showticklabels = FALSE
-    )
-  )
-p
 
 # Errors by Provider ------------------------------------------------------
 
@@ -1773,3 +1728,4 @@ errorTypePlot <- plot_ly(errorTypes,
                       categoryorder = "array",
                       categoryarray = ~Errors),
          yaxis = list(title = "All Errors"))
+
