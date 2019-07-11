@@ -126,7 +126,18 @@ somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9"
 somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
                     '#08589e')
 
+ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
+ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
 
 
 
+# Days to House -----------------------------------------------------------
+
+daysToHouse <- QPR_EEs %>%
+  filter(ProjectType == 13 & !is.na(MoveInDate)) %>%
+  mutate(DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days")) 
+
+summaryDays <- daysToHouse %>%
+  group_by(FriendlyProjectName, County, Region, ProjectType) %>%
+  summarise(AvgDays = mean(DaysToHouse, na.rm = TRUE))
 
