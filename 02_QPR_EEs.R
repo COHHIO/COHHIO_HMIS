@@ -126,6 +126,33 @@ somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9"
 somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
                     '#08589e')
 
+# RECURRENCE #
+
+# Enrollments to Compare Against ------------------------------------------
+
 ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
 ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
+LookbackStart <- format.Date(mdy(ReportStart) - years(1), "%m-%d-%Y")
+LookbackEnd <- format.Date(mdy(ReportEnd) - years(1), "%m-%d-%Y")
+
+
+exitedToPH <- QPR_EEs %>%
+  filter(Destination %in% c(3, 10, 11, 19, 20, 21, 22, 23, 26, 28, 31) &
+           ymd(ExitDate) >= mdy(LookbackStart) &
+           ymd(ExitDate) <= mdy(LookbackEnd) &
+           ProjectType %in% c(1, 2, 3, 4, 8, 9, 10, 13))
+
+earliestExitsToPH <- exitedToPH %>%
+  group_by(PersonalID) %>%
+  summarise(ExitDate = min(ymd(ExitDate)))
+
+x <- semi_join(exitedToPH, earliestExitsToPH, by = c("PersonalID", "ExitDate"))
+
+get_dupes(x, PersonalID) %>% view()
+
+# so how do you break the tie when a client has two exits to PH on the same day?
+
+# Qualifying Recurrences --------------------------------------------------
+
+
 
