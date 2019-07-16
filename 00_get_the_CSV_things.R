@@ -175,9 +175,7 @@ Enrollment <- Enrollment %>%
     EntryAdjust = case_when(
       ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
       ProjectType %in% c(3, 9, 13) &
-        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
-      ProjectType %in% c(3, 9, 13) &
-        is.na(MoveInDateAdjust) ~ EntryDate
+        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust
     )
   )
 
@@ -254,7 +252,7 @@ exited_between <- function(table, start, end){
 }
 
 stayed_between <- function(table, start, end){
-  stayed <- between(ymd(table$MoveInDateAdjust), mdy(start), mdy(end))
+  stayed <- between(ymd(table$EntryAdjust), mdy(start), mdy(end))
   stayed
 }
 
