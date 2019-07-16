@@ -104,19 +104,9 @@ QPR_EEs <- smallProject %>%
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other"
     ),
     Region = paste("Homeless Planning Region", Region),
-    MoveInDateAdjust = if_else(
-      ymd(EntryDate) <= ymd(MoveInDate) &
-        ymd(MoveInDate) <= ExitAdjust &
-        ProjectType %in% c(3, 9, 13),
-      MoveInDate,
-      NULL
-    ),
-    EntryAdjust = case_when(
-      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
-      ProjectType %in% c(3, 9, 13) & !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
-      ProjectType %in% c(3, 9, 13) & is.na(MoveInDateAdjust) ~ EntryDate),
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
-  )
+  ) %>% 
+  filter(stayed_between(., FileStart, FileEnd))
 rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
 
 save.image("images/QPR_EEs.RData")
