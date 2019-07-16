@@ -129,6 +129,74 @@ somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9"
 somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
                     '#08589e')
 
+
+ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
+ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
+
+SuccessfullyPlaced <- QPR_EEs %>%
+  filter(((
+    ProjectType %in% c(3, 9, 13) &
+      !is.na(MoveInDateAdjust)
+  ) |
+    ProjectType %in% c(1, 2, 4, 8, 12)) &
+    # excluding non-mover-inners
+    (((DestinationGroup == "Permanent" |
+         #exited to ph or still in PSH/HP
+         is.na(ExitDate)) &
+        ProjectType %in% c(3, 9, 12) &
+        served_between(., ReportStart, ReportEnd)# PSH & HP
+    ) |
+      (
+        DestinationGroup == "Permanent" & # exited to ph
+          ProjectType %in% c(1, 2, 4, 8, 13) &
+          exited_between(., ReportStart, ReportEnd)
+      )
+    )) # ES, TH, SH, RRH, OUT) %>%
+
+
+# calculating the total households to compare successful placements to
+TotalHHsSuccessfulPlacement <- QPR_EEs %>%
+  filter((
+    served_between(., ReportStart, ReportEnd) &
+      ProjectType %in% c(3, 9, 12) # PSH & HP
+  ) |
+    (
+      exited_between(., ReportStart, ReportEnd) &
+        ProjectType %in% c(1, 2, 4, 8, 13) # ES, TH, SH, OUT, RRH
+    )) # For PSH & HP, it's total hhs served;
+# otherwise, it's total hhs *exited* during the reporting period
+
+SuccessfulPlacement <- TotalHHsSuccessfulPlacement %>%
+  left_join(
+    SuccessfullyPlaced,
+    by = c("EnrollmentID", "ProjectType", "ProjectName", "PersonalID", 
+           "EntryDate", "MoveInDate", "MoveInDateAdjust", "ExitDate", 
+           "DestinationGroup", "Destination", "HouseholdID")
+  ) %>%
+  filter(ProjectName == "Sandusky - GLCAP Homenet - TH") %>%
+  select(PersonalID, ProjectType, EntryDate, MoveInDate, MoveInDateAdjust, 
+         ExitDate, DestinationGroup, HouseholdID) %>%
+  group_by(HouseholdID)
+
+SuccessfulPlacementPH <- SuccessfulPlacement %>%
+  select(PersonalID,
+         HouseholdID,
+         EntryDate,
+         MoveInDateAdjust,
+         ExitDate,
+         DestinationGroup)    
+
+SuccessfulPlacementRes <- SuccessfulPlacement %>%
+  select(PersonalID,
+         HouseholdID,
+         EntryDate,
+         ExitDate,
+         DestinationGroup)
+
+if_else(2==2,
+        SuccessfulPlacementPH, SuccessfulPlacementRes)
+
+
 # RECURRENCE #
 
 # Enrollments to Compare Against ------------------------------------------
