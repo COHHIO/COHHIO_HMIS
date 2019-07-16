@@ -42,7 +42,10 @@ SmallEnrollment <- Enrollment %>%
          EnrollmentID,
          ProjectID,
          EntryDate,
+         EntryAdjust,
+         MoveInDateAdjust,
          ExitDate,
+         ExitAdjust,
          HouseholdID,
          RelationshipToHoH,
          MoveInDate)
@@ -59,8 +62,11 @@ Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
     HouseholdID,
     RelationshipToHoH,
     EntryDate,
+    EntryAdjust,
     MoveInDate,
-    ExitDate
+    MoveInDateAdjust,
+    ExitDate,
+    ExitAdjust
   )
 # Cleaning up the house ---------------------------------------------------
 
@@ -73,12 +79,7 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
 # fake training providers
 ClientUtilizers <- Utilizers %>%
-  mutate(EntryAdjust = case_when(
-           ProjectType %in% c(1, 2, 8) ~ EntryDate,
-           ProjectType %in% c(3, 9) ~ MoveInDate),
-         ExitAdjust = if_else(is.na(ExitDate), today(), ymd(ExitDate)),
-         StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
-           ) %>%
+  mutate(StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))) %>%
   filter(
     int_overlaps(StayWindow, FilePeriod) &
       (
@@ -762,3 +763,7 @@ rm(Households, Clients, Capacity, Enrollment, Project, Inventory,
    SmallInventory, SmallProject)
 
 save.image("images/Utilization.RData")
+
+rm(list = ls())
+
+

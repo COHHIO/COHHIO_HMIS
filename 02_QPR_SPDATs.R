@@ -135,3 +135,5 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
 rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, Users)
 
 save.image("images/QPR_SPDATs.RData")
+
+rm(list = ls())
