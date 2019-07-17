@@ -1,0 +1,33 @@
+---
+title: "LH DV Served in 2018"
+author: "Genelle Denzin"
+date: "7/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+load("images/COHHIOHMIS.RData")
+```
+
+## Literally Homeless Domestic Violence Survivors Served in 2018
+
+The following represents clients who indicated they were "Currently Fleeing" at Entry into an Emergency Shelter or a Transitional Housing project.
+
+
+```{r summary}
+
+dvClients <- HealthAndDV %>%
+  select(PersonalID, EnrollmentID, DomesticViolenceVictim, WhenOccurred,
+         CurrentlyFleeing) %>%
+  filter(CurrentlyFleeing == 1) %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID")) %>% 
+  select(EnrollmentID, PersonalID, DomesticViolenceVictim, WhenOccurred, CurrentlyFleeing, ProjectType, EntryDate, ExitDate, AgeAtEntry, Destination, CountyServed) %>%
+  filter(ProjectType %in% c(1, 2, 8),
+         served_between(., "01012018", "12312018"))
+
+dvClients %>% summarise(n())
+```
+
+
