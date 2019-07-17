@@ -1605,7 +1605,7 @@ referralsOnHHMembers <- servedInDateRange %>%
 # Unsheltered Missing DOB -------------------------------------------------
 
 
-# Missing End Date on Outreach Contacct -----------------------------------
+# Missing End Date on Outreach Contact ------------------------------------
 
 
 # Unsheltered Missing LoTH questions --------------------------------------
