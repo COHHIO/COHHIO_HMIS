@@ -5,9 +5,10 @@ date: "7/17/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
+library(lubridate)
 load("images/COHHIOHMIS.RData")
 ```
 
@@ -21,13 +22,13 @@ The following represents clients who indicated they were "Currently Fleeing" at 
 dvClients <- HealthAndDV %>%
   select(PersonalID, EnrollmentID, DomesticViolenceVictim, WhenOccurred,
          CurrentlyFleeing) %>%
-  filter(CurrentlyFleeing == 1) %>%
+  # filter(CurrentlyFleeing == 1) %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID")) %>% 
   select(EnrollmentID, PersonalID, DomesticViolenceVictim, WhenOccurred, CurrentlyFleeing, ProjectType, EntryDate, ExitDate, AgeAtEntry, Destination, CountyServed) %>%
-  filter(ProjectType %in% c(1, 2, 8),
+  filter(#ProjectType %in% c(1, 2, 8),
          served_between(., "01012018", "12312018"))
 
-dvClients %>% summarise(n())
+nrow(dvClients)
 ```
 
 
