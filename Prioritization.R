@@ -42,7 +42,30 @@ singlyChronicAtEntry <-
   ) %>%
   mutate(ChronicAtEntry = 1)
 
-allChronicAtEntry <- left_join(smallEnrollment, singlyChronicAtEntry) %>%
+allChronicAtEntry <- 
+  left_join(
+    smallEnrollment,
+    singlyChronicAtEntry,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "ProjectID",
+      "EntryDate",
+      "HouseholdID",
+      "RelationshipToHoH",
+      "LivingSituation",
+      "DateToStreetESSH",
+      "TimesHomelessPastThreeYears",
+      "MonthsHomelessPastThreeYears",
+      "DisablingCondition",
+      "MoveInDate",
+      "UserCreating",
+      "CountyServed",
+      "ExitDate",
+      "ExitAdjust",
+      "Destination"
+    )
+  ) %>%
   group_by(HouseholdID) %>%
   mutate(ChronicHousehold = sum(ChronicAtEntry, na.rm = TRUE)) %>%
   filter(ChronicHousehold == 1) %>%
