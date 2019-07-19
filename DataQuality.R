@@ -23,7 +23,7 @@ load("images/COHHIOHMIS.RData")
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectType == 12 |
+  filter(ProjectID %in% c(1775, 1695) | ProjectType == 12 |
            (
              HMIS_participating_between(., FileStart, FileEnd) &
                operating_between(., FileStart, FileEnd) &
@@ -56,7 +56,7 @@ servedInDateRange <- Enrollment %>%
          DateToStreetESSH, TimesHomelessPastThreeYears, AgeAtEntry,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement, 
          MoveInDate, EEType, CountyServed, CountyPrior, ExitDate, Destination, 
-         ExitAdjust, AgeAtEntry, DateCreated = DateCreated.x) %>%
+         ExitAdjust, AgeAtEntry, DateCreated = DateCreated.x, UserCreating) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
 # Missing UDEs ------------------------------------------------------------
@@ -1569,28 +1569,48 @@ referralsOnHHMembers <- servedInDateRange %>%
 # can't get this from the CSV Export
 
 # Diversion Incorrect Destination -----------------------------------------
+# Currently, the BoS is collecting Diversion via EEs on a single provider
+# shared by all access points in the system. This is changing soon.
 
+diversionEnrollments <- servedInDateRange %>%
+  filter(ProjectID == 1775) %>%
+  select(PersonalID, EnrollmentID, ProjectID, ProjectName, ProjectType,
+         HouseholdID, EntryDate, ExitDate, RelationshipToHoH, LivingSituation,
+         AgeAtEntry, EEType, Destination, CountyServed, UserCreating)
+
+diversionIncorrectDestination <- diversionEnrollments %>%
+  filter(Destination %in% c(1:3, 8:9, 16, 18, 24, 31, 99))
 
 
 # Diversion Exit Date Missing or Incorrect --------------------------------
-
+diversionIncorrectExitDate <- filter(diversionEnrollments,
+       ymd(EntryDate) != ymd(ExitDate) | is.na(ExitDate))
 
 # Diversion Missing # in HH -----------------------------------------------
-
+# can't get this from the CSV Export
 
 # Diversion No Provider in CM Record --------------------------------------
-
+# can't get this from the CSV Export
 
 # Diversion Missing CM ----------------------------------------------------
-
+# can't get this from the CSV Export
 
 # Diversion Entered all HH members ----------------------------------------
-
+diversionEnteredHHMembers <- filter(diversionEnrollments,
+                                     str_starts(HouseholdID, "h_"))
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
+unshelteredEnrollments <- servedInDateRange %>%
+  filter(ProjectID == 1695) %>%
+  select(PersonalID, EnrollmentID, ProjectID, ProjectName, ProjectType,
+         HouseholdID, EntryDate, ExitDate, RelationshipToHoH, LivingSituation,
+         AgeAtEntry, EEType, Destination, CountyServed, UserCreating,
+         LivingSituation)
 
+unshelteredNotUnsheltered <- unshelteredEnrollments %>%
+  filter(LivingSituation != 16)
 
-# Unshletered Incorrect Provider in CM Record -----------------------------
+# Unsheltered Incorrect Provider in CM Record -----------------------------
 
 
 # Unsheltered HoHs w no SPDAT ---------------------------------------------

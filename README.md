@@ -30,9 +30,14 @@ You may not need a miscellaneous (RMisc) file, so whatever you use from this rep
 
 The workflow I'm currently using (which I expect to become less tedious eventually) is the following:
 
+0. Be sure you have the following directories in your R project:
+   * data (to keep your HUD CSV files and whatever other data you will use)
+   * images (see 4.)
 1. Download and unzip the HUD CSV export into the data directory of my R Studio project.
 2. Run and save the RMisc report in .xlsx format to the data directory of this project.
 3. Run the first script, beginning with 00_...R, then the other scripts that begin with a number, incrementally by the number.
+4. Doing 3. will create 1 .RData file per script that you run and drop it in the images folder.
+5. Your other projects (like R minor or R minor elevated) each have data folders with symbolic links in them, each pointing to any relevant .RData files.
 
 This will one day be written as a package, hopefully.
 

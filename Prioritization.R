@@ -30,6 +30,8 @@ smallEnrollment <- Enrollment %>%
 smallProject <- Project %>%
   select(ProjectID, ProjectName, ProjectType)
 
+# calculating chronicity on individual clients, adding a ChronicAtEntry marker
+
 singlyChronicAtEntry <- 
   smallEnrollment %>%
   filter(
@@ -42,24 +44,54 @@ singlyChronicAtEntry <-
   ) %>%
   mutate(ChronicAtEntry = 1)
 
-allChronicAtEntry <- left_join(smallEnrollment, singlyChronicAtEntry) %>%
+# pulling all EEs with the Chronic designation, creating a marker for whether
+# each client is in a hh with someone who is Chronic, throwing out all clients
+# who are neither Chronic themselves nor in a hh with someone who's Chronic.
+
+allChronicAtEntry <- 
+  full_join(
+    smallEnrollment,
+    singlyChronicAtEntry,
+    by = c(
+      "EnrollmentID",
+      "PersonalID",
+      "ProjectID",
+      "EntryDate",
+      "HouseholdID",
+      "RelationshipToHoH",
+      "LivingSituation",
+      "DateToStreetESSH",
+      "TimesHomelessPastThreeYears",
+      "MonthsHomelessPastThreeYears",
+      "DisablingCondition",
+      "MoveInDate",
+      "UserCreating",
+      "CountyServed",
+      "ExitDate",
+      "ExitAdjust",
+      "Destination"
+    )
+  ) %>%
   group_by(HouseholdID) %>%
   mutate(ChronicHousehold = sum(ChronicAtEntry, na.rm = TRUE)) %>%
-  filter(ChronicHousehold == 1) %>%
+  filter(ChronicHousehold > 0) %>%
   ungroup() %>% select(-ChronicHousehold)
 
 rm(singlyChronicAtEntry)
 
+# adding in Project data for convenience
+
 allChronicAtEntry <- left_join(allChronicAtEntry, smallProject, by = "ProjectID")
+
+# adds days in ES or SH projects to days homeless prior to entry and if it adds
+# up to 365 or more, it marks the client as ConsecutiveChronic
 
 agedIntoChronicity <- allChronicAtEntry %>%
   filter(ProjectType %in% c(1, 8)) %>%
   mutate(
-    DaysHomelessInProject = if_else(ProjectType %in% c(1, 2, 8),
-                                    difftime(ymd(ExitAdjust),
+    DaysHomelessInProject = difftime(ymd(ExitAdjust),
                                              ymd(EntryDate),
                                              units = "days"),
-                                    0),
     DaysBetweenHomeless = difftime(ymd(EntryDate),
                                    if_else(
                                      is.na(ymd(DateToStreetESSH)), 
@@ -70,3 +102,7 @@ agedIntoChronicity <- allChronicAtEntry %>%
     ConsecutiveChronic = DaysBetweenHomeless +  DaysHomelessInProject >= 365
   ) %>%
   filter(ConsecutiveChronic == TRUE)
+
+load("images/QPR_SPDATs.RData")
+
+

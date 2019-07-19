@@ -85,9 +85,6 @@ Inventory <- left_join(Inventory, YouthBeds, by = "InventoryID") %>%
 rm(YouthBeds)
 
 
-# Adding Addresses to Provider --------------------------------------------
-
-
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
@@ -166,12 +163,13 @@ smallExit <- Exit %>% select(EnrollmentID,
                              ExitDate, 
                              Destination, 
                              OtherDestination)
+
 Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID") %>%
   mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
 
 rm(smallExit)
 
-#Adding ProjectType to Enrollment too bc we need EntryAdjust & MoveInAdjust here
+# Adding ProjectType to Enrollment too bc we need EntryAdjust & MoveInAdjust
 
 smallProject <- Project %>%
   select(ProjectID, ProjectType) 
@@ -247,7 +245,7 @@ Enrollment <- Enrollment %>%
   select(-DOB)
 rm(smallClient)
 
-# Client Entry Exits Between Date Range Function --------------------------------------
+# Client Entry Exits Between Date Range Functions -------------------------------------
 
 served_between <- function(table, start, end){
   served <- ymd(table$EntryDate) <= mdy(end) &
