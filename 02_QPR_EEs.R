@@ -82,7 +82,7 @@ smallProject <- smallProject %>%
 
 smallProject <- as.data.frame(smallProject)
 
-smallEnrollment <- Enrollment %>%
+smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
   select(
     EnrollmentID,
     PersonalID,
@@ -104,7 +104,7 @@ smallEnrollment <- Enrollment %>%
 
 smallEnrollment <- as.data.frame(smallEnrollment)
 
-# captures all leavers PLUS all ee's in either HP or PSH
+# captures all leavers PLUS all ee's in either HP or PSH <- wait, why??
 # also limits records to singles and HoHs only
 QPR_EEs <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
@@ -121,6 +121,7 @@ QPR_EEs <- smallProject %>%
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
   ) %>% 
   filter(stayed_between(., FileStart, FileEnd))
+
 rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
 
 save.image("images/QPR_EEs.RData")
