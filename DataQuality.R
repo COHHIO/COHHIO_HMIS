@@ -679,7 +679,8 @@ futureEEs <- servedInDateRange %>%
   )
   
 # Incorrect Entry Exit Type -----------------------------------------------
-# check ART report for exact logic. This is an approximation.
+# check ART report for exact logic. This is an approximation. Also be sure
+# to include Project 1695 = "Standard"
 incorrectEntryExitType <- servedInDateRange %>%
   filter(EEType != "HUD" & is.na(GrantType)) %>%
   mutate(Issue = "Incorrect EE Type",
@@ -736,7 +737,7 @@ enteredPHwithoutSPDAT <-
 # since users can't do anything about leavers
 LHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(1, 2, 4) &
+  filter(ProjectType %in% c(1, 2, 4, 8) &
          ymd(EntryDate) < today() - days(8) &
             is.na(ExitDate)) %>%
   mutate(Issue = "HoHs in ES, TH, SH w/o SPDAT",
@@ -1608,43 +1609,17 @@ unshelteredEnrollments <- servedInDateRange %>%
          LivingSituation)
 
 unshelteredNotUnsheltered <- unshelteredEnrollments %>%
-  filter(LivingSituation != 16)
+  filter(LivingSituation != 16) %>%
+  mutate(type = "Error")
 
 # Unsheltered Incorrect Provider in CM Record -----------------------------
-
-
-# Unsheltered HoHs w no SPDAT ---------------------------------------------
-
-
-# Unsheltered Incorrect EE Type -------------------------------------------
-
-
-# Unsheltered Missing County ----------------------------------------------
-
-
-# Unsheltered Missing DOB -------------------------------------------------
-
+# can't get this from the HUD CSV export 
 
 # Missing End Date on Outreach Contact ------------------------------------
 
-
-# Unsheltered Missing LoTH questions --------------------------------------
-
-
 # Unsheltered Missing Outreach Contact Note -------------------------------
 
-
 # Unsheltered Missing Outreach Contact Record -----------------------------
-
-
-# Unsheltered Missing Rel to HoH ------------------------------------------
-
-
-# Unsheltered Missing Vet Status ------------------------------------------
-
-
-# Unsheltered Missing Res Prior -------------------------------------------
-
 
 # Unsheltered Outreach Contact Incorrect Start Date -----------------------
 
@@ -1688,7 +1663,8 @@ DataQualityHMIS <- rbind(
   missingLongDuration,
   missingUDEs,
   overlaps
-)
+) %>%
+  filter(ProjectID != 1695)
 
 stagingDQErrors <- DataQualityHMIS %>%
   filter(Type == "Error") %>%
@@ -1699,6 +1675,34 @@ stagingDQWarnings <- DataQualityHMIS %>%
   filter(Type == "Warning") %>%
   group_by(ProjectName, Issue, Type, ProjectType, County, Region) %>%
   summarise(Count = n())
+
+unshelteredDataQuality <- rbind(
+  checkDisabilityForAccuracy,
+  conflictingDisabilities,
+  conflictingHealthInsuranceYN,
+  conflictingIncomeAmountAtEntry,
+  conflictingIncomeAmountAtExit,
+  conflictingIncomeYN,
+  conflictingNCBsAtEntry,
+  DKRLivingSituation,
+  duplicateEEs,
+  futureEEs,
+  householdIssues,
+  incorrectEntryExitType,
+  LHwithoutSPDAT,
+  missingCountyServed,
+  missingCountyPrior,
+  missingDisabilities,
+  missingDisabilitySubs,
+  missingIncomeAtEntry,
+  missingIncomeAtExit,
+  missingHealthInsurance,
+  missingLivingSituation,
+  missingLongDuration,
+  missingUDEs,
+  overlaps, 
+  unshelteredNotUnsheltered
+)
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,

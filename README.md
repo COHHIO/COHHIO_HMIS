@@ -33,7 +33,7 @@ The workflow I'm currently using (which I expect to become less tedious eventual
 0. Be sure you have the following directories in your R project:
    * data (to keep your HUD CSV files and whatever other data you will use)
    * images (see 4.)
-1. Download and unzip the HUD CSV export into the data directory of my R Studio project.
+1. Download and unzip the HUD CSV export into the data directory of the R Studio project.
 2. Run and save the RMisc report in .xlsx format to the data directory of this project.
 3. Run the first script, beginning with 00_...R, then the other scripts that begin with a number, incrementally by the number.
 4. Doing 3. will create 1 .RData file per script that you run and drop it in the images folder.
