@@ -16,7 +16,7 @@ library(tidyverse)
 library(janitor)
 library(lubridate)
 library(plotly)
-
+start <- now()
 load("images/COHHIOHMIS.RData")
 
 # Providers to Check ------------------------------------------------------
@@ -136,11 +136,12 @@ childrenOnly <- servedInDateRange %>%
   group_by(HouseholdID) %>%
   summarise(
     hhMembers = n(),
-    maxAge = max(AgeAtEntry)
+    maxAge = max(AgeAtEntry),
+    PersonalID = min(PersonalID)
   ) %>%
   filter(maxAge < 18) %>%
   ungroup() %>%
-  left_join(servedInDateRange, by = "HouseholdID") %>%
+  left_join(servedInDateRange, by = c("PersonalID", "HouseholdID")) %>%
   mutate(Issue = "Children Only Household",
          Type = "Error") %>%
   select(
@@ -159,64 +160,60 @@ childrenOnly <- servedInDateRange %>%
          UserCreating)
 
 noHoH <- servedInDateRange %>%
-  group_by(HouseholdID, ProjectType, ProjectName, County, Region) %>%
+  group_by(HouseholdID) %>%
   summarise(
     hasHoH = if_else(min(RelationshipToHoH, na.rm = TRUE) != 1,
                      FALSE,
                      TRUE),
-    PersonalID = min(PersonalID),
-    EnrollmentID = min(EnrollmentID),
-    EntryDate = min(EntryDate),
-    MoveInDate = min(MoveInDate),
-    ExitDate = min(ExitDate),
-    Issue = "No Head of Household"
+    PersonalID = min(PersonalID)
   ) %>%
   filter(hasHoH == FALSE) %>%
   ungroup() %>%
+  left_join(servedInDateRange, by = c("PersonalID", "HouseholdID")) %>%
+  mutate(Issue = "No Head of Household",
+         Type = "Error") %>%
   select(
     HouseholdID,
     PersonalID,
     EnrollmentID,
     ProjectName,
     Issue,
+    Type,
     EntryDate,
     MoveInDate,
     ExitDate,
     ProjectType,
     County,
-    Region
-  )
+    Region,
+    UserCreating)
 
 tooManyHoHs <- servedInDateRange %>%
   filter(RelationshipToHoH == 1) %>%
-  group_by(HouseholdID, ProjectType, ProjectName, County, Region) %>%
-  summarise(
-    HoHsinHousehold = n(),
-    PersonalID = min(PersonalID),
-    EnrollmentID = min(EnrollmentID),
-    EntryDate = min(EntryDate),
-    MoveInDate = min(MoveInDate),
-    ExitDate = min(ExitDate),
-    Issue = "Too Many Heads of Household"
-  ) %>%
+  group_by(HouseholdID) %>%
+  summarise(HoHsinHousehold = n(),
+            PersonalID = min(PersonalID)) %>%
   filter(HoHsinHousehold > 1) %>%
   ungroup() %>%
+  left_join(servedInDateRange, by = c("PersonalID", "HouseholdID")) %>%
+  mutate(Issue = "Too Many Heads of Household",
+         Type = "Error") %>%
   select(
     HouseholdID,
     PersonalID,
     EnrollmentID,
     ProjectName,
     Issue,
+    Type,
     EntryDate,
     MoveInDate,
     ExitDate,
     ProjectType,
     County,
-    Region
-  )
+    Region,
+    UserCreating)
 
-householdIssues <- rbind(tooManyHoHs, noHoH, childrenOnly) %>%
-  mutate(Type = "Error")
+householdIssues <- rbind(tooManyHoHs, noHoH, childrenOnly)
+
 rm(tooManyHoHs, noHoH, childrenOnly)
 
 # Missing Data at Entry ---------------------------------------------------
@@ -245,7 +242,8 @@ missingLivingSituationDetail <- servedInDateRange %>%
     PreviousStreetESSH,
     DateToStreetESSH,
     MonthsHomelessPastThreeYears,
-    TimesHomelessPastThreeYears
+    TimesHomelessPastThreeYears,
+    UserCreating
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            ymd(EntryDate) > mdy("10012016") & # not req'd prior to this
@@ -289,7 +287,8 @@ missingLivingSituation <- missingLivingSituationDetail %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 
@@ -314,7 +313,8 @@ DKRLivingSituationDetail <- servedInDateRange %>%
     PreviousStreetESSH,
     DateToStreetESSH,
     MonthsHomelessPastThreeYears,
-    TimesHomelessPastThreeYears
+    TimesHomelessPastThreeYears,
+    UserCreating
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            ymd(EntryDate) > mdy("10012016") &
@@ -340,7 +340,8 @@ DKRLivingSituation <- DKRLivingSituationDetail %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # DisablingCondition at Entry
@@ -359,7 +360,8 @@ missingDisabilitiesDetail <- servedInDateRange %>%
     RelationshipToHoH,
     DisablingCondition,
     County,
-    Region
+    Region,
+    UserCreating
   ) %>%
   filter(DisablingCondition == 99 |
       is.na(DisablingCondition)) %>%
@@ -378,7 +380,8 @@ missingDisabilities <- missingDisabilitiesDetail %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 smallDisabilities <- Disabilities %>%
@@ -400,7 +403,8 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
     RelationshipToHoH,
     DisablingCondition,
     County,
-    Region
+    Region,
+    UserCreating
   ) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   group_by(
@@ -416,7 +420,8 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
     RelationshipToHoH,
     DisablingCondition,
     County,
-    Region
+    Region,
+    UserCreating
   ) %>%
   filter(IndefiniteAndImpairs %in% c(0, 1),
          DisablingCondition %in% c(0, 1)) %>%
@@ -444,7 +449,8 @@ conflictingDisabilities <- conflictingDisabilitiesDetail %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
@@ -461,7 +467,8 @@ missingDisabilitySubs <- servedInDateRange %>%
          ProjectType,
          DisablingCondition,
          County,
-         Region) %>%
+         Region,
+         UserCreating) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(DisablingCondition == 1 & is.na(DisabilitiesID)) %>%
   mutate(Issue = "Missing Disability Subs", Type = "Error") %>%
@@ -477,7 +484,8 @@ missingDisabilitySubs <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 ## NOT SURE IF THIS EVEN MATTERS ANYMORE?
@@ -494,7 +502,8 @@ missingLongDuration <- servedInDateRange %>%
          RelationshipToHoH,
          DisablingCondition,
          County,
-         Region) %>%
+         Region,
+         UserCreating) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(IndefiniteAndImpairs == 99) %>%
   mutate(Issue = "Long Duration not answered in subassessment",
@@ -511,7 +520,8 @@ missingLongDuration <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # MoveInDate
@@ -534,7 +544,8 @@ incorrectMoveInDate <- servedInDateRange %>%
          ExitDate,
          ProjectType,
          County,
-         Region) 
+         Region,
+         UserCreating) 
   
 # CountyServed
 
@@ -553,7 +564,8 @@ missingCountyServed <- servedInDateRange %>%
          ExitDate,
          ProjectType,
          County,
-         Region) 
+         Region,
+         UserCreating) 
 
 # CountyPrior
 # check to see if all hh members have to answer this or if just adults or all?
@@ -574,7 +586,8 @@ missingCountyPrior <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   ) 
 
 # Check Eligibility, Project Type, Residence Prior ------------------------
@@ -598,7 +611,8 @@ checkEligibility <- servedInDateRange %>%
     LOSUnderThreshold,
     PreviousStreetESSH,
     County,
-    Region
+    Region,
+    UserCreating
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
            ymd(EntryDate) > mdy("10012016") &
@@ -640,7 +654,8 @@ checkEligibility <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # Missing PATH Data at Entry
@@ -670,7 +685,8 @@ duplicateEEs <- get_dupes(servedInDateRange, PersonalID, ProjectID, EntryDate) %
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 
@@ -696,7 +712,8 @@ futureEEs <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
   
 # Incorrect Entry Exit Type -----------------------------------------------
@@ -717,16 +734,18 @@ incorrectEntryExitType <- servedInDateRange %>%
          ExitDate,
          ProjectType,
          County,
-         Region)
+         Region,
+         UserCreating)
 
 # HoHs Entering PH without SPDATs -----------------------------------------
 
 EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, RelationshipToHoH, EnrollmentID, ProjectID, EntryDate,
-         MoveInDate, ExitDate, HouseholdID, ProjectType, ProjectName, County,
-         Region, SPDATRecordID, SPDATProvider, StartDate, Score) %>%
+  select(PersonalID, EnrollmentID, EntryDate, ExitDate, SPDATRecordID, 
+         SPDATProvider, StartDate, Score) %>%
   filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(EntryDate) >= ymd(StartDate)) %>% # score is on or before Entry Date
+    ymd(EntryDate) + days(8) >= ymd(StartDate) & # score is on or before 8 days 
+      # into the project stay
+    ymd(StartDate) < ymd(ExitDate)) %>% # score is prior to Exit
   group_by(EnrollmentID) %>%
   mutate(MaxScoreDate = max(ymd(StartDate))) %>%
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
@@ -753,7 +772,8 @@ enteredPHwithoutSPDAT <-
          ExitDate,
          ProjectType,
          County,
-         Region)
+         Region,
+         UserCreating)
 
 # HoHs in Shelter without a SPDAT -----------------------------------------
 # this is a little different than the ART report; it only flags stayers
@@ -776,15 +796,16 @@ LHwithoutSPDAT <-
          ExitDate,
          ProjectType,
          County,
-         Region)
+         Region,
+         UserCreating)
 
 # Missing Income at Entry -------------------------------------------------
 IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
 missingIncomeAtEntry <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
+  select(PersonalID, HouseholdID, EnrollmentID, AgeAtEntry, ProjectName, EntryDate,
          MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
-         TotalMonthlyIncome, IncomeFromAnySource) %>%
+         TotalMonthlyIncome, IncomeFromAnySource, UserCreating) %>%
   filter(DataCollectionStage == 1 & 
            (AgeAtEntry > 17 | 
               is.na(AgeAtEntry)) &
@@ -803,7 +824,8 @@ missingIncomeAtEntry <- servedInDateRange %>%
          ExitDate,
          ProjectType,
          County,
-         Region)
+         Region,
+         UserCreating)
 
 conflictingIncomeYN <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -852,7 +874,8 @@ conflictingIncomeYN <- servedInDateRange %>%
     AlimonyAmount,
     OtherIncomeSource,
     OtherIncomeAmount,
-    OtherIncomeSourceIdentify
+    OtherIncomeSourceIdentify,
+    UserCreating
   ) %>%
   filter(DataCollectionStage == 1 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
@@ -885,7 +908,8 @@ conflictingIncomeYN <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # I think this turns up with 0 records bc they're calculating the TMI from the
@@ -938,7 +962,8 @@ conflictingIncomeAmountAtEntry <- servedInDateRange %>%
     AlimonyAmount,
     OtherIncomeSource,
     OtherIncomeAmount,
-    OtherIncomeSourceIdentify
+    OtherIncomeSourceIdentify,
+    UserCreating
   ) %>%
   filter(
     DataCollectionStage == 1 &
@@ -963,16 +988,18 @@ conflictingIncomeAmountAtEntry <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # Missing Income at Exit --------------------------------------------------
 
 missingIncomeAtExit <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
-         MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
-         TotalMonthlyIncome, IncomeFromAnySource) %>%
+  select(PersonalID, HouseholdID, EnrollmentID, AgeAtEntry, ProjectName, 
+         EntryDate, MoveInDate, ExitDate, ProjectType, County, Region, 
+         DataCollectionStage, TotalMonthlyIncome, IncomeFromAnySource, 
+         UserCreating) %>%
   filter(DataCollectionStage == 3 & 
            (AgeAtEntry > 17 | 
               is.na(AgeAtEntry)) &
@@ -991,7 +1018,8 @@ missingIncomeAtExit <- servedInDateRange %>%
          ExitDate,
          ProjectType,
          County,
-         Region)
+         Region,
+         UserCreating)
 
 conflictingIncomeYN <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -1040,7 +1068,8 @@ conflictingIncomeYN <- servedInDateRange %>%
     AlimonyAmount,
     OtherIncomeSource,
     OtherIncomeAmount,
-    OtherIncomeSourceIdentify
+    OtherIncomeSourceIdentify,
+    UserCreating
   ) %>%
   filter(DataCollectionStage == 3 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
@@ -1073,7 +1102,8 @@ conflictingIncomeYN <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # I think this turns up with 0 records bc they're calculating the TMI from the
@@ -1126,7 +1156,8 @@ conflictingIncomeAmountAtExit <- servedInDateRange %>%
     AlimonyAmount,
     OtherIncomeSource,
     OtherIncomeAmount,
-    OtherIncomeSourceIdentify
+    OtherIncomeSourceIdentify,
+    UserCreating
   ) %>%
   filter(
     DataCollectionStage == 3 &
@@ -1151,7 +1182,8 @@ conflictingIncomeAmountAtExit <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # Overlapping Enrollment/Move In Dates ------------------------------------
@@ -1172,7 +1204,8 @@ stagingOverlaps <- servedInDateRange %>%
     ExitAdjust,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   ) %>%
   mutate(
     MoveInDateAdjust = if_else(
@@ -1230,7 +1263,8 @@ overlaps <- stagingOverlaps %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 rm(stagingOverlaps)
@@ -1241,7 +1275,7 @@ missingHealthInsurance <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
          MoveInDate, ExitDate, ProjectType, County, Region, DataCollectionStage,
-         InsuranceFromAnySource) %>%
+         InsuranceFromAnySource, UserCreating) %>%
   filter(DataCollectionStage == 1 & 
            (InsuranceFromAnySource == 99 | 
               is.na(InsuranceFromAnySource))) %>%
@@ -1258,7 +1292,8 @@ missingHealthInsurance <- servedInDateRange %>%
          ExitDate,
          ProjectType,
          County,
-         Region)
+         Region,
+         UserCreating)
 
 conflictingHealthInsuranceYN <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -1286,7 +1321,8 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
     IndianHealthServices,
     OtherInsurance,
     HIVAIDSAssistance,
-    ADAP
+    ADAP,
+    UserCreating
   ) %>%
   filter(DataCollectionStage == 1 &
            ((
@@ -1316,7 +1352,8 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # Missing NCBs at Entry ---------------------------------------------------
@@ -1336,7 +1373,8 @@ missingNCBsAtEntry <- servedInDateRange %>%
     County,
     Region,
     DataCollectionStage,
-    BenefitsFromAnySource
+    BenefitsFromAnySource,
+    UserCreating
   ) %>%
   filter(
     DataCollectionStage == 1 &
@@ -1359,7 +1397,8 @@ missingNCBsAtEntry <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 conflictingNCBsAtEntry <- servedInDateRange %>%
@@ -1384,7 +1423,8 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
     TANFTransportation,
     OtherTANF,
     OtherBenefitsSource,
-    OtherBenefitsSourceIdentify
+    OtherBenefitsSourceIdentify,
+    UserCreating
   ) %>%
   filter(DataCollectionStage == 1 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
@@ -1413,7 +1453,8 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 # Missing NCBs at Exit ----------------------------------------------------
@@ -1432,7 +1473,8 @@ missingNCBsAtEntry <- servedInDateRange %>%
     County,
     Region,
     DataCollectionStage,
-    BenefitsFromAnySource
+    BenefitsFromAnySource,
+    UserCreating
   ) %>%
   filter(
     DataCollectionStage == 3 &
@@ -1455,7 +1497,8 @@ missingNCBsAtEntry <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 conflictingNCBsAtEntry <- servedInDateRange %>%
@@ -1480,7 +1523,8 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
     TANFTransportation,
     OtherTANF,
     OtherBenefitsSource,
-    OtherBenefitsSourceIdentify
+    OtherBenefitsSourceIdentify,
+    UserCreating
   ) %>%
   filter(DataCollectionStage == 3 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
@@ -1509,7 +1553,8 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
     ExitDate,
     ProjectType,
     County,
-    Region
+    Region,
+    UserCreating
   )
 
 
@@ -1529,12 +1574,13 @@ checkDisabilityForAccuracy <- servedInDateRange %>%
          County,
          Region, 
          AgeAtEntry, 
-         DisablingCondition) %>%
+         DisablingCondition,
+         UserCreating) %>%
   left_join(smallIncome, by = c("EnrollmentID", "PersonalID")) %>%
   mutate(SSI = if_else(is.na(SSI), 0, SSI),
          SSDI = if_else(is.na(SSDI), 0, SSDI)) %>%
   filter(SSI + SSDI > 0 & DisablingCondition == 0 & AgeAtEntry > 17) %>%
-  select(-DisablingCondition, -SSI, -SSDI, -EnrollmentID, -AgeAtEntry) %>%
+  select(-DisablingCondition, -SSI, -SSDI, -AgeAtEntry) %>%
   unique() %>%
   mutate(Issue = "Client with No Disability Receiving SSI/SSDI (could be ok)",
          Type = "Warning")
@@ -1558,7 +1604,8 @@ servicesOnHHMembers <- servedInDateRange %>%
          ProjectType,
          County,
          Region,
-         RelationshipToHoH) %>%
+         RelationshipToHoH,
+         UserCreating) %>%
   filter(RelationshipToHoH != 1) %>%
   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
   mutate(Issue = "Service Transaction on a non Head of Household",
@@ -1577,7 +1624,8 @@ referralsOnHHMembers <- servedInDateRange %>%
          ProjectType,
          County,
          Region,
-         RelationshipToHoH) %>%
+         RelationshipToHoH,
+         UserCreating) %>%
   filter(RelationshipToHoH != 1) %>%
   semi_join(Referrals, by = c("PersonalID", "EnrollmentID")) %>%
   mutate(Issue = "Referral on a non Head of Household",
@@ -1606,7 +1654,8 @@ APsWithEEs <- Enrollment %>%
          Type = "Error") %>%
   left_join(smallProject, by = "ProjectID") %>%
   select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, 
-         EntryDate, MoveInDate, ExitDate, "County" = CountyServed, Region)
+         EntryDate, MoveInDate, ExitDate, ProjectType, "County" = CountyServed, 
+         Region, UserCreating)
 
 # Need Status Referral Outcomes -------------------------------------------
 # can't get this from the HUD CSV Export
@@ -1641,8 +1690,9 @@ diversionIncorrectDestination <- diversionEnrollments %>%
   filter(Destination %in% c(1:3, 8:9, 16, 18, 24, 31, 99)) %>%
   mutate(Issue = "Incorrect Destination or Not a Diversion",
          Type = "Error") %>%
-  select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate, MoveInDate,
-         ExitDate, ProjectType, County, Region, UserCreating)
+  select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, 
+         EntryDate, MoveInDate, ExitDate, ProjectType, County, Region, 
+         UserCreating)
 
 
 # Diversion Exit Date Missing or Incorrect --------------------------------
@@ -1650,8 +1700,9 @@ diversionIncorrectExitDate <- filter(diversionEnrollments,
        ymd(EntryDate) != ymd(ExitDate) | is.na(ExitDate)) %>%
   mutate(Issue = "Incorrect Exit Date",
          Type = "Error") %>%
-  select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate, MoveInDate,
-         ExitDate, ProjectType, County, Region, UserCreating)
+  select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, 
+         EntryDate, MoveInDate, ExitDate, ProjectType, County, Region, 
+         UserCreating)
 
 # Diversion Missing # in HH -----------------------------------------------
 # can't get this from the CSV Export
@@ -1667,7 +1718,7 @@ diversionEnteredHHMembers <- filter(diversionEnrollments,
                                      str_starts(HouseholdID, "h_")) %>%
   mutate(Issue = "Entered HH Members on a Diversion",
          Type = "Error") %>%
-  select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate, MoveInDate,
+  select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, EntryDate, MoveInDate,
          ExitDate, ProjectType, County, Region, UserCreating)
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
@@ -1682,8 +1733,9 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
   filter(LivingSituation != 16) %>%
   mutate(Type = "Error",
          Issue = "Wrong Provider (Not Unsheltered)") %>%
-  select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate, MoveInDate,
-         ExitDate, ProjectType, County, Region)
+  select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, 
+         EntryDate, MoveInDate, ExitDate, ProjectType, County, Region, 
+         UserCreating)
 
 # Unsheltered Incorrect Provider in CM Record -----------------------------
 # can't get this from the HUD CSV export 
@@ -1750,39 +1802,88 @@ stagingDQWarnings <- DataQualityHMIS %>%
   summarise(Count = n())
 
 unshelteredDataQuality <- rbind(
+  APsWithEEs,
   checkDisabilityForAccuracy,
+  checkEligibility,
   conflictingDisabilities,
   conflictingHealthInsuranceYN,
   conflictingIncomeAmountAtEntry,
   conflictingIncomeAmountAtExit,
   conflictingIncomeYN,
   conflictingNCBsAtEntry,
+  diversionEnteredHHMembers,
+  diversionIncorrectDestination,
+  diversionIncorrectExitDate,
   DKRLivingSituation,
   duplicateEEs,
+  enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
   incorrectEntryExitType,
+  incorrectMoveInDate,
   LHwithoutSPDAT,
-  missingCountyServed,
   missingCountyPrior,
+  missingCountyServed,
   missingDisabilities,
   missingDisabilitySubs,
+  missingHealthInsurance,
   missingIncomeAtEntry,
   missingIncomeAtExit,
-  missingHealthInsurance,
   missingLivingSituation,
   missingLongDuration,
+  missingNCBsAtEntry,
   missingUDEs,
-  overlaps, 
+  overlaps,
+  referralsOnHHMembers,
+  servicesOnHHMembers,
   unshelteredNotUnsheltered
 ) %>% filter(ProjectName == "Unsheltered Clients - OUTREACH")
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
    Inventory, Offers, Organization, Project, ProjectCoC, Regions, Scores,
-   Users, VeteranCE)
+   Users, VeteranCE, diversionEnrollments, EEsWithSPDATs, FileEnd, FileStart, 
+   FilePeriod, hmisParticipatingCurrent, Referrals, servedInDateRange, Services,
+   smallDisabilities, smallIncome, smallProject, unshelteredEnrollments, 
+   updatedate, APsWithEEs, checkDisabilityForAccuracy, checkEligibility, 
+   conflictingDisabilities,
+   conflictingHealthInsuranceYN, 
+   conflictingIncomeAmountAtEntry,
+   conflictingIncomeAmountAtExit,
+   conflictingIncomeYN,
+   conflictingNCBsAtEntry,
+   diversionEnteredHHMembers,
+   diversionIncorrectDestination,
+   diversionIncorrectExitDate,
+   DKRLivingSituation,
+   duplicateEEs,
+   enteredPHwithoutSPDAT,
+   futureEEs,
+   householdIssues,
+   incorrectEntryExitType,
+   incorrectMoveInDate,
+   LHwithoutSPDAT,
+   missingCountyPrior,
+   missingCountyServed,
+   missingDisabilities,
+   missingDisabilitySubs,
+   missingHealthInsurance,
+   missingIncomeAtEntry,
+   missingIncomeAtExit,
+   missingLivingSituation,
+   missingLongDuration,
+   missingNCBsAtEntry,
+   missingUDEs,
+   overlaps,
+   referralsOnHHMembers,
+   servicesOnHHMembers,
+   unshelteredNotUnsheltered
+)
 
 save.image("images/Data_Quality.RData")
+
+end <- now()
+end - start
 
 # rm(list = ls())
 
