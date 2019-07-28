@@ -743,8 +743,6 @@ EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
   select(PersonalID, EnrollmentID, EntryDate, ExitDate, SPDATRecordID, 
          SPDATProvider, StartDate, Score) %>%
   filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(EntryDate) + days(8) >= ymd(StartDate) & # score is on or before 8 days 
-      # into the project stay
     ymd(StartDate) < ymd(ExitDate)) %>% # score is prior to Exit
   group_by(EnrollmentID) %>%
   mutate(MaxScoreDate = max(ymd(StartDate))) %>%
@@ -758,7 +756,8 @@ EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
 
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(3, 9, 13)) %>%
+  filter(ProjectType %in% c(3, 9, 13),
+         ymd(EntryDate) > ymd("20190101")) %>% # only looking at 1/1/2019 forward
   mutate(Issue = "HoHs Entering PH w/o SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
@@ -782,7 +781,8 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(ProjectType %in% c(1, 2, 4, 8) &
          ymd(EntryDate) < today() - days(8) &
-            is.na(ExitDate)) %>%
+            is.na(ExitDate),
+         ymd(EntryDate) > ymd("20190101")) %>%
   mutate(Issue = "HoHs in ES, TH, SH w/o SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
@@ -914,7 +914,7 @@ conflictingIncomeYN <- servedInDateRange %>%
 
 # I think this turns up with 0 records bc they're calculating the TMI from the
 # subs instead of using the field itself. Understandable but that means I'll 
-# have to pull the TMI data in through RMisc. :(
+# have to pull the TMI data in through RMisc. :( - OR we kill TMI altogether.
 conflictingIncomeAmountAtEntry <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
@@ -1789,7 +1789,8 @@ DataQualityHMIS <- rbind(
   missingUDEs,
   overlaps
 ) %>%
-  filter(ProjectName != "Unsheltered Clients - OUTREACH")
+  filter(!ProjectName %in% c("Diversion from Homeless System", 
+                             "Unsheltered Clients - OUTREACH"))
 
 stagingDQErrors <- DataQualityHMIS %>%
   filter(Type == "Error") %>%
@@ -1846,39 +1847,17 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    FilePeriod, hmisParticipatingCurrent, Referrals, servedInDateRange, Services,
    smallDisabilities, smallIncome, smallProject, unshelteredEnrollments, 
    updatedate, APsWithEEs, checkDisabilityForAccuracy, checkEligibility, 
-   conflictingDisabilities,
-   conflictingHealthInsuranceYN, 
-   conflictingIncomeAmountAtEntry,
-   conflictingIncomeAmountAtExit,
-   conflictingIncomeYN,
-   conflictingNCBsAtEntry,
-   diversionEnteredHHMembers,
-   diversionIncorrectDestination,
-   diversionIncorrectExitDate,
-   DKRLivingSituation,
-   duplicateEEs,
-   enteredPHwithoutSPDAT,
-   futureEEs,
-   householdIssues,
-   incorrectEntryExitType,
-   incorrectMoveInDate,
-   LHwithoutSPDAT,
-   missingCountyPrior,
-   missingCountyServed,
-   missingDisabilities,
-   missingDisabilitySubs,
-   missingHealthInsurance,
-   missingIncomeAtEntry,
-   missingIncomeAtExit,
-   missingLivingSituation,
-   missingLongDuration,
-   missingNCBsAtEntry,
-   missingUDEs,
-   overlaps,
-   referralsOnHHMembers,
-   servicesOnHHMembers,
-   unshelteredNotUnsheltered
-)
+   conflictingDisabilities, conflictingHealthInsuranceYN, 
+   conflictingIncomeAmountAtEntry, conflictingIncomeAmountAtExit,
+   conflictingIncomeYN, conflictingNCBsAtEntry, diversionEnteredHHMembers,
+   diversionIncorrectDestination, diversionIncorrectExitDate, DKRLivingSituation,
+   duplicateEEs, enteredPHwithoutSPDAT, futureEEs, householdIssues,
+   incorrectEntryExitType, incorrectMoveInDate, LHwithoutSPDAT,
+   missingCountyPrior, missingCountyServed, missingDisabilities,
+   missingDisabilitySubs, missingHealthInsurance, missingIncomeAtEntry,
+   missingIncomeAtExit, missingLivingSituation, missingLongDuration,
+   missingNCBsAtEntry, missingUDEs, overlaps, referralsOnHHMembers,
+   servicesOnHHMembers, unshelteredNotUnsheltered)
 
 save.image("images/Data_Quality.RData")
 
