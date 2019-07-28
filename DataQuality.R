@@ -1545,25 +1545,27 @@ referralsOnHHMembers <- servedInDateRange %>%
 # can't get this from the CSV Export
 
 # AP No Recent Referrals --------------------------------------------------
-
+# can't get this from the CSV export
 
 # AP entering project stays -----------------------------------------------
 
+APsWithEEs <- Enrollment %>%
+  filter(ProjectType ==  14) %>%
+  select(PersonalID, ProjectID, EntryDate, ExitDate)
 
 # Need Status Referral Outcomes -------------------------------------------
-
-#can't get this from the HUD CSV Export
+# can't get this from the HUD CSV Export
 
 # Veterans with No Referral -----------------------------------------------
-
+# can't get this from the HUD CSV Export
 
 
 # Side Door ---------------------------------------------------------------
-
+# can't get this from the HUD CSV Export
 
 
 # Old Outstanding Referrals -----------------------------------------------
-
+# can't get this from the HUD CSV Export
 
 
 # Service Date Before Entry -----------------------------------------------
