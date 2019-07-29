@@ -33,11 +33,15 @@ dvClients <- HealthAndDV %>%
   filter(served_between(., "01012018", "12312018")) %>%
   select(-EntryDate, -ExitDate)
 
-nrow(dvClients)
-n_distinct(dvClients$PersonalID)
+distinctClientsESRRHTH <- dvClients %>%
+  filter(ProjectType %in% c(1:2, 13)) 
 
-distinctClients <- HealthAndDV %>%
-  filter(CurrentlyFleeing == 1) %>%
+counts <- c(nrow(dvClients), n_distinct(dvClients$PersonalID), n_distinct(distinctClientsESRRHTH$PersonalID))
+names <- c("Entries", "Distinct Clients", "Distinct Clients in ES, TH, RRH")
+
+cbind(names, counts)
+
+distinctClients <- dvClients %>%
   group_by(PersonalID) %>%
   summarise(Enrollments = n()) %>%
   ungroup()
@@ -49,10 +53,11 @@ repeaters <- distinctClients %>%
 repeaters
 
 ```
+When clients who are fleeing domestic violence come into our system, the ones who had more than one project stay during the year entered a project an average of 3 times. This would include entering and re-entering the same project.
 
 ## By Project Type
 
-More clients who are currently fleeing domestic violence present at Emergency Shelters than Rapid Rehousing, but
+A client can show in multiple categories here.
 
 ```{r project_type}
 
@@ -71,15 +76,17 @@ dvProjectTypes <- dvClients %>%
     ProjectType == 14 ~ "Other"
   )) %>%
   group_by(ProjectType) %>%
-  summarise(DVSurvivors = n()) %>%
+  summarise(Fleeing = n()) %>%
   ungroup() %>%
-  arrange(desc(DVSurvivors))
+  arrange(desc(Fleeing))
 
 dvProjectTypes
   
 ```
 
 # Where are these clients going after they exit?
+
+A client can show up in multiple categories here.
 
 ```{r destinations}
 dvDestinations <-  dvClients %>%
@@ -92,27 +99,31 @@ dvDestinations <-  dvClients %>%
     is.na(Destination) ~ "Still in Project"
   )) %>%
   group_by(DestinationGroup) %>%
-  summarise(DVSurvivors = n()) %>%
+  summarise(Fleeing = n()) %>%
   ungroup() %>%
-  arrange(desc(DVSurvivors))
+  arrange(desc(Fleeing))
 
 dvDestinations
 
 ```
   
 ## Geography of DV Entries into the Homeless System
+
+A client can show up in multiple categories here.
   
 ```{r geo}
 
 dvClients %>%
   group_by(CountyServed) %>%
-  summarise(DVSurvivors = n()) %>%
+  summarise(Fleeing = n()) %>%
   ungroup() %>%
-  arrange(desc(DVSurvivors))
+  arrange(desc(Fleeing))
 
 ```
   
 ## Age Demographics
+
+Unique clients.
 
 ```{r age}
 dvClients %>% 
@@ -129,7 +140,7 @@ dvClients %>%
   ),
   AgeBucket = fct_reorder(AgeBucket, FirstEntryAge)) %>%
   group_by(AgeBucket) %>%
-  summarise(DVSurvivors = n())
+  summarise(Fleeing = n())
   
 ```
 
