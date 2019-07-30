@@ -23,11 +23,12 @@ load("images/COHHIOHMIS.RData")
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType == 12 |
+  filter(ProjectID %in% c(1775, 1695) | ProjectType == 12 | # including 
+           # Diversion, Unsheltered, and Prevention projects
            (
              HMIS_participating_between(., FileStart, FileEnd) &
                operating_between(., FileStart, FileEnd) &
-               (GrantType != "HOPWA" | is.na(GrantType))
+               (GrantType != "HOPWA" | is.na(GrantType)) # excluding HOPWA
            )) %>%
   select(
     ProjectID,
