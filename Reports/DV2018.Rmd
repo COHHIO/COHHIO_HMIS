@@ -6,15 +6,20 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE, echo=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
 library(tidyverse)
 library(lubridate)
-load("images/COHHIOHMIS.RData")
+library(here)
+load(here("images/COHHIOHMIS.RData"))
 ```
 
 ## Literally Homeless Domestic Violence Survivors Served in 2018
 
-The following represents clients who indicated they were "Currently Fleeing" at Entry into an Emergency Shelter or a Transitional Housing project.
+The following represents clients who indicated they were "Currently Fleeing" at Entry into any Ohio Balance of State project that enters into HMIS.
 
 
 ```{r summary}
@@ -22,13 +27,122 @@ The following represents clients who indicated they were "Currently Fleeing" at 
 dvClients <- HealthAndDV %>%
   select(PersonalID, EnrollmentID, DomesticViolenceVictim, WhenOccurred,
          CurrentlyFleeing) %>%
-  # filter(CurrentlyFleeing == 1) %>%
+  filter(CurrentlyFleeing == 1) %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID")) %>% 
-  select(EnrollmentID, PersonalID, DomesticViolenceVictim, WhenOccurred, CurrentlyFleeing, ProjectType, EntryDate, ExitDate, AgeAtEntry, Destination, CountyServed) %>%
-  filter(#ProjectType %in% c(1, 2, 8),
-         served_between(., "01012018", "12312018"))
+  select(EnrollmentID, PersonalID, ProjectType, AgeAtEntry, Destination, CountyServed, EntryDate, ExitDate) %>%
+  filter(served_between(., "01012018", "12312018")) %>%
+  select(-EntryDate, -ExitDate)
 
-nrow(dvClients)
+distinctClientsESRRHTH <- dvClients %>%
+  filter(ProjectType %in% c(1:2, 13)) 
+
+counts <- c(nrow(dvClients), n_distinct(dvClients$PersonalID), n_distinct(distinctClientsESRRHTH$PersonalID))
+names <- c("Entries", "Distinct Clients", "Distinct Clients in ES, TH, RRH")
+
+cbind(names, counts)
+
+distinctClients <- dvClients %>%
+  group_by(PersonalID) %>%
+  summarise(Enrollments = n()) %>%
+  ungroup()
+
+repeaters <- distinctClients %>%
+  filter(Enrollments > 1) %>%
+  summarise(AvgNoEnrollments = mean(Enrollments))
+
+repeaters
+
 ```
+When clients who are fleeing domestic violence come into our system, the ones who had more than one project stay during the year entered a project an average of 3 times. This would include entering and re-entering the same project.
+
+## By Project Type
+
+A client can show in multiple categories here.
+
+```{r project_type}
+
+dvProjectTypes <- dvClients %>%
+  mutate(ProjectType = case_when(
+    ProjectType == 1 ~ "Emergency Shelter",
+    ProjectType == 2 ~ "Transitional Housing",
+    ProjectType == 3 ~ "Permanent Supportive Housing",
+    ProjectType == 4 ~ "Street Outreach",
+    ProjectType == 6 ~ "Services Only",
+    ProjectType == 7 ~ "Other",
+    ProjectType == 8 ~ "Safe Haven",
+    ProjectType == 9 ~ "PSH- Housing Only",
+    ProjectType == 12 ~ "Prevention",
+    ProjectType == 13 ~ "Rapid Rehousing",
+    ProjectType == 14 ~ "Other"
+  )) %>%
+  group_by(ProjectType) %>%
+  summarise(Fleeing = n()) %>%
+  ungroup() %>%
+  arrange(desc(Fleeing))
+
+dvProjectTypes
+  
+```
+
+# Where are these clients going after they exit?
+
+A client can show up in multiple categories here.
+
+```{r destinations}
+dvDestinations <-  dvClients %>%
+  mutate(DestinationGroup = case_when(
+    Destination %in% c(3, 10:11, 19:23, 26, 28, 31) ~ "Permanent",
+    Destination %in% c(1:2, 12:14, 16, 18, 27) ~ "Temporary",
+    Destination %in% c(4:7, 15, 25) ~ "Institutional",
+    Destination %in% c(8:9, 17, 24, 29) ~ "Other",
+    Destination %in% c(30, 99) ~ "Not Collected",
+    is.na(Destination) ~ "Still in Project"
+  )) %>%
+  group_by(DestinationGroup) %>%
+  summarise(Fleeing = n()) %>%
+  ungroup() %>%
+  arrange(desc(Fleeing))
+
+dvDestinations
+
+```
+  
+## Geography of DV Entries into the Homeless System
+
+A client can show up in multiple categories here.
+  
+```{r geo}
+
+dvClients %>%
+  group_by(CountyServed) %>%
+  summarise(Fleeing = n()) %>%
+  ungroup() %>%
+  arrange(desc(Fleeing))
+
+```
+  
+## Age Demographics
+
+Unique clients.
+
+```{r age}
+dvClients %>% 
+  group_by(PersonalID) %>%
+  summarise(FirstEntryAge = min(AgeAtEntry)) %>%
+  ungroup() %>%
+  mutate(AgeBucket = case_when(
+    FirstEntryAge < 6 ~ "0-5",
+    between(FirstEntryAge, 6, 18) ~ "6-18",
+    between(FirstEntryAge, 19, 25) ~ "19-25",
+    between(FirstEntryAge, 26, 50) ~ "26-50",
+    between(FirstEntryAge, 51, 70) ~ "51-70",
+    FirstEntryAge > 70 ~ "Over 70"
+  ),
+  AgeBucket = fct_reorder(AgeBucket, FirstEntryAge)) %>%
+  group_by(AgeBucket) %>%
+  summarise(Fleeing = n())
+  
+```
+
 
 
