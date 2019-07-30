@@ -44,7 +44,7 @@ hmisParticipatingCurrent <- Project %>%
     Region
   ) %>% unique()
     
-dqProviders <- hmisParticipatingCurrent$ProjectName %>% arrange(ProjectName)
+dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
 
 # Clients to Check --------------------------------------------------------
 
@@ -1837,6 +1837,7 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
 # All together now --------------------------------------------------------
 
 DataQualityHMIS <- rbind(
+  APsWithEEs,
   checkDisabilityForAccuracy,
   checkEligibility,
   conflictingDisabilities,
@@ -1862,8 +1863,11 @@ DataQualityHMIS <- rbind(
   missingHealthInsurance,
   missingLivingSituation,
   missingLongDuration,
+  missingNCBsAtEntry,
   missingUDEs,
-  overlaps
+  overlaps,
+  referralsOnHHMembers,
+  servicesOnHHMembers
 ) %>%
   filter(!ProjectName %in% c("Diversion from Homeless System", 
                              "Unsheltered Clients - OUTREACH")) %>%
@@ -1881,25 +1885,18 @@ stagingDQWarnings <- DataQualityHMIS %>%
   summarise(Count = n())
 
 unshelteredDataQuality <- rbind(
-  APsWithEEs,
   checkDisabilityForAccuracy,
-  checkEligibility,
   conflictingDisabilities,
   conflictingHealthInsuranceYN,
   conflictingIncomeAmountAtEntry,
   conflictingIncomeAmountAtExit,
   conflictingIncomeYN,
   conflictingNCBsAtEntry,
-  diversionEnteredHHMembers,
-  diversionIncorrectDestination,
-  diversionIncorrectExitDate,
   DKRLivingSituation,
   duplicateEEs,
-  enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
   incorrectEntryExitType,
-  incorrectMoveInDate,
   LHwithoutSPDAT,
   missingCountyPrior,
   missingCountyServed,
@@ -1914,11 +1911,17 @@ unshelteredDataQuality <- rbind(
   missingUDEs,
   overlaps,
   referralsOnHHMembers,
-  servicesOnHHMembers,
   unshelteredNotUnsheltered
 ) %>% filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
   select(-UserID, -UserName)
+
+diversionDataQuality <- rbind(
+  diversionEnteredHHMembers,
+  diversionIncorrectDestination,
+  diversionIncorrectExitDate
+)
+  
 
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
