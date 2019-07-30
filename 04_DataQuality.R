@@ -44,6 +44,8 @@ hmisParticipatingCurrent <- Project %>%
     Region
   ) %>% unique()
     
+dqProviders <- hmisParticipatingCurrent$ProjectName %>% arrange(ProjectName)
+
 # Clients to Check --------------------------------------------------------
 
 servedInDateRange <- Enrollment %>%
