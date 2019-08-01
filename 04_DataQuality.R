@@ -1867,16 +1867,6 @@ DataQualityHMIS <- rbind(
   left_join(Users, by = "UserCreating") %>%
   select(-UserID, -UserName)
 
-stagingDQErrors <- DataQualityHMIS %>%
-  filter(Type == "Error") %>%
-  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
-  summarise(Count = n())
-
-stagingDQWarnings <- DataQualityHMIS %>%
-  filter(Type == "Warning") %>%
-  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
-  summarise(Count = n())
-
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
   conflictingDisabilities,
@@ -1914,8 +1904,6 @@ diversionDataQuality <- rbind(
   diversionIncorrectDestination,
   diversionIncorrectExitDate
 )
-  
-
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
 
@@ -1954,6 +1942,16 @@ end - start
 # rm(list = ls())
 
 # Errors by Provider ------------------------------------------------------
+
+stagingDQErrors <- DataQualityHMIS %>%
+  filter(Type == "Error") %>%
+  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
+  summarise(Count = n())
+
+stagingDQWarnings <- DataQualityHMIS %>%
+  filter(Type == "Warning") %>%
+  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
+  summarise(Count = n())
 
 plotErrors <- stagingDQErrors %>%
   group_by(ProjectName) %>%
