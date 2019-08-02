@@ -104,23 +104,37 @@ smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
 
 smallEnrollment <- as.data.frame(smallEnrollment)
 
-# captures all leavers PLUS all ee's in either HP or PSH <- wait, why??
-# also limits records to singles and HoHs only
+# captures all leavers PLUS stayers in either HP or PSH because we include those
+# stayers in Permanent Destinations. This is used for LoS and Exits to PH.
+
 QPR_EEs <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter((!is.na(ExitDate) | ProjectType %in% c(3, 9, 12)) &
-           served_between(., FileStart, FileEnd)) %>%
+           served_between(., FileStart, FileEnd) &
+           RelationshipToHoH == 1) %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
       Destination %in% c(3, 10, 11, 19:23, 28, 31) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other"
+      Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+      is.na(Destination) ~ "Still in Program"
     ),
     Region = paste("Homeless Planning Region", Region),
-    DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
+    DaysinProject = difftime(ExitAdjust, EntryDate, units = "days")
   ) %>% 
   filter(stayed_between(., FileStart, FileEnd))
+
+RRHEnterers <- smallProject %>%
+  left_join(smallEnrollment, by = "ProjectID") %>%
+  filter(ProjectType == 13 &
+           entered_between(., FileStart, FileEnd) &
+           RelationshipToHoH == 1) %>%
+  mutate(
+    DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days"),
+    Region = paste("Homeless Planning Region", Region),
+    DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
+  )
 
 rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
 
