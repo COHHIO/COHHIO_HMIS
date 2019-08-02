@@ -69,7 +69,7 @@ missingUDEs <- servedInDateRange %>%
     Issue = case_when(
       FirstName == "Missing" ~ "Missing Name Data Quality",
       FirstName %in% c("DKR", "Partial") ~ "Incomplete or DKR Name",
-      DOBDataQuality == 99 ~ "Missing DOB",
+      DOBDataQuality == 99 ~ "Missing Date of Birth",
       DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx. Date of Birth",
       AgeAtEntry < 0 |
         AgeAtEntry > 95 ~ "Incorrect Date of Birth or Entry Date",
@@ -101,7 +101,7 @@ missingUDEs <- servedInDateRange %>%
                    "Missing Gender",
                    "Missing Veteran Status"
                    ) ~ "Error",
-      Issue %>% c("Incomplete or DKR Name",
+      Issue %in% c("Incomplete or DKR Name",
                   "DKR or Approx. Date of Birth",
                   "DKR Race",
                   "DKR Ethnicity",
