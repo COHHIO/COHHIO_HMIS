@@ -67,12 +67,12 @@ servedInDateRange <- Enrollment %>%
 missingUDEs <- servedInDateRange %>%
   mutate(
     Issue = case_when(
-      FirstName == "Missing" ~ "Missing Name DQ",
+      FirstName == "Missing" ~ "Missing Name Data Quality",
       FirstName %in% c("DKR", "Partial") ~ "Incomplete or DKR Name",
       DOBDataQuality == 99 ~ "Missing DOB",
-      DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx DOB",
+      DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx. Date of Birth",
       AgeAtEntry < 0 |
-        AgeAtEntry > 95 ~ "Incorrect DOB or Entry Date",
+        AgeAtEntry > 95 ~ "Incorrect Date of Birth or Entry Date",
       SSN == "Missing" ~ "Missing SSN",
       SSN %in% c("Invalid or Incomplete", "DKR") ~ "Invalid SSN",
       RaceNone == 99 ~ "Missing Race",
@@ -91,28 +91,23 @@ missingUDEs <- servedInDateRange %>%
         Destination %in% c(19, 28) ~ "Check Veteran Status for Accuracy"
     ),
     Type = case_when(
-        FirstName == "Missing" ~ "Error",
-        FirstName %in% c("DKR", "Partial") ~ "Warning",
-        DOBDataQuality == 99 ~ "Error",
-        DOBDataQuality %in% c(2, 8, 9) ~ "Warning",
-        AgeAtEntry < 0 |
-          AgeAtEntry > 95 ~ "Error",
-        SSN == "Missing" ~ "Error",
-        SSN %in% c("Invalid or Incomplete", "DKR") ~ "Error",
-        RaceNone == 99 ~ "Error",
-        RaceNone %in% c(8, 9) ~ "Warning",
-        Ethnicity == 99 ~ "Error",
-        Ethnicity %in% c(8, 9) ~ "Warning",
-        Gender == 99 ~ "Error",
-        Gender %in% c(8, 9) ~ "Warning",
-        (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
-          VeteranStatus == 99 ~ "Error",
-        (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
-          VeteranStatus %in% c(8, 9) ~ "Warning",
-        (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
-          RelationshipToHoH == 1 &
-          VeteranStatus == 0 &
-          Destination %in% c(19, 28) ~ "Warning"
+      Issue %in% c("Missing Name Data Quality",
+                   "Missing DOB",
+                   "Incorrect Date of Birth or Entry Date",
+                   "Missing SSN",
+                   "Invalid SSN",
+                   "Missing Race",
+                   "Missing Ethnicity",
+                   "Missing Gender",
+                   "Missing Veteran Status"
+                   ) ~ "Error",
+      Issue %>% c("Incomplete or DKR Name",
+                  "DKR or Approx. Date of Birth",
+                  "DKR Race",
+                  "DKR Ethnicity",
+                  "DKR Gender",
+                  "DKR Veteran Status",
+                  "Check Veteran Status for Accuracy") ~ "Warning"
     )
   ) %>%
   filter(!is.na(Issue)) %>%
@@ -525,7 +520,7 @@ missingLongDuration <- servedInDateRange %>%
          UserCreating) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(IndefiniteAndImpairs == 99) %>%
-  mutate(Issue = "Long Duration not answered in subassessment",
+  mutate(Issue = "Disabilities: missing Long Duration in subassessment",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -747,8 +742,8 @@ futureEEs <- servedInDateRange %>%
 # check ART report for exact logic. This is an approximation. Also be sure
 # to include Project 1695 = "Standard"
 incorrectEntryExitType <- servedInDateRange %>%
-  filter(EEType != "HUD" & is.na(GrantType)) %>%
-  mutate(Issue = "Incorrect EE Type",
+  filter(EEType != "HUD" & is.na(GrantType) & ProjectID != 1695) %>%
+  mutate(Issue = "Incorrect Entry Exit Type",
          Type = "Error") %>%
   select(HouseholdID,
          PersonalID,
@@ -786,7 +781,7 @@ enteredPHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(ProjectType %in% c(3, 9, 13),
          ymd(EntryDate) > ymd("20190101")) %>% # only looking at 1/1/2019 forward
-  mutate(Issue = "HoHs Entering PH w/o SPDAT",
+  mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
          PersonalID,
@@ -812,7 +807,7 @@ LHwithoutSPDAT <-
          ymd(EntryDate) < today() - days(8) &
             is.na(ExitDate),
          ymd(EntryDate) > ymd("20190101")) %>%
-  mutate(Issue = "HoHs in ES, TH, SH w/o SPDAT",
+  mutate(Issue = "HoHs in shelter or Transitional Housing for +8 days without SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
          PersonalID,
@@ -856,7 +851,7 @@ missingIncomeAtEntry <- servedInDateRange %>%
               is.na(AgeAtEntry)) &
            (IncomeFromAnySource == 99 |
               is.na(IncomeFromAnySource))) %>%
-  mutate(Issue = "Income Missing",
+  mutate(Issue = "Income Missing at Entry",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -943,7 +938,7 @@ conflictingIncomeYN <- servedInDateRange %>%
                  Alimony + OtherIncomeSource > 0
              )
            )) %>%
-  mutate(Issue = "Conflicting Income yes/no",
+  mutate(Issue = "Conflicting Income yes/no at Entry",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1025,7 +1020,7 @@ conflictingIncomeAmountAtEntry <- servedInDateRange %>%
       GAAmount + SocSecRetirementAmount + PensionAmount +
       ChildSupportAmount + AlimonyAmount + OtherIncomeAmount
   ) %>%
-  mutate(Issue = "Conflicting Income Amounts",
+  mutate(Issue = "Conflicting Income Amounts at Entry",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1057,7 +1052,7 @@ missingIncomeAtExit <- servedInDateRange %>%
               is.na(AgeAtEntry)) &
            (IncomeFromAnySource == 99 | 
               is.na(IncomeFromAnySource))) %>%
-  mutate(Issue = "Income Missing",
+  mutate(Issue = "Income Missing at Exit",
          Type = "Error") %>%
   select(HouseholdID,
          PersonalID,
@@ -1142,7 +1137,7 @@ conflictingIncomeYN <- servedInDateRange %>%
                  Alimony + OtherIncomeSource > 0
              )
            )) %>%
-  mutate(Issue = "Conflicting Income yes/no",
+  mutate(Issue = "Conflicting Income yes/no at Exit",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1224,7 +1219,7 @@ conflictingIncomeAmountAtExit <- servedInDateRange %>%
       GAAmount + SocSecRetirementAmount + PensionAmount +
       ChildSupportAmount + AlimonyAmount + OtherIncomeAmount
   ) %>%
-  mutate(Issue = "Conflicting Income Amounts",
+  mutate(Issue = "Conflicting Income Amounts at Exit",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1330,7 +1325,7 @@ missingHealthInsurance <- servedInDateRange %>%
   filter(DataCollectionStage == 1 & 
            (InsuranceFromAnySource == 99 | 
               is.na(InsuranceFromAnySource))) %>%
-  mutate(Issue = "Health Insurance Missing",
+  mutate(Issue = "Health Insurance Missing at Entry",
          Type = "Error") %>%
   select(HouseholdID,
          PersonalID,
@@ -1391,7 +1386,7 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
                  OtherInsurance + HIVAIDSAssistance + ADAP > 0
              )
            )) %>%
-  mutate(Issue = "Conflicting Health Insurance yes/no",
+  mutate(Issue = "Conflicting Health Insurance yes/no at Entry",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1438,7 +1433,7 @@ missingNCBsAtEntry <- servedInDateRange %>%
       (BenefitsFromAnySource == 99 |
          is.na(BenefitsFromAnySource))
   ) %>%
-  mutate(Issue = "Non-cash Benefits Missing",
+  mutate(Issue = "Non-cash Benefits Missing at Entry",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1496,7 +1491,7 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
                  OtherBenefitsSource > 0
              )
            )) %>%
-  mutate(Issue = "Conflicting Non-cash Benefits yes/no",
+  mutate(Issue = "Conflicting Non-cash Benefits yes/no at Entry",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1542,7 +1537,7 @@ missingNCBsAtEntry <- servedInDateRange %>%
       (BenefitsFromAnySource == 99 |
          is.na(BenefitsFromAnySource))
   ) %>%
-  mutate(Issue = "Non-cash Benefits Missing",
+  mutate(Issue = "Non-cash Benefits Missing at Exit",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1600,7 +1595,7 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
                  OtherBenefitsSource > 0
              )
            )) %>%
-  mutate(Issue = "Conflicting Non-cash Benefits yes/no",
+  mutate(Issue = "Conflicting Non-cash Benefits yes/no at Exit",
          Type = "Error") %>%
   select(
     HouseholdID,
@@ -1784,7 +1779,7 @@ diversionIncorrectExitDate <- filter(diversionEnrollments,
 # Diversion Entered all HH members ----------------------------------------
 diversionEnteredHHMembers <- filter(diversionEnrollments,
                                      str_starts(HouseholdID, "h_")) %>%
-  mutate(Issue = "Entered HH Members on a Diversion",
+  mutate(Issue = "Entered Household Members on a Diversion",
          Type = "Error") %>%
   select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, EntryDate, 
          MoveInDateAdjust,
@@ -1909,11 +1904,23 @@ diversionDataQuality <- rbind(
 
 DataQualityHMIS <- DataQualityHMIS %>%
   filter(!Issue %in% c(
-    "Conflicting Disability yes/no",
-    "Conflicting Health Insurance yes/no",                       
-    "Conflicting Income yes/no",                                
-    "Conflicting Non-cash Benefits yes/no"
-  ))
+    "Conflicting Disability yes/no at Entry",
+    "Conflicting Disability yes/no at Exit",
+    "Conflicting Health Insurance yes/no at Entry",                       
+    "Conflicting Health Insurance yes/no at Exit",                       
+    "Conflicting Income yes/no at Entry",                                
+    "Conflicting Income yes/no at Exit",                                
+    "Conflicting Non-cash Benefits yes/no at Entry",
+    "Conflicting Non-cash Benefits yes/no at Exit"
+    
+  )) 
+
+
+# SOMETHING I'M TRYING ----------------------------------------------------
+
+DataQualityHMIS <- DataQualityHMIS %>%
+  select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate,
+         MoveInDateAdjust, ExitDate)
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
@@ -1932,7 +1939,9 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    missingDisabilitySubs, missingHealthInsurance, missingIncomeAtEntry,
    missingIncomeAtExit, missingLivingSituation, missingLongDuration,
    missingNCBsAtEntry, missingUDEs, overlaps, referralsOnHHMembers,
-   servicesOnHHMembers, unshelteredNotUnsheltered)
+   servicesOnHHMembers, unshelteredNotUnsheltered, conflictingDisabilitiesDetail,
+   missingDisabilitiesDetail, missingLivingSituationDetail, 
+   DKRLivingSituationDetail)
 
 save.image("images/Data_Quality.RData")
 
