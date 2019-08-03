@@ -137,7 +137,7 @@ RRHEnterers <- smallProject %>%
   )
 
 smallMainstreamBenefits <- IncomeBenefits %>%
-  select(IncomeFromAnySource, InsuranceFromAnySource, BenefitsFromAnySource,
+  select(InsuranceFromAnySource, BenefitsFromAnySource,
          DataCollectionStage, EnrollmentID, InformationDate) %>%
   group_by(EnrollmentID) %>%
   slice(which.max(InformationDate)) %>%
@@ -153,14 +153,49 @@ QPR_MainstreamBenefits <- smallProject %>%
          EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
          InsuranceFromAnySource, BenefitsFromAnySource, DataCollectionStage, 
          InformationDate) %>%
-  arrange(ProjectName)
+  arrange(ProjectName, HouseholdID)
+
+incomeMostRecent <- IncomeBenefits %>%
+  select(IncomeFromAnySource, TotalMonthlyIncome, DataCollectionStage, 
+         EnrollmentID, InformationDate) %>%
+  group_by(EnrollmentID) %>%
+  slice(which.max(InformationDate)) %>%
+  ungroup() %>%
+  mutate(RecentIncome = TotalMonthlyIncome) %>%
+  select(EnrollmentID, RecentIncome)
+
+incomeAtEntry <- IncomeBenefits %>%
+  select(IncomeFromAnySource, TotalMonthlyIncome, DataCollectionStage, 
+         EnrollmentID, InformationDate) %>%
+  group_by(EnrollmentID) %>%
+  slice(which.min(InformationDate)) %>%
+  ungroup() %>%
+  mutate(EntryIncome = TotalMonthlyIncome) %>%
+  select(EnrollmentID, EntryIncome)
+
+smallIncomeDiff <- 
+  full_join(incomeAtEntry, incomeMostRecent, by = "EnrollmentID")
+
+QPR_Income <- smallProject %>%
+  left_join(smallEnrollment, by = "ProjectID") %>%
+  filter(served_between(., FileStart, FileEnd) &
+           RelationshipToHoH == 1) %>%
+  left_join(smallIncomeDiff, by = "EnrollmentID") %>%
+  select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
+         EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
+         EntryIncome, RecentIncome) %>%
+  mutate(Difference = RecentIncome - EntryIncome) %>%
+  arrange(ProjectName, HouseholdID)
 
 rm(Client, 
    Enrollment, 
    smallEnrollment, 
    smallProject, 
    Regions, 
-   smallMainstreamBenefits)
+   smallMainstreamBenefits,
+   incomeMostRecent,
+   incomeAtEntry,
+   smallIncomeDiff)
 
 save.image("images/QPR_EEs.RData")
 
