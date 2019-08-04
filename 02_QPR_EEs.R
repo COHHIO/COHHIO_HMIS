@@ -195,7 +195,8 @@ rm(Client,
    smallMainstreamBenefits,
    incomeMostRecent,
    incomeAtEntry,
-   smallIncomeDiff)
+   smallIncomeDiff,
+   IncomeBenefits)
 
 save.image("images/QPR_EEs.RData")
 
