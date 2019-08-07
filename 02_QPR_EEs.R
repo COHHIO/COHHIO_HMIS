@@ -89,7 +89,7 @@ smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
     HouseholdID,
     ProjectID,
     RelationshipToHoH,
-    CountyServed,
+    # CountyServed,
     EntryDate,
     MoveInDate,
     ExitDate,
@@ -103,6 +103,11 @@ smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
               RelationshipToHoH == 1))
 
 smallEnrollment <- as.data.frame(smallEnrollment)
+
+validation <- smallProject %>%
+  left_join(smallEnrollment, by = "ProjectID") %>%
+  select(ProjectID, ProjectName, ProjectType, EnrollmentID, PersonalID, HouseholdID,
+         RelationshipToHoH, EntryDate, MoveInDate, ExitDate, Destination)
 
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
@@ -189,7 +194,7 @@ QPR_Income <- smallProject %>%
 
 rm(Client, 
    Enrollment, 
-   smallEnrollment, 
+   smallEnrollment,
    smallProject, 
    Regions, 
    smallMainstreamBenefits,
