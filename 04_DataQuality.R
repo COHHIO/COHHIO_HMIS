@@ -15,8 +15,8 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(plotly)
-start <- now()
+# library(plotly)
+# start <- now()
 load("images/COHHIOHMIS.RData")
 
 # Providers to Check ------------------------------------------------------
@@ -1998,159 +1998,159 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
 dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
 
 save.image("images/Data_Quality.RData")
-
-end <- now()
-end - start
-
-# rm(list = ls())
-
-# Errors by Provider ------------------------------------------------------
-
-stagingDQErrors <- DataQualityHMIS %>%
-  filter(Type == "Error") %>%
-  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
-  summarise(Count = n())
-
-stagingDQWarnings <- DataQualityHMIS %>%
-  filter(Type == "Warning") %>%
-  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
-  summarise(Count = n())
-
-plotErrors <- stagingDQErrors %>%
-  group_by(ProjectName) %>%
-  summarise(Errors = sum(Count)) %>%
-  ungroup() %>%
-  arrange(desc(Errors))
-
-plotErrors$hover <-
-  with(
-    plotErrors,
-    paste(Errors, "Errors")
-  )
-
-errorsProviderPlot <- plot_ly(
-  plotErrors,
-  x = ~ ProjectName,
-  y = ~ Errors,
-  type = 'bar',
-  text = ~ hover,
-  marker = list(
-    color = 'rgb(158,202,225)',
-    line = list(color = 'rgb(8,48,107)',
-                width = 1.5)
-  )
-) %>%
-  layout(
-    title = "HMIS Errors by Provider",
-    xaxis = list(
-      title = ~ ProjectName,
-      categoryorder = "array",
-      categoryarray = ~ Errors
-    ),
-    yaxis = list(title = "All Errors")
-  )
-
-# Error Types Plot --------------------------------------------------------
-errorTypes <- stagingDQErrors %>%
-  group_by(Issue) %>%
-  summarise(Errors = sum(Count)) %>%
-  ungroup() %>%
-  arrange(desc(Errors))
-
-errorTypePlot <- plot_ly(
-  errorTypes,
-  x = ~ Issue,
-  y = ~ Errors,
-  type = 'bar',
-  marker = list(
-    color = 'rgb(158,202,225)',
-    line = list(color = 'rgb(8,48,107)',
-                width = 1.5)
-  )
-) %>%
-  layout(
-    title = "HMIS Errors Across the Ohio BoS CoC",
-    xaxis = list(
-      title = ~ Issue,
-      categoryorder = "array",
-      categoryarray = ~ Errors
-    ),
-    yaxis = list(title = "All Errors")
-  )
-
-# Widespread Issues -------------------------------------------------------
-
- widespreadIssue <- DataQualityHMIS %>%
-   select(Issue, ProjectName, Type) %>%
-   unique() %>%
-   group_by(Issue, Type) %>%
-   summarise(HowManyProjects = n()) %>%
-   arrange(desc(HowManyProjects))
-
-# Warnings by Provider ----------------------------------------------------
-
- plotWarnings <- stagingDQWarnings %>%
-   group_by(ProjectName) %>%
-   summarise(Warnings = sum(Count)) %>%
-   ungroup() %>%
-   arrange(desc(Warnings))
- 
- plotWarnings$hover <-
-   with(
-     plotWarnings,
-     paste(Warnings, "Warnings")
-   )
- 
- warningsProviderPlot <- plot_ly(
-   plotWarnings,
-   x = ~ ProjectName,
-   y = ~ Warnings,
-   type = 'bar',
-   text = ~ hover,
-   marker = list(
-     color = 'rgb(158,202,225)',
-     line = list(color = 'rgb(8,48,107)',
-                 width = 1.5)
-   )
- ) %>%
-   layout(
-     title = "HMIS Warnings by Provider",
-     xaxis = list(
-       title = ~ ProjectName,
-       categoryorder = "array",
-       categoryarray = ~ Warnings
-     ),
-     yaxis = list(title = "All Warnings")
-   )
- 
-
-# Warning Types -----------------------------------------------------------
-
- warningTypes <- stagingDQWarnings %>%
-   group_by(Issue) %>%
-   summarise(Warnings = sum(Count)) %>%
-   ungroup() %>%
-   arrange(desc(Warnings))
- 
- warningTypePlot <- plot_ly(
-   warningTypes,
-   x = ~ Issue,
-   y = ~ Warnings,
-   type = 'bar',
-   marker = list(
-     color = 'rgb(158,202,225)',
-     line = list(color = 'rgb(8,48,107)',
-                 width = 1.5)
-   )
- ) %>%
-   layout(
-     title = "HMIS Warnings Across the Ohio BoS CoC",
-     xaxis = list(
-       title = ~ Issue,
-       categoryorder = "array",
-       categoryarray = ~ Warnings
-     ),
-     yaxis = list(title = "All Warnings")
-   )
- 
+# 
+# end <- now()
+# end - start
+# 
+rm(list = ls())
+# 
+# # Errors by Provider ------------------------------------------------------
+# 
+# stagingDQErrors <- DataQualityHMIS %>%
+#   filter(Type == "Error") %>%
+#   group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
+#   summarise(Count = n())
+# 
+# stagingDQWarnings <- DataQualityHMIS %>%
+#   filter(Type == "Warning") %>%
+#   group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
+#   summarise(Count = n())
+# 
+# plotErrors <- stagingDQErrors %>%
+#   group_by(ProjectName) %>%
+#   summarise(Errors = sum(Count)) %>%
+#   ungroup() %>%
+#   arrange(desc(Errors))
+# 
+# plotErrors$hover <-
+#   with(
+#     plotErrors,
+#     paste(Errors, "Errors")
+#   )
+# 
+# errorsProviderPlot <- plot_ly(
+#   plotErrors,
+#   x = ~ ProjectName,
+#   y = ~ Errors,
+#   type = 'bar',
+#   text = ~ hover,
+#   marker = list(
+#     color = 'rgb(158,202,225)',
+#     line = list(color = 'rgb(8,48,107)',
+#                 width = 1.5)
+#   )
+# ) %>%
+#   layout(
+#     title = "HMIS Errors by Provider",
+#     xaxis = list(
+#       title = ~ ProjectName,
+#       categoryorder = "array",
+#       categoryarray = ~ Errors
+#     ),
+#     yaxis = list(title = "All Errors")
+#   )
+# 
+# # Error Types Plot --------------------------------------------------------
+# errorTypes <- stagingDQErrors %>%
+#   group_by(Issue) %>%
+#   summarise(Errors = sum(Count)) %>%
+#   ungroup() %>%
+#   arrange(desc(Errors))
+# 
+# errorTypePlot <- plot_ly(
+#   errorTypes,
+#   x = ~ Issue,
+#   y = ~ Errors,
+#   type = 'bar',
+#   marker = list(
+#     color = 'rgb(158,202,225)',
+#     line = list(color = 'rgb(8,48,107)',
+#                 width = 1.5)
+#   )
+# ) %>%
+#   layout(
+#     title = "HMIS Errors Across the Ohio BoS CoC",
+#     xaxis = list(
+#       title = ~ Issue,
+#       categoryorder = "array",
+#       categoryarray = ~ Errors
+#     ),
+#     yaxis = list(title = "All Errors")
+#   )
+# 
+# # Widespread Issues -------------------------------------------------------
+# 
+#  widespreadIssue <- DataQualityHMIS %>%
+#    select(Issue, ProjectName, Type) %>%
+#    unique() %>%
+#    group_by(Issue, Type) %>%
+#    summarise(HowManyProjects = n()) %>%
+#    arrange(desc(HowManyProjects))
+# 
+# # Warnings by Provider ----------------------------------------------------
+# 
+#  plotWarnings <- stagingDQWarnings %>%
+#    group_by(ProjectName) %>%
+#    summarise(Warnings = sum(Count)) %>%
+#    ungroup() %>%
+#    arrange(desc(Warnings))
+#  
+#  plotWarnings$hover <-
+#    with(
+#      plotWarnings,
+#      paste(Warnings, "Warnings")
+#    )
+#  
+#  warningsProviderPlot <- plot_ly(
+#    plotWarnings,
+#    x = ~ ProjectName,
+#    y = ~ Warnings,
+#    type = 'bar',
+#    text = ~ hover,
+#    marker = list(
+#      color = 'rgb(158,202,225)',
+#      line = list(color = 'rgb(8,48,107)',
+#                  width = 1.5)
+#    )
+#  ) %>%
+#    layout(
+#      title = "HMIS Warnings by Provider",
+#      xaxis = list(
+#        title = ~ ProjectName,
+#        categoryorder = "array",
+#        categoryarray = ~ Warnings
+#      ),
+#      yaxis = list(title = "All Warnings")
+#    )
+#  
+# 
+# # Warning Types -----------------------------------------------------------
+# 
+#  warningTypes <- stagingDQWarnings %>%
+#    group_by(Issue) %>%
+#    summarise(Warnings = sum(Count)) %>%
+#    ungroup() %>%
+#    arrange(desc(Warnings))
+#  
+#  warningTypePlot <- plot_ly(
+#    warningTypes,
+#    x = ~ Issue,
+#    y = ~ Warnings,
+#    type = 'bar',
+#    marker = list(
+#      color = 'rgb(158,202,225)',
+#      line = list(color = 'rgb(8,48,107)',
+#                  width = 1.5)
+#    )
+#  ) %>%
+#    layout(
+#      title = "HMIS Warnings Across the Ohio BoS CoC",
+#      xaxis = list(
+#        title = ~ Issue,
+#        categoryorder = "array",
+#        categoryarray = ~ Warnings
+#      ),
+#      yaxis = list(title = "All Warnings")
+#    )
+#  
  
