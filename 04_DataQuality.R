@@ -23,8 +23,8 @@ load("images/COHHIOHMIS.RData")
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType == 12 | # including 
-           # Diversion, Unsheltered, and Prevention projects
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 12) | # including 
+           # Diversion, Unsheltered, PATH Outreach, and Prevention projects
            (
              HMIS_participating_between(., FileStart, FileEnd) &
                operating_between(., FileStart, FileEnd) &
@@ -44,8 +44,6 @@ hmisParticipatingCurrent <- Project %>%
     Region
   ) %>% unique()
     
-dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
-
 # Clients to Check --------------------------------------------------------
 
 servedInDateRange <- Enrollment %>%
@@ -659,7 +657,61 @@ checkEligibility <- servedInDateRange %>%
                )
            ))|
            (ProjectType == 12 &
-              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25))) %>%
+              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
+           (ProjectType %in% c(8, 4) & # Outreach and Safe Havens
+              !LivingSituation == 16)) # unsheltered only
+
+smallEligibility <- checkEligibility %>%
+  select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
+         ExitDate, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH) %>%
+  mutate(ResidencePrior = case_when(
+    LivingSituation == 1 ~ "Emergency shelter, incl hotel or motel paid for with
+    emergency shelter voucher",
+    LivingSituation == 2 ~ "Transitional housing for homeless persons",
+    LivingSituation == 3 ~ "Permanent housing (other than RRH) for formerly 
+    homeless persons",
+    LivingSituation == 4 ~ "Psychiatric hospital or other psychiatric facility",
+    LivingSituation == 5 ~ "Substance abuse treatment facility or detox center",
+    LivingSituation == 6 ~ "Hospital or other residential non-psychiatric medical
+    facility",
+    LivingSituation == 7 ~ "Jail, prison or juvenile detention facility",
+    LivingSituation == 8 ~ "Client doesn't know",
+    LivingSituation == 9 ~ "Client refused",
+    LivingSituation == 12 ~ "Staying or living in a family member's room, 
+    apartment, or house",
+    LivingSituation == 13 ~ "Staying or living in a friend's room, apartment or
+    house",
+    LivingSituation == 14 ~ "Hotel or motel paid for without emergency shelter 
+    voucher",
+    LivingSituation == 15 ~ "Foster care home or foster care group home",
+    LivingSituation == 16 ~ "Place not meant for habitation",
+    LivingSituation == 18 ~ "Safe Haven",
+    LivingSituation == 19 ~ "Rental by client, with VASH subsidy",
+    LivingSituation == 20 ~ "Rental by client, with other housing subsidy (incl
+    RRH)",
+    LivingSituation == 21 ~ "Owned by client, with ongoing housing subsidy",
+    LivingSituation == 22 ~ "Rental by client, no ongoing housing subsidy",
+    LivingSituation == 23 ~ "Owned by client, no ongoing housing subsidy",
+    LivingSituation == 24 ~ "Long-term care facility or nursing home",
+    LivingSituation == 25 ~ "Rental by client, with GPD TIP subsidy",
+    LivingSituation == 26 ~ "Residential project or halfway house with no 
+    homeless criteria",
+    LivingSituation == 27 ~ "Interim housing",
+    LivingSituation == 99 ~ "Data not collected"
+  ),
+  LengthOfStay = case_when(
+    LengthOfStay == 2 ~ "One week or more but less than one month",
+    LengthOfStay == 3 ~ "One month or more but less than 90 days",
+    LengthOfStay == 4 ~ "90 days or more but less than one year",
+    LengthOfStay == 5 ~ "One year or longer",
+    LengthOfStay == 8 ~ "Client doesn't know",
+    LengthOfStay == 9 ~ "Client refused",
+    LengthOfStay == 10 ~ "One night or less",
+    LengthOfStay == 11 ~ "Two to six nights",
+    LengthOfStay == 99 ~ "Data not collected"
+  ))
+
+checkEligibility <- checkEligibility %>%
   mutate(Issue = "Check Eligibility", Type = "Warning") %>%
   select(
     HouseholdID,
@@ -1942,6 +1994,8 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    servicesOnHHMembers, unshelteredNotUnsheltered, conflictingDisabilitiesDetail,
    missingDisabilitiesDetail, missingLivingSituationDetail, 
    DKRLivingSituationDetail)
+
+dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
 
 save.image("images/Data_Quality.RData")
 
