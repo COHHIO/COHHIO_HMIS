@@ -22,9 +22,9 @@ library(janitor)
 
 load("images/COHHIOHMIS.RData")
 
-rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
-   Export, Funder, Geography, HealthAndDV, IncomeBenefits, Offers,
-   Organization, ProjectCoC, Scores, Services, VeteranCE, Users)
+rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, Export, 
+   Funder, Geography, HealthAndDV, Offers, Organization, ProjectCoC, Scores, 
+   Services, VeteranCE, Users)
 
 goals <- read_xlsx("data/Goals.xlsx")
 
@@ -136,109 +136,100 @@ RRHEnterers <- smallProject %>%
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
   )
 
-rm(Client, Enrollment, smallEnrollment, smallProject, Regions)
+smallMainstreamBenefits <- IncomeBenefits %>%
+  select(InsuranceFromAnySource, BenefitsFromAnySource,
+         DataCollectionStage, EnrollmentID, InformationDate) %>%
+  group_by(EnrollmentID) %>%
+  slice(which.max(InformationDate)) %>%
+  ungroup()
+
+
+QPR_MainstreamBenefits <- smallProject %>%
+  left_join(smallEnrollment, by = "ProjectID") %>%
+  filter(exited_between(., FileStart, FileEnd) &
+           RelationshipToHoH == 1) %>%
+  left_join(smallMainstreamBenefits, by = "EnrollmentID") %>%
+  select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
+         EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
+         InsuranceFromAnySource, BenefitsFromAnySource, DataCollectionStage, 
+         InformationDate) %>%
+  arrange(ProjectName, HouseholdID)
+
+incomeMostRecent <- IncomeBenefits %>%
+  select(IncomeFromAnySource, TotalMonthlyIncome, DataCollectionStage, 
+         EnrollmentID, InformationDate) %>%
+  group_by(EnrollmentID) %>%
+  slice(which.max(InformationDate)) %>%
+  ungroup() %>%
+  mutate(RecentIncome = TotalMonthlyIncome) %>%
+  select(EnrollmentID, RecentIncome)
+
+incomeAtEntry <- IncomeBenefits %>%
+  select(IncomeFromAnySource, TotalMonthlyIncome, DataCollectionStage, 
+         EnrollmentID, InformationDate) %>%
+  group_by(EnrollmentID) %>%
+  slice(which.min(InformationDate)) %>%
+  ungroup() %>%
+  mutate(EntryIncome = TotalMonthlyIncome) %>%
+  select(EnrollmentID, EntryIncome)
+
+smallIncomeDiff <- 
+  full_join(incomeAtEntry, incomeMostRecent, by = "EnrollmentID")
+
+QPR_Income <- smallProject %>%
+  left_join(smallEnrollment, by = "ProjectID") %>%
+  filter(served_between(., FileStart, FileEnd) &
+           RelationshipToHoH == 1) %>%
+  left_join(smallIncomeDiff, by = "EnrollmentID") %>%
+  select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
+         EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
+         EntryIncome, RecentIncome) %>%
+  mutate(Difference = RecentIncome - EntryIncome) %>%
+  arrange(ProjectName, HouseholdID)
+
+rm(Client, 
+   Enrollment, 
+   smallEnrollment, 
+   smallProject, 
+   Regions, 
+   smallMainstreamBenefits,
+   incomeMostRecent,
+   incomeAtEntry,
+   smallIncomeDiff,
+   IncomeBenefits)
 
 save.image("images/QPR_EEs.RData")
 
 rm(list = ls())
 
 
-somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
-                "#e95684")
-somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
-                    '#08589e')
-
-
-ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
-ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
-
-SuccessfullyPlaced <- QPR_EEs %>%
-  filter(((
-    ProjectType %in% c(3, 9, 13) &
-      !is.na(MoveInDateAdjust)
-  ) |
-    ProjectType %in% c(1, 2, 4, 8, 12)) &
-    # excluding non-mover-inners
-    (((DestinationGroup == "Permanent" |
-         #exited to ph or still in PSH/HP
-         is.na(ExitDate)) &
-        ProjectType %in% c(3, 9, 12) &
-        served_between(., ReportStart, ReportEnd)# PSH & HP
-    ) |
-      (
-        DestinationGroup == "Permanent" & # exited to ph
-          ProjectType %in% c(1, 2, 4, 8, 13) &
-          exited_between(., ReportStart, ReportEnd)
-      )
-    )) # ES, TH, SH, RRH, OUT) %>%
-
-
-# calculating the total households to compare successful placements to
-TotalHHsSuccessfulPlacement <- QPR_EEs %>%
-  filter((
-    served_between(., ReportStart, ReportEnd) &
-      ProjectType %in% c(3, 9, 12) # PSH & HP
-  ) |
-    (
-      exited_between(., ReportStart, ReportEnd) &
-        ProjectType %in% c(1, 2, 4, 8, 13) # ES, TH, SH, OUT, RRH
-    )) # For PSH & HP, it's total hhs served;
-# otherwise, it's total hhs *exited* during the reporting period
-
-SuccessfulPlacement <- TotalHHsSuccessfulPlacement %>%
-  left_join(
-    SuccessfullyPlaced,
-    by = c("EnrollmentID", "ProjectType", "ProjectName", "PersonalID", 
-           "EntryDate", "MoveInDate", "MoveInDateAdjust", "ExitDate", 
-           "DestinationGroup", "Destination", "HouseholdID")
-  ) %>%
-  filter(ProjectName == "Sandusky - GLCAP Homenet - TH") %>%
-  select(PersonalID, ProjectType, EntryDate, MoveInDate, MoveInDateAdjust, 
-         ExitDate, DestinationGroup, HouseholdID) %>%
-  group_by(HouseholdID)
-
-SuccessfulPlacementPH <- SuccessfulPlacement %>%
-  select(PersonalID,
-         HouseholdID,
-         EntryDate,
-         MoveInDateAdjust,
-         ExitDate,
-         DestinationGroup)    
-
-SuccessfulPlacementRes <- SuccessfulPlacement %>%
-  select(PersonalID,
-         HouseholdID,
-         EntryDate,
-         ExitDate,
-         DestinationGroup)
-
-if_else(2==2,
-        SuccessfulPlacementPH, SuccessfulPlacementRes)
-
+# somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
+#                 "#e95684")
+# somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
+#                     '#08589e')
 
 # RECURRENCE #
 
 # Enrollments to Compare Against ------------------------------------------
 
-ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
-ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
-LookbackStart <- format.Date(mdy(ReportStart) - years(1), "%m-%d-%Y")
-LookbackEnd <- format.Date(mdy(ReportEnd) - years(1), "%m-%d-%Y")
-
-
-exitedToPH <- QPR_EEs %>%
-  filter(Destination %in% c(3, 10, 11, 19, 20, 21, 22, 23, 26, 28, 31) &
-           ymd(ExitDate) >= mdy(LookbackStart) &
-           ymd(ExitDate) <= mdy(LookbackEnd) &
-           ProjectType %in% c(1, 2, 3, 4, 8, 9, 10, 13))
-
-earliestExitsToPH <- exitedToPH %>%
-  group_by(PersonalID) %>%
-  summarise(ExitDate = min(ymd(ExitDate)))
-
-x <- semi_join(exitedToPH, earliestExitsToPH, by = c("PersonalID", "ExitDate"))
-
-get_dupes(x, PersonalID) %>% view()
+# ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
+# ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
+# LookbackStart <- format.Date(mdy(ReportStart) - years(1), "%m-%d-%Y")
+# LookbackEnd <- format.Date(mdy(ReportEnd) - years(1), "%m-%d-%Y")
+# 
+# exitedToPH <- QPR_EEs %>%
+#   filter(Destination %in% c(3, 10, 11, 19, 20, 21, 22, 23, 26, 28, 31) &
+#            ymd(ExitDate) >= mdy(LookbackStart) &
+#            ymd(ExitDate) <= mdy(LookbackEnd) &
+#            ProjectType %in% c(1, 2, 3, 4, 8, 9, 10, 13))
+# 
+# earliestExitsToPH <- exitedToPH %>%
+#   group_by(PersonalID) %>%
+#   summarise(ExitDate = min(ymd(ExitDate)))
+# 
+# x <- semi_join(exitedToPH, earliestExitsToPH, by = c("PersonalID", "ExitDate"))
+# 
+# get_dupes(x, PersonalID) %>% view()
 
 # so how do you break the tie when a client has two exits to PH on the same day?
 
