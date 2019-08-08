@@ -16,7 +16,7 @@
 
 library(tidyverse)
 library(lubridate)
-library(plotly)
+# library(plotly)
 library(readxl)
 library(janitor)
 
