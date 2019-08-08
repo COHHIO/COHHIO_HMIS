@@ -106,8 +106,10 @@ smallEnrollment <- as.data.frame(smallEnrollment)
 
 validation <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
-  select(ProjectID, ProjectName, ProjectType, EnrollmentID, PersonalID, HouseholdID,
-         RelationshipToHoH, EntryDate, MoveInDate, ExitDate, Destination)
+  select(ProjectID, ProjectName, ProjectType, EnrollmentID, PersonalID, 
+         HouseholdID, RelationshipToHoH, EntryDate, MoveInDate, 
+         MoveInDateAdjust, ExitDate, Destination) %>%
+  filter(!is.na(EntryDate))
 
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
