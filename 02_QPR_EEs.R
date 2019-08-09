@@ -97,12 +97,7 @@ smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
     MoveInDateAdjust,
     ExitAdjust,
     Destination
-  ) %>%
-  filter(str_detect(HouseholdID, fixed("s_")) |
-           (str_detect(HouseholdID, fixed("h_")) &
-              RelationshipToHoH == 1))
-
-smallEnrollment <- as.data.frame(smallEnrollment)
+  ) 
 
 validation <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
@@ -111,6 +106,12 @@ validation <- smallProject %>%
          MoveInDateAdjust, ExitDate, Destination) %>%
   filter(!is.na(EntryDate))
 
+smallEnrollment <- smallEnrollment %>%
+  filter(str_detect(HouseholdID, fixed("s_")) |
+           (str_detect(HouseholdID, fixed("h_")) &
+              RelationshipToHoH == 1))
+
+smallEnrollment <- as.data.frame(smallEnrollment)
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
 
