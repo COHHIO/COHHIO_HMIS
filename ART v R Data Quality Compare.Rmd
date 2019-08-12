@@ -1,0 +1,203 @@
+---
+title: "ART v R Data Quality"
+author: "Genelle Denzin"
+date: "8/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+library(tidyverse)
+library(janitor)
+library(readxl)
+library(gt)
+```
+
+## What's in ART
+
+For the past few years, I have been exporting the results of our two custom Data Quality reports in ART to Qlik Sense Cloud for monthly reviews of the projects that need to be followed up with. Those reports come from my Favorites > Data Quality > Data Quality Monitoring folder. The two reports are named Data Quality 1- for export and Data Quality 2- for export. In the next code chunk, I'm pulling in the results of these two reports so I can compare these results to the ones in R minor.
+
+Following is the first seven rows of the object with all the ART-exported Data Quality data.
+
+```{r ART_DQ}
+hhs <- read_xls("data/Data Quality 1- for export.xls",
+                sheet = 1, 
+                range = cell_cols("A:D")) %>%
+  select(1, 2, 4)
+
+colnames(hhs) <- c("Issue", "Provider", "ClientID")
+
+missing <- read_xls("data/Data Quality 1- for export.xls",
+                sheet = 2, 
+                range = cell_cols("A:C"))
+
+colnames(missing) <- c("Issue", "Provider", "ClientID")
+
+missingsubs <- read_xls("data/Data Quality 1- for export.xls",
+                sheet = 3, 
+                range = cell_cols("A:C"))
+
+colnames(missingsubs) <- c("Issue", "Provider", "ClientID")
+
+ART_DQ1 <- rbind(hhs, missing, missingsubs)
+
+rm(hhs, missing, missingsubs)
+
+dq2 <- rbind(
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 1, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 2, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 3, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 4, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 5, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 6, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 7, 
+           range = cell_cols("A:C")),
+  read_xls("data/Data Quality 2- for export.xls",
+           sheet = 8, 
+           range = cell_cols("A:C"))
+)
+
+colnames(dq2) <-c("Issue", "Provider", "ClientID")
+
+ART_DQ <- rbind(dq2, ART_DQ1)
+
+rm(ART_DQ1, dq2)
+
+gt(head(ART_DQ))
+```
+
+## What's in R?
+
+Let's get the same data, but using the logic in the 04_DataQuality.R script (which is then saved to an image used in both Shiny apps.)
+
+```{r R_DQ}
+load("images/Data_Quality.RData")
+
+R_DQ <- DataQualityHMIS %>% select(Issue, ProjectName, PersonalID)
+```
+
+## What ClientIDs Are Not Showing in R that are in ART?
+
+A thing to note about the different reports is hardly any of the Issues are worded exactly in the same way so I'm not able to compare the datasets in that way.
+
+Instead, I'm going to isolate the ClientIDs who are represented in the ART report but who are NOT showing in R minor. Here are the first 7 rows:
+
+```{r ART_has_it}
+R_ClientIDs <- as.data.frame(R_DQ$PersonalID %>% unique())
+colnames(R_ClientIDs) <- "ClientID"
+
+ART_ClientIDs <- as.data.frame(ART_DQ$ClientID %>% unique())
+colnames(ART_ClientIDs) <- "ClientID"
+
+missingFromR <- anti_join(ART_ClientIDs, R_ClientIDs, by = "ClientID")
+
+gt(head(missingFromR))
+
+```
+
+
+It's great to have the ClientIDs, but I need to know which errors those clients have on the ART report so I can have a place to start from when I go to look at the Data Quality script.
+
+The following will give me some issues and example ClientIDs to start looking into. Findings below!
+
+```{r ART_has_it_Issues}
+missingFromRIssues <- missingFromR %>% left_join(ART_DQ, by = "ClientID") %>%
+  group_by(Issue) %>% summarise(Example = min(ClientID))
+
+gt(missingFromRIssues)
+```
+
+
+The Children Only Household was a RHY project. I am accounting for RHY projects when I am looking at Children-Only Households in R minor. (R minor is ok.)
+
+The Disability subs Not Matching is to do with the ticket I have in with WS about the subassessments not paying attention to the Report Start and Report End Dates. (Need to retest once that ticket is sorted out.)
+
+Future Entry Exit: For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
+
+HoHs Entering PH without SPDATs: In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
+
+HoHs In Shelter w/o SPDAT: In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
+
+Incorrect PATH Contact Date: This is not coded in Rm yet! (ART is correct)
+
+Missing Destination: Also not coded in Rm yet! (ART is correct)
+
+Missing Rel to HoH: This is just because there is a gap in reporting dates. That tells me all the Clients in ART for Missing HoH are also in Rm. (Both are correct!)
+
+Missing NCBs at Entry: This client has a "No" at Entry, not sure why the ART report is flagging this one? (Rm is correct) At least in Rm, the logic is only looking at the yes/no.
+
+Missing NCBs at Exit: This client has a "No" at Exit, not sure why the ART report is flagging this one? (Rm is correct) The Rm logic is only looking at the yes/no.
+
+Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
+
+The next four are to do with PATH Data Quality issues. These are not yet coded in Rm. (ART is correct.)
+
+Missing UDEs: I don't know why this is pulling into the ART report. All seems fine when I look at the client record AND when I actually run the provider-level ART report. (!) (Rm is correct.)
+
+Too many HoHs: Dataset lag time issue. (Both are correct.)
+
+Non-HoHs with Services or Referrals: This client is definitely a non-HoH who has some RRH services on her. The services were created on every hh member. As stated in the comments in the Data Quality script, not all the Services or Referrals are coming in. Once I can get the RMisc export moved to ReportWriter or whatever, these issues will be more reliable in Rm. (ART is correct.)
+
+Old Outstanding Referrals: same as above: incomplete Services and Referral data coming into Rm.
+
+Questionable Housing Data (or "Check Eligibility"): Rm is only looking at hhs who entered PSH more recently than 2016 since rules were less clear back then.
+
+Side Door: Rm is only checking this from 1/1/2019 forward. (I think Rm is ok)
+
+Any issues not named are to do with Services or Referrals, which needs re-examining at the import level.
+
+## List of Things to Solve Prior to Killing ART Reports
+
+1. WS Ticket #837944 needs to be resolved then retest.
+2. All the PATH-related Data Quality issues need to be added.
+3. Missing Destination needs to be added.
+4. Figure out why the NCB at Entry and NCB at Exit is showing on the ART report (to be sure there's not something I'm missing)
+5. Redo the way Services and Referrals are imported. The HUD CSV is not enough. :(
+
+## What ClientIDs are showing in R that are not showing in ART?
+
+```{r R_has_it_issues}
+missingFromART <- anti_join(R_ClientIDs, ART_ClientIDs, by = "ClientID")
+
+missingFromARTIssues <- missingFromART %>% 
+  left_join(R_DQ, by = c("ClientID" = "PersonalID")) %>%
+  group_by(Issue) %>% summarise(Example = min(ClientID))
+
+gt(missingFromARTIssues)
+```
+
+
+Oh my, that's a lot.
+
+Access Point with Entry Exits: not looking at this in ART. (Rm is correct.)
+
+Check Eligibility: ART report is ignoring HOPWA providers. (ART is correct.)
+
+Check Veteran Status for Accuracy: Not sure why ART doesn't have this one. (Rm is correct.)
+
+Children Only Household: Not sure but the provider is zz'd, so it may not be pulling into the ART report because of that. (Rm is correct, but Check why the ART report is not pulling this client.)
+
+Client w No Disability Receiving SSI/SSDI: Same thing: The provider is zz'd so it may not be pulling into the ART report because of that. (Rm is correct, but Check!)
+
+DKR Ethnicity: rerun all this but be sure your date ranges are the same. (Rm is correct)
+
+
+
+
+
+
+
+
