@@ -23,7 +23,8 @@ Affiliation <-
            col_types = "nnnTTnTn")
 Client <-
   read_csv("data/Client.csv",
-           col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+           col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>% 
+  filter(!PersonalID %in% c(5, 4216)) # demo clients
 Disabilities <-
   read_csv("data/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
