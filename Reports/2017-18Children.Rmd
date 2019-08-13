@@ -11,7 +11,8 @@ library(lubridate)
 library(dplyr)
 library(gt)
 library(janitor)
-load("images/COHHIOHMIS.RData")
+library(here)
+load(here("images/COHHIOHMIS.RData"))
 ```
 
 ### Served in ES, TH, or SH During the Year Excluding Unsheltered Homeless
