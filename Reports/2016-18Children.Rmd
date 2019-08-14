@@ -1,0 +1,153 @@
+---
+title: "Children 2016 - 2018"
+author: "Genelle Denzin"
+date: "August 13, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
+library(lubridate)
+library(dplyr)
+library(plotly)
+library(janitor)
+library(here)
+load(here("images/COHHIOHMIS.RData"))
+```
+
+### Served in ES, TH, or SH During the Year Excluding Unsheltered Homeless
+
+Children served in the Ohio Balance of State CoC, broken out by infants, pre-school, and school age, then by County, and also by Year.
+
+```{r basicdatasets}
+smallEnrollment <- Enrollment %>% 
+  select(EnrollmentID, PersonalID, EntryDate, ExitDate, ProjectID, CountyServed)
+smallProject <- Project %>%
+  select(ProjectID, ProjectType)
+smallClient <- Client %>%
+  select(PersonalID, DOB)
+rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Export, Funder, Geography, HealthAndDV, IncomeBenefits, Inventory, Organization, ProjectCoC, Scores, Services, Users)
+```
+
+
+
+```{r infants}
+infants <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%
+  mutate(
+    TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
+    TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
+    TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
+    ServedDuring2016 = if_else(ymd(EntryDate) < ymd("2017-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")), 1, 0),
+    ServedDuring2017 = if_else(ymd(EntryDate) < ymd("2018-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")), 1, 0),
+    ServedDuring2018 = if_else(ymd(EntryDate) < ymd("2019-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")), 1, 0)
+  ) %>% 
+  filter((
+    ServedDuring2016 == TRUE |
+      ServedDuring2017 == TRUE |
+      ServedDuring2018 == TRUE
+  ) & 
+    TurnedAgeXin2016 >= -2 & TurnedAgeXin2016 < 1
+  &
+    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+  ) %>%  
+  select(CountyServed, PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+
+
+
+```
+
+```{r preschool}
+preschool <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%
+  mutate(
+    TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
+    TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
+    TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
+    ServedDuring2016 = if_else(ymd(EntryDate) < ymd("2017-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")), 1, 0),
+    ServedDuring2017 = if_else(ymd(EntryDate) < ymd("2018-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")), 1, 0),
+    ServedDuring2018 = if_else(ymd(EntryDate) < ymd("2019-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")), 1, 0)
+  ) %>% 
+  filter((
+    ServedDuring2016 == TRUE |
+      ServedDuring2017 == TRUE |
+      ServedDuring2018 == TRUE
+  ) & 
+    TurnedAgeXin2016 >= -1 & TurnedAgeXin2016 < 3
+  &
+    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+  ) %>%  
+  select(CountyServed, PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+
+
+
+```
+
+
+
+```{r}
+school_age <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%
+  mutate(
+    TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
+    TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
+    TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
+    ServedDuring2016 = if_else(ymd(EntryDate) < ymd("2017-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")), 1, 0),
+    ServedDuring2017 = if_else(ymd(EntryDate) < ymd("2018-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")), 1, 0),
+    ServedDuring2018 = if_else(ymd(EntryDate) < ymd("2019-01-01") &
+      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")), 1, 0)
+  ) %>% 
+  filter((
+    ServedDuring2016 == 1 |
+      ServedDuring2017 == 1 |
+      ServedDuring2018 == 1
+  ) & 
+    TurnedAgeXin2016 >= 4 & TurnedAgeXin2016 < 15
+  &
+    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+  ) %>%  
+  select(CountyServed, PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+
+schoolplot <- school_age %>%
+  mutate(
+    school2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 > 5 &
+        TurnedAgeXin2016 < 18,
+      1,
+      0
+    ),
+    school2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 > 5 &
+        TurnedAgeXin2017 < 18,
+      1,
+      0
+    ),
+    school2018 = if_else(
+      ServedDuring2018 == 1 &
+      TurnedAgeXin2018 > 5 &
+        TurnedAgeXin2018 < 18,
+      1,
+      0
+    )
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "kids", -PersonalID) %>%
+  filter(kids == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(kids = sum(kids))
+
+plot_ly(schoolplot, x = ~year, y = ~kids, type = "scatter", mode = "lines+markers")
+
+```
+

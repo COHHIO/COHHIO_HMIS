@@ -16,7 +16,7 @@
 
 library(tidyverse)
 library(lubridate)
-library(plotly)
+# library(plotly)
 library(readxl)
 library(janitor)
 
@@ -89,7 +89,7 @@ smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
     HouseholdID,
     ProjectID,
     RelationshipToHoH,
-    CountyServed,
+    # CountyServed,
     EntryDate,
     MoveInDate,
     ExitDate,
@@ -97,13 +97,21 @@ smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
     MoveInDateAdjust,
     ExitAdjust,
     Destination
-  ) %>%
+  ) 
+
+validation <- smallProject %>%
+  left_join(smallEnrollment, by = "ProjectID") %>%
+  select(ProjectID, ProjectName, ProjectType, EnrollmentID, PersonalID, 
+         HouseholdID, RelationshipToHoH, EntryDate, MoveInDate, 
+         MoveInDateAdjust, ExitDate, Destination) %>%
+  filter(!is.na(EntryDate))
+
+smallEnrollment <- smallEnrollment %>%
   filter(str_detect(HouseholdID, fixed("s_")) |
            (str_detect(HouseholdID, fixed("h_")) &
               RelationshipToHoH == 1))
 
 smallEnrollment <- as.data.frame(smallEnrollment)
-
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
 
@@ -189,7 +197,7 @@ QPR_Income <- smallProject %>%
 
 rm(Client, 
    Enrollment, 
-   smallEnrollment, 
+   smallEnrollment,
    smallProject, 
    Regions, 
    smallMainstreamBenefits,

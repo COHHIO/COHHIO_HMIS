@@ -15,16 +15,16 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(plotly)
-start <- now()
+# library(plotly)
+# start <- now()
 load("images/COHHIOHMIS.RData")
 
 # Providers to Check ------------------------------------------------------
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType == 12 | # including 
-           # Diversion, Unsheltered, and Prevention projects
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 12) | # including 
+           # Diversion, Unsheltered, PATH Outreach, and Prevention projects
            (
              HMIS_participating_between(., FileStart, FileEnd) &
                operating_between(., FileStart, FileEnd) &
@@ -44,8 +44,6 @@ hmisParticipatingCurrent <- Project %>%
     Region
   ) %>% unique()
     
-dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
-
 # Clients to Check --------------------------------------------------------
 
 servedInDateRange <- Enrollment %>%
@@ -69,12 +67,14 @@ missingUDEs <- servedInDateRange %>%
     Issue = case_when(
       FirstName == "Missing" ~ "Missing Name Data Quality",
       FirstName %in% c("DKR", "Partial") ~ "Incomplete or DKR Name",
-      DOBDataQuality == 99 ~ "Missing Date of Birth",
+      DOBDataQuality == 99 ~ "Missing Date of Birth Data Quality",
       DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx. Date of Birth",
       AgeAtEntry < 0 |
         AgeAtEntry > 95 ~ "Incorrect Date of Birth or Entry Date",
       SSN == "Missing" ~ "Missing SSN",
-      SSN %in% c("Invalid or Incomplete", "DKR") ~ "Invalid SSN",
+      SSN == "Invalid" ~ "Invalid SSN",
+      SSN == "DKR" ~ "Don't Know/Refused SSN",
+      SSN == "Incomplete" ~ "Incomplete SSN",
       RaceNone == 99 ~ "Missing Race",
       RaceNone %in% c(8, 9) ~ "DKR Race",
       Ethnicity == 99 ~ "Missing Ethnicity",
@@ -659,7 +659,61 @@ checkEligibility <- servedInDateRange %>%
                )
            ))|
            (ProjectType == 12 &
-              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25))) %>%
+              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
+           (ProjectType %in% c(8, 4) & # Outreach and Safe Havens
+              !LivingSituation == 16)) # unsheltered only
+
+smallEligibility <- checkEligibility %>%
+  select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
+         ExitDate, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH) %>%
+  mutate(ResidencePrior = case_when(
+    LivingSituation == 1 ~ "Emergency shelter, incl hotel or motel paid for with
+    emergency shelter voucher",
+    LivingSituation == 2 ~ "Transitional housing for homeless persons",
+    LivingSituation == 3 ~ "Permanent housing (other than RRH) for formerly 
+    homeless persons",
+    LivingSituation == 4 ~ "Psychiatric hospital or other psychiatric facility",
+    LivingSituation == 5 ~ "Substance abuse treatment facility or detox center",
+    LivingSituation == 6 ~ "Hospital or other residential non-psychiatric medical
+    facility",
+    LivingSituation == 7 ~ "Jail, prison or juvenile detention facility",
+    LivingSituation == 8 ~ "Client doesn't know",
+    LivingSituation == 9 ~ "Client refused",
+    LivingSituation == 12 ~ "Staying or living in a family member's room, 
+    apartment, or house",
+    LivingSituation == 13 ~ "Staying or living in a friend's room, apartment or
+    house",
+    LivingSituation == 14 ~ "Hotel or motel paid for without emergency shelter 
+    voucher",
+    LivingSituation == 15 ~ "Foster care home or foster care group home",
+    LivingSituation == 16 ~ "Place not meant for habitation",
+    LivingSituation == 18 ~ "Safe Haven",
+    LivingSituation == 19 ~ "Rental by client, with VASH subsidy",
+    LivingSituation == 20 ~ "Rental by client, with other housing subsidy (incl
+    RRH)",
+    LivingSituation == 21 ~ "Owned by client, with ongoing housing subsidy",
+    LivingSituation == 22 ~ "Rental by client, no ongoing housing subsidy",
+    LivingSituation == 23 ~ "Owned by client, no ongoing housing subsidy",
+    LivingSituation == 24 ~ "Long-term care facility or nursing home",
+    LivingSituation == 25 ~ "Rental by client, with GPD TIP subsidy",
+    LivingSituation == 26 ~ "Residential project or halfway house with no 
+    homeless criteria",
+    LivingSituation == 27 ~ "Interim housing",
+    LivingSituation == 99 ~ "Data not collected"
+  ),
+  LengthOfStay = case_when(
+    LengthOfStay == 2 ~ "One week or more but less than one month",
+    LengthOfStay == 3 ~ "One month or more but less than 90 days",
+    LengthOfStay == 4 ~ "90 days or more but less than one year",
+    LengthOfStay == 5 ~ "One year or longer",
+    LengthOfStay == 8 ~ "Client doesn't know",
+    LengthOfStay == 9 ~ "Client refused",
+    LengthOfStay == 10 ~ "One night or less",
+    LengthOfStay == 11 ~ "Two to six nights",
+    LengthOfStay == 99 ~ "Data not collected"
+  ))
+
+checkEligibility <- checkEligibility %>%
   mutate(Issue = "Check Eligibility", Type = "Warning") %>%
   select(
     HouseholdID,
@@ -763,10 +817,10 @@ incorrectEntryExitType <- servedInDateRange %>%
 # HoHs Entering PH without SPDATs -----------------------------------------
 
 EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitDate, SPDATRecordID, 
+  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, SPDATRecordID, 
          SPDATProvider, StartDate, Score) %>%
   filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(StartDate) < ymd(ExitDate)) %>% # score is prior to Exit
+    ymd(StartDate) < ymd(ExitAdjust)) %>% # score is prior to Exit
   group_by(EnrollmentID) %>%
   mutate(MaxScoreDate = max(ymd(StartDate))) %>%
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
@@ -803,11 +857,13 @@ enteredPHwithoutSPDAT <-
 # since users can't do anything about leavers
 LHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(1, 2, 4, 8) &
-         ymd(EntryDate) < today() - days(8) &
-            is.na(ExitDate),
-         ymd(EntryDate) > ymd("20190101")) %>%
-  mutate(Issue = "HoHs in shelter or Transitional Housing for +8 days without SPDAT",
+  filter(
+    ProjectType %in% c(1, 2, 4, 8) &
+      ymd(EntryDate) < today() - days(8) &
+      is.na(ExitDate) &
+      ymd(EntryDate) > ymd("20190101")
+  ) %>% 
+  mutate(Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
          PersonalID,
@@ -1911,7 +1967,8 @@ DataQualityHMIS <- DataQualityHMIS %>%
     "Conflicting Income yes/no at Entry",                                
     "Conflicting Income yes/no at Exit",                                
     "Conflicting Non-cash Benefits yes/no at Entry",
-    "Conflicting Non-cash Benefits yes/no at Exit"
+    "Conflicting Non-cash Benefits yes/no at Exit",
+    "Missing Disability Subs"
     
   )) 
 
@@ -1943,160 +2000,162 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    missingDisabilitiesDetail, missingLivingSituationDetail, 
    DKRLivingSituationDetail)
 
+dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
+
 save.image("images/Data_Quality.RData")
-
-end <- now()
-end - start
-
-# rm(list = ls())
-
-# Errors by Provider ------------------------------------------------------
-
-stagingDQErrors <- DataQualityHMIS %>%
-  filter(Type == "Error") %>%
-  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
-  summarise(Count = n())
-
-stagingDQWarnings <- DataQualityHMIS %>%
-  filter(Type == "Warning") %>%
-  group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
-  summarise(Count = n())
-
-plotErrors <- stagingDQErrors %>%
-  group_by(ProjectName) %>%
-  summarise(Errors = sum(Count)) %>%
-  ungroup() %>%
-  arrange(desc(Errors))
-
-plotErrors$hover <-
-  with(
-    plotErrors,
-    paste(Errors, "Errors")
-  )
-
-errorsProviderPlot <- plot_ly(
-  plotErrors,
-  x = ~ ProjectName,
-  y = ~ Errors,
-  type = 'bar',
-  text = ~ hover,
-  marker = list(
-    color = 'rgb(158,202,225)',
-    line = list(color = 'rgb(8,48,107)',
-                width = 1.5)
-  )
-) %>%
-  layout(
-    title = "HMIS Errors by Provider",
-    xaxis = list(
-      title = ~ ProjectName,
-      categoryorder = "array",
-      categoryarray = ~ Errors
-    ),
-    yaxis = list(title = "All Errors")
-  )
-
-# Error Types Plot --------------------------------------------------------
-errorTypes <- stagingDQErrors %>%
-  group_by(Issue) %>%
-  summarise(Errors = sum(Count)) %>%
-  ungroup() %>%
-  arrange(desc(Errors))
-
-errorTypePlot <- plot_ly(
-  errorTypes,
-  x = ~ Issue,
-  y = ~ Errors,
-  type = 'bar',
-  marker = list(
-    color = 'rgb(158,202,225)',
-    line = list(color = 'rgb(8,48,107)',
-                width = 1.5)
-  )
-) %>%
-  layout(
-    title = "HMIS Errors Across the Ohio BoS CoC",
-    xaxis = list(
-      title = ~ Issue,
-      categoryorder = "array",
-      categoryarray = ~ Errors
-    ),
-    yaxis = list(title = "All Errors")
-  )
-
-# Widespread Issues -------------------------------------------------------
-
- widespreadIssue <- DataQualityHMIS %>%
-   select(Issue, ProjectName, Type) %>%
-   unique() %>%
-   group_by(Issue, Type) %>%
-   summarise(HowManyProjects = n()) %>%
-   arrange(desc(HowManyProjects))
-
-# Warnings by Provider ----------------------------------------------------
-
- plotWarnings <- stagingDQWarnings %>%
-   group_by(ProjectName) %>%
-   summarise(Warnings = sum(Count)) %>%
-   ungroup() %>%
-   arrange(desc(Warnings))
- 
- plotWarnings$hover <-
-   with(
-     plotWarnings,
-     paste(Warnings, "Warnings")
-   )
- 
- warningsProviderPlot <- plot_ly(
-   plotWarnings,
-   x = ~ ProjectName,
-   y = ~ Warnings,
-   type = 'bar',
-   text = ~ hover,
-   marker = list(
-     color = 'rgb(158,202,225)',
-     line = list(color = 'rgb(8,48,107)',
-                 width = 1.5)
-   )
- ) %>%
-   layout(
-     title = "HMIS Warnings by Provider",
-     xaxis = list(
-       title = ~ ProjectName,
-       categoryorder = "array",
-       categoryarray = ~ Warnings
-     ),
-     yaxis = list(title = "All Warnings")
-   )
- 
-
-# Warning Types -----------------------------------------------------------
-
- warningTypes <- stagingDQWarnings %>%
-   group_by(Issue) %>%
-   summarise(Warnings = sum(Count)) %>%
-   ungroup() %>%
-   arrange(desc(Warnings))
- 
- warningTypePlot <- plot_ly(
-   warningTypes,
-   x = ~ Issue,
-   y = ~ Warnings,
-   type = 'bar',
-   marker = list(
-     color = 'rgb(158,202,225)',
-     line = list(color = 'rgb(8,48,107)',
-                 width = 1.5)
-   )
- ) %>%
-   layout(
-     title = "HMIS Warnings Across the Ohio BoS CoC",
-     xaxis = list(
-       title = ~ Issue,
-       categoryorder = "array",
-       categoryarray = ~ Warnings
-     ),
-     yaxis = list(title = "All Warnings")
-   )
- 
+# 
+# end <- now()
+# end - start
+# 
+rm(list = ls())
+# 
+# # Errors by Provider ------------------------------------------------------
+# 
+# stagingDQErrors <- DataQualityHMIS %>%
+#   filter(Type == "Error") %>%
+#   group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
+#   summarise(Count = n())
+# 
+# stagingDQWarnings <- DataQualityHMIS %>%
+#   filter(Type == "Warning") %>%
+#   group_by(ProjectName, Issue, Type, ProjectType, ProviderCounty, Region) %>%
+#   summarise(Count = n())
+# 
+# plotErrors <- stagingDQErrors %>%
+#   group_by(ProjectName) %>%
+#   summarise(Errors = sum(Count)) %>%
+#   ungroup() %>%
+#   arrange(desc(Errors))
+# 
+# plotErrors$hover <-
+#   with(
+#     plotErrors,
+#     paste(Errors, "Errors")
+#   )
+# 
+# errorsProviderPlot <- plot_ly(
+#   plotErrors,
+#   x = ~ ProjectName,
+#   y = ~ Errors,
+#   type = 'bar',
+#   text = ~ hover,
+#   marker = list(
+#     color = 'rgb(158,202,225)',
+#     line = list(color = 'rgb(8,48,107)',
+#                 width = 1.5)
+#   )
+# ) %>%
+#   layout(
+#     title = "HMIS Errors by Provider",
+#     xaxis = list(
+#       title = ~ ProjectName,
+#       categoryorder = "array",
+#       categoryarray = ~ Errors
+#     ),
+#     yaxis = list(title = "All Errors")
+#   )
+# 
+# # Error Types Plot --------------------------------------------------------
+# errorTypes <- stagingDQErrors %>%
+#   group_by(Issue) %>%
+#   summarise(Errors = sum(Count)) %>%
+#   ungroup() %>%
+#   arrange(desc(Errors))
+# 
+# errorTypePlot <- plot_ly(
+#   errorTypes,
+#   x = ~ Issue,
+#   y = ~ Errors,
+#   type = 'bar',
+#   marker = list(
+#     color = 'rgb(158,202,225)',
+#     line = list(color = 'rgb(8,48,107)',
+#                 width = 1.5)
+#   )
+# ) %>%
+#   layout(
+#     title = "HMIS Errors Across the Ohio BoS CoC",
+#     xaxis = list(
+#       title = ~ Issue,
+#       categoryorder = "array",
+#       categoryarray = ~ Errors
+#     ),
+#     yaxis = list(title = "All Errors")
+#   )
+# 
+# # Widespread Issues -------------------------------------------------------
+# 
+#  widespreadIssue <- DataQualityHMIS %>%
+#    select(Issue, ProjectName, Type) %>%
+#    unique() %>%
+#    group_by(Issue, Type) %>%
+#    summarise(HowManyProjects = n()) %>%
+#    arrange(desc(HowManyProjects))
+# 
+# # Warnings by Provider ----------------------------------------------------
+# 
+#  plotWarnings <- stagingDQWarnings %>%
+#    group_by(ProjectName) %>%
+#    summarise(Warnings = sum(Count)) %>%
+#    ungroup() %>%
+#    arrange(desc(Warnings))
+#  
+#  plotWarnings$hover <-
+#    with(
+#      plotWarnings,
+#      paste(Warnings, "Warnings")
+#    )
+#  
+#  warningsProviderPlot <- plot_ly(
+#    plotWarnings,
+#    x = ~ ProjectName,
+#    y = ~ Warnings,
+#    type = 'bar',
+#    text = ~ hover,
+#    marker = list(
+#      color = 'rgb(158,202,225)',
+#      line = list(color = 'rgb(8,48,107)',
+#                  width = 1.5)
+#    )
+#  ) %>%
+#    layout(
+#      title = "HMIS Warnings by Provider",
+#      xaxis = list(
+#        title = ~ ProjectName,
+#        categoryorder = "array",
+#        categoryarray = ~ Warnings
+#      ),
+#      yaxis = list(title = "All Warnings")
+#    )
+#  
+# 
+# # Warning Types -----------------------------------------------------------
+# 
+#  warningTypes <- stagingDQWarnings %>%
+#    group_by(Issue) %>%
+#    summarise(Warnings = sum(Count)) %>%
+#    ungroup() %>%
+#    arrange(desc(Warnings))
+#  
+#  warningTypePlot <- plot_ly(
+#    warningTypes,
+#    x = ~ Issue,
+#    y = ~ Warnings,
+#    type = 'bar',
+#    marker = list(
+#      color = 'rgb(158,202,225)',
+#      line = list(color = 'rgb(8,48,107)',
+#                  width = 1.5)
+#    )
+#  ) %>%
+#    layout(
+#      title = "HMIS Warnings Across the Ohio BoS CoC",
+#      xaxis = list(
+#        title = ~ Issue,
+#        categoryorder = "array",
+#        categoryarray = ~ Warnings
+#      ),
+#      yaxis = list(title = "All Warnings")
+#    )
+#  
  

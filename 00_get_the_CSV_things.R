@@ -23,7 +23,8 @@ Affiliation <-
            col_types = "nnnTTnTn")
 Client <-
   read_csv("data/Client.csv",
-           col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+           col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>% 
+  filter(!PersonalID %in% c(5, 4216)) # demo clients
 Disabilities <-
   read_csv("data/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
@@ -324,22 +325,23 @@ Client <- Client %>%
       NameDataQuality == 2 ~ "Partial",
       NameDataQuality == 99 |
         is.na(NameDataQuality) |
-        FirstName == "Anonymous" ~ "Missing",!(
-          NameDataQuality %in% c(2, 8, 9, 99) |
-            is.na(NameDataQuality) |
-            FirstName == "Anonymous"
-        ) ~ "ok"
+        FirstName == "Anonymous" ~ "Missing",
+      !(
+        NameDataQuality %in% c(2, 8, 9, 99) |
+          is.na(NameDataQuality) |
+          FirstName == "Anonymous"
+      ) ~ "ok"
     ),
     LastName = NULL,
     MiddleName = NULL,
     NameSuffix = NULL,
+    SSNDataQuality %in% c(8, 9) ~ "DKR",
     SSN = case_when(
-      is.na(SSN) |
+      (is.na(SSN) & !SSNDataQuality %in% c(8, 9)) |
         is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
-      SSNDataQuality %in% c(8, 9) ~ "DKR",
       substr(SSN, 1, 1) == 0 |
         substr(SSN, 1, 2) == "00" |
-        nchar(SSN) != 9 |
+        (nchar(SSN) != 9 & SSNDataQuality != 2) |
         substr(SSN, 1, 3) %in% c("000", "666") |
         substr(SSN, 1, 1) == 9 |
         substr(SSN, 4, 5) == "00" |
@@ -355,7 +357,8 @@ Client <- Client %>%
           777777777,
           888888888,
           123456789
-        ) ~ "Invalid or Incomplete"
+        ) ~ "Invalid",
+      SSNDataQuality == 2 & nchar(SSN) != 9 ~ "Incomplete"
     )
   )
 
