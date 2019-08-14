@@ -67,12 +67,14 @@ missingUDEs <- servedInDateRange %>%
     Issue = case_when(
       FirstName == "Missing" ~ "Missing Name Data Quality",
       FirstName %in% c("DKR", "Partial") ~ "Incomplete or DKR Name",
-      DOBDataQuality == 99 ~ "Missing Date of Birth",
+      DOBDataQuality == 99 ~ "Missing Date of Birth Data Quality",
       DOBDataQuality %in% c(2, 8, 9) ~ "DKR or Approx. Date of Birth",
       AgeAtEntry < 0 |
         AgeAtEntry > 95 ~ "Incorrect Date of Birth or Entry Date",
       SSN == "Missing" ~ "Missing SSN",
-      SSN %in% c("Invalid or Incomplete", "DKR") ~ "Invalid SSN",
+      SSN == "Invalid" ~ "Invalid SSN",
+      SSN == "DKR" ~ "Don't Know/Refused SSN",
+      SSN == "Incomplete" ~ "Incomplete SSN",
       RaceNone == 99 ~ "Missing Race",
       RaceNone %in% c(8, 9) ~ "DKR Race",
       Ethnicity == 99 ~ "Missing Ethnicity",
@@ -815,10 +817,10 @@ incorrectEntryExitType <- servedInDateRange %>%
 # HoHs Entering PH without SPDATs -----------------------------------------
 
 EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitDate, SPDATRecordID, 
+  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, SPDATRecordID, 
          SPDATProvider, StartDate, Score) %>%
   filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(StartDate) < ymd(ExitDate)) %>% # score is prior to Exit
+    ymd(StartDate) < ymd(ExitAdjust)) %>% # score is prior to Exit
   group_by(EnrollmentID) %>%
   mutate(MaxScoreDate = max(ymd(StartDate))) %>%
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
@@ -855,11 +857,13 @@ enteredPHwithoutSPDAT <-
 # since users can't do anything about leavers
 LHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(1, 2, 4, 8) &
-         ymd(EntryDate) < today() - days(8) &
-            is.na(ExitDate),
-         ymd(EntryDate) > ymd("20190101")) %>%
-  mutate(Issue = "HoHs in shelter or Transitional Housing for +8 days without SPDAT",
+  filter(
+    ProjectType %in% c(1, 2, 4, 8) &
+      ymd(EntryDate) < today() - days(8) &
+      is.na(ExitDate) &
+      ymd(EntryDate) > ymd("20190101")
+  ) %>% 
+  mutate(Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
          PersonalID,
@@ -1963,7 +1967,8 @@ DataQualityHMIS <- DataQualityHMIS %>%
     "Conflicting Income yes/no at Entry",                                
     "Conflicting Income yes/no at Exit",                                
     "Conflicting Non-cash Benefits yes/no at Entry",
-    "Conflicting Non-cash Benefits yes/no at Exit"
+    "Conflicting Non-cash Benefits yes/no at Exit",
+    "Missing Disability Subs"
     
   )) 
 
