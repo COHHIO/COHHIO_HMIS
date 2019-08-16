@@ -1,38 +1,88 @@
 ---
-title: "Children 2016 - 2018"
+title: "Literally Homeless Children Served in the Ohio Balance of State CoC"
 author: "Coalition on Homelessness and Housing in Ohio (COHHIO)"
 date: "August 13, 2019"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning = FALSE)
+knitr::opts_chunk$set(
+	message = FALSE,
+	warning = FALSE
+)
 library(lubridate)
 library(tidyverse)
 library(readxl)
 library(plotly)
 library(janitor)
 library(here)
-load(here("images/COHHIOHMIS.RData"))
+Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"))
+Exit <- read_csv(here("threeyearsdata/Exit.csv"))
+Project <- read_csv(here("threeyearsdata/Project.csv"))
+Client <- read_csv(here("threeyearsdata/Client.csv"))
 ```
 
-### Literally Homeless Children Served in the Ohio Balance of State CoC
+Homeless Children Served 2016 - 2018 in Emergency Shelters, Transitional Housing, Street Outreach, Rapid Rehousing, and Permanent Supportive Housing
 
-Children served in the Ohio Balance of State CoC, broken out by infants, pre-school, and school age, and also by Year.
 
-```{r basicdatasets}
+
+```{r basicdatasets, echo=FALSE}
 smallEnrollment <- Enrollment %>% 
-  select(EnrollmentID, PersonalID, EntryDate, ExitDate, ProjectID, CountyServed)
+  select(EnrollmentID, PersonalID, EntryDate, ProjectID)
+smallExit <- Exit %>%
+  select(EnrollmentID, ExitDate)
 smallProject <- Project %>%
   select(ProjectID, ProjectType)
 smallClient <- Client %>%
   select(PersonalID, DOB)
-rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Export, Funder, Geography, HealthAndDV, IncomeBenefits, Inventory, Organization, ProjectCoC, Scores, Services, Users)
+
+age_years <- function(earlier, later)
+{
+  lt <- data.frame(earlier, later)
+  age <- as.numeric(format(lt[,2],format="%Y")) - as.numeric(format(lt[,1],format="%Y"))
+  
+  dayOnLaterYear <- ifelse(
+    format(lt[, 1], format = "%m-%d") != "02-29",
+    as.Date(paste(
+      format(lt[, 2], format = "%Y"), "-",
+      format(lt[, 1], format = "%m-%d"),
+      sep = ""
+    )),
+    ifelse(
+      as.numeric(format(later, format = "%Y")) %%
+        400 == 0 |
+        as.numeric(format(later,
+                          format =
+                            "%Y")) %%
+        100 != 0 &
+        as.numeric(format(later, format = "%Y")) %%
+        4 == 0,
+      as.Date(paste(
+        format(lt[, 2], format = "%Y"),
+        "-",
+        format(lt[, 1], format =
+                 "%m-%d"),
+        sep = ""
+      )),
+      as.Date(paste(
+        format(lt[, 2], format = "%Y"),
+        "-",
+        "02-28",
+        sep = ""
+      ))
+    )
+  )
+    
+  age[which(dayOnLaterYear > lt$later)] <- age[which(dayOnLaterYear > lt$later)] - 1
+  
+  age
+}
 ```
 
 
-```{r infants}
+```{r infants, echo=FALSE}
 infants <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%
   mutate(
     TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
@@ -54,7 +104,7 @@ infants <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   &
     ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
   ) %>%  
-  select(CountyServed, PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+  select(PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
 
 infantplot <- infants %>%
   mutate(
@@ -87,8 +137,9 @@ infantplot <- infants %>%
 ```
 
 
-```{r preschool}
+```{r preschool, echo=FALSE}
 preschool <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%
   mutate(
     TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
@@ -110,7 +161,7 @@ preschool <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   &
     ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
   ) %>%  
-  select(CountyServed, PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+  select(PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
 
 preschoolplot <- preschool %>%
   mutate(
@@ -146,8 +197,9 @@ preschoolplot <- preschool %>%
 ```
 
 
-```{r}
+```{r school, echo=FALSE}
 school_age <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%
   mutate(
     TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
@@ -169,7 +221,7 @@ school_age <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   &
     ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
   ) %>%  
-  select(CountyServed, PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+  select(PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
 
 schoolplot <- school_age %>%
   mutate(
@@ -205,17 +257,18 @@ schoolplot <- school_age %>%
 plotstaging <- full_join(infantplot, preschoolplot, by = "year") %>%
   full_join(schoolplot, by = "year")
 
-plot_ly(plotstaging, 
-        x = ~year, 
-        y = ~infants, 
-        name = "Less than 1 year old", 
-        type = "scatter", 
-        mode = "lines+markers") %>%
-  add_trace(y = ~preschoolers, name = "Ages 1 to 5") %>%
-  add_trace(y = ~school_age, name = "Ages 6 to 17") %>%
-  layout(title = "Homeless Children Served in the Ohio Balance of State CoC",
-         xaxis = list(title = "Year"),
-         yaxis = list(title = "Children Served"))
+plot_ly(plotstaging,
+        x = ~year,
+        y = ~infants,
+        name = "Less than 1 year old",
+        type = "bar") %>%
+add_trace(y = ~preschoolers, name = "Ages 1 to 5") %>%
+add_trace(y = ~school_age, name = "Ages 6 to 17") %>%
+layout(title = "Homeless Children Served in the Ohio Balance of State CoC",
+       xaxis = list(title = "Year"),
+       yaxis = list(title = "Children Served"),
+       barmode = "stack")
 
 ```
+
 
