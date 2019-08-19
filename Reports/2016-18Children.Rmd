@@ -16,17 +16,17 @@ library(readxl)
 library(plotly)
 library(janitor)
 library(here)
-Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"))
-Exit <- read_csv(here("threeyearsdata/Exit.csv"))
-Project <- read_csv(here("threeyearsdata/Project.csv"))
-Client <- read_csv(here("threeyearsdata/Client.csv"))
+
 ```
 
 Homeless Children Served 2016 - 2018 in Emergency Shelters, Transitional Housing, Street Outreach, Rapid Rehousing, and Permanent Supportive Housing
 
-
-
 ```{r basicdatasets, echo=FALSE}
+Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"))
+Exit <- read_csv(here("threeyearsdata/Exit.csv"))
+Project <- read_csv(here("threeyearsdata/Project.csv"))
+Client <- read_csv(here("threeyearsdata/Client.csv"))
+
 smallEnrollment <- Enrollment %>% 
   select(EnrollmentID, PersonalID, EntryDate, ProjectID)
 smallExit <- Exit %>%
@@ -35,6 +35,8 @@ smallProject <- Project %>%
   select(ProjectID, ProjectType)
 smallClient <- Client %>%
   select(PersonalID, DOB)
+
+# age calculation function
 
 age_years <- function(earlier, later)
 {
@@ -77,6 +79,7 @@ age_years <- function(earlier, later)
   
   age
 }
+
 ```
 
 
