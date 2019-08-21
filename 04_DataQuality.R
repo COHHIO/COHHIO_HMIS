@@ -543,7 +543,7 @@ missingLongDuration <- servedInDateRange %>%
 # check that these aren't just bad data from WellSky
 # also check the ART report to see what logic I'm using exactly
 incorrectMoveInDate <- servedInDateRange %>%
-  filter(ProjectType %in% c(3, 9, 12),
+  filter(ProjectType %in% c(3, 9, 13),
          (ymd(MoveInDate) < ymd(EntryDate) |
            ymd(MoveInDate) > ymd(ExitDate))) %>%
   mutate(Issue = "Incorrect Move In Date",
