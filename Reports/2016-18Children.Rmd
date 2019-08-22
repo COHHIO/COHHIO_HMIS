@@ -19,16 +19,20 @@ library(here)
 
 ```
 
-Homeless Children Served 2016 - 2018 in Emergency Shelters, Transitional Housing, Street Outreach, Rapid Rehousing, and Permanent Supportive Housing
 
 ```{r basicdatasets, echo=FALSE}
-Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"))
-Exit <- read_csv(here("threeyearsdata/Exit.csv"))
-Project <- read_csv(here("threeyearsdata/Project.csv"))
-Client <- read_csv(here("threeyearsdata/Client.csv"))
+Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"),
+                       col_types =
+                         "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+Exit <- read_csv(here("threeyearsdata/Exit.csv"),
+                 col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
+Project <- read_csv(here("threeyearsdata/Project.csv"),
+                    col_types = "nnccDDnnnnnnnnTTnTn")
+Client <- read_csv(here("threeyearsdata/Client.csv"),
+                   col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 
-smallEnrollment <- Enrollment %>% 
-  select(EnrollmentID, PersonalID, EntryDate, ProjectID)
+smallEnrollment <- Enrollment %>%
+  select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ProjectID)
 smallExit <- Exit %>%
   select(EnrollmentID, ExitDate)
 smallProject <- Project %>%
@@ -41,12 +45,15 @@ smallClient <- Client %>%
 age_years <- function(earlier, later)
 {
   lt <- data.frame(earlier, later)
-  age <- as.numeric(format(lt[,2],format="%Y")) - as.numeric(format(lt[,1],format="%Y"))
+  age <-
+    as.numeric(format(lt[, 2], format = "%Y")) - as.numeric(format(lt[, 1], format =
+                                                                     "%Y"))
   
   dayOnLaterYear <- ifelse(
     format(lt[, 1], format = "%m-%d") != "02-29",
     as.Date(paste(
-      format(lt[, 2], format = "%Y"), "-",
+      format(lt[, 2], format = "%Y"),
+      "-",
       format(lt[, 1], format = "%m-%d"),
       sep = ""
     )),
@@ -74,8 +81,9 @@ age_years <- function(earlier, later)
       ))
     )
   )
-    
-  age[which(dayOnLaterYear > lt$later)] <- age[which(dayOnLaterYear > lt$later)] - 1
+  
+  age[which(dayOnLaterYear > lt$later)] <-
+    age[which(dayOnLaterYear > lt$later)] - 1
   
   age
 }
@@ -84,7 +92,8 @@ age_years <- function(earlier, later)
 
 
 ```{r infants, echo=FALSE}
-infants <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+infants <-
+  left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%
   mutate(
@@ -92,56 +101,68 @@ infants <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
     TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
     TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
     ServedDuring2016 = if_else(ymd(EntryDate) <= ymd("2016-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")), 1, 0),
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")
+                                 ), 1, 0),
     ServedDuring2017 = if_else(ymd(EntryDate) <= ymd("2017-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")), 1, 0),
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")
+                                 ), 1, 0),
     ServedDuring2018 = if_else(ymd(EntryDate) <= ymd("2018-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")), 1, 0)
-  ) %>% 
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")
+                                 ), 1, 0)
+  ) %>%
   filter((
     ServedDuring2016 == 1 |
       ServedDuring2017 == 1 |
       ServedDuring2018 == 1
-  ) & 
+  ) &
     TurnedAgeXin2016 >= -2 & TurnedAgeXin2016 <= 0
   &
     ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
-  ) %>%  
-  select(PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+  ) %>%
+  select(
+    PersonalID,
+    DOB,
+    ProjectType,
+    TurnedAgeXin2016,
+    TurnedAgeXin2017,
+    TurnedAgeXin2018,
+    ServedDuring2016,
+    ServedDuring2017,
+    ServedDuring2018
+  )
 
 infantplot <- infants %>%
   mutate(
-    school2016 = if_else(
-      ServedDuring2016 == 1 &
-        TurnedAgeXin2016 == 0,
-      1,
-      0
-    ),
-    school2017 = if_else(
-      ServedDuring2017 == 1 &
-        TurnedAgeXin2017 == 0,
-      1,
-      0
-    ),
-    school2018 = if_else(
-      ServedDuring2018 == 1 &
-      TurnedAgeXin2018 == 0,
-      1,
-      0
-    )
+    school2016 = if_else(ServedDuring2016 == 1 &
+                           TurnedAgeXin2016 == 0,
+                         1,
+                         0),
+    school2017 = if_else(ServedDuring2017 == 1 &
+                           TurnedAgeXin2017 == 0,
+                         1,
+                         0),
+    school2018 = if_else(ServedDuring2018 == 1 &
+                           TurnedAgeXin2018 == 0,
+                         1,
+                         0)
   ) %>%
   select(PersonalID, school2016, school2017, school2018) %>%
-  gather(key = "year", value = "infants", -PersonalID) %>%
+  gather(key = "year", value = "infants",-PersonalID) %>%
   filter(infants == 1) %>%
   mutate(year = str_extract(year, "[0-9]+")) %>%
   group_by(year) %>%
   summarise(infants = sum(infants))
 
+
 ```
 
 
 ```{r preschool, echo=FALSE}
-preschool <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+preschool <-
+  left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%
   mutate(
@@ -149,22 +170,38 @@ preschool <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
     TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
     TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
     ServedDuring2016 = if_else(ymd(EntryDate) <= ymd("2016-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")), 1, 0),
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")
+                                 ), 1, 0),
     ServedDuring2017 = if_else(ymd(EntryDate) <= ymd("2017-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")), 1, 0),
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")
+                                 ), 1, 0),
     ServedDuring2018 = if_else(ymd(EntryDate) <= ymd("2018-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")), 1, 0)
-  ) %>% 
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")
+                                 ), 1, 0)
+  ) %>%
   filter((
     ServedDuring2016 == 1 |
       ServedDuring2017 == 1 |
       ServedDuring2018 == 1
-  ) & 
+  ) &
     TurnedAgeXin2016 >= -1 & TurnedAgeXin2016 <= 5
   &
     ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
-  ) %>%  
-  select(PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+  ) %>%
+  select(
+    PersonalID,
+    DOB,
+    ProjectType,
+    TurnedAgeXin2016,
+    TurnedAgeXin2017,
+    TurnedAgeXin2018,
+    ServedDuring2016,
+    ServedDuring2017,
+    ServedDuring2018
+  )
 
 preschoolplot <- preschool %>%
   mutate(
@@ -184,14 +221,14 @@ preschoolplot <- preschool %>%
     ),
     school2018 = if_else(
       ServedDuring2018 == 1 &
-      TurnedAgeXin2018 >= 1 &
+        TurnedAgeXin2018 >= 1 &
         TurnedAgeXin2018 < 6,
       1,
       0
     )
   ) %>%
   select(PersonalID, school2016, school2017, school2018) %>%
-  gather(key = "year", value = "preschoolers", -PersonalID) %>%
+  gather(key = "year", value = "preschoolers",-PersonalID) %>%
   filter(preschoolers == 1) %>%
   mutate(year = str_extract(year, "[0-9]+")) %>%
   group_by(year) %>%
@@ -201,7 +238,8 @@ preschoolplot <- preschool %>%
 
 
 ```{r school, echo=FALSE}
-school_age <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+school_age <-
+  left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%
   mutate(
@@ -209,22 +247,38 @@ school_age <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
     TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
     TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
     ServedDuring2016 = if_else(ymd(EntryDate) <= ymd("2016-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")), 1, 0),
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")
+                                 ), 1, 0),
     ServedDuring2017 = if_else(ymd(EntryDate) <= ymd("2017-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")), 1, 0),
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")
+                                 ), 1, 0),
     ServedDuring2018 = if_else(ymd(EntryDate) <= ymd("2018-12-31") &
-      (is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")), 1, 0)
-  ) %>% 
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")
+                                 ), 1, 0)
+  ) %>%
   filter((
     ServedDuring2016 == 1 |
       ServedDuring2017 == 1 |
       ServedDuring2018 == 1
-  ) & 
+  ) &
     TurnedAgeXin2016 >= 4 & TurnedAgeXin2016 <= 17
   &
     ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
-  ) %>%  
-  select(PersonalID, DOB, TurnedAgeXin2016, TurnedAgeXin2017, TurnedAgeXin2018, ServedDuring2016, ServedDuring2017, ServedDuring2018)
+  ) %>%
+  select(
+    PersonalID,
+    DOB,
+    ProjectType,
+    TurnedAgeXin2016,
+    TurnedAgeXin2017,
+    TurnedAgeXin2018,
+    ServedDuring2016,
+    ServedDuring2017,
+    ServedDuring2018
+  )
 
 schoolplot <- school_age %>%
   mutate(
@@ -244,34 +298,431 @@ schoolplot <- school_age %>%
     ),
     school2018 = if_else(
       ServedDuring2018 == 1 &
-      TurnedAgeXin2018 > 5 &
+        TurnedAgeXin2018 > 5 &
         TurnedAgeXin2018 < 18,
       1,
       0
     )
   ) %>%
   select(PersonalID, school2016, school2017, school2018) %>%
-  gather(key = "year", value = "school_age", -PersonalID) %>%
+  gather(key = "year", value = "school_age",-PersonalID) %>%
   filter(school_age == 1) %>%
   mutate(year = str_extract(year, "[0-9]+")) %>%
   group_by(year) %>%
   summarise(school_age = sum(school_age))
 
+```
+
+## Households with Children
+
+```{r hhsplot, echo=FALSE}
+hhs <-
+  left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%
+  mutate(
+    TurnedAgeXin2016 = age_years(DOB, ymd("2016-12-31")),
+    TurnedAgeXin2017 = age_years(DOB, ymd("2017-12-31")),
+    TurnedAgeXin2018 = age_years(DOB, ymd("2018-12-31")),
+    ServedDuring2016 = if_else(ymd(EntryDate) <= ymd("2016-12-31") &
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2016-01-01")
+                                 ), 1, 0),
+    ServedDuring2017 = if_else(ymd(EntryDate) <= ymd("2017-12-31") &
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2017-01-01")
+                                 ), 1, 0),
+    ServedDuring2018 = if_else(ymd(EntryDate) <= ymd("2018-12-31") &
+                                 (
+                                   is.na(ExitDate) | ymd(ExitDate) >= ymd("2018-01-01")
+                                 ), 1, 0)
+  ) %>%
+  filter((
+    ServedDuring2016 == 1 |
+      ServedDuring2017 == 1 |
+      ServedDuring2018 == 1
+  ) &
+    TurnedAgeXin2016 >= -2 & 
+    TurnedAgeXin2016 <= 18
+  &
+    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+  ) %>%
+  select(
+    PersonalID,
+    DOB,
+    ProjectType,
+    HouseholdID,
+    EntryDate,
+    ExitDate,
+    TurnedAgeXin2016,
+    TurnedAgeXin2017,
+    TurnedAgeXin2018,
+    ServedDuring2016,
+    ServedDuring2017,
+    ServedDuring2018
+  )
+
+ph_hhs <- hhs %>%
+  filter(ProjectType %in% c(3, 9, 13))
+
+hhplot <- hhs %>%
+  mutate(
+    child2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 >= 0 &
+        TurnedAgeXin2016 <= 18,
+      1,
+      0
+    ),
+    child2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 >= 0 &
+        TurnedAgeXin2017 <= 18,
+      1,
+      0
+    ),
+    child2018 = if_else(
+      ServedDuring2018 == 1 &
+        TurnedAgeXin2018 >= 0 &
+        TurnedAgeXin2018 <= 18,
+      1,
+      0
+    )
+  ) %>%
+  select(child2016, child2017, child2018, HouseholdID) %>%
+  filter(child2016 + child2017 + child2018 > 0) %>%
+  group_by(HouseholdID) %>%
+  summarise(
+    child2016 = max(child2016),
+    child2017 = max(child2017),
+    child2018 = max(child2018)
+  ) %>%
+  gather(key = "year", value = "households", -HouseholdID) %>%
+  filter(households == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(households = sum(households))
+
+ph_hhplot <- ph_hhs %>%
+  mutate(
+    child2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 >= 0 &
+        TurnedAgeXin2016 <= 18,
+      1,
+      0
+    ),
+    child2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 >= 0 &
+        TurnedAgeXin2017 <= 18,
+      1,
+      0
+    ),
+    child2018 = if_else(
+      ServedDuring2018 == 1 &
+        TurnedAgeXin2018 >= 0 &
+        TurnedAgeXin2018 <= 18,
+      1,
+      0
+    )
+  ) %>%
+  select(child2016, child2017, child2018, HouseholdID) %>%
+  filter(child2016 + child2017 + child2018 > 0) %>%
+  group_by(HouseholdID) %>%
+  summarise(
+    child2016 = max(child2016),
+    child2017 = max(child2017),
+    child2018 = max(child2018)
+  ) %>%
+  gather(key = "year", value = "households", -HouseholdID) %>%
+  filter(households == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(households = sum(households))
+
+plot_ly(
+  hhplot,
+  x = ~ hhplot$year,
+  y = ~ hhplot$households,
+  name = "Served in Any Project",
+  type = "scatter",
+  mode = "none",
+  fill = "tozeroy",
+  line = list(color = "rgb(0, 0, 85)"),
+  hoverinfo = 'y',
+  fillcolor = "rgb(0, 0, 96)"
+) %>%
+  add_trace(ph_hhplot,
+            name = "Housed in RRH or PSH",
+            x = ~ ph_hhplot$year,
+            y = ~ ph_hhplot$households,
+            mode = "lines",
+            fill = "tozeroy",
+            line = list(color = "rgb(85, 0, 85)"),
+            fillcolor = "rgba(96, 0, 96, .8)") %>%
+  layout(
+    title = "Households with Children in Any Homeless Program",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Households Served"),
+    margin = list(pad = 22, r = 60))
+  
+```
+
+
+## Individual Children {.tabset .tabset-fade}
+Homeless children served 2016 - 2018 in 80 rural and suburban counties in Ohio
+
+### All
+```{r all, echo=FALSE}
+
 plotstaging <- full_join(infantplot, preschoolplot, by = "year") %>%
   full_join(schoolplot, by = "year")
 
-plot_ly(plotstaging,
-        x = ~year,
-        y = ~infants,
-        name = "Less than 1 year old",
-        type = "bar") %>%
-add_trace(y = ~preschoolers, name = "Ages 1 to 5") %>%
-add_trace(y = ~school_age, name = "Ages 6 to 17") %>%
-layout(title = "Homeless Children Served in the Ohio Balance of State CoC",
-       xaxis = list(title = "Year"),
-       yaxis = list(title = "Children Served"),
-       barmode = "stack")
+plot_ly(
+  plotstaging,
+  x = ~ year,
+  y = ~ infants,
+  name = "Less than 1 year old",
+  hoverinfo = 'y',
+  type = "bar"
+) %>%
+  add_trace(y = ~ preschoolers, name = "Ages 1 to 5") %>%
+  add_trace(y = ~ school_age, name = "Ages 6 to 17") %>%
+  layout(
+    title = "Homeless Children Served in Any Homeless Program",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Children Served"),
+    barmode = "stack"
+  )
+```
+
+### Literally Homeless
+
+```{r lh, echo=FALSE}
+lh_infantplot <- infants %>%
+  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  mutate(
+    school2016 = if_else(ServedDuring2016 == 1 &
+                           TurnedAgeXin2016 == 0,
+                         1,
+                         0),
+    school2017 = if_else(ServedDuring2017 == 1 &
+                           TurnedAgeXin2017 == 0,
+                         1,
+                         0),
+    school2018 = if_else(ServedDuring2018 == 1 &
+                           TurnedAgeXin2018 == 0,
+                         1,
+                         0)
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "infants",-PersonalID) %>%
+  filter(infants == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(infants = sum(infants))
+
+lh_preschoolplot <- preschool %>%
+  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  mutate(
+    school2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 >= 1 &
+        TurnedAgeXin2016 < 6,
+      1,
+      0
+    ),
+    school2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 >= 1 &
+        TurnedAgeXin2017 < 6,
+      1,
+      0
+    ),
+    school2018 = if_else(
+      ServedDuring2018 == 1 &
+        TurnedAgeXin2018 >= 1 &
+        TurnedAgeXin2018 < 6,
+      1,
+      0
+    )
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "preschoolers",-PersonalID) %>%
+  filter(preschoolers == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(preschoolers = sum(preschoolers))
+
+lh_schoolplot <- school_age %>%
+  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  mutate(
+    school2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 > 5 &
+        TurnedAgeXin2016 < 18,
+      1,
+      0
+    ),
+    school2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 > 5 &
+        TurnedAgeXin2017 < 18,
+      1,
+      0
+    ),
+    school2018 = if_else(
+      ServedDuring2018 == 1 &
+        TurnedAgeXin2018 > 5 &
+        TurnedAgeXin2018 < 18,
+      1,
+      0
+    )
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "school_age",-PersonalID) %>%
+  filter(school_age == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(school_age = sum(school_age))
+
+lh_plotstaging <-
+  full_join(lh_infantplot, lh_preschoolplot, by = "year") %>%
+  full_join(lh_schoolplot, by = "year")
+
+plot_ly(
+  lh_plotstaging,
+  x = ~ year,
+  y = ~ infants,
+  name = "Less than 1 year old",
+  hoverinfo = 'y',
+  type = "bar"
+) %>%
+  add_trace(y = ~ preschoolers, name = "Ages 1 to 5") %>%
+  add_trace(y = ~ school_age, name = "Ages 6 to 17") %>%
+  layout(
+    title = "Children in Emergency Shelters or Unsheltered Outreach",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Children Served"),
+    barmode = "stack"
+  )
 
 ```
+
+### Housed in RRH or PSH
+
+```{r ph, echo=FALSE}
+ph_infantplot <- infants %>%
+  filter(ProjectType %in% c(3, 9, 13)) %>%
+  mutate(
+    school2016 = if_else(ServedDuring2016 == 1 &
+                           TurnedAgeXin2016 == 0,
+                         1,
+                         0),
+    school2017 = if_else(ServedDuring2017 == 1 &
+                           TurnedAgeXin2017 == 0,
+                         1,
+                         0),
+    school2018 = if_else(ServedDuring2018 == 1 &
+                           TurnedAgeXin2018 == 0,
+                         1,
+                         0)
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "infants",-PersonalID) %>%
+  filter(infants == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(infants = sum(infants))
+
+ph_preschoolplot <- preschool %>%
+  filter(ProjectType %in% c(3, 9, 13)) %>%
+  mutate(
+    school2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 >= 1 &
+        TurnedAgeXin2016 < 6,
+      1,
+      0
+    ),
+    school2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 >= 1 &
+        TurnedAgeXin2017 < 6,
+      1,
+      0
+    ),
+    school2018 = if_else(
+      ServedDuring2018 == 1 &
+        TurnedAgeXin2018 >= 1 &
+        TurnedAgeXin2018 < 6,
+      1,
+      0
+    )
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "preschoolers",-PersonalID) %>%
+  filter(preschoolers == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(preschoolers = sum(preschoolers))
+
+ph_schoolplot <- school_age %>%
+  filter(ProjectType %in% c(3, 9, 13)) %>%
+  mutate(
+    school2016 = if_else(
+      ServedDuring2016 == 1 &
+        TurnedAgeXin2016 > 5 &
+        TurnedAgeXin2016 < 18,
+      1,
+      0
+    ),
+    school2017 = if_else(
+      ServedDuring2017 == 1 &
+        TurnedAgeXin2017 > 5 &
+        TurnedAgeXin2017 < 18,
+      1,
+      0
+    ),
+    school2018 = if_else(
+      ServedDuring2018 == 1 &
+        TurnedAgeXin2018 > 5 &
+        TurnedAgeXin2018 < 18,
+      1,
+      0
+    )
+  ) %>%
+  select(PersonalID, school2016, school2017, school2018) %>%
+  gather(key = "year", value = "school_age",-PersonalID) %>%
+  filter(school_age == 1) %>%
+  mutate(year = str_extract(year, "[0-9]+")) %>%
+  group_by(year) %>%
+  summarise(school_age = sum(school_age))
+
+ph_plotstaging <-
+  full_join(ph_infantplot, ph_preschoolplot, by = "year") %>%
+  full_join(ph_schoolplot, by = "year")
+
+plot_ly(
+  ph_plotstaging,
+  x = ~ year,
+  y = ~ infants,
+  name = "Less than 1 year old",
+  hoverinfo = 'y',
+  type = "bar"
+) %>%
+  add_trace(y = ~ preschoolers, name = "Ages 1 to 5") %>%
+  add_trace(y = ~ school_age, name = "Ages 6 to 17") %>%
+  layout(
+    title = "Children Housed in Rapid Rehousing or Permanent Supportive Housing",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Children Served"),
+    barmode = "stack"
+  )
+
+```
+
+
 
 
