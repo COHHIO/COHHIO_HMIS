@@ -16,6 +16,7 @@ library(readxl)
 library(plotly)
 library(janitor)
 library(here)
+library(gt)
 
 ```
 
@@ -720,6 +721,52 @@ plot_ly(
     yaxis = list(title = "Children Served"),
     barmode = "stack"
   )
+
+```
+
+## Top 35 Counties Serving Children
+
+```{r counties, echo=FALSE}
+counties <- read_xlsx(here("data/RMisc.xlsx"),
+                      sheet = 2,
+                      range = cell_cols("A:B"))
+
+regions <- read_csv(here("data/Regions.csv"), col_types = "cd") 
+
+counties2018 <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
+  left_join(., smallExit, by = "EnrollmentID") %>%
+  left_join(., smallProject, by = "ProjectID") %>%  
+  left_join(counties, by = "EnrollmentID") %>%
+  mutate(CountyServed = if_else(CountyServed == "Van Wert", "Vanwert", CountyServed)) %>%
+  left_join(regions, by = c("CountyServed" = "County")) %>%
+  mutate(age = age_years(DOB, ymd("2018-12-31")),
+         servedIn2018 = if_else(ymd(EntryDate) <= ymd("2018-12-31") &
+                                  (
+                                    is.na(ExitDate) |
+                                      ymd(ExitDate) >= ymd("2018-01-01")
+                                  ), 1, 0),
+         CountyServed = if_else(CountyServed == "Vanwert", "Van Wert", CountyServed)) %>%
+  filter(age <= 18, servedIn2018 == 1)
+
+childs <- counties2018 %>%
+  group_by(CountyServed, Region) %>%
+  summarise(individuals = n()) %>%
+  ungroup()
+
+households <- counties2018 %>%
+  select(HouseholdID, CountyServed, Region) %>%
+  unique() %>% 
+  group_by(CountyServed, Region) %>%
+  summarise(households = n()) %>%
+  ungroup()
+
+countylist <- full_join(childs, households, by = c("Region", "CountyServed")) %>%
+  mutate(Children = paste(individuals, "children in", households, "households"),
+         County = CountyServed) %>%
+  arrange(desc(individuals)) %>%
+  select(Region, County, Children) 
+
+gt(head(countylist, n = 35L))
 
 ```
 
