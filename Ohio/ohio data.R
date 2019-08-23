@@ -1,11 +1,12 @@
 library(tidyverse)
 library(readr)
+library(here)
 
 # I'm using the following dataset for the analysis here:
 #https://www.census.gov/data/tables/2017/demo/popest/counties-detail.html#ds
 
 x <-
-  read_csv("data/cc-est2017-alldata-39.csv",
+  read_csv(here("data/cc-est2016-alldata-39.csv"),
            col_types =
              "cncccnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
 
@@ -79,13 +80,16 @@ getData <- function(agebracket, year){
 }
 
 AllAges2010 <- getData(AllAges, 2010)
-AllAges2017 <- getData(AllAges, 2017)
+AllAges2016 <- getData(AllAges, 2016)
 
 ohio <- map_data("county") %>%
   filter(region == "ohio")
 
 z <- left_join(AllAges2017, ohio, 
                          by = c("CTYNAME" = "subregion")) 
+ohio2 <- get_map(ohio, maptype = "roadmap")
+
+
 
 
 
