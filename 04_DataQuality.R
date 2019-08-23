@@ -817,10 +817,10 @@ incorrectEntryExitType <- servedInDateRange %>%
 # HoHs Entering PH without SPDATs -----------------------------------------
 
 EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, SPDATRecordID, 
-         SPDATProvider, StartDate, Score) %>%
+  select(PersonalID, EnrollmentID, RelationshipToHoH, EntryDate, ExitAdjust, 
+         SPDATRecordID, SPDATProvider, StartDate, Score) %>%
   filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(StartDate) < ymd(ExitAdjust)) %>% # score is prior to Exit
+    ymd(StartDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
   group_by(EnrollmentID) %>%
   mutate(MaxScoreDate = max(ymd(StartDate))) %>%
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
@@ -834,7 +834,8 @@ EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(ProjectType %in% c(3, 9, 13),
-         ymd(EntryDate) > ymd("20190101")) %>% # only looking at 1/1/2019 forward
+         ymd(EntryDate) > ymd("20190101") & # only looking at 1/1/2019 forward
+           RelationshipToHoH == 1) %>% # HoHs only
   mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
@@ -859,11 +860,37 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
+      RelationshipToHoH == 1 &
       ymd(EntryDate) < today() - days(8) &
       is.na(ExitDate) &
       ymd(EntryDate) > ymd("20190101")
   ) %>% 
   mutate(Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
+         Type = "Warning") %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDateAdjust,
+         ExitDate,
+         ProjectType,
+         CountyServed,
+         ProviderCounty,
+         Region,
+         UserCreating)
+
+SPDATCreatedOnNonHoH <- EEsWithSPDATs %>%
+  left_join(servedInDateRange, by = c("PersonalID", 
+                                      "HouseholdID",
+                                      "EnrollmentID",
+                                      "RelationshipToHoH",
+                                      "EntryDate",
+                                      "ExitAdjust")) %>%
+  filter(RelationshipToHoH != 1) %>%
+  mutate(Issue = "SPDAT Created on a Non-Head-of-Household",
          Type = "Warning") %>%
   select(HouseholdID,
          PersonalID,
@@ -1911,7 +1938,8 @@ DataQualityHMIS <- rbind(
   missingUDEs,
   overlaps,
   referralsOnHHMembers,
-  servicesOnHHMembers
+  servicesOnHHMembers,
+  SPDATCreatedOnNonHoH
 ) %>%
   filter(!ProjectName %in% c("Diversion from Homeless System", 
                              "Unsheltered Clients - OUTREACH")) %>%
@@ -1935,6 +1963,7 @@ unshelteredDataQuality <- rbind(
   missingUDEs,
   overlaps,
   referralsOnHHMembers,
+  SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
 ) %>% filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
