@@ -724,7 +724,11 @@ plot_ly(
 
 ```
 
-## Top 35 Counties Serving Children
+## Number of Children Served in the Ohio Balance of State in 2018
+
+![](/Users\HMIS1\Documents\R\COHHIO_HMIS\data\state.png) 
+
+## Top 20 Counties Serving Children in 2018
 
 ```{r counties, echo=FALSE}
 counties <- read_xlsx(here("data/RMisc.xlsx"),
@@ -764,12 +768,43 @@ countylist <- full_join(childs, households, by = c("Region", "CountyServed")) %>
   mutate(Children = paste(individuals, "children in", households, "households"),
          County = CountyServed) %>%
   arrange(desc(individuals)) %>%
-  select(Region, County, Children) 
+  select(County, Children) 
 
-gt(head(countylist, n = 35L))
+gt(head(countylist, n = 20L))
 
 ```
 
+## Homeless Planning Regions (Served in 2018)
+
+```{r regionlist, echo=FALSE}
+
+region_childs <- counties2018 %>%
+  group_by(Region) %>%
+  summarise(individuals = n()) %>%
+  ungroup()
+
+region_households <- counties2018 %>%
+  select(HouseholdID, Region) %>%
+  unique() %>% 
+  group_by(Region) %>%
+  summarise(households = n()) %>%
+  ungroup()
+
+regionlist <-
+  full_join(region_childs,
+            region_households,
+            by = "Region") %>%
+  filter(!is.na(Region)) %>%
+  mutate(
+    Children = paste(individuals, "children in", households, "households"),
+    Region = paste("Homeless Planning Region", Region)
+  ) %>%
+  arrange(desc(individuals)) %>%
+  select(Region, Children) 
+
+gt(regionlist)
+
+```
 
 
 
