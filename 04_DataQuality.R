@@ -837,7 +837,15 @@ futureEEs <- servedInDateRange %>%
 # check ART report for exact logic. This is an approximation. Also be sure
 # to include Project 1695 = "Standard"
 incorrectEntryExitType <- servedInDateRange %>%
-  filter(EEType != "HUD" & is.na(GrantType) & ProjectID != 1695) %>%
+  filter(
+    ((
+      GrantType == "SSVF" | grepl("GPD", ProjectName)
+    ) &
+      EEType != "VA") |
+      (GrantType == "RHY" & EEType != "RHY") |
+      (GrantType == "PATH" & EEType != "PATH") |
+      (ProjectID == 1695 & EEType != "Standard")
+  ) %>%
   mutate(Issue = "Incorrect Entry Exit Type",
          Type = "Error") %>%
   select(HouseholdID,
@@ -1880,7 +1888,6 @@ diversionIncorrectDestination <- diversionEnrollments %>%
          EntryDate, MoveInDateAdjust, ExitDate, ProjectType, CountyServed, 
          ProviderCounty,Region, UserCreating)
 
-
 # Diversion Exit Date Missing or Incorrect --------------------------------
 diversionIncorrectExitDate <- filter(diversionEnrollments,
        ymd(EntryDate) != ymd(ExitDate) | is.na(ExitDate)) %>%
@@ -1901,12 +1908,25 @@ diversionIncorrectExitDate <- filter(diversionEnrollments,
 
 # Diversion Entered all HH members ----------------------------------------
 diversionEnteredHHMembers <- filter(diversionEnrollments,
-                                     str_starts(HouseholdID, "h_")) %>%
+                                    str_starts(HouseholdID, "h_")) %>%
   mutate(Issue = "Entered Household Members on a Diversion",
          Type = "Error") %>%
-  select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, EntryDate, 
-         MoveInDateAdjust,
-         ExitDate, ProjectType, CountyServed, ProviderCounty, Region, UserCreating)
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  )
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
 unshelteredEnrollments <- servedInDateRange %>%
@@ -2041,6 +2061,8 @@ DataQualityHMIS <- DataQualityHMIS %>%
 DataQualityHMIS <- DataQualityHMIS %>%
   select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate,
          MoveInDateAdjust, ExitDate)
+
+# Clean up the house ------------------------------------------------------
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
