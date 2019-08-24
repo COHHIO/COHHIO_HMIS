@@ -734,7 +734,48 @@ checkEligibility <- checkEligibility %>%
 
 # Missing PATH Data at Entry
 # Missing Destination
+missingDestination <- servedInDateRange %>%
+  filter(!is.na(ExitDate) & 
+           (is.na(Destination) | Destination %in% c(99, 30))) %>%
+  mutate(Issue = "Missing Destination",
+         Type = "Warning") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  )
 
+dkrDestination <- servedInDateRange %>%
+  filter(Destination %in% c(8,9)) %>%
+  mutate(Issue = "Don't Know/Refused Destination",
+         Type = "Warning") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  )
 # Missing SSVF Data
 # Incorrect PATH Contact Date
 # Missing PATH Contact End Date
@@ -884,7 +925,6 @@ LHwithoutSPDAT <-
 
 SPDATCreatedOnNonHoH <- EEsWithSPDATs %>%
   left_join(servedInDateRange, by = c("PersonalID", 
-                                      "HouseholdID",
                                       "EnrollmentID",
                                       "RelationshipToHoH",
                                       "EntryDate",
@@ -1925,6 +1965,8 @@ DataQualityHMIS <- rbind(
   incorrectEntryExitType,
   incorrectMoveInDate,
   LHwithoutSPDAT,
+  missingDestination,
+  dkrDestination,
   missingCountyServed,
   missingCountyPrior,
   missingDisabilities,
@@ -1956,6 +1998,8 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingCountyPrior,
+  missingDestination,
+  dkrDestination,
   missingCountyServed,
   missingDisabilities,
   missingDisabilitySubs,
