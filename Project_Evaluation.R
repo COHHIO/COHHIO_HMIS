@@ -31,9 +31,12 @@ coc_funded <- Funder %>%
               ymd(EndDate) >= mdy(paste("0101", reporting_year)))) %>%
   select(ProjectID, Funder)
 
-served_in_date_range <-  Enrollment %>%
+# uses EntryAdjust to capture only those hhs who moved into a project during the
+# reporting period.
+
+stayed_in_date_range <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(served_between(., paste(
+  filter(stayed_between(., paste(
     "0101", reporting_year
   ),
   paste(
@@ -64,6 +67,8 @@ served_in_date_range <-  Enrollment %>%
     Destination,
     ExitAdjust
   )
+
+# Entering during date range doesn't necessarily mean they moved in
 
 entered_in_date_range <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
