@@ -57,7 +57,7 @@ servedInDateRange <- Enrollment %>%
          DateToStreetESSH, TimesHomelessPastThreeYears, AgeAtEntry,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement, 
          MoveInDate, MoveInDateAdjust, EEType, CountyServed, CountyPrior, 
-         ExitDate, Destination, ExitAdjust, AgeAtEntry, DateCreated = DateCreated.x, UserCreating) %>%
+         ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, UserCreating) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
 # Missing UDEs ------------------------------------------------------------
