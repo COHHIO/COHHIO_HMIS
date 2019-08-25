@@ -57,7 +57,7 @@ servedInDateRange <- Enrollment %>%
          DateToStreetESSH, TimesHomelessPastThreeYears, AgeAtEntry,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement, 
          MoveInDate, MoveInDateAdjust, EEType, CountyServed, CountyPrior, 
-         ExitDate, Destination, ExitAdjust, AgeAtEntry, DateCreated = DateCreated.x, UserCreating) %>%
+         ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, UserCreating) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
 # Missing UDEs ------------------------------------------------------------
@@ -543,7 +543,7 @@ missingLongDuration <- servedInDateRange %>%
 # check that these aren't just bad data from WellSky
 # also check the ART report to see what logic I'm using exactly
 incorrectMoveInDate <- servedInDateRange %>%
-  filter(ProjectType %in% c(3, 9, 12),
+  filter(ProjectType %in% c(3, 9, 13),
          (ymd(MoveInDate) < ymd(EntryDate) |
            ymd(MoveInDate) > ymd(ExitDate))) %>%
   mutate(Issue = "Incorrect Move In Date",
@@ -734,7 +734,48 @@ checkEligibility <- checkEligibility %>%
 
 # Missing PATH Data at Entry
 # Missing Destination
+missingDestination <- servedInDateRange %>%
+  filter(!is.na(ExitDate) & 
+           (is.na(Destination) | Destination %in% c(99, 30))) %>%
+  mutate(Issue = "Missing Destination",
+         Type = "Warning") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  )
 
+dkrDestination <- servedInDateRange %>%
+  filter(Destination %in% c(8,9)) %>%
+  mutate(Issue = "Don't Know/Refused Destination",
+         Type = "Warning") %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  )
 # Missing SSVF Data
 # Incorrect PATH Contact Date
 # Missing PATH Contact End Date
@@ -793,10 +834,26 @@ futureEEs <- servedInDateRange %>%
   )
   
 # Incorrect Entry Exit Type -----------------------------------------------
-# check ART report for exact logic. This is an approximation. Also be sure
-# to include Project 1695 = "Standard"
+# check ART report for exact logic. 
 incorrectEntryExitType <- servedInDateRange %>%
-  filter(EEType != "HUD" & is.na(GrantType) & ProjectID != 1695) %>%
+  filter(
+    (
+      is.na(GrantType) & 
+        !grepl("GPD", ProjectName) & 
+        !grepl("HCHV", ProjectName) & 
+        ProjectID != 1695 &
+        EEType != "HUD"
+    ) |
+      ((
+        GrantType == "SSVF" | 
+          grepl("GPD", ProjectName) | 
+          grepl("HCHV", ProjectName)
+      ) &
+        EEType != "VA") |
+      (GrantType == "RHY" & EEType != "RHY") |
+      (GrantType == "PATH" & EEType != "PATH") |
+      (ProjectID == 1695 & EEType != "Standard")
+  ) %>% 
   mutate(Issue = "Incorrect Entry Exit Type",
          Type = "Error") %>%
   select(HouseholdID,
@@ -817,10 +874,10 @@ incorrectEntryExitType <- servedInDateRange %>%
 # HoHs Entering PH without SPDATs -----------------------------------------
 
 EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, SPDATRecordID, 
-         SPDATProvider, StartDate, Score) %>%
+  select(PersonalID, EnrollmentID, RelationshipToHoH, EntryDate, ExitAdjust, 
+         SPDATRecordID, SPDATProvider, StartDate, Score) %>%
   filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(StartDate) < ymd(ExitAdjust)) %>% # score is prior to Exit
+    ymd(StartDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
   group_by(EnrollmentID) %>%
   mutate(MaxScoreDate = max(ymd(StartDate))) %>%
   filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
@@ -834,7 +891,8 @@ EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(ProjectType %in% c(3, 9, 13),
-         ymd(EntryDate) > ymd("20190101")) %>% # only looking at 1/1/2019 forward
+         ymd(EntryDate) > ymd("20190101") & # only looking at 1/1/2019 forward
+           RelationshipToHoH == 1) %>% # HoHs only
   mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(HouseholdID,
@@ -859,11 +917,36 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
+      RelationshipToHoH == 1 &
       ymd(EntryDate) < today() - days(8) &
       is.na(ExitDate) &
       ymd(EntryDate) > ymd("20190101")
   ) %>% 
   mutate(Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
+         Type = "Warning") %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectName,
+         Issue,
+         Type,
+         EntryDate,
+         MoveInDateAdjust,
+         ExitDate,
+         ProjectType,
+         CountyServed,
+         ProviderCounty,
+         Region,
+         UserCreating)
+
+SPDATCreatedOnNonHoH <- EEsWithSPDATs %>%
+  left_join(servedInDateRange, by = c("PersonalID", 
+                                      "EnrollmentID",
+                                      "RelationshipToHoH",
+                                      "EntryDate",
+                                      "ExitAdjust")) %>%
+  filter(RelationshipToHoH != 1) %>%
+  mutate(Issue = "SPDAT Created on a Non-Head-of-Household",
          Type = "Warning") %>%
   select(HouseholdID,
          PersonalID,
@@ -1813,7 +1896,6 @@ diversionIncorrectDestination <- diversionEnrollments %>%
          EntryDate, MoveInDateAdjust, ExitDate, ProjectType, CountyServed, 
          ProviderCounty,Region, UserCreating)
 
-
 # Diversion Exit Date Missing or Incorrect --------------------------------
 diversionIncorrectExitDate <- filter(diversionEnrollments,
        ymd(EntryDate) != ymd(ExitDate) | is.na(ExitDate)) %>%
@@ -1834,12 +1916,25 @@ diversionIncorrectExitDate <- filter(diversionEnrollments,
 
 # Diversion Entered all HH members ----------------------------------------
 diversionEnteredHHMembers <- filter(diversionEnrollments,
-                                     str_starts(HouseholdID, "h_")) %>%
+                                    str_starts(HouseholdID, "h_")) %>%
   mutate(Issue = "Entered Household Members on a Diversion",
          Type = "Error") %>%
-  select(HouseholdID, PersonalID, EnrollmentID, ProjectName, Issue, Type, EntryDate, 
-         MoveInDateAdjust,
-         ExitDate, ProjectType, CountyServed, ProviderCounty, Region, UserCreating)
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    Issue,
+    Type,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  )
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
 unshelteredEnrollments <- servedInDateRange %>%
@@ -1898,6 +1993,8 @@ DataQualityHMIS <- rbind(
   incorrectEntryExitType,
   incorrectMoveInDate,
   LHwithoutSPDAT,
+  missingDestination,
+  dkrDestination,
   missingCountyServed,
   missingCountyPrior,
   missingDisabilities,
@@ -1911,7 +2008,8 @@ DataQualityHMIS <- rbind(
   missingUDEs,
   overlaps,
   referralsOnHHMembers,
-  servicesOnHHMembers
+  servicesOnHHMembers,
+  SPDATCreatedOnNonHoH
 ) %>%
   filter(!ProjectName %in% c("Diversion from Homeless System", 
                              "Unsheltered Clients - OUTREACH")) %>%
@@ -1928,6 +2026,8 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingCountyPrior,
+  missingDestination,
+  dkrDestination,
   missingCountyServed,
   missingDisabilities,
   missingDisabilitySubs,
@@ -1935,6 +2035,7 @@ unshelteredDataQuality <- rbind(
   missingUDEs,
   overlaps,
   referralsOnHHMembers,
+  SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
 ) %>% filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
@@ -1968,6 +2069,8 @@ DataQualityHMIS <- DataQualityHMIS %>%
 DataQualityHMIS <- DataQualityHMIS %>%
   select(HouseholdID, PersonalID, ProjectName, Issue, Type, EntryDate,
          MoveInDateAdjust, ExitDate)
+
+# Clean up the house ------------------------------------------------------
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, Enrollment,
    EnrollmentCoC, Exit, Export, Funder, Geography, HealthAndDV, IncomeBenefits,
