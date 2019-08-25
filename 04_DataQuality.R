@@ -834,8 +834,7 @@ futureEEs <- servedInDateRange %>%
   )
   
 # Incorrect Entry Exit Type -----------------------------------------------
-# check ART report for exact logic. This is an approximation. Also be sure
-# to include Project 1695 = "Standard"
+# check ART report for exact logic. 
 incorrectEntryExitType <- servedInDateRange %>%
   filter(
     (
