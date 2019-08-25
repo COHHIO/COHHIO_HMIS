@@ -838,14 +838,23 @@ futureEEs <- servedInDateRange %>%
 # to include Project 1695 = "Standard"
 incorrectEntryExitType <- servedInDateRange %>%
   filter(
-    ((
-      GrantType == "SSVF" | grepl("GPD", ProjectName)
-    ) &
-      EEType != "VA") |
+    (
+      is.na(GrantType) & 
+        !grepl("GPD", ProjectName) & 
+        !grepl("HCHV", ProjectName) & 
+        ProjectID != 1695 &
+        EEType != "HUD"
+    ) |
+      ((
+        GrantType == "SSVF" | 
+          grepl("GPD", ProjectName) | 
+          grepl("HCHV", ProjectName)
+      ) &
+        EEType != "VA") |
       (GrantType == "RHY" & EEType != "RHY") |
       (GrantType == "PATH" & EEType != "PATH") |
       (ProjectID == 1695 & EEType != "Standard")
-  ) %>%
+  ) %>% 
   mutate(Issue = "Incorrect Entry Exit Type",
          Type = "Error") %>%
   select(HouseholdID,
