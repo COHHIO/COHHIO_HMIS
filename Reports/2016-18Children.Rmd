@@ -121,7 +121,7 @@ infants <-
   ) &
     TurnedAgeXin2016 >= -2 & TurnedAgeXin2016 <= 0
   &
-    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+    ProjectType %in% c(1, 2, 3, 8, 9, 13)
   ) %>%
   select(
     PersonalID,
@@ -190,7 +190,7 @@ preschool <-
   ) &
     TurnedAgeXin2016 >= -1 & TurnedAgeXin2016 <= 5
   &
-    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+    ProjectType %in% c(1, 2, 3, 8, 9, 13)
   ) %>%
   select(
     PersonalID,
@@ -267,7 +267,7 @@ school_age <-
   ) &
     TurnedAgeXin2016 >= 4 & TurnedAgeXin2016 <= 17
   &
-    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+    ProjectType %in% c(1, 2, 3, 8, 9, 13)
   ) %>%
   select(
     PersonalID,
@@ -314,7 +314,7 @@ schoolplot <- school_age %>%
 
 ```
 
-## Households with Children
+## Households in Emergency Shelter or Transitional Housing with Children
 
 ```{r hhsplot, echo=FALSE}
 hhs <-
@@ -346,7 +346,7 @@ hhs <-
     TurnedAgeXin2016 >= -2 & 
     TurnedAgeXin2016 <= 18
   &
-    ProjectType %in% c(1, 2, 3, 4, 8, 9, 13)
+    ProjectType %in% c(1, 2, 3, 8, 9, 13)
   ) %>%
   select(
     PersonalID,
@@ -471,7 +471,7 @@ plot_ly(
 ```
 
 
-## Individual Children {.tabset .tabset-fade}
+## Individual Children in ES or TH {.tabset .tabset-fade}
 Homeless children served 2016 - 2018 in 80 rural and suburban counties in Ohio
 
 ### All
@@ -498,11 +498,11 @@ plot_ly(
   )
 ```
 
-### Literally Homeless
+### Literally Homeless (Not Including Unsheltered)
 
 ```{r lh, echo=FALSE}
 lh_infantplot <- infants %>%
-  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  filter(ProjectType %in% c(1, 2, 8)) %>%
   mutate(
     school2016 = if_else(ServedDuring2016 == 1 &
                            TurnedAgeXin2016 == 0,
@@ -525,7 +525,7 @@ lh_infantplot <- infants %>%
   summarise(infants = sum(infants))
 
 lh_preschoolplot <- preschool %>%
-  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  filter(ProjectType %in% c(1, 2, 8)) %>%
   mutate(
     school2016 = if_else(
       ServedDuring2016 == 1 &
@@ -557,7 +557,7 @@ lh_preschoolplot <- preschool %>%
   summarise(preschoolers = sum(preschoolers))
 
 lh_schoolplot <- school_age %>%
-  filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  filter(ProjectType %in% c(1, 2, 8)) %>%
   mutate(
     school2016 = if_else(
       ServedDuring2016 == 1 &
@@ -603,7 +603,7 @@ plot_ly(
   add_trace(y = ~ preschoolers, name = "Ages 1 to 5") %>%
   add_trace(y = ~ school_age, name = "Ages 6 to 17") %>%
   layout(
-    title = "Children in Emergency Shelters or Unsheltered Outreach",
+    title = "Children in Emergency Shelters",
     xaxis = list(title = "Year"),
     yaxis = list(title = "Children Served"),
     barmode = "stack"
@@ -724,9 +724,9 @@ plot_ly(
 
 ```
 
-## Number of Children Served in the Ohio Balance of State in 2018
+<!-- ## Number of Children Served in the Ohio Balance of State in 2018 -->
 
-![](/Users\HMIS1\Documents\R\COHHIO_HMIS\data\state.png) 
+<!-- ![](/Users\HMIS1\Documents\R\COHHIO_HMIS\data\state.png)  -->
 
 ## Top 20 Counties Serving Children in 2018
 
@@ -743,6 +743,7 @@ counties2018 <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   left_join(counties, by = "EnrollmentID") %>%
   mutate(CountyServed = if_else(CountyServed == "Van Wert", "Vanwert", CountyServed)) %>%
   left_join(regions, by = c("CountyServed" = "County")) %>%
+  filter(ProjectType %in% c(1, 2, 3, 8, 9, 13)) %>%
   mutate(age = age_years(DOB, ymd("2018-12-31")),
          servedIn2018 = if_else(ymd(EntryDate) <= ymd("2018-12-31") &
                                   (
