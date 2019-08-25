@@ -41,7 +41,8 @@ stayed_in_date_range <-  Enrollment %>%
   ),
   paste(
     "1231", reporting_year
-  ))) %>%
+  )),
+  RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(
     PersonalID,
@@ -72,12 +73,10 @@ stayed_in_date_range <-  Enrollment %>%
 
 entered_in_date_range <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(entered_between(., paste(
-    "0101", reporting_year
-  ),
-  paste(
-    "1231", reporting_year
-  ))) %>%
+  filter(entered_between(., 
+                         paste("0101", reporting_year),
+                         paste("1231", reporting_year)),
+         RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(
     PersonalID,
@@ -106,6 +105,31 @@ entered_in_date_range <-  Enrollment %>%
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
+
+exits_to_ph <- stayed_in_date_range %>%
+  mutate(
+    DestinationGroup = case_when(
+      Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
+      Destination %in% c(3, 10, 11, 19:23, 28, 31) ~ "Permanent",
+      Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
+      Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+      is.na(Destination) ~ "Still in Program"
+    ),
+    MeetsObjective =
+      case_when(ProjectType %in% c(3, 9) &
+                  DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
+                ProjectType %in% c(3, 9) &
+                  !DestinationGroup %in% c("Permanent", "Still in Program") ~ 0,
+                ProjectType %in% c(2, 8, 13) &
+                  DestinationGroup == "Permanent" ~ 1,
+                ProjectType %in% c(2, 8, 13) &
+                  DestinationGroup != "Permanent" ~ 0)
+    
+  ) %>%
+  filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
+           ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
+  select(PersonalID, ProjectType, EntryDate, MoveInDate, ExitDate, Destination,
+         DestinationGroup, MeetsObjective)
 
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
