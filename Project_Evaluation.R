@@ -22,6 +22,82 @@ load("images/COHHIOHMIS.RData")
 
 # Staging -----------------------------------------------------------------
 # filter to only CoC-funded projects
+reporting_year <- 2019
+
+coc_funded <- Funder %>%
+  filter(Funder %in% c(1:7, 43) &
+           ymd(StartDate) <= mdy(paste("1231", reporting_year)) &
+           (is.na(EndDate) |
+              ymd(EndDate) >= mdy(paste("0101", reporting_year)))) %>%
+  select(ProjectID, Funder)
+
+served_in_date_range <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(served_between(., paste(
+    "0101", reporting_year
+  ),
+  paste(
+    "1231", reporting_year
+  ))) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(
+    PersonalID,
+    ProjectType,
+    VeteranStatus,
+    EnrollmentID,
+    ProjectID,
+    EntryDate,
+    HouseholdID,
+    RelationshipToHoH,
+    LivingSituation,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH,
+    DateToStreetESSH,
+    TimesHomelessPastThreeYears,
+    AgeAtEntry,
+    MonthsHomelessPastThreeYears,
+    DisablingCondition,
+    MoveInDate,
+    MoveInDateAdjust,
+    ExitDate,
+    Destination,
+    ExitAdjust
+  )
+
+entered_in_date_range <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(entered_between(., paste(
+    "0101", reporting_year
+  ),
+  paste(
+    "1231", reporting_year
+  ))) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(
+    PersonalID,
+    ProjectType,
+    VeteranStatus,
+    EnrollmentID,
+    ProjectID,
+    EntryDate,
+    HouseholdID,
+    RelationshipToHoH,
+    LivingSituation,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH,
+    DateToStreetESSH,
+    TimesHomelessPastThreeYears,
+    AgeAtEntry,
+    MonthsHomelessPastThreeYears,
+    DisablingCondition,
+    MoveInDate,
+    MoveInDateAdjust,
+    ExitDate,
+    Destination,
+    ExitAdjust
+  )
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
