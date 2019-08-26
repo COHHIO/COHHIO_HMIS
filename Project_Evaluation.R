@@ -243,13 +243,45 @@ health_ins_at_exit <- co_client_movein_leavers %>%
            Destination,
            ExitAdjust) %>%
   summarise(MostRecentHI = InsuranceFromAnySource[max(DataCollectionStage)]) %>%
-  mutate(MeetsObjective = case_when(
-    MostRecentHI == 1 ~ 1,
-    MostRecentHI != 1 | is.na(MostRecentHI) ~ 0
-  ))
+  mutate(MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
+                                    MostRecentHI != 1 | is.na(MostRecentHI) ~ 0))
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
+
+# tried to use spread() for this but no dice. :(
+income_staging <- IncomeBenefits %>%
+  select(EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
+  mutate(
+    IncomeAtEntry = if_else(DataCollectionStage == 1, TotalMonthlyIncome, NULL),
+    IncomeAtExit = if_else(DataCollectionStage == 3, TotalMonthlyIncome, NULL),
+    IncomeAtUpdate = if_else(DataCollectionStage == 2, TotalMonthlyIncome, NULL),
+    IncomeAtAnnual = if_else(DataCollectionStage == 5, TotalMonthlyIncome, NULL)
+  ) %>%
+  select(-TotalMonthlyIncome, -DataCollectionStage) %>%
+  group_by(EnrollmentID) %>%
+  summarise(IncomeAtEntry = max(IncomeAtEntry, na.rm = TRUE), 
+            IncomeAtExit = max(IncomeAtExit, na.rm = TRUE),
+            IncomeAtUpdate = max(IncomeAtUpdate, na.rm = TRUE),
+            IncomeAtAnnual = max(IncomeAtAnnual, na.rm = TRUE))
+
+  
+increase_income <- co_adults_movein_all %>%
+  left_join(income_staging, by = "EnrollmentID") %>%
+  select(vars_we_want, 
+         IncomeAtEntry, 
+         IncomeAtExit, 
+         IncomeAtUpdate, 
+         IncomeAtAnnual) %>%
+  mutate(
+    MeetsObjective = if_else(
+      IncomeAtEntry < IncomeAtExit |
+        IncomeAtEntry < IncomeAtUpdate |
+        IncomeAtEntry < IncomeAtAnnual, 
+      1,
+      0
+    )
+  )
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
