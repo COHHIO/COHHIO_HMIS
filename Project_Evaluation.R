@@ -31,82 +31,116 @@ coc_funded <- Funder %>%
               ymd(EndDate) >= mdy(paste("0101", reporting_year)))) %>%
   select(ProjectID, Funder)
 
-# uses EntryAdjust to capture only those hhs who moved into a project during the
-# reporting period.
+vars_we_want <- c(
+  "PersonalID",
+  "ProjectType",
+  "VeteranStatus",
+  "EnrollmentID",
+  "ProjectID",
+  "EntryDate",
+  "HouseholdID",
+  "RelationshipToHoH",
+  "LivingSituation",
+  "LengthOfStay",
+  "LOSUnderThreshold",
+  "PreviousStreetESSH",
+  "DateToStreetESSH",
+  "TimesHomelessPastThreeYears",
+  "AgeAtEntry",
+  "MonthsHomelessPastThreeYears",
+  "DisablingCondition",
+  "MoveInDate",
+  "MoveInDateAdjust",
+  "ExitDate",
+  "Destination",
+  "ExitAdjust"
+)
 
-stayed_in_date_range <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(stayed_between(., paste(
-    "0101", reporting_year
-  ),
-  paste(
-    "1231", reporting_year
-  )),
-  RelationshipToHoH == 1) %>%
-  left_join(Client, by = "PersonalID") %>%
-  select(
-    PersonalID,
-    ProjectType,
-    VeteranStatus,
-    EnrollmentID,
-    ProjectID,
-    EntryDate,
-    HouseholdID,
-    RelationshipToHoH,
-    LivingSituation,
-    LengthOfStay,
-    LOSUnderThreshold,
-    PreviousStreetESSH,
-    DateToStreetESSH,
-    TimesHomelessPastThreeYears,
-    AgeAtEntry,
-    MonthsHomelessPastThreeYears,
-    DisablingCondition,
-    MoveInDate,
-    MoveInDateAdjust,
-    ExitDate,
-    Destination,
-    ExitAdjust
-  )
+# several measures will use this
 
-# Entering during date range doesn't necessarily mean they moved in
-
-entered_in_date_range <-  Enrollment %>%
+adults_all_entered <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(entered_between(., 
                          paste("0101", reporting_year),
-                         paste("1231", reporting_year)),
+                         paste("1231", reporting_year)) &
+         AgeAtEntry > 17) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(vars_we_want)
+
+# for ncb logic
+
+adults_movein_leavers <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(exited_between(., 
+                         paste("0101", reporting_year),
+                         paste("1231", reporting_year)) &
+           stayed_between(.,
+                          paste("0101", reporting_year),
+                          paste("1231", reporting_year)) &
+         AgeAtEntry > 17) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(vars_we_want)	
+
+# increase income
+
+adults_movein_all <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(stayed_between(., 
+                         paste("0101", reporting_year),
+                         paste("1231", reporting_year)) &
+         AgeAtEntry > 17) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(vars_we_want)	
+
+# health insurance
+
+client_movein_leavers <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(exited_between(., 
+                         paste("0101", reporting_year),
+                         paste("1231", reporting_year)) &
+           stayed_between(., 
+                          paste("0101", reporting_year),
+                          paste("1231", reporting_year))) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(vars_we_want)	
+
+# exits to PH
+
+hohs_all <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(served_between(., 
+                         paste("0101", reporting_year),
+                         paste("1231", reporting_year)) &
          RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(
-    PersonalID,
-    ProjectType,
-    VeteranStatus,
-    EnrollmentID,
-    ProjectID,
-    EntryDate,
-    HouseholdID,
-    RelationshipToHoH,
-    LivingSituation,
-    LengthOfStay,
-    LOSUnderThreshold,
-    PreviousStreetESSH,
-    DateToStreetESSH,
-    TimesHomelessPastThreeYears,
-    AgeAtEntry,
-    MonthsHomelessPastThreeYears,
-    DisablingCondition,
-    MoveInDate,
-    MoveInDateAdjust,
-    ExitDate,
-    Destination,
-    ExitAdjust
-  )
+  select(vars_we_want)	
+
+# own housing and LoS
+
+hohs_movein_leavers <-  Enrollment %>%
+  right_join(coc_funded, by = "ProjectID")  %>%
+  filter(
+    stayed_between(
+      .,
+      paste("0101", reporting_year),
+      paste("1231", reporting_year)
+    ) &
+      exited_between(
+        .,
+        paste("0101", reporting_year),
+        paste("1231", reporting_year)
+      ) &
+      RelationshipToHoH == 1
+  ) %>% 
+  left_join(Client, by = "PersonalID") %>%
+  select(vars_we_want)	
+
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
-exits_to_ph <- stayed_in_date_range %>%
+exits_to_ph <- hohs_all %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
