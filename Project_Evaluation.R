@@ -58,7 +58,7 @@ vars_we_want <- c(
 
 # several measures will use this
 
-adults_all_entered <-  Enrollment %>%
+co_adults_all_entered <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(entered_between(., 
                          paste("0101", reporting_year),
@@ -69,7 +69,7 @@ adults_all_entered <-  Enrollment %>%
 
 # for ncb logic
 
-adults_movein_leavers <-  Enrollment %>%
+co_adults_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(exited_between(., 
                          paste("0101", reporting_year),
@@ -83,7 +83,7 @@ adults_movein_leavers <-  Enrollment %>%
 
 # increase income
 
-adults_movein_all <-  Enrollment %>%
+co_adults_movein_all <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(stayed_between(., 
                          paste("0101", reporting_year),
@@ -94,7 +94,7 @@ adults_movein_all <-  Enrollment %>%
 
 # health insurance
 
-client_movein_leavers <-  Enrollment %>%
+co_client_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(exited_between(., 
                          paste("0101", reporting_year),
@@ -107,7 +107,7 @@ client_movein_leavers <-  Enrollment %>%
 
 # exits to PH
 
-hohs_all <-  Enrollment %>%
+co_hohs_all <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(served_between(., 
                          paste("0101", reporting_year),
@@ -118,7 +118,7 @@ hohs_all <-  Enrollment %>%
 
 # own housing and LoS
 
-hohs_movein_leavers <-  Enrollment %>%
+co_hohs_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(
     stayed_between(
@@ -140,11 +140,11 @@ hohs_movein_leavers <-  Enrollment %>%
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
-exits_to_ph <- hohs_all %>%
+exits_to_ph <- co_hohs_all %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10, 11, 19:23, 28, 31) ~ "Permanent",
+      Destination %in% c(3, 10:11, 19:23, 28, 31) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
@@ -168,14 +168,85 @@ exits_to_ph <- hohs_all %>%
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
 
+own_housing <- co_hohs_movein_leavers %>%
+  mutate(MeetsObjective = case_when(
+    Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
+    !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
+  ))
+
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
 
 # Housing Stability: 6-24 mo Recurrence -----------------------------------
 # PSH, TH, SH, RRH
 
-# Accessing Mainstream Resources: NCBs or Health Insurance ----------------
+# Accessing Mainstream Resources: NCBs ------------------------------------
 # PSH, TH, SH, RRH
+
+non_cash_at_exit <- co_adults_movein_leavers %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(vars_we_want, BenefitsFromAnySource, DataCollectionStage) %>%
+  group_by(PersonalID,
+           ProjectType,
+           VeteranStatus,
+           EnrollmentID,
+           ProjectID,
+           EntryDate,
+           HouseholdID,
+           RelationshipToHoH,
+           LivingSituation,
+           LengthOfStay,
+           LOSUnderThreshold,
+           PreviousStreetESSH,
+           DateToStreetESSH,
+           TimesHomelessPastThreeYears,
+           AgeAtEntry,
+           MonthsHomelessPastThreeYears,
+           DisablingCondition,
+           MoveInDate,
+           MoveInDateAdjust,
+           ExitDate,
+           Destination,
+           ExitAdjust) %>%
+  summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
+  mutate(MeetsObjective = case_when(
+    MostRecentNCB == 1 ~ 1,
+    MostRecentNCB != 1 | is.na(MostRecentNCB) ~ 0
+  ))
+
+# Accessing Mainstream Resources: Health Insurance ------------------------
+# PSH, TH, SH, RRH
+
+health_ins_at_exit <- co_client_movein_leavers %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(vars_we_want, InsuranceFromAnySource, DataCollectionStage) %>%
+  group_by(PersonalID,
+           ProjectType,
+           VeteranStatus,
+           EnrollmentID,
+           ProjectID,
+           EntryDate,
+           HouseholdID,
+           RelationshipToHoH,
+           LivingSituation,
+           LengthOfStay,
+           LOSUnderThreshold,
+           PreviousStreetESSH,
+           DateToStreetESSH,
+           TimesHomelessPastThreeYears,
+           AgeAtEntry,
+           MonthsHomelessPastThreeYears,
+           DisablingCondition,
+           MoveInDate,
+           MoveInDateAdjust,
+           ExitDate,
+           Destination,
+           ExitAdjust) %>%
+  summarise(MostRecentHI = InsuranceFromAnySource[max(DataCollectionStage)]) %>%
+  mutate(MeetsObjective = case_when(
+    MostRecentHI == 1 ~ 1,
+    MostRecentHI != 1 | is.na(MostRecentHI) ~ 0
+  ))
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
