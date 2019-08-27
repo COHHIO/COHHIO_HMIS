@@ -17,7 +17,25 @@ library(lubridate)
 
 load("images/COHHIOHMIS.Rdata")
 
-rm(Affiliation, EmploymentEducation, EnrollmentCoC, Export, ProjectCoC, Services)
+rm(Affiliation,
+   EmploymentEducation,
+   EnrollmentCoC,
+   Export,
+   Exit,
+   ProjectCoC,
+   Services,
+   Disabilities,
+   Funder,
+   Geography,
+   HealthAndDV,
+   IncomeBenefits,
+   Inventory,
+   Offers,
+   Organization,
+   Regions,
+   Scores,
+   Users,
+   VeteranCE)
 
 # run on a geography, not project(s)
 smallEnrollment <- Enrollment %>%
@@ -103,5 +121,6 @@ agedIntoChronicity <- allChronicAtEntry %>%
   ) %>%
   filter(ConsecutiveChronic == TRUE)
 
+rm(smallEnrollment, smallProject, Client, Enrollment)
 
 
