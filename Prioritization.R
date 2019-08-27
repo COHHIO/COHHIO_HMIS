@@ -103,6 +103,5 @@ agedIntoChronicity <- allChronicAtEntry %>%
   ) %>%
   filter(ConsecutiveChronic == TRUE)
 
-load("images/QPR_SPDATs.RData")
 
 
