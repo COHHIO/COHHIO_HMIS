@@ -148,7 +148,7 @@ smallMainstreamBenefits <- IncomeBenefits %>%
   select(InsuranceFromAnySource, BenefitsFromAnySource,
          DataCollectionStage, EnrollmentID, InformationDate) %>%
   group_by(EnrollmentID) %>%
-  slice(which.max(InformationDate)) %>%
+  slice(which.max(InformationDate)) %>% # most recent answer per Enrollment
   ungroup()
 
 
@@ -160,7 +160,17 @@ QPR_MainstreamBenefits <- smallProject %>%
   select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
          EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
          InsuranceFromAnySource, BenefitsFromAnySource, DataCollectionStage, 
-         InformationDate) %>%
+         InformationDate, Region, County, ProjectType) %>%
+  mutate(ProjectType = case_when(
+    ProjectType == 1 ~ "Emergency Shelters", 
+    ProjectType == 2 ~ "Transitional Housing", 
+    ProjectType == 3 ~ "Permanent Supportive Housing", 
+    ProjectType == 4 ~ "Street Outreach", 
+    ProjectType == 8 ~ "Safe Haven",
+    ProjectType == 9 ~ "Permanent Supportive Housing", 
+    ProjectType == 12 ~ "Prevention",  
+    ProjectType == 13 ~ "Rapid Rehousing"
+  )) %>%
   arrange(ProjectName, HouseholdID)
 
 incomeMostRecent <- IncomeBenefits %>%
@@ -191,8 +201,20 @@ QPR_Income <- smallProject %>%
   left_join(smallIncomeDiff, by = "EnrollmentID") %>%
   select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
          EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
-         EntryIncome, RecentIncome) %>%
-  mutate(Difference = RecentIncome - EntryIncome) %>%
+         EntryIncome, RecentIncome, Region, County, ProjectType) %>%
+  mutate(
+    Difference = RecentIncome - EntryIncome,
+    ProjectType = case_when(
+      ProjectType == 1 ~ "Emergency Shelters",
+      ProjectType == 2 ~ "Transitional Housing",
+      ProjectType == 3 ~ "Permanent Supportive Housing",
+      ProjectType == 4 ~ "Street Outreach",
+      ProjectType == 8 ~ "Safe Haven",
+      ProjectType == 9 ~ "Permanent Supportive Housing",
+      ProjectType == 12 ~ "Prevention",
+      ProjectType == 13 ~ "Rapid Rehousing"
+    )
+  ) %>% 
   arrange(ProjectName, HouseholdID)
 
 rm(Client, 
