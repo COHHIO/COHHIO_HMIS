@@ -129,7 +129,7 @@ Incorrect PATH Contact Date: This is not coded in Rm yet! (ART is correct)
 
 Missing Destination: Also not coded in Rm yet! (ART is correct)
 
-Missing Rel to HoH: This is just because there is a gap in reporting dates. That tells me all the Clients in ART for Missing HoH are also in Rm. (Both are correct!)
+Missing Rel to HoH: This is just because there is a gap in reporting dates. Need to retest.
 
 Missing NCBs at Entry: This client has a "No" at Entry, not sure why the ART report is flagging this one? (Rm is correct) At least in Rm, the logic is only looking at the yes/no.
 

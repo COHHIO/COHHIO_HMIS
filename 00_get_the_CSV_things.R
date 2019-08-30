@@ -207,6 +207,9 @@ rm(smallProject)
 
 # Services ----------------------------------------------------------------
 
+# this comes from two ReportWriter reports: An Export: Services and 
+# An Export: Services & Funds. Saving them as services1.csv and services2.csv.
+
 services1 <- read_csv("data/services1.csv",
                       col_types = "nnnn??cccc")
 

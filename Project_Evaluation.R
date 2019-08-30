@@ -22,7 +22,7 @@ load("images/COHHIOHMIS.RData")
 
 # Staging -----------------------------------------------------------------
 # filter to only CoC-funded projects
-reporting_year <- 2019
+reporting_year <- 2018
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
@@ -209,10 +209,10 @@ non_cash_at_exit <- co_adults_movein_leavers %>%
            Destination,
            ExitAdjust) %>%
   summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
-  mutate(MeetsObjective = case_when(
-    MostRecentNCB == 1 ~ 1,
-    MostRecentNCB != 1 | is.na(MostRecentNCB) ~ 0
-  ))
+  mutate(MeetsObjective =
+           case_when(MostRecentNCB == 1 ~ 1,
+                     MostRecentNCB != 1 |
+                       is.na(MostRecentNCB) ~ 0))
 
 # Accessing Mainstream Resources: Health Insurance ------------------------
 # PSH, TH, SH, RRH
