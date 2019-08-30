@@ -218,9 +218,46 @@ services2 <- read_csv("data/services2.csv",
                       col_types = "ncd")
 
 Services <- services1 %>%
-  left_join(services2, by = "ServiceID")
+  left_join(services2, by = "ServiceID") %>%
+  rename("ServiceHHID" = HouseholdID)
 
 rm(services1, services2)
+
+stagingServices <- Services[c("PersonalID",
+                              "ServiceID",
+                              "ServiceStartDate",
+                              "ServiceEndDate",
+                              "ServiceHHID")] %>%
+  left_join(Enrollment[c("EnrollmentID",
+                         "PersonalID",
+                         "EntryDate",
+                         "ExitAdjust")],
+            by = "PersonalID") %>%
+  mutate(
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
+    ServiceRange = interval(ymd(ServiceStartDate), ymd(ServiceEndAdjust)),
+    EERange = interval(ymd(EntryDate), ymd(ExitAdjust)),
+    Valid = if_else(int_overlaps(ServiceRange, EERange), TRUE, FALSE)
+  ) %>%
+  filter(Valid == TRUE) %>%
+  select(PersonalID,
+         ServiceID,
+         EnrollmentID,
+         ServiceHHID)
+
+# the code above pulls in the HHID associated with the SERVICE, not the EE. In
+# general, the ServiceHHID does not help anything except finding obscure data
+# quality problems, like that the Service was built using a different HH than
+# the associated EE. It's not a big deal anymore, since we're not even
+# entering Services/Referrals onto non-HoHs anyway. Currently I cannot think of
+# a reason to use the Service's HH ID ever but I'll keep it in just in case.
+
+Services <- stagingServices %>%
+  full_join(Services, by = c("ServiceID", "PersonalID", "ServiceHHID"))
+
+# the code above pulls in Services that cannot be associated to an EE, so some 
+# EnrollmentIDs will be NULL. These should be filtered out when reporting on
+# Services, but they're needed for Data Quality checking so I'm leaving them in.
 
 # Age Function ------------------------------------------------------------
 
