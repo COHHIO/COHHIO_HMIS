@@ -1783,53 +1783,48 @@ checkDisabilityForAccuracy <- servedInDateRange %>%
          Type = "Warning")
 
 # Non HoHs w Svcs or Referrals --------------------------------------------
-# I have a feeling not all Referrals are coming in.
-Referrals <- Services %>%
-  filter(RecordType == 161)
-# I have a feeling not all the Services are coming in.
-Services <- Services %>%
-  filter(RecordType %in% c(141, 143, 151, 144, 152))
-
-servicesOnHHMembers <- servedInDateRange %>%
-  select(HouseholdID,
-         PersonalID,
-         EnrollmentID,
-         ProjectName,
-         EntryDate,
-         MoveInDateAdjust,
-         ExitDate,
-         ProjectType,
-         CountyServed,
-         ProviderCounty,
-         Region,
-         RelationshipToHoH,
-         UserCreating) %>%
-  filter(RelationshipToHoH != 1) %>%
-  semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
-  mutate(Issue = "Service Transaction on a non Head of Household",
-         Type = "Warning") %>% 
-  select(-RelationshipToHoH)
-
-# why isn't this catching any records, i don't know.
-referralsOnHHMembers <- servedInDateRange %>%
-  select(HouseholdID,
-         PersonalID,
-         EnrollmentID,
-         ProjectName,
-         EntryDate,
-         MoveInDateAdjust,
-         ExitDate,
-         ProjectType,
-         CountyServed,
-         ProviderCounty,
-         Region,
-         RelationshipToHoH,
-         UserCreating) %>%
-  filter(RelationshipToHoH != 1) %>%
-  semi_join(Referrals, by = c("PersonalID", "EnrollmentID")) %>%
-  mutate(Issue = "Referral on a non Head of Household",
-         Type = "Warning") %>%
-  select(-RelationshipToHoH)
+# 
+# 
+# servicesOnHHMembers <- servedInDateRange %>%
+#   select(HouseholdID,
+#          PersonalID,
+#          EnrollmentID,
+#          ProjectName,
+#          EntryDate,
+#          MoveInDateAdjust,
+#          ExitDate,
+#          ProjectType,
+#          CountyServed,
+#          ProviderCounty,
+#          Region,
+#          RelationshipToHoH,
+#          UserCreating) %>%
+#   filter(RelationshipToHoH != 1) %>%
+#   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
+#   mutate(Issue = "Service Transaction on a non Head of Household",
+#          Type = "Warning") %>% 
+#   select(-RelationshipToHoH)
+# 
+# # why isn't this catching any records, i don't know.
+# referralsOnHHMembers <- servedInDateRange %>%
+#   select(HouseholdID,
+#          PersonalID,
+#          EnrollmentID,
+#          ProjectName,
+#          EntryDate,
+#          MoveInDateAdjust,
+#          ExitDate,
+#          ProjectType,
+#          CountyServed,
+#          ProviderCounty,
+#          Region,
+#          RelationshipToHoH,
+#          UserCreating) %>%
+#   filter(RelationshipToHoH != 1) %>%
+#   semi_join(Referrals, by = c("PersonalID", "EnrollmentID")) %>%
+#   mutate(Issue = "Referral on a non Head of Household",
+#          Type = "Warning") %>%
+#   select(-RelationshipToHoH)
 
 
 # Unpaired Needs ----------------------------------------------------------
@@ -2007,8 +2002,8 @@ DataQualityHMIS <- rbind(
   missingNCBsAtEntry,
   missingUDEs,
   overlaps,
-  referralsOnHHMembers,
-  servicesOnHHMembers,
+  # referralsOnHHMembers,
+  # servicesOnHHMembers,
   SPDATCreatedOnNonHoH
 ) %>%
   filter(!ProjectName %in% c("Diversion from Homeless System", 
@@ -2034,7 +2029,7 @@ unshelteredDataQuality <- rbind(
   missingLivingSituation,
   missingUDEs,
   overlaps,
-  referralsOnHHMembers,
+  # referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
 ) %>% filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
