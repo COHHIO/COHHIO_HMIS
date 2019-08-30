@@ -262,6 +262,18 @@ Services <- stagingServices %>%
 # EnrollmentIDs will be NULL. These should be filtered out when reporting on
 # Services, but they're needed for Data Quality checking so I'm leaving them in.
 
+rm(stagingServices)
+
+# Referrals ---------------------------------------------------------------
+
+Referrals <- read_csv("data/Referrals.csv",
+                      col_types = "nnn?ccccccccc")
+
+Referrals <- Referrals %>%
+  mutate(ReferralDate = mdy(ReferralDate),
+         ReferralHHID = HouseholdID,
+         HouseholdID = NULL)
+
 # Age Function ------------------------------------------------------------
 
 age_years <- function(earlier, later)
