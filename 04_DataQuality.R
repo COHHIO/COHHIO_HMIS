@@ -1787,25 +1787,26 @@ checkDisabilityForAccuracy <- servedInDateRange %>%
 # and not even list the ClientID. This way they will just stop doing it going 
 # forward without wasting their time chasing butterflies.
 # 
-# servicesOnHHMembers <- servedInDateRange %>%
-#   select(HouseholdID,
-#          PersonalID,
-#          EnrollmentID,
-#          ProjectName,
-#          EntryDate,
-#          MoveInDateAdjust,
-#          ExitDate,
-#          ProjectType,
-#          CountyServed,
-#          ProviderCounty,
-#          Region,
-#          RelationshipToHoH,
-#          UserCreating) %>%
-#   filter(RelationshipToHoH != 1) %>%
-#   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
-#   mutate(Issue = "Service Transaction on a non Head of Household",
-#          Type = "Warning") %>% 
-#   select(-RelationshipToHoH)
+servicesOnHHMembers <- servedInDateRange %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectName,
+         EntryDate,
+         MoveInDateAdjust,
+         ExitDate,
+         ProjectType,
+         CountyServed,
+         ProviderCounty,
+         Region,
+         RelationshipToHoH,
+         UserCreating) %>%
+  filter(RelationshipToHoH != 1 & 
+         ymd(EntryDate) >= mdy("01012019")) %>% # this date might be off a little
+  semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
+  mutate(Issue = "Service Transaction on a non Head of Household",
+         Type = "Warning") %>%
+  select(-RelationshipToHoH)
 # 
 # # why isn't this catching any records, i don't know.
 # referralsOnHHMembers <- servedInDateRange %>%
@@ -2005,7 +2006,7 @@ DataQualityHMIS <- rbind(
   missingUDEs,
   overlaps,
   # referralsOnHHMembers,
-  # servicesOnHHMembers,
+  servicesOnHHMembers,
   SPDATCreatedOnNonHoH
 ) %>%
   filter(!ProjectName %in% c("Diversion from Homeless System", 
