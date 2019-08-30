@@ -227,7 +227,6 @@ missingLivingSituationDetail <- servedInDateRange %>%
     PersonalID,
     EnrollmentID,
     HouseholdID,
-    EnrollmentID,
     ProjectID,
     ProjectType,
     ProjectName,
@@ -615,7 +614,6 @@ checkEligibility <- servedInDateRange %>%
     PersonalID,
     EnrollmentID,
     HouseholdID,
-    EnrollmentID,
     ProjectID,
     ProjectType,
     ProjectName,
@@ -1783,7 +1781,11 @@ checkDisabilityForAccuracy <- servedInDateRange %>%
          Type = "Warning")
 
 # Non HoHs w Svcs or Referrals --------------------------------------------
-# 
+# Whenever a user accidentally enters a Service (or Referral)
+# on a non-HoH and then they go and remove it, THE SERVICE HHID REMAINS! So if 
+# we're going to check for this, we could maybe be very GENERAL about the issue,
+# and not even list the ClientID. This way they will just stop doing it going 
+# forward without wasting their time chasing butterflies.
 # 
 # servicesOnHHMembers <- servedInDateRange %>%
 #   select(HouseholdID,
