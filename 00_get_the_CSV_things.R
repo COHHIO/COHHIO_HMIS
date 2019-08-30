@@ -69,11 +69,15 @@ Project <-
 ProjectCoC <- 
   read_csv("data/ProjectCoC.csv",
            col_types = "nncTTnTn")
-Services <- 
-  read_csv("data/Services.csv", 
-           col_types = "cnnDnncnnnTTnTn")
 
-# --- All other data comes from ART > Ohio BoS > COHHIO Only > RMisc --- #
+# not pulling in Services from the HUD CSVs because the CSV Export does not 
+# pull in all the kinds of Services we collect. (Services will be imported
+# from two ReportWriter reports.)
+# Services <- 
+#   read_csv("data/Services.csv", 
+#            col_types = "cnnDnncnnnTTnTn")
+
+# - All other data comes from either the RMisc ART report or ReportWriter #
 
 # Youth Beds not coming through correctly ---------------------------------
 
@@ -199,6 +203,27 @@ Enrollment <- Enrollment %>%
   )
 
 rm(smallProject)
+
+
+# Services ----------------------------------------------------------------
+
+# this comes from two ReportWriter reports: An Export: Services and 
+# An Export: Services & Funds. Saving them as services1.csv and services2.csv.
+
+services1 <- read_csv("data/services1.csv",
+                      col_types = "nnnn??cccc")
+
+services1 <- services1 %>%
+  mutate(ServiceStartDate = mdy(ServiceStartDate),
+         ServiceEndDate = mdy(ServiceEndDate))
+
+services2 <- read_csv("data/services2.csv",
+                      col_types = "ncd")
+
+Services <- services1 %>%
+  left_join(services2, by = "ServiceID")
+
+rm(services1, services2)
 
 # Age Function ------------------------------------------------------------
 

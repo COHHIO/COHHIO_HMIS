@@ -95,7 +95,6 @@ allChronicAtEntry <-
   filter(ChronicHousehold > 0) %>%
   ungroup() %>% select(-ChronicHousehold)
 
-rm(singlyChronicAtEntry)
 
 # adding in Project data for convenience
 
