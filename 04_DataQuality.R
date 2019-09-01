@@ -859,144 +859,71 @@ missingIncomeAtEntry <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-conflictingIncomeYN <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
-    PersonalID,
-    EnrollmentID,
-    HouseholdID,
-    AgeAtEntry,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    ProjectType,
-    CountyServed,
-    ProviderCounty,
-    Region,
-    DataCollectionStage,
-    TotalMonthlyIncome,
-    IncomeFromAnySource,
-    Earned,
-    EarnedAmount,
-    Unemployment,
-    UnemploymentAmount,
-    SSI,
-    SSIAmount,
-    SSDI,
-    SSDIAmount,
-    VADisabilityService,
-    VADisabilityServiceAmount,
-    VADisabilityNonService,
-    VADisabilityNonServiceAmount,
-    PrivateDisability,
-    PrivateDisabilityAmount,
-    WorkersComp,
-    WorkersCompAmount,
-    TANF,
-    TANFAmount,
-    GA,
-    GAAmount,
-    SocSecRetirement,
-    SocSecRetirementAmount,
-    Pension,
-    PensionAmount,
-    ChildSupport,
-    ChildSupportAmount,
-    Alimony,
-    AlimonyAmount,
-    OtherIncomeSource,
-    OtherIncomeAmount,
-    OtherIncomeSourceIdentify,
-    UserCreating
-  ) %>%
+smallIncome <- IncomeBenefits %>%
+  select(PersonalID, EnrollmentID, Earned, Unemployment, SSI, SSDI, 
+         VADisabilityService, VADisabilityNonService, PrivateDisability,
+         WorkersComp, TANF, GA, SocSecRetirement, Pension, ChildSupport,
+         Alimony, OtherIncomeSource, DataCollectionStage)
+
+smallIncome[is.na(smallIncome)] <- 0
+
+smallIncome <- smallIncome %>% full_join(IncomeBenefits[c("PersonalID",
+                                                          "EnrollmentID",
+                                                          "DataCollectionStage",
+                                                          "TotalMonthlyIncome",
+                                                          "IncomeFromAnySource")],
+                                         by = c("PersonalID", 
+                                                "EnrollmentID",
+                                                "DataCollectionStage"))
+
+incomeSubs <- servedInDateRange[c("PersonalID",
+                                "EnrollmentID",
+                                "HouseholdID",
+                                "AgeAtEntry",
+                                "ProjectName",
+                                "EntryDate",
+                                "MoveInDateAdjust",
+                                "ExitDate",
+                                "ProjectType",
+                                "UserCreating")] %>%
+  left_join(smallIncome, by = c("PersonalID", "EnrollmentID")) %>%
+  mutate(
+    IncomeCount =
+      Earned +
+      Unemployment +
+      SSI +
+      SSDI +
+      VADisabilityService +
+      VADisabilityNonService +
+      PrivateDisability +
+      WorkersComp +
+      TANF +
+      GA +
+      SocSecRetirement +
+      Pension +
+      ChildSupport +
+      Alimony +
+      OtherIncomeSource
+  )
+
+conflictingIncomeYNatEntry <- incomeSubs %>%
   filter(DataCollectionStage == 1 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
-           ((
-             IncomeFromAnySource == 1 &
-               Earned + Unemployment + SSI + SSDI + VADisabilityService +
-               VADisabilityNonService + PrivateDisability + WorkersComp +
-               TANF + GA + SocSecRetirement + Pension + ChildSupport +
-               Alimony + OtherIncomeSource == 0
-           ) |
-             (
-               IncomeFromAnySource == 0 &
-                 Earned + Unemployment + SSI + SSDI + VADisabilityService +
-                 VADisabilityNonService + PrivateDisability + WorkersComp +
-                 TANF + GA + SocSecRetirement + Pension + ChildSupport +
-                 Alimony + OtherIncomeSource > 0
-             )
-           )) %>%
+           ((IncomeFromAnySource == 1 &
+               IncomeCount == 0) |
+              (IncomeFromAnySource == 0 &
+                 IncomeCount > 0)
+           )) %>% 
   mutate(Issue = "Conflicting Income yes/no at Entry",
          Type = "Error") %>%
   select(vars_we_want)
 
-# I think this turns up with 0 records bc they're calculating the TMI from the
-# subs instead of using the field itself. Understandable but that means I'll 
-# have to pull the TMI data in through RMisc. :( - OR we kill TMI altogether.
-conflictingIncomeAmountAtEntry <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
-    PersonalID,
-    EnrollmentID,
-    HouseholdID,
-    AgeAtEntry,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    ProjectType,
-    CountyServed,
-    ProviderCounty,
-    Region,
-    DataCollectionStage,
-    TotalMonthlyIncome,
-    IncomeFromAnySource,
-    Earned,
-    EarnedAmount,
-    Unemployment,
-    UnemploymentAmount,
-    SSI,
-    SSIAmount,
-    SSDI,
-    SSDIAmount,
-    VADisabilityService,
-    VADisabilityServiceAmount,
-    VADisabilityNonService,
-    VADisabilityNonServiceAmount,
-    PrivateDisability,
-    PrivateDisabilityAmount,
-    WorkersComp,
-    WorkersCompAmount,
-    TANF,
-    TANFAmount,
-    GA,
-    GAAmount,
-    SocSecRetirement,
-    SocSecRetirementAmount,
-    Pension,
-    PensionAmount,
-    ChildSupport,
-    ChildSupportAmount,
-    Alimony,
-    AlimonyAmount,
-    OtherIncomeSource,
-    OtherIncomeAmount,
-    OtherIncomeSourceIdentify,
-    UserCreating
-  ) %>%
-  filter(
-    DataCollectionStage == 1 &
-      (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
-      TotalMonthlyIncome != EarnedAmount + UnemploymentAmount + SSIAmount + 
-      SSDIAmount + VADisabilityServiceAmount + VADisabilityNonServiceAmount +
-      PrivateDisabilityAmount + WorkersCompAmount + TANFAmount +
-      GAAmount + SocSecRetirementAmount + PensionAmount +
-      ChildSupportAmount + AlimonyAmount + OtherIncomeAmount
-  ) %>%
-  mutate(Issue = "Conflicting Income Amounts at Entry",
-         Type = "Error") %>%
-  select(vars_we_want)
+
+
+# Not calculating Conflicting Income Amounts bc they're calculating the TMI from the
+# subs instead of using the field itself. Understandable but that means I would 
+# have to pull the TMI data in through RMisc OR we kill TMI altogether. (We
+# decided to kill TMI altogether.)
 
 # Missing Income at Exit --------------------------------------------------
 
@@ -1015,144 +942,89 @@ missingIncomeAtExit <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-conflictingIncomeYN <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
-    PersonalID,
-    EnrollmentID,
-    HouseholdID,
-    AgeAtEntry,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    ProjectType,
-    CountyServed,
-    ProviderCounty,
-    Region,
-    DataCollectionStage,
-    TotalMonthlyIncome,
-    IncomeFromAnySource,
-    Earned,
-    EarnedAmount,
-    Unemployment,
-    UnemploymentAmount,
-    SSI,
-    SSIAmount,
-    SSDI,
-    SSDIAmount,
-    VADisabilityService,
-    VADisabilityServiceAmount,
-    VADisabilityNonService,
-    VADisabilityNonServiceAmount,
-    PrivateDisability,
-    PrivateDisabilityAmount,
-    WorkersComp,
-    WorkersCompAmount,
-    TANF,
-    TANFAmount,
-    GA,
-    GAAmount,
-    SocSecRetirement,
-    SocSecRetirementAmount,
-    Pension,
-    PensionAmount,
-    ChildSupport,
-    ChildSupportAmount,
-    Alimony,
-    AlimonyAmount,
-    OtherIncomeSource,
-    OtherIncomeAmount,
-    OtherIncomeSourceIdentify,
-    UserCreating
-  ) %>%
+conflictingIncomeYNatExit <- incomeSubs %>%
   filter(DataCollectionStage == 3 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
-           ((
-             IncomeFromAnySource == 1 &
-               Earned + Unemployment + SSI + SSDI + VADisabilityService +
-               VADisabilityNonService + PrivateDisability + WorkersComp +
-               TANF + GA + SocSecRetirement + Pension + ChildSupport +
-               Alimony + OtherIncomeSource == 0
-           ) |
-             (
-               IncomeFromAnySource == 0 &
-                 Earned + Unemployment + SSI + SSDI + VADisabilityService +
-                 VADisabilityNonService + PrivateDisability + WorkersComp +
-                 TANF + GA + SocSecRetirement + Pension + ChildSupport +
-                 Alimony + OtherIncomeSource > 0
-             )
-           )) %>%
+           ((IncomeFromAnySource == 1 &
+               IncomeCount == 0) |
+              (IncomeFromAnySource == 0 &
+                 IncomeCount > 0)
+           )) %>% 
   mutate(Issue = "Conflicting Income yes/no at Exit",
          Type = "Error") %>%
   select(vars_we_want)
 
-# I think this turns up with 0 records bc they're calculating the TMI from the
-# subs instead of using the field itself. Understandable but that means I'll 
-# have to pull the TMI data in through RMisc. :(
-conflictingIncomeAmountAtExit <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
-    PersonalID,
-    EnrollmentID,
-    HouseholdID,
-    AgeAtEntry,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    ProjectType,
-    CountyServed,
-    ProviderCounty,
-    Region,
-    DataCollectionStage,
-    TotalMonthlyIncome,
-    IncomeFromAnySource,
-    Earned,
-    EarnedAmount,
-    Unemployment,
-    UnemploymentAmount,
-    SSI,
-    SSIAmount,
-    SSDI,
-    SSDIAmount,
-    VADisabilityService,
-    VADisabilityServiceAmount,
-    VADisabilityNonService,
-    VADisabilityNonServiceAmount,
-    PrivateDisability,
-    PrivateDisabilityAmount,
-    WorkersComp,
-    WorkersCompAmount,
-    TANF,
-    TANFAmount,
-    GA,
-    GAAmount,
-    SocSecRetirement,
-    SocSecRetirementAmount,
-    Pension,
-    PensionAmount,
-    ChildSupport,
-    ChildSupportAmount,
-    Alimony,
-    AlimonyAmount,
-    OtherIncomeSource,
-    OtherIncomeAmount,
-    OtherIncomeSourceIdentify,
-    UserCreating
-  ) %>%
-  filter(
-    DataCollectionStage == 3 &
-      (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
-      TotalMonthlyIncome != EarnedAmount + UnemploymentAmount + SSIAmount + 
-      SSDIAmount + VADisabilityServiceAmount + VADisabilityNonServiceAmount +
-      PrivateDisabilityAmount + WorkersCompAmount + TANFAmount +
-      GAAmount + SocSecRetirementAmount + PensionAmount +
-      ChildSupportAmount + AlimonyAmount + OtherIncomeAmount
-  ) %>%
-  mutate(Issue = "Conflicting Income Amounts at Exit",
-         Type = "Error") %>%
-  select(vars_we_want)
+# conflictingIncomeYN <- servedInDateRange %>%
+#   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+#   select(
+#     PersonalID,
+#     EnrollmentID,
+#     HouseholdID,
+#     AgeAtEntry,
+#     ProjectName,
+#     EntryDate,
+#     MoveInDateAdjust,
+#     ExitDate,
+#     ProjectType,
+#     CountyServed,
+#     ProviderCounty,
+#     Region,
+#     DataCollectionStage,
+#     TotalMonthlyIncome,
+#     IncomeFromAnySource,
+#     Earned,
+#     EarnedAmount,
+#     Unemployment,
+#     UnemploymentAmount,
+#     SSI,
+#     SSIAmount,
+#     SSDI,
+#     SSDIAmount,
+#     VADisabilityService,
+#     VADisabilityServiceAmount,
+#     VADisabilityNonService,
+#     VADisabilityNonServiceAmount,
+#     PrivateDisability,
+#     PrivateDisabilityAmount,
+#     WorkersComp,
+#     WorkersCompAmount,
+#     TANF,
+#     TANFAmount,
+#     GA,
+#     GAAmount,
+#     SocSecRetirement,
+#     SocSecRetirementAmount,
+#     Pension,
+#     PensionAmount,
+#     ChildSupport,
+#     ChildSupportAmount,
+#     Alimony,
+#     AlimonyAmount,
+#     OtherIncomeSource,
+#     OtherIncomeAmount,
+#     OtherIncomeSourceIdentify,
+#     UserCreating
+#   ) %>%
+#   filter(DataCollectionStage == 3 &
+#            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+#            ((
+#              IncomeFromAnySource == 1 &
+#                Earned + Unemployment + SSI + SSDI + VADisabilityService +
+#                VADisabilityNonService + PrivateDisability + WorkersComp +
+#                TANF + GA + SocSecRetirement + Pension + ChildSupport +
+#                Alimony + OtherIncomeSource == 0
+#            ) |
+#              (
+#                IncomeFromAnySource == 0 &
+#                  Earned + Unemployment + SSI + SSDI + VADisabilityService +
+#                  VADisabilityNonService + PrivateDisability + WorkersComp +
+#                  TANF + GA + SocSecRetirement + Pension + ChildSupport +
+#                  Alimony + OtherIncomeSource > 0
+#              )
+#            )) %>%
+#   mutate(Issue = "Conflicting Income yes/no at Exit",
+#          Type = "Error") %>%
+#   select(vars_we_want)
 
 # Overlapping Enrollment/Move In Dates ------------------------------------
 
@@ -1216,13 +1088,13 @@ overlaps <- stagingOverlaps %>%
 
 rm(stagingOverlaps)
 
-# Missing Health Ins at Entry ---------------------------------------------
+# Missing Health Ins ------------------------------------------------------
 
-missingHealthInsurance <- servedInDateRange %>%
+missingHealthInsuranceatEntry <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, EntryDate,
-         MoveInDateAdjust, ExitDate, ProjectType, CountyServed, ProviderCounty, Region, 
-         DataCollectionStage, InsuranceFromAnySource, UserCreating) %>%
+  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, 
+         EntryDate, MoveInDateAdjust, ExitDate, ProjectType, DataCollectionStage, 
+         InsuranceFromAnySource, UserCreating) %>%
   filter(DataCollectionStage == 1 & 
            (InsuranceFromAnySource == 99 | 
               is.na(InsuranceFromAnySource))) %>%
@@ -1230,7 +1102,19 @@ missingHealthInsurance <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-conflictingHealthInsuranceYN <- servedInDateRange %>%
+missingHealthInsuranceatExit <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, 
+         EntryDate, MoveInDateAdjust, ExitDate, ProjectType, DataCollectionStage, 
+         InsuranceFromAnySource, UserCreating) %>%
+  filter(DataCollectionStage == 3 & 
+           (InsuranceFromAnySource == 99 | 
+              is.na(InsuranceFromAnySource))) %>%
+  mutate(Issue = "Health Insurance Missing at Exit",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+healthInsuranceSubs <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
@@ -1242,9 +1126,6 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
     MoveInDateAdjust,
     ExitDate,
     ProjectType,
-    CountyServed,
-    ProviderCounty,
-    Region,
     DataCollectionStage,
     InsuranceFromAnySource,
     Medicaid,
@@ -1260,21 +1141,37 @@ conflictingHealthInsuranceYN <- servedInDateRange %>%
     ADAP,
     UserCreating
   ) %>%
+  mutate(SourceCount = Medicaid + SCHIP + VAMedicalServices + EmployerProvided +
+           COBRA + PrivatePay + StateHealthIns + IndianHealthServices +
+           OtherInsurance)
+
+conflictingHealthInsuranceYNatEntry <- healthInsuranceSubs %>%
   filter(DataCollectionStage == 1 &
            ((
              InsuranceFromAnySource == 1 &
-               Medicaid + SCHIP + VAMedicalServices + EmployerProvided +
-               COBRA + PrivatePay + StateHealthIns + IndianHealthServices +
-               OtherInsurance + HIVAIDSAssistance + ADAP == 0
+               SourceCount == 0
            ) |
              (
                InsuranceFromAnySource == 0 &
-                 Medicaid + SCHIP + VAMedicalServices + EmployerProvided +
-                 COBRA + PrivatePay + StateHealthIns + IndianHealthServices +
-                 OtherInsurance + HIVAIDSAssistance + ADAP > 0
+                 SourceCount > 0
              )
            )) %>%
   mutate(Issue = "Conflicting Health Insurance yes/no at Entry",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+conflictingHealthInsuranceYNatExit <- healthInsuranceSubs %>%
+  filter(DataCollectionStage == 3 &
+           ((
+             InsuranceFromAnySource == 1 &
+               SourceCount == 0
+           ) |
+             (
+               InsuranceFromAnySource == 0 &
+                 SourceCount > 0
+             )
+           )) %>%
+  mutate(Issue = "Conflicting Health Insurance yes/no at Exit",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1684,16 +1581,16 @@ DataQualityHMIS <- rbind(
   checkDisabilityForAccuracy,
   checkEligibility,
   conflictingDisabilities,
-  conflictingHealthInsuranceYN,
-  conflictingIncomeAmountAtEntry,
-  conflictingIncomeAmountAtExit,
-  conflictingIncomeYN,
+  conflictingHealthInsuranceYNatEntry,
+  conflictingIncomeYNatEntry,
+  conflictingIncomeYNatExit,
   conflictingNCBsAtEntry,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
   dkrLoS,
   missingApproxDateHomeless,
   # missingLivingSituationData, #(waiting on WS ticket)
+  conflictingHealthInsuranceYNatExit,
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
@@ -1713,7 +1610,8 @@ DataQualityHMIS <- rbind(
   missingDisabilitySubs,
   missingIncomeAtEntry,
   missingIncomeAtExit,
-  missingHealthInsurance,
+  missingHealthInsuranceatEntry,
+  missingHealthInsuranceatExit,
   # missingLivingSituation,
   missingLongDuration,
   missingNCBsAtEntry,
@@ -1734,7 +1632,6 @@ DataQualityHMIS <- rbind(
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
   conflictingDisabilities,
-  DKRLivingSituation,
   duplicateEEs,
   futureEEs,
   householdIssues,
@@ -1750,7 +1647,7 @@ unshelteredDataQuality <- rbind(
   dkrResidencePrior,
   dkrLoS,
   missingApproxDateHomeless,
-  missingLivingSituationData, 
+#  missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
@@ -1829,8 +1726,6 @@ rm(
   checkDisabilityForAccuracy,
   checkEligibility,
   conflictingDisabilities,
-  conflictingHealthInsuranceYN,
-  conflictingIncomeAmountAtEntry,
   conflictingIncomeAmountAtExit,
   conflictingIncomeYN,
   conflictingNCBsAtEntry,
@@ -1848,7 +1743,8 @@ rm(
   missingCountyServed,
   missingDisabilities,
   missingDisabilitySubs,
-  missingHealthInsurance,
+  missingHealthInsuranceatEntry,
+  missingHealthInsuranceatExit,
   missingIncomeAtEntry,
   missingIncomeAtExit,
   missingLongDuration,
