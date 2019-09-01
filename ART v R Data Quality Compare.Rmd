@@ -119,17 +119,19 @@ gt(missingFromRIssues)
 
 >The Disability subs Not Matching is because I'm not pulling in providers of type "Housing Only", and this EE is under Richland Place. Do we care about their Data Quality? Are they real? I have never included that project type in anything! (ART might be correct.)
 
-Future Entry Exit: For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
+>Future Entry Exit (59947): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
-HoHs Entering PH without SPDATs: In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
+> HoHs Entering PH without SPDATs (1396): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
 
-HoHs In Shelter w/o SPDAT: In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
+>HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
 
-Incorrect PATH Contact Date: This is not coded in Rm yet! (ART is correct)
+>Missing HI at Entry (1753): This Entry Date is WELL before HI was being collected. The ART DQ report was ignoring it bc HUD said they didn't have to go back, but the APR doesn't heed that so we're thinking we should just let these come in as Errors. (Rm is correct.)
 
-Missing Destination: Also not coded in Rm yet! (ART is correct)
+>Missing HI at Exit (219137): Entered this as WS case #864582 because what I'm seeing in SP is DIFFERENT than what I'm seeing in the HUD CSV Export. (Waiting on WS)
 
-Missing Rel to HoH: This is just because there is a gap in reporting dates. Need to retest.
+>Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
+
+>Missing Income at Entry (1753): should be conflicting income
 
 Missing NCBs at Entry: This client has a "No" at Entry, not sure why the ART report is flagging this one? (Rm is correct) At least in Rm, the logic is only looking at the yes/no.
 
