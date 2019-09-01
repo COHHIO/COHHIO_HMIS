@@ -86,6 +86,8 @@ Let's get the same data, but using the logic in the 04_DataQuality.R script (whi
 ```{r R_DQ, echo=TRUE}
 load("images/Data_Quality.RData")
 
+DataQualityHMIS <- as.data.frame(DataQualityHMIS)
+
 R_DQ <- DataQualityHMIS %>% select(Issue, ProjectName, PersonalID)
 ```
 
@@ -115,9 +117,7 @@ gt(missingFromRIssues)
 ```
 
 
-The Children Only Household was a RHY project. I am accounting for RHY projects when I am looking at Children-Only Households in R minor. (R minor is ok.)
-
-The Disability subs Not Matching is to do with the ticket I have in with WS about the subassessments not paying attention to the Report Start and Report End Dates. (Need to retest once that ticket is sorted out.)
+>The Disability subs Not Matching is because I'm not pulling in providers of type "Housing Only", and this EE is under Richland Place. Do we care about their Data Quality? Are they real? I have never included that project type in anything! (ART might be correct.)
 
 Future Entry Exit: For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
