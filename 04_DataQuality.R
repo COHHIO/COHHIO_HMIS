@@ -23,8 +23,8 @@ load("images/COHHIOHMIS.RData")
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 12) | # including 
-           # Diversion, Unsheltered, PATH Outreach, and Prevention projects
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 12) | # including 
+           # Diversion, Unsheltered, PATH Outreach & SO, and Prevention projects
            (
              HMIS_participating_between(., FileStart, FileEnd) &
                operating_between(., FileStart, FileEnd) &
@@ -390,13 +390,13 @@ missingLivingSituationData <- servedInDateRange %>%
   ) %>% 
   mutate(Issue = "Incomplete Living Situation Data", Type = "Error")
 
-
-missingLivingSituation <- missingLivingSituationDetail %>%
-  filter(MonthsHomelessPastThreeYears == 99 | 
-           is.na(MonthsHomelessPastThreeYears) |
-           TimesHomelessPastThreeYears == 99 |
-           is.na(TimesHomelessPastThreeYears)) %>%
-  select(vars_we_want)
+# 
+# missingLivingSituation <- missingLivingSituationDetail %>%
+#   filter(MonthsHomelessPastThreeYears == 99 | 
+#            is.na(MonthsHomelessPastThreeYears) |
+#            TimesHomelessPastThreeYears == 99 |
+#            is.na(TimesHomelessPastThreeYears)) %>%
+#   select(vars_we_want)
 
 
 # DKRLivingSituationDetail <- servedInDateRange %>%
@@ -466,9 +466,12 @@ missingDisabilities <- missingDisabilitiesDetail %>%
   select(vars_we_want)
 
 smallDisabilities <- Disabilities %>%
-  filter(DataCollectionStage == 1, DisabilityResponse != 0) %>%
+  filter(DataCollectionStage == 1 & 
+           ((DisabilityType == 10 & DisabilityResponse %in% c(1:3)) | 
+           (DisabilityType != 10 & DisabilityResponse == 1))
+           ) %>%
   select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
-         IndefiniteAndImpairs)
+         DisabilityType, IndefiniteAndImpairs)
 
 conflictingDisabilitiesDetail <- servedInDateRange %>%
   select(
@@ -483,12 +486,12 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
     HouseholdID,
     RelationshipToHoH,
     DisablingCondition,
-    CountyServed,
-    ProviderCounty,
-    Region,
     UserCreating
   ) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
+  filter(DisablingCondition %in% c(0, 1)) %>%
+  mutate(IndefiniteAndImpairs =
+           if_else(DisabilityType %in% c(6, 8), 1, IndefiniteAndImpairs)) %>%
   group_by(
     PersonalID,
     EnrollmentID,
@@ -501,13 +504,8 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
     ProjectType,
     RelationshipToHoH,
     DisablingCondition,
-    CountyServed,
-    ProviderCounty,
-    Region,
     UserCreating
-  ) %>%
-  filter(IndefiniteAndImpairs %in% c(0, 1),
-         DisablingCondition %in% c(0, 1)) %>%
+  ) %>%  
   summarise(HasLongDurationSub = max(IndefiniteAndImpairs)) %>%
   ungroup() %>%
   mutate(
@@ -748,7 +746,7 @@ duplicateEEs <- get_dupes(servedInDateRange, PersonalID, ProjectID, EntryDate) %
 futureEEs <- servedInDateRange %>%
   filter(ymd(EntryDate) > ymd_hms(DateCreated) &
            (ProjectType %in% c(1, 2, 4, 8) |
-           (ProjectType %in% c(3, 9) & ymd(EntryDate) > mdy("10012017"))))  %>%
+           (ProjectType %in% c(3, 9) & ymd(EntryDate) >= mdy("10012017"))))  %>%
   mutate(Issue = "Future Entry Date", Type = "Warning") %>%
   select(vars_we_want)
   
@@ -1774,20 +1772,20 @@ diversionDataQuality <- rbind(
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
 
-DataQualityHMIS <- DataQualityHMIS %>%
-  filter(!Issue %in% c(
-    "Conflicting Disability yes/no at Entry",
-    "Conflicting Disability yes/no at Exit",
-    "Conflicting Health Insurance yes/no at Entry",                       
-    "Conflicting Health Insurance yes/no at Exit",                       
-    "Conflicting Income yes/no at Entry",                                
-    "Conflicting Income yes/no at Exit",                                
-    "Conflicting Non-cash Benefits yes/no at Entry",
-    "Conflicting Non-cash Benefits yes/no at Exit",
-    "Missing Disability Subs",
-    "Incomplete Living Situation Data"
-    
-  )) 
+# DataQualityHMIS <- DataQualityHMIS %>%
+#   filter(!Issue %in% c(
+#     "Conflicting Disability yes/no at Entry",
+#     "Conflicting Disability yes/no at Exit",
+#     "Conflicting Health Insurance yes/no at Entry",                       
+#     "Conflicting Health Insurance yes/no at Exit",                       
+#     "Conflicting Income yes/no at Entry",                                
+#     "Conflicting Income yes/no at Exit",                                
+#     "Conflicting Non-cash Benefits yes/no at Entry",
+#     "Conflicting Non-cash Benefits yes/no at Exit",
+#     "Missing Disability Subs",
+#     "Incomplete Living Situation Data"
+#     
+#   )) 
 
 # Clean up the house ------------------------------------------------------
 
