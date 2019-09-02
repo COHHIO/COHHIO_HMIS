@@ -1177,38 +1177,23 @@ conflictingHealthInsuranceYNatExit <- healthInsuranceSubs %>%
 
 # Missing NCBs at Entry ---------------------------------------------------
 
-missingNCBsAtEntry <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
-    PersonalID,
-    EnrollmentID,
-    HouseholdID,
-    AgeAtEntry,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    ProjectType,
-    CountyServed,
-    ProviderCounty,
-    Region,
-    DataCollectionStage,
-    BenefitsFromAnySource,
-    UserCreating
-  ) %>%
-  filter(
-    DataCollectionStage == 1 &
-      (AgeAtEntry > 17 |
-         is.na(AgeAtEntry)) &
-      (BenefitsFromAnySource == 99 |
-         is.na(BenefitsFromAnySource))
-  ) %>%
-  mutate(Issue = "Non-cash Benefits Missing at Entry",
-         Type = "Error") %>%
-  select(vars_we_want)
+NCBSubs <- IncomeBenefits %>%
+  select(PersonalID, EnrollmentID, DataCollectionStage, SNAP, WIC, TANFChildCare, TANFTransportation,
+         OtherTANF, OtherBenefitsSource)
 
-conflictingNCBsAtEntry <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+NCBSubs[is.na(NCBSubs)] <- 0
+
+NCBSubs <- smallNCBs %>%
+  full_join(IncomeBenefits[c("PersonalID",
+                             "EnrollmentID",
+                             "DataCollectionStage",
+                             "BenefitsFromAnySource")],
+            by = c("PersonalID",
+                   "EnrollmentID",
+                   "DataCollectionStage"))
+
+NCBSubs <- servedInDateRange %>%
+  left_join(smallNCBs, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
     EnrollmentID,
@@ -1230,20 +1215,69 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
     TANFTransportation,
     OtherTANF,
     OtherBenefitsSource,
-    OtherBenefitsSourceIdentify,
+    UserCreating
+  ) %>%
+  mutate(BenefitCount = SNAP + WIC + TANFChildCare + TANFTransportation + 
+           OtherTANF + OtherBenefitsSource) %>%
+  select(PersonalID, EnrollmentID, DataCollectionStage, BenefitsFromAnySource, 
+         BenefitCount)
+
+missingNCBsAtEntry <- servedInDateRange %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    DataCollectionStage,
+    BenefitsFromAnySource,
+    UserCreating
+  ) %>%
+  filter(
+    DataCollectionStage == 1 &
+      (AgeAtEntry > 17 |
+         is.na(AgeAtEntry)) &
+      (BenefitsFromAnySource == 99 |
+         is.na(BenefitsFromAnySource))
+  ) %>%
+  mutate(Issue = "Non-cash Benefits Missing at Entry",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+conflictingNCBsAtEntry <- servedInDateRange %>%
+  left_join(NCBSubs, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    DataCollectionStage,
+    BenefitsFromAnySource,
+    BenefitCount,
     UserCreating
   ) %>%
   filter(DataCollectionStage == 1 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
            ((
              BenefitsFromAnySource == 1 &
-               SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
-               OtherBenefitsSource == 0
+               BenefitCount == 0
            ) |
              (
                BenefitsFromAnySource == 0 &
-                 SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
-                 OtherBenefitsSource > 0
+                 BenefitCount > 0
              )
            )) %>%
   mutate(Issue = "Conflicting Non-cash Benefits yes/no at Entry",
@@ -1251,7 +1285,7 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
   select(vars_we_want)
 
 # Missing NCBs at Exit ----------------------------------------------------
-missingNCBsAtEntry <- servedInDateRange %>%
+missingNCBsAtExit <- servedInDateRange %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
@@ -1281,8 +1315,8 @@ missingNCBsAtEntry <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-conflictingNCBsAtEntry <- servedInDateRange %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+conflictingNCBsAtExit <- servedInDateRange %>%
+  left_join(NCBSubs, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
     EnrollmentID,
@@ -1298,26 +1332,18 @@ conflictingNCBsAtEntry <- servedInDateRange %>%
     Region,
     DataCollectionStage,
     BenefitsFromAnySource,
-    SNAP,
-    WIC,
-    TANFChildCare,
-    TANFTransportation,
-    OtherTANF,
-    OtherBenefitsSource,
-    OtherBenefitsSourceIdentify,
+    BenefitCount,
     UserCreating
   ) %>%
   filter(DataCollectionStage == 3 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
            ((
              BenefitsFromAnySource == 1 &
-               SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
-               OtherBenefitsSource == 0
+               BenefitCount == 0
            ) |
              (
                BenefitsFromAnySource == 0 &
-                 SNAP + WIC + TANFChildCare + TANFTransportation + OtherTANF +
-                 OtherBenefitsSource > 0
+                 BenefitCount > 0
              )
            )) %>%
   mutate(Issue = "Conflicting Non-cash Benefits yes/no at Exit",
@@ -1688,87 +1714,93 @@ diversionDataQuality <- rbind(
 
 rm(
   Affiliation,
-  Client,
-  Disabilities,
-  EmploymentEducation,
-  Enrollment,
-  EnrollmentCoC,
-  Exit,
-  Export,
-  Funder,
-  Geography,
-  HealthAndDV,
-  IncomeBenefits,
-  Inventory,
-  Offers,
-  Organization,
-  Project,
-  ProjectCoC,
-  Regions,
-  Scores,
-  Users,
-  VeteranCE,
-  diversionEnrollments,
-  EEsWithSPDATs,
-  FileEnd,
-  FileStart,
-  FilePeriod,
-  hmisParticipatingCurrent,
-  Referrals,
-  servedInDateRange,
-  Services,
-  smallDisabilities,
-  smallIncome,
-  smallProject,
-  unshelteredEnrollments,
-  updatedate,
   APsWithEEs,
   checkDisabilityForAccuracy,
   checkEligibility,
+  Client,
   conflictingDisabilities,
-  conflictingIncomeAmountAtExit,
-  conflictingIncomeYN,
+  conflictingDisabilitiesDetail,
+  conflictingHealthInsuranceYNatEntry,
+  conflictingHealthInsuranceYNatExit,
+  conflictingIncomeYNatEntry,
+  conflictingIncomeYNatExit,  
   conflictingNCBsAtEntry,
+  conflictingNCBsAtExit,
+  Disabilities,
+  diversionEnrollments,
   diversionEnteredHHMembers,
   diversionIncorrectDestination,
   diversionIncorrectExitDate,
-  duplicateEEs,
+  dkrMonthsTimesHomeless,
+  dkrResidencePrior,
+  dkrDestination,
+  dkrLoS,  
+  duplicateEEs,  
+  EEsWithSPDATs,
+  EmploymentEducation,
+  Enrollment,
+  EnrollmentCoC,
   enteredPHwithoutSPDAT,
+  Exit,
+  Export,
+  FileEnd,
+  FileStart,
+  FilePeriod,  
+  Funder,
   futureEEs,
+  Geography,
+  HealthAndDV,
+  healthInsuranceSubs,
+  hmisParticipatingCurrent,
   householdIssues,
+  IncomeBenefits,
+  incomeSubs,
   incorrectEntryExitType,
-  incorrectMoveInDate,
+  incorrectMoveInDate,  
+  Inventory,
   LHwithoutSPDAT,
+  missingApproxDateHomeless,
   missingCountyPrior,
   missingCountyServed,
+  missingDestination,
   missingDisabilities,
+  missingDisabilitiesDetail,
   missingDisabilitySubs,
   missingHealthInsuranceatEntry,
   missingHealthInsuranceatExit,
   missingIncomeAtEntry,
   missingIncomeAtExit,
-  missingLongDuration,
-  missingNCBsAtEntry,
-  missingUDEs,
-  overlaps,
-  referralsOnHHMembers,
-  servicesOnHHMembers,
-  unshelteredNotUnsheltered,
-  conflictingDisabilitiesDetail,
-  missingDisabilitiesDetail,
-  dkrMonthsTimesHomeless,
-  dkrResidencePrior,
-  dkrDestination,
-  missingDestination,
-  dkrLoS,
-  missingApproxDateHomeless,
   missingLivingSituationData, 
+  missingLongDuration,
   missingLoS,
   missingMonthsTimesHomeless,
-  missingResidencePrior,
+  missingNCBsAtEntry,
+  missingNCBsAtxit,
+  missingResidencePrior,  
+  missingUDEs,
+  Offers,
+  Organization,
+  overlaps,  
+  Project,
+  ProjectCoC,
+  Referrals,
+  referralsOnHHMembers,
   referralsOnHHMembersSSVF,
+  Regions,
+  Scores,
+  servedInDateRange,
+  Services,
+  servicesOnHHMembers,
   servicesOnHHMembersSSVF, 
-  SPDATCreatedOnNonHoH
+  smallDisabilities,
+  smallIncome,
+  smallProject,
+  SPDATCreatedOnNonHoH,
+  unshelteredEnrollments,
+  unshelteredNotUnsheltered,
+  updatedate,
+  Users,
+  VeteranCE
 )
 
 dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
