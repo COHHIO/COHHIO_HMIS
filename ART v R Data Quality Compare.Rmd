@@ -117,9 +117,9 @@ gt(missingFromRIssues)
 ```
 
 
->The Disability subs Not Matching is because I'm not pulling in providers of type "Housing Only", and this EE is under Richland Place. Do we care about their Data Quality? Are they real? I have never included that project type in anything! (ART might be correct.)
+>The Disability subs Not Matching (138228) is because I'm not pulling in providers of type "Housing Only", and this EE is under Richland Place. Do we care about their Data Quality? Are they real? I have never included that project type in anything! (ART might be correct.)
 
->Future Entry Exit (59947): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
+>Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
 > HoHs Entering PH without SPDATs (1396): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
 
@@ -131,19 +131,19 @@ gt(missingFromRIssues)
 
 >Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
 
->Missing Income at Entry (1753): should be conflicting income
+>Missing Income at Entry (and Exit) (1753): nothing from Richland Place is coming into Rm. (ART might be correct.)
 
-Missing NCBs at Entry: This client has a "No" at Entry, not sure why the ART report is flagging this one? (Rm is correct) At least in Rm, the logic is only looking at the yes/no.
+>Missing NCBs at Entry (2407): nothing from Richland Place is coming into Rm. (ART might be correct.)
 
-Missing NCBs at Exit: This client has a "No" at Exit, not sure why the ART report is flagging this one? (Rm is correct) The Rm logic is only looking at the yes/no.
+>Missing NCBs at Exit (16909): This client should be showing in Rm. They have a null for NCB's y/n at Exit. UGH this is another vendor-related issue with the export.
 
-Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
+>Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
 
-The next four are to do with PATH Data Quality issues. These are not yet coded in Rm. (ART is correct.)
+>The next four are to do with PATH Data Quality issues. These are not yet coded in Rm. (ART is correct.)
 
-Missing UDEs: I don't know why this is pulling into the ART report. All seems fine when I look at the client record AND when I actually run the provider-level ART report. (!) (Rm is correct.)
+>Missing UDEs (13387): I don't know why this is pulling into the ART report. All seems fine when I look at the client record AND when I actually run the provider-level ART report. (!) (Rm is correct.)
 
-Too many HoHs: Dataset lag time issue. (Both are correct.)
+>Too many HoHs (181306): Rm pulled in the other HoH! lol (Both are correct.)
 
 Non-HoHs with Services or Referrals: This client is definitely a non-HoH who has some RRH services on her. The services were created on every hh member. As stated in the comments in the Data Quality script, not all the Services or Referrals are coming in. Once I can get the RMisc export moved to ReportWriter or whatever, these issues will be more reliable in Rm. (ART is correct.)
 
