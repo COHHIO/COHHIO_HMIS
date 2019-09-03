@@ -1183,7 +1183,7 @@ NCBSubs <- IncomeBenefits %>%
 
 NCBSubs[is.na(NCBSubs)] <- 0
 
-NCBSubs <- smallNCBs %>%
+NCBSubs <- NCBSubs %>%
   full_join(IncomeBenefits[c("PersonalID",
                              "EnrollmentID",
                              "DataCollectionStage",
@@ -1193,7 +1193,7 @@ NCBSubs <- smallNCBs %>%
                    "DataCollectionStage"))
 
 NCBSubs <- servedInDateRange %>%
-  left_join(smallNCBs, by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(NCBSubs, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
     EnrollmentID,
@@ -1608,9 +1608,11 @@ DataQualityHMIS <- rbind(
   checkEligibility,
   conflictingDisabilities,
   conflictingHealthInsuranceYNatEntry,
+  conflictingHealthInsuranceYNatExit,
   conflictingIncomeYNatEntry,
   conflictingIncomeYNatExit,
   conflictingNCBsAtEntry,
+  conflictingIncomeYNatExit,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
   dkrLoS,
