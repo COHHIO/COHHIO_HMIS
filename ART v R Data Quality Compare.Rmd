@@ -133,7 +133,7 @@ gt(missingFromRIssues)
 
 >Missing Income at Entry (and Exit) (1753): nothing from Richland Place is coming into Rm. (ART might be correct.)
 
->Missing NCBs at Entry (2407): nothing from Richland Place is coming into Rm. (ART might be correct.)
+>Missing NCBs at Entry (2407): nothing from Richland Place is coming into Rm. (ART might be correct.) (ART is correct.)
 
 >Missing NCBs at Exit (16909): This client should be showing in Rm. They have a null for NCB's y/n at Exit. UGH this is another vendor-related issue with the export.
 
