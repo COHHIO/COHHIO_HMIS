@@ -1777,7 +1777,7 @@ rm(
   missingLoS,
   missingMonthsTimesHomeless,
   missingNCBsAtEntry,
-  missingNCBsAtxit,
+  missingNCBsAtExit,
   missingResidencePrior,  
   missingUDEs,
   Offers,
@@ -1816,141 +1816,141 @@ rm(list = ls())
 # 
 # # Errors by Provider ------------------------------------------------------
 # 
-
-library(plotly)
-library(viridis)
-
-plotErrors <- DataQualityHMIS %>%
-  filter(Type == "Error") %>%
-  select(PersonalID, ProjectName) %>%
-  unique() %>%
-  group_by(ProjectName) %>%
-  summarise(clientsWithErrors = n()) %>%
-  ungroup() %>%
-  arrange(desc(clientsWithErrors))
-
-plotErrors$hover <-
-  with(
-    plotErrors,
-    paste(clientsWithErrors, "Clients with Errors")
-  )
-
-
-errorsProviderPlot <- 
-  plot_ly(
-  head(plotErrors, 20L),
-  x = ~ ProjectName,
-  y = ~ clientsWithErrors,
-  color = ~ clientsWithErrors,
-  type = 'bar',
-  text = ~ hover,
-  colors = viridis_pal(option = "D", direction = -1)(7)
-) %>%
-  layout(
-    title = "HMIS Errors by Provider",
-    xaxis = list(
-      title = ~ ProjectName,
-      categoryorder = "array",
-      categoryarray = ~ clientsWithErrors
-    ),
-    yaxis = list(title = "Clients in Error")
-  )
-
-# Error Types Plot --------------------------------------------------------
-errorTypes <- DataQualityHMIS %>%
-  filter(Type == "Error") %>%
-  group_by(Issue) %>%
-  summarise(Errors = n()) %>%
-  ungroup() %>%
-  arrange(desc(Errors))
-
-errorTypePlot <- plot_ly(
-  head(errorTypes, 20L),
-  x = ~ Issue,
-  y = ~ Errors,
-  type = 'bar',
-  color = ~ Errors,
-  colors = viridis_pal(option = "D", direction = -1)(7)
-) %>%
-  layout(
-    title = "HMIS Errors Across the Ohio BoS CoC",
-    xaxis = list(
-      title = ~ Issue,
-      categoryorder = "array",
-      categoryarray = ~ Errors
-    ),
-    yaxis = list(title = "All Errors")
-  )
-
-# Widespread Issues -------------------------------------------------------
-
- widespreadIssue <- DataQualityHMIS %>%
-   select(Issue, ProjectName, Type) %>%
-   unique() %>%
-   group_by(Issue, Type) %>%
-   summarise(HowManyProjects = n()) %>%
-   arrange(desc(HowManyProjects))
-
-# Warnings by Provider ----------------------------------------------------
-
-plotWarnings <- DataQualityHMIS %>%
-  filter(Type == "Warning") %>%
-  group_by(ProjectName) %>%
-  summarise(Warnings = n()) %>%
-  ungroup() %>%
-  arrange(desc(Warnings))
-
- plotWarnings$hover <-
-   with(
-     plotWarnings,
-     paste(Warnings, "Warnings")
-   )
-
- warningsProviderPlot <- plot_ly(
-   head(plotWarnings, 20L),
-   x = ~ ProjectName,
-   y = ~ Warnings,
-   type = 'bar',
-   text = ~ hover,
-   color = ~ Warnings,
-   colors = viridis_pal(option = "D", direction = -1)(7)
- ) %>%
-   layout(
-     title = "HMIS Warnings by Provider",
-     xaxis = list(
-       title = ~ ProjectName,
-       categoryorder = "array",
-       categoryarray = ~ Warnings
-     ),
-     yaxis = list(title = "All Warnings")
-   )
-
-
-# Warning Types -----------------------------------------------------------
-
- warningTypes <- DataQualityHMIS %>%
-   filter(Type == "Warning") %>%
-   group_by(Issue) %>%
-   summarise(Warnings = n()) %>%
-   ungroup() %>%
-   arrange(desc(Warnings))
-
- warningTypePlot <- plot_ly(
-   warningTypes,
-   x = ~ Issue,
-   y = ~ Warnings,
-   type = 'bar',
-   color = ~ Warnings,
-   colors = viridis_pal(option = "D", direction = -1)(7)
- ) %>%
-   layout(
-     title = "HMIS Warnings Across the Ohio BoS CoC",
-     xaxis = list(
-       title = ~ Issue,
-       categoryorder = "array",
-       categoryarray = ~ Warnings
-     ),
-     yaxis = list(title = "All Warnings")
-   )
+# 
+# library(plotly)
+# library(viridis)
+# 
+# plotErrors <- DataQualityHMIS %>%
+#   filter(Type == "Error") %>%
+#   select(PersonalID, ProjectName) %>%
+#   unique() %>%
+#   group_by(ProjectName) %>%
+#   summarise(clientsWithErrors = n()) %>%
+#   ungroup() %>%
+#   arrange(desc(clientsWithErrors))
+# 
+# plotErrors$hover <-
+#   with(
+#     plotErrors,
+#     paste(clientsWithErrors, "Clients with Errors")
+#   )
+# 
+# 
+# errorsProviderPlot <- 
+#   plot_ly(
+#   head(plotErrors, 20L),
+#   x = ~ ProjectName,
+#   y = ~ clientsWithErrors,
+#   color = ~ clientsWithErrors,
+#   type = 'bar',
+#   text = ~ hover,
+#   colors = viridis_pal(option = "D", direction = -1)(7)
+# ) %>%
+#   layout(
+#     title = "HMIS Errors by Provider",
+#     xaxis = list(
+#       title = ~ ProjectName,
+#       categoryorder = "array",
+#       categoryarray = ~ clientsWithErrors
+#     ),
+#     yaxis = list(title = "Clients in Error")
+#   )
+# 
+# # Error Types Plot --------------------------------------------------------
+# errorTypes <- DataQualityHMIS %>%
+#   filter(Type == "Error") %>%
+#   group_by(Issue) %>%
+#   summarise(Errors = n()) %>%
+#   ungroup() %>%
+#   arrange(desc(Errors))
+# 
+# errorTypePlot <- plot_ly(
+#   head(errorTypes, 20L),
+#   x = ~ Issue,
+#   y = ~ Errors,
+#   type = 'bar',
+#   color = ~ Errors,
+#   colors = viridis_pal(option = "D", direction = -1)(7)
+# ) %>%
+#   layout(
+#     title = "HMIS Errors Across the Ohio BoS CoC",
+#     xaxis = list(
+#       title = ~ Issue,
+#       categoryorder = "array",
+#       categoryarray = ~ Errors
+#     ),
+#     yaxis = list(title = "All Errors")
+#   )
+# 
+# # Widespread Issues -------------------------------------------------------
+# 
+#  widespreadIssue <- DataQualityHMIS %>%
+#    select(Issue, ProjectName, Type) %>%
+#    unique() %>%
+#    group_by(Issue, Type) %>%
+#    summarise(HowManyProjects = n()) %>%
+#    arrange(desc(HowManyProjects))
+# 
+# # Warnings by Provider ----------------------------------------------------
+# 
+# plotWarnings <- DataQualityHMIS %>%
+#   filter(Type == "Warning") %>%
+#   group_by(ProjectName) %>%
+#   summarise(Warnings = n()) %>%
+#   ungroup() %>%
+#   arrange(desc(Warnings))
+# 
+#  plotWarnings$hover <-
+#    with(
+#      plotWarnings,
+#      paste(Warnings, "Warnings")
+#    )
+# 
+#  warningsProviderPlot <- plot_ly(
+#    head(plotWarnings, 20L),
+#    x = ~ ProjectName,
+#    y = ~ Warnings,
+#    type = 'bar',
+#    text = ~ hover,
+#    color = ~ Warnings,
+#    colors = viridis_pal(option = "D", direction = -1)(7)
+#  ) %>%
+#    layout(
+#      title = "HMIS Warnings by Provider",
+#      xaxis = list(
+#        title = ~ ProjectName,
+#        categoryorder = "array",
+#        categoryarray = ~ Warnings
+#      ),
+#      yaxis = list(title = "All Warnings")
+#    )
+# 
+# 
+# # Warning Types -----------------------------------------------------------
+# 
+#  warningTypes <- DataQualityHMIS %>%
+#    filter(Type == "Warning") %>%
+#    group_by(Issue) %>%
+#    summarise(Warnings = n()) %>%
+#    ungroup() %>%
+#    arrange(desc(Warnings))
+# 
+#  warningTypePlot <- plot_ly(
+#    warningTypes,
+#    x = ~ Issue,
+#    y = ~ Warnings,
+#    type = 'bar',
+#    color = ~ Warnings,
+#    colors = viridis_pal(option = "D", direction = -1)(7)
+#  ) %>%
+#    layout(
+#      title = "HMIS Warnings Across the Ohio BoS CoC",
+#      xaxis = list(
+#        title = ~ Issue,
+#        categoryorder = "array",
+#        categoryarray = ~ Warnings
+#      ),
+#      yaxis = list(title = "All Warnings")
+#    )
 
  
