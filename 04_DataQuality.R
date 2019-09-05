@@ -23,8 +23,9 @@ load("images/COHHIOHMIS.RData")
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 12) | # including 
-           # Diversion, Unsheltered, PATH Outreach & SO, and Prevention projects
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12) | 
+           # including Diversion, Unsheltered, PATH Outreach & SO, Prevention,
+           # and PH - Housing Only projects
            (
              HMIS_participating_between(., FileStart, FileEnd) &
                operating_between(., FileStart, FileEnd) &
@@ -388,16 +389,8 @@ missingLivingSituationData <- servedInDateRange %>%
                )
            )
   ) %>% 
-  mutate(Issue = "Incomplete Living Situation Data", Type = "Error")
-
-# 
-# missingLivingSituation <- missingLivingSituationDetail %>%
-#   filter(MonthsHomelessPastThreeYears == 99 | 
-#            is.na(MonthsHomelessPastThreeYears) |
-#            TimesHomelessPastThreeYears == 99 |
-#            is.na(TimesHomelessPastThreeYears)) %>%
-#   select(vars_we_want)
-
+  mutate(Issue = "Incomplete Living Situation Data", Type = "Error") %>%
+  select(vars_we_want)
 
 # DKRLivingSituationDetail <- servedInDateRange %>%
 #   select(
@@ -1501,7 +1494,7 @@ smallProject <- Project %>% select(ProjectID,
                                    "ProviderCounty" = County)
 
 APsWithEEs <- Enrollment %>%
-  filter(ProjectType ==  14) %>%
+  filter(ProjectType == 14) %>%
   mutate(Issue = "Access Point with Entry Exits",
          Type = "Error") %>%
   left_join(smallProject, by = "ProjectID") %>%
@@ -1612,16 +1605,11 @@ DataQualityHMIS <- rbind(
   conflictingIncomeYNatEntry,
   conflictingIncomeYNatExit,
   conflictingNCBsAtEntry,
-  conflictingIncomeYNatExit,
+  conflictingNCBsAtExit,
+  dkrDestination,
+  dkrLoS,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
-  dkrLoS,
-  missingApproxDateHomeless,
-  # missingLivingSituationData, #(waiting on WS ticket)
-  conflictingHealthInsuranceYNatExit,
-  missingLoS,
-  missingMonthsTimesHomeless,
-  missingResidencePrior,
   duplicateEEs,
   enteredPHwithoutSPDAT,
   futureEEs,
@@ -1629,24 +1617,29 @@ DataQualityHMIS <- rbind(
   incorrectEntryExitType,
   incorrectMoveInDate,
   LHwithoutSPDAT,
-  missingDestination,
-  servicesOnHHMembersSSVF,
-  dkrDestination,
+  missingApproxDateHomeless,
   missingCountyServed,
-  missingCountyPrior,
+  missingCountyPrior,  
+  missingDestination,
   missingDisabilities,
-  missingDisabilitySubs,
+  missingDisabilitySubs,  
+  missingHealthInsuranceatEntry,
+  missingHealthInsuranceatExit,  
   missingIncomeAtEntry,
   missingIncomeAtExit,
-  missingHealthInsuranceatEntry,
-  missingHealthInsuranceatExit,
-  # missingLivingSituation,
+  # missingLivingSituationData, #(waiting on WS ticket)
+  missingLoS,
   missingLongDuration,
+  missingMonthsTimesHomeless,
   missingNCBsAtEntry,
+  missingNCBsAtExit,
+  missingResidencePrior,
   missingUDEs,
   overlaps,
   referralsOnHHMembers,
+  referralsOnHHMembersSSVF,
   servicesOnHHMembers,
+  servicesOnHHMembersSSVF,
   SPDATCreatedOnNonHoH
 ) %>%
   filter(!ProjectName %in% c(
@@ -1660,21 +1653,21 @@ DataQualityHMIS <- rbind(
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
   conflictingDisabilities,
+  dkrDestination,
+  dkrMonthsTimesHomeless,
+  dkrResidencePrior,
+  dkrLoS,  
   duplicateEEs,
   futureEEs,
   householdIssues,
   incorrectEntryExitType,
   LHwithoutSPDAT,
+  missingApproxDateHomeless,
   missingCountyPrior,
   missingDestination,
-  dkrDestination,
   missingCountyServed,
   missingDisabilities,
   missingDisabilitySubs,
-  dkrMonthsTimesHomeless,
-  dkrResidencePrior,
-  dkrLoS,
-  missingApproxDateHomeless,
 #  missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
@@ -1780,6 +1773,7 @@ rm(
   missingNCBsAtExit,
   missingResidencePrior,  
   missingUDEs,
+  NCBSubs,
   Offers,
   Organization,
   overlaps,  
