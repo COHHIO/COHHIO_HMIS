@@ -1071,6 +1071,15 @@ stagingOverlaps <- servedInDateRange %>%
   filter(!is.na(PreviousEntryAdjust)) %>%
   ungroup()
 
+forAmanda <- stagingOverlaps %>%
+  mutate(
+    PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
+    Overlap = int_overlaps(LiterallyInProject, PreviousStay)
+  ) %>%
+  filter(Overlap == TRUE) %>%
+  select(PersonalID, dupe_count, ProjectName, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, LiterallyInProject, PreviousStay, Overlap)
+
 overlaps <- stagingOverlaps %>%
   mutate(
     PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
@@ -1079,7 +1088,9 @@ overlaps <- stagingOverlaps %>%
   filter(Overlap == TRUE) %>%
   select(vars_we_want)
 
-rm(stagingOverlaps)
+write_csv(forAmanda, "data/OverlapsToChase.csv")
+
+rm(stagingOverlaps, forAmanda)
 
 # Missing Health Ins ------------------------------------------------------
 
