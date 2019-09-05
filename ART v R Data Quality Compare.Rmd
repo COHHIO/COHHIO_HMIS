@@ -76,7 +76,6 @@ ART_DQ <- rbind(dq2, ART_DQ1)
 
 rm(ART_DQ1, dq2)
 
-gt(head(ART_DQ))
 ```
 
 ## What's in R?
