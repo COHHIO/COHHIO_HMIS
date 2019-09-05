@@ -345,7 +345,8 @@ exited_between <- function(table, start, end){
 }
 
 stayed_between <- function(table, start, end){
-  stayed <- between(ymd(table$EntryAdjust), mdy(start), mdy(end))
+  stayed <- ymd(table$EntryAdjust) <= mdy(end) &
+    (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
   stayed
 }
 
