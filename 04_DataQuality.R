@@ -1690,20 +1690,20 @@ diversionDataQuality <- rbind(
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
 
-# DataQualityHMIS <- DataQualityHMIS %>%
-#   filter(!Issue %in% c(
-#     "Conflicting Disability yes/no at Entry",
-#     "Conflicting Disability yes/no at Exit",
-#     "Conflicting Health Insurance yes/no at Entry",                       
-#     "Conflicting Health Insurance yes/no at Exit",                       
-#     "Conflicting Income yes/no at Entry",                                
-#     "Conflicting Income yes/no at Exit",                                
-#     "Conflicting Non-cash Benefits yes/no at Entry",
-#     "Conflicting Non-cash Benefits yes/no at Exit",
-#     "Missing Disability Subs",
-#     "Incomplete Living Situation Data"
-#     
-#   )) 
+DataQualityHMIS <- DataQualityHMIS %>%
+  filter(!Issue %in% c(
+    "Conflicting Disability yes/no at Entry",
+    "Conflicting Disability yes/no at Exit",
+    "Conflicting Health Insurance yes/no at Entry",
+    "Conflicting Health Insurance yes/no at Exit",
+    "Conflicting Income yes/no at Entry",
+    "Conflicting Income yes/no at Exit",
+    "Conflicting Non-cash Benefits yes/no at Entry",
+    "Conflicting Non-cash Benefits yes/no at Exit",
+    "Missing Disability Subs",
+    "Incomplete Living Situation Data"
+
+  ))
 
 # Clean up the house ------------------------------------------------------
 
