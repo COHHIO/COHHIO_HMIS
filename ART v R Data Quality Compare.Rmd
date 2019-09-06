@@ -17,8 +17,6 @@ library(gt)
 
 For the past few years, I have been exporting the results of our two custom Data Quality reports in ART to Qlik Sense Cloud for monthly reviews of the projects that need to be followed up with. Those reports come from my Favorites > Data Quality > Data Quality Monitoring folder. The two reports are named Data Quality 1- for export and Data Quality 2- for export. In the next code chunk, I'm pulling in the results of these two reports so I can compare these results to the ones in R minor.
 
-Following is the first seven rows of the object with all the ART-exported Data Quality data.
-
 ```{r ART_DQ}
 hhs <- read_xls("data/Data Quality 1- for export.xls",
                 sheet = 1, 
@@ -80,7 +78,7 @@ rm(ART_DQ1, dq2)
 
 ## What's in R?
 
-Let's get the same data, but using the logic in the 04_DataQuality.R script (which is then saved to an image used in both Shiny apps.)
+Getting the same data, but using the logic in the 04_DataQuality.R script (which is then saved to an image used in both Shiny apps.)
 
 ```{r R_DQ, echo=TRUE}
 load("images/Data_Quality.RData")
@@ -116,7 +114,7 @@ gt(missingFromRIssues)
 ```
 
 
->The Disability subs Not Matching (211126) 
+>The Disability subs Not Matching (387): The problem is the Yes subs have No's for "of long duration", which means they really shouldn't count. The R logic needs to be cleaned up here. (ART is correct.)
 
 >Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
@@ -124,7 +122,7 @@ gt(missingFromRIssues)
 
 >HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
 
->Missing HI at Entry (110573): 
+>Missing HI at Entry (110573): I'm not seeing that it's missing so much as conflicting.
 
 >Missing HI at Exit (219137): Entered this as WS case #864582 because what I'm seeing in SP is DIFFERENT than what I'm seeing in the HUD CSV Export. (Waiting on WS)
 
@@ -239,7 +237,7 @@ Missing Name Data Quality: The ART report isn't picking this up because it was e
 
 Missing SSN: The client's SSN field is blank, but their SSN Data Quality field is "Client doesn't know" so really this should be coming out as DKR SSN, not Missing SSN! (Fixed this in Rm. Rm is correct.)
 
-No HoH: This is on the Union Senior Assistance HP project which we are excluding from the Data Quality Export. (Rm is correct, but we should exclude them in Rm also.)
+No HoH (84343): This is because the CSV Export still isn't picking up the correct record when there are two answers with identical Date Effectives. HARD EYE ROLL.
 
 NCBs Missing at Exit: This is on the Union Senior Assistance HP project which we are excluding from the Data Quality Export. (Rm is correct.)
 
@@ -254,7 +252,7 @@ Too Many Heads of Household: This is waiting on resolution on WS ticket# 858797.
 
 1. WS Ticket #837944 needs to be resolved, then retest.
 2. All the PATH-related Data Quality issues need to be added.
-3. Missing Destination needs to be added.
+3. Conflicting Disabilities need to only pull in if the subs have yeses for "of long duration".
 4. Figure out why the NCB at Entry and NCB at Exit is showing on the ART report (to be sure there's not something I'm missing)
 5. Redo the way Services and Referrals are imported. The HUD CSV is not enough. :(
 6. Rm should ignore HOPWA projects and EEs.
