@@ -1806,7 +1806,7 @@ rm(
   SPDATCreatedOnNonHoH,
   unshelteredEnrollments,
   unshelteredNotUnsheltered,
-  updatedate,
+  update_date,
   Users,
   VeteranCE
 )
