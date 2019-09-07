@@ -22,13 +22,17 @@ Affiliation <-
   read_csv("data/Affiliation.csv", 
            col_types = "nnnTTnTn")
 
-if(ncol(read_csv("data/Client.csv")) == 36)
-{
+if(ncol(read_csv("data/Client.csv")) == 36) {
   Client <-
     read_csv("data/Client.csv",
              col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
     filter(!PersonalID %in% c(5, 4216))
-} # demo clients
+} else {
+  Client <-
+    read_csv("data/Client.csv",
+             col_types = "ncncnnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
+    filter(!PersonalID %in% c(5, 4216))
+}
 
 Disabilities <-
   read_csv("data/Disabilities.csv",
