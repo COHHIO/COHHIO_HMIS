@@ -20,7 +20,7 @@ load("images/COHHIOHMIS.RData")
 
 # Creating Beds table -----------------------------------------------------
 
-SmallProject <- Project %>%
+small_project <- Project %>%
   select(ProjectID,
          ProjectName,
          ProjectType) %>%
@@ -28,7 +28,7 @@ SmallProject <- Project %>%
            operating_between(Project, FileStart, FileEnd) &
            is.na(Project$GrantType))
 
-SmallInventory <- Inventory %>%
+small_inventory <- Inventory %>%
   select(
     ProjectID,
     HouseholdType,
@@ -48,10 +48,10 @@ SmallInventory <- Inventory %>%
     !is.na(HMISParticipatingBeds) &
     Inventory$CoCCode == "OH-507")
 
-Beds <- inner_join(SmallProject, SmallInventory, by = "ProjectID")
+Beds <- inner_join(small_project, small_inventory, by = "ProjectID")
 # Creating Utilizers table ------------------------------------------------
 
-SmallEnrollment <- Enrollment %>% 
+small_enrollment <- Enrollment %>% 
   select(PersonalID,
          EnrollmentID,
          ProjectID,
@@ -64,9 +64,9 @@ SmallEnrollment <- Enrollment %>%
          RelationshipToHoH,
          MoveInDate)
 
-Utilizers <- semi_join(SmallEnrollment, Beds, by = "ProjectID") 
+Utilizers <- semi_join(small_enrollment, Beds, by = "ProjectID") 
 
-Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
+Utilizers <- left_join(Utilizers, small_project, by = "ProjectID") %>%
   select(
     PersonalID,
     EnrollmentID,
@@ -86,7 +86,7 @@ Utilizers <- left_join(Utilizers, SmallProject, by = "ProjectID") %>%
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
    Export, Funder, Geography, HealthAndDV, IncomeBenefits, Organization, 
-   ProjectCoC, Scores, Services, SmallEnrollment, SmallInventory, SmallProject, 
+   ProjectCoC, Scores, Services, small_enrollment, small_inventory, small_project, 
    Users, Offers, VeteranCE)
 # Client Utilization of Beds ----------------------------------------------
 
@@ -659,7 +659,7 @@ names(UnitUtilization) <-
 
 rm(bed_capacity, bed_nights_per_ee, unit_capacity)
 
-SmallProject <- Project %>%
+small_project <- Project %>%
   filter(ProjectType %in% c(1, 2, 3, 8, 9) &
            ymd(OperatingStartDate) <= today() &
            (is.na(OperatingEndDate) | OperatingEndDate >= today()) &
@@ -671,7 +671,7 @@ SmallProject <- Project %>%
 
 # Current Bed Utilization -------------------------------------------------
 
-SmallInventory <- Inventory %>%
+small_inventory <- Inventory %>%
   filter((ymd(InventoryStartDate) <= today() &
             (
               ymd(InventoryEndDate) >= today() |
@@ -689,9 +689,9 @@ SmallInventory <- Inventory %>%
     HMISParticipatingBeds
   )
 
-SmallInventory <- inner_join(SmallProject, SmallInventory, by = "ProjectID")
+small_inventory <- inner_join(small_project, small_inventory, by = "ProjectID")
 
-Capacity <- SmallInventory %>%
+Capacity <- small_inventory %>%
   select(ProjectID,
          ProjectName,
          ProjectType,
@@ -774,7 +774,7 @@ names(ClientUtilizers) <-
   )
 
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
-   SmallInventory, SmallProject)
+   small_inventory, small_project)
 
 save.image("images/Utilization.RData")
 
