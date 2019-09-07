@@ -122,9 +122,9 @@ gt(missingFromRIssues)
 
 >HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
 
->Missing HI at Entry (110573): I'm not seeing that it's missing so much as conflicting.
+>Missing HI at Entry (110573): Export is not showing the Medicaid subassessment correctly. (VENDOR ISSUE)
 
->Missing HI at Exit (219137): Entered this as WS case #864582 because what I'm seeing in SP is DIFFERENT than what I'm seeing in the HUD CSV Export. (Waiting on WS)
+>Missing HI at Exit (219137): Entered this as WS case #864582 because what I'm seeing in SP is DIFFERENT than what I'm seeing in the HUD CSV Export. (VENDOR ISSUE)
 
 >Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
 
@@ -173,7 +173,7 @@ gt(missingFromARTIssues)
 
 >Access Point with Entry Exits 146259: not looking at this in ART. (Rm is correct.)
 
->Check Eligibility 8155: ART report is ignoring HOPWA providers. (ART is correct.)
+>Check Eligibility 8155: For both the RRH and the PSH stay, the client was coming from TH after having stayed for well over 7 nights. (Rm is correct.) 
 
 >Check Veteran Status for Accuracy 222526: The provider-level ART report does show this. (Both are correct.)
 
@@ -183,9 +183,9 @@ gt(missingFromARTIssues)
 
 >Conflicting HI at Entry 80919: (Rm is correct.)
 
->Conflicting Income at Entry 238: 
+>Conflicting Income at Entry 238: Related to not all the subs coming into the export if they ended prior to the Export Start Date. (VENDOR ISSUE)
 
-Conflicting Income at Exit 51074:
+>Conflicting Income at Exit 51074: This isn't showing on the ART report because it does have a record that begins on the Exit Date, but there's no Source saved. ART's not paying attention to that fact, when really it should be. (Rm is correct.)
 
 Conflicting NCBs at Entry 2932:
 
@@ -250,18 +250,12 @@ Too Many Heads of Household: This is waiting on resolution on WS ticket# 858797.
 
 ## List of Things to Solve Prior to Killing the ART Reports
 
-1. WS Ticket #837944 needs to be resolved, then retest.
+1. Certain disability subs shouldn't count unless the "of long duration" is a yes. This needs to be coded into Data_Quality.R.
 2. All the PATH-related Data Quality issues need to be added.
-3. Conflicting Disabilities need to only pull in if the subs have yeses for "of long duration".
-4. Figure out why the NCB at Entry and NCB at Exit is showing on the ART report (to be sure there's not something I'm missing)
-5. Redo the way Services and Referrals are imported. The HUD CSV is not enough. :(
-6. Rm should ignore HOPWA projects and EEs.
-7. Maybe break out Missing and DKR Living Situation into more granular errors.
-8. Correct Incomplete Living Situation, something's wrong. Sample ClientID = 8155.
-9. Code the Incorrect EE Type thoroughly.
-10. Figure out if we want to continue to let the custom County fields data quality go on old clients. (Rm is counting them as missing.)
-11. Exclude the Union Senior Assistance HP project from Rm.
-12. For Non-HoHs with Services/Referrals, SSVF projects should be showing this as an Error, whereas non-SSVF projects should be showing it as a warning, and only back to Feb of 2018.
-13. WS Ticket #858797 needs to be resolved, then retest.
+3. All the SSVF-related Data Quality issues need to be added.
+4. Conflicting Disabilities need to only pull in if the subs have yeses for "of long duration".
+5. Unpaired Needs and Unmet Needs are not coded in Rm. Not even pulling in Need records because generally they're not used for any reporting. Do we pull them in *just* for data quality purposes? Is the data quality of these important if we're not using the data? (Needs discussion.)
+6. Code the Incorrect EE Type thoroughly.
+7. How far back do we want to look for PSH eligibility issues? I know they didn't used to be so clear. 
 
 
