@@ -1133,6 +1133,7 @@ healthInsuranceSubs <- servedInDateRange %>%
     DataCollectionStage,
     InsuranceFromAnySource,
     Medicaid,
+    Medicare,
     SCHIP,
     VAMedicalServices,
     EmployerProvided,
@@ -1147,7 +1148,7 @@ healthInsuranceSubs <- servedInDateRange %>%
   ) %>%
   mutate(SourceCount = Medicaid + SCHIP + VAMedicalServices + EmployerProvided +
            COBRA + PrivatePay + StateHealthIns + IndianHealthServices +
-           OtherInsurance)
+           OtherInsurance + Medicare)
 
 conflictingHealthInsuranceYNatEntry <- healthInsuranceSubs %>%
   filter(DataCollectionStage == 1 &
