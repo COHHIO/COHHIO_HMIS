@@ -1,0 +1,59 @@
+---
+title: "LH DV Served in 2018"
+author: "Genelle Denzin"
+date: "7/17/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+library(lubridate)
+library(here)
+load(here("images/COHHIOHMIS.RData"))
+```
+
+## Literally Homeless Domestic Violence Survivors Served in 2018
+
+The following represents clients who indicated they were "Currently Fleeing" at Entry into any Ohio Balance of State project that enters into HMIS.
+
+
+```{r summary}
+
+project_type <- c(3, 9) # EM wanted to see RRH and PSH separately. Just replace
+# the variable assignment with whatever.
+
+rrhDVClients <- HealthAndDV %>%
+  select(PersonalID,
+         EnrollmentID,
+         DomesticViolenceVictim,
+         WhenOccurred,
+         CurrentlyFleeing) %>%
+  filter(CurrentlyFleeing == 1) %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID")) %>%
+  select(EnrollmentID,
+         HouseholdID,
+         PersonalID,
+         ProjectType,
+         AgeAtEntry,
+         EntryAdjust,
+         ExitDate) %>%
+  filter(stayed_between(., "01222019", "01232019"),
+         ProjectType %in% project_type) %>%
+  select(-EntryAdjust,-ExitDate) %>% unique()
+
+counts <-
+  c(
+    nrow(rrhDVClients),
+    n_distinct(rrhDVClients$HouseholdID)
+  )
+names <- c("Distinct Clients", "Households")
+
+cbind(names, counts)
+
+```
+

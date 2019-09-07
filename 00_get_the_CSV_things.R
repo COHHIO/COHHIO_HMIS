@@ -21,10 +21,19 @@ library(readxl)
 Affiliation <- 
   read_csv("data/Affiliation.csv", 
            col_types = "nnnTTnTn")
-Client <-
-  read_csv("data/Client.csv",
-           col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>% 
-  filter(!PersonalID %in% c(5, 4216)) # demo clients
+
+if(ncol(read_csv("data/Client.csv")) == 36) {
+  Client <-
+    read_csv("data/Client.csv",
+             col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
+    filter(!PersonalID %in% c(5, 4216))
+} else {
+  Client <-
+    read_csv("data/Client.csv",
+             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
+    filter(!PersonalID %in% c(5, 4216))
+}
+
 Disabilities <-
   read_csv("data/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
@@ -81,13 +90,13 @@ ProjectCoC <-
 
 # Youth Beds not coming through correctly ---------------------------------
 
-YouthBeds <- read_xlsx("data/RMisc.xlsx",
+youth_beds <- read_xlsx("data/RMisc.xlsx",
                        sheet = 8,
                        range = cell_cols("A:C"))
-Inventory <- left_join(Inventory, YouthBeds, by = "InventoryID") %>%
+Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
   select(1, ProjectID = 2, 3:9, YouthBedInventory = 22, 11:20) 
 
-rm(YouthBeds)
+rm(youth_beds)
 
 
 # from sheet 1, creating a Scores table -----------------------------------
@@ -100,24 +109,26 @@ Scores <- mutate(Scores, StartDate = as.Date(StartDate, origin = "1899-12-30"))
 counties <- read_xlsx("data/RMisc.xlsx",
                       sheet = 2,
                       range = cell_cols("A:C"))
-bowmanentryexits <- read_xlsx("data/RMisc.xlsx",
+bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                           sheet = 3,
                           range = cell_cols("A:D"))
-Enrollment <- left_join(Enrollment, bowmanentryexits, by = "EnrollmentID") %>%
+Enrollment <- left_join(Enrollment, bowman_entry_exits, by = "EnrollmentID") %>%
   left_join(., counties, by = "EnrollmentID") 
 
-rm(bowmanentryexits, counties)
+rm(bowman_entry_exits, counties)
 
 # grabbing extra provider data from sheet 5 -------------------------------
 # overwriting HUD CSV columns bc of the 50 character limit
-providerextras <- read_xlsx("data/RMisc.xlsx",
+provider_extras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
                             range = cell_cols("A:M")) %>%
   mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
-Project <- Project %>% select(-ProjectName, -ProjectCommonName) %>%
-  left_join(., providerextras, by = "ProjectID")
-rm(providerextras)
 
+Project <- Project %>%
+  select(-ProjectName,-ProjectCommonName) %>%
+  left_join(., provider_extras, by = "ProjectID")
+
+rm(provider_extras)
 
 # Region data -------------------------------------------------------------
 Regions <- read_csv("data/Regions.csv", col_types = "cd") %>%
@@ -125,15 +136,15 @@ Regions <- read_csv("data/Regions.csv", col_types = "cd") %>%
   select(Region, County, RegionName) %>%
   arrange(Region)
 
-x <- Project %>%
+project_county <- Project %>%
   mutate(County = str_remove(ProjectName, "zz"),
          County = if_else(word(County, 1) == "Van", "Van Wert",
                           word(County, 1))
          ) 
 
-Project <- left_join(x, Regions, by = "County")
+Project <- left_join(project_county, Regions, by = "County")
 
-rm(x)
+rm(project_county)
 # Custom Veteran Data -----------------------------------------------------
 VeteranCE <- read_xlsx("data/RMisc.xlsx",
                          sheet = 6,
@@ -164,23 +175,23 @@ Users <- read_xlsx("data/RMisc.xlsx",
                    range = cell_cols("A:G"))
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------
-smallExit <- Exit %>% select(EnrollmentID, 
+small_exit <- Exit %>% select(EnrollmentID, 
                              ExitDate, 
                              Destination, 
                              OtherDestination)
 
-Enrollment <- left_join(Enrollment, smallExit, by = "EnrollmentID") %>%
+Enrollment <- left_join(Enrollment, small_exit, by = "EnrollmentID") %>%
   mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
 
-rm(smallExit)
+rm(small_exit)
 
 # Adding ProjectType to Enrollment too bc we need EntryAdjust & MoveInAdjust
 
-smallProject <- Project %>%
+small_project <- Project %>%
   select(ProjectID, ProjectType) 
 
 Enrollment <- Enrollment %>%
-  left_join(smallProject, by = "ProjectID") %>%
+  left_join(small_project, by = "ProjectID") %>%
   mutate(
     MoveInDateAdjust = case_when(
       ymd(EntryDate) <= ymd(MoveInDate) &
@@ -202,7 +213,7 @@ Enrollment <- Enrollment %>%
     )
   )
 
-rm(smallProject)
+rm(small_project)
 
 
 # Services ----------------------------------------------------------------
@@ -210,23 +221,23 @@ rm(smallProject)
 # this comes from two ReportWriter reports: An Export: Services and 
 # An Export: Services & Funds. Saving them as services1.csv and services2.csv.
 
-services1 <- read_csv("data/services1.csv",
+services_1 <- read_csv("data/services1.csv",
                       col_types = "nnnn??cccc")
 
-services1 <- services1 %>%
+services_1 <- services_1 %>%
   mutate(ServiceStartDate = mdy(ServiceStartDate),
          ServiceEndDate = mdy(ServiceEndDate))
 
-services2 <- read_csv("data/services2.csv",
+services_funds <- read_csv("data/services2.csv",
                       col_types = "ncd")
 
-Services <- services1 %>%
-  left_join(services2, by = "ServiceID") %>%
+Services <- services_1 %>%
+  left_join(services_funds, by = "ServiceID") %>%
   rename("ServiceHHID" = HouseholdID)
 
-rm(services1, services2)
+rm(services_1, services_funds)
 
-stagingServices <- Services[c("PersonalID",
+staging_services <- Services[c("PersonalID",
                               "ServiceID",
                               "ServiceStartDate",
                               "ServiceEndDate",
@@ -255,14 +266,14 @@ stagingServices <- Services[c("PersonalID",
 # entering Services/Referrals onto non-HoHs anyway. Currently I cannot think of
 # a reason to use the Service's HH ID ever but I'll keep it in just in case.
 
-Services <- stagingServices %>%
+Services <- staging_services %>%
   full_join(Services, by = c("ServiceID", "PersonalID", "ServiceHHID"))
 
 # the code above pulls in Services that cannot be associated to an EE, so some 
 # EnrollmentIDs will be NULL. These should be filtered out when reporting on
 # Services, but they're needed for Data Quality checking so I'm leaving them in.
 
-rm(stagingServices)
+rm(staging_services)
 
 # Referrals ---------------------------------------------------------------
 
@@ -319,12 +330,12 @@ age_years <- function(earlier, later)
 }
 
 # Adding Age at Entry to Enrollment ---------------------------------------
-smallClient <- Client %>% select(PersonalID, DOB)
+small_client <- Client %>% select(PersonalID, DOB)
 Enrollment <- Enrollment %>%
-  left_join(smallClient, by = "PersonalID") %>%
+  left_join(small_client, by = "PersonalID") %>%
   mutate(AgeAtEntry = age_years(DOB, EntryDate)) %>%
   select(-DOB)
-rm(smallClient)
+rm(small_client)
 
 # Client Entry Exits Between Date Range Functions -------------------------------------
 
@@ -345,7 +356,8 @@ exited_between <- function(table, start, end){
 }
 
 stayed_between <- function(table, start, end){
-  stayed <- between(ymd(table$EntryAdjust), mdy(start), mdy(end))
+  stayed <- ymd(table$EntryAdjust) <= mdy(end) &
+    (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
   stayed
 }
 
@@ -398,7 +410,9 @@ FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 
 
 # Masking PII in the Client file (but not DOB) ----------------------------
-Client <- Client %>%
+
+if(ncol(read_csv("data/Client.csv")) == 36)
+{Client <- Client %>%
   mutate(
     FirstName = case_when(
       NameDataQuality %in% c(8, 9) ~ "DKR",
@@ -445,11 +459,17 @@ Client <- Client %>%
   mutate(SSN = case_when(
     is.na(SSN) ~ "ok",
     !is.na(SSN) ~ SSN
-  ))
+  ))}
+
+# this overwrites the raw Client.csv file on your computer with the final Client
+# object as a security measure.
+
+if(ncol(read_csv("data/Client.csv")) == 33)
+{write_csv(Client, "data/Client.csv", append = FALSE)}
 
 # Update Date -------------------------------------------------------------
 
-updatedate <- file.info("data/Client.csv")$mtime
+update_date <- file.info("data/Enrollment.csv")$mtime
 
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")

@@ -17,8 +17,6 @@ library(gt)
 
 For the past few years, I have been exporting the results of our two custom Data Quality reports in ART to Qlik Sense Cloud for monthly reviews of the projects that need to be followed up with. Those reports come from my Favorites > Data Quality > Data Quality Monitoring folder. The two reports are named Data Quality 1- for export and Data Quality 2- for export. In the next code chunk, I'm pulling in the results of these two reports so I can compare these results to the ones in R minor.
 
-Following is the first seven rows of the object with all the ART-exported Data Quality data.
-
 ```{r ART_DQ}
 hhs <- read_xls("data/Data Quality 1- for export.xls",
                 sheet = 1, 
@@ -76,15 +74,16 @@ ART_DQ <- rbind(dq2, ART_DQ1)
 
 rm(ART_DQ1, dq2)
 
-gt(head(ART_DQ))
 ```
 
 ## What's in R?
 
-Let's get the same data, but using the logic in the 04_DataQuality.R script (which is then saved to an image used in both Shiny apps.)
+Getting the same data, but using the logic in the 04_DataQuality.R script (which is then saved to an image used in both Shiny apps.)
 
 ```{r R_DQ, echo=TRUE}
 load("images/Data_Quality.RData")
+
+DataQualityHMIS <- as.data.frame(DataQualityHMIS)
 
 R_DQ <- DataQualityHMIS %>% select(Issue, ProjectName, PersonalID)
 ```
@@ -115,43 +114,49 @@ gt(missingFromRIssues)
 ```
 
 
-The Children Only Household was a RHY project. I am accounting for RHY projects when I am looking at Children-Only Households in R minor. (R minor is ok.)
+>The Disability subs Not Matching (387): The problem is the Yes subs have No's for "of long duration", which means they really shouldn't count. The R logic needs to be cleaned up here. (ART is correct.)
 
-The Disability subs Not Matching is to do with the ticket I have in with WS about the subassessments not paying attention to the Report Start and Report End Dates. (Need to retest once that ticket is sorted out.)
+>Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
-Future Entry Exit: For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
+> HoHs Entering PH without SPDATs (1396): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
 
-HoHs Entering PH without SPDATs: In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
+>HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
 
-HoHs In Shelter w/o SPDAT: In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
+>Missing HI at Entry (110573): I'm not seeing that it's missing so much as conflicting.
 
-Incorrect PATH Contact Date: This is not coded in Rm yet! (ART is correct)
+>Missing HI at Exit (219137): Entered this as WS case #864582 because what I'm seeing in SP is DIFFERENT than what I'm seeing in the HUD CSV Export. (Waiting on WS)
 
-Missing Destination: Also not coded in Rm yet! (ART is correct)
+>Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
 
-Missing Rel to HoH: This is just because there is a gap in reporting dates. Need to retest.
+>Missing Income at Entry (2096): I think this is related to the fact that not all the subs are coming into the export. It's a very old entry. (VENDOR ISSUE)
 
-Missing NCBs at Entry: This client has a "No" at Entry, not sure why the ART report is flagging this one? (Rm is correct) At least in Rm, the logic is only looking at the yes/no.
+>Missing Income at Exit (31777): Not found in the actual ART report. (Both are correct.)
 
-Missing NCBs at Exit: This client has a "No" at Exit, not sure why the ART report is flagging this one? (Rm is correct) The Rm logic is only looking at the yes/no.
+>Missing NCBs at Entry (16909): This is because of the Export issue where it's not looking at the yes/no field. (ART is correct/VENDOR ISSUE)
 
-Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
+>Missing NCBs at Exit (16909): This client should be showing in Rm. They have a null for NCB's y/n at Exit. UGH this is another vendor-related issue with the export. (ART is correct/VENDOR ISSUE)
 
-The next four are to do with PATH Data Quality issues. These are not yet coded in Rm. (ART is correct.)
+>Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
 
-Missing UDEs: I don't know why this is pulling into the ART report. All seems fine when I look at the client record AND when I actually run the provider-level ART report. (!) (Rm is correct.)
+>The next four are to do with PATH Data Quality issues. These are not yet coded in Rm. (ART is correct.)
 
-Too many HoHs: Dataset lag time issue. (Both are correct.)
+>Missing UDEs (224927): This is a 2019 PIT client (!) and the reason it's not pulling in to the R_DQ is the Provider is not HMIS participating. (Rm is correct)
 
-Non-HoHs with Services or Referrals: This client is definitely a non-HoH who has some RRH services on her. The services were created on every hh member. As stated in the comments in the Data Quality script, not all the Services or Referrals are coming in. Once I can get the RMisc export moved to ReportWriter or whatever, these issues will be more reliable in Rm. (ART is correct.)
+>Too many HoHs (181306): Rm pulled in the other HoH! lol (Both are correct.)
 
-Old Outstanding Referrals: same as above: incomplete Services and Referral data coming into Rm.
+>Non-HoHs with Services or Referrals (71366): Rm seems to be correct here, bc for the two project stays ART is pointing to, this client was the HoH. (Rm is correct.)
 
-Questionable Housing Data (or "Check Eligibility"): Rm is only looking at hhs who entered PSH more recently than 2016 since rules were less clear back then.
+>Old Outstanding Referrals (94505): I'm not showing any Referrals on this client at all. (Rm is correct.)
 
-Side Door: Rm is only checking this from 1/1/2019 forward. (I think Rm is ok)
+>Questionable Housing Data (or "Check Eligibility") (144708): Rm is only looking at hhs who entered PSH more recently than 2016 since rules were less clear back then.
 
-Any issues not named are to do with Services or Referrals, which needs re-examining at the import level.
+>Side Door (2621): Rm is only checking this from 1/1/2019 forward. (I think Rm is ok)
+
+>Unmet Needs (2968): This is a closed Referral where the Need was never closed. (ART is correct.)
+
+>Unpaired Needs (4325): This client has two stray Needs. I don't think I'm pulling in Needs on their own into R. (Do we have to?) (ART is correct.)
+
+>Veterans with No Referral (10980): This veteran exited without a Referral. In R, I'm only showing veteran Stayers because you can't really do anything about it once the veteran is gone and we don't want users making stuff up. (Rm is correct.)
 
 ## What ClientIDs are showing in R that are not showing in ART?
 
@@ -166,17 +171,33 @@ gt(missingFromARTIssues)
 ```
 
 
-Access Point with Entry Exits: not looking at this in ART. (Rm is correct.)
+>Access Point with Entry Exits 146259: not looking at this in ART. (Rm is correct.)
 
-Check Eligibility: ART report is ignoring HOPWA providers. (ART is correct.)
+>Check Eligibility 8155: ART report is ignoring HOPWA providers. (ART is correct.)
 
-Check Veteran Status for Accuracy: The provider-level ART report does show this. (Both are correct.)
+>Check Veteran Status for Accuracy 222526: The provider-level ART report does show this. (Both are correct.)
 
-Children Only Household: I checked the ART report but not sure why it didn't find these. They're clear cut cases. (Rm is correct.)
+>Children Only Household 218108: I checked the ART report but not sure why it didn't find these. They're clear cut cases. (Rm is correct.)
 
-Client w No Disability Receiving SSI/SSDI: The provider-level ART report is catching this. Probably not pulling into the export because the Provider is not Operational currently. (Rm is correct)
+>Client w No Disability Receiving SSI/SSDI 51308: The provider-level ART report is catching this. Probably not pulling into the export because the Provider is not Operational currently. (Rm is correct)
 
-DKR Ethnicity: the provider-level DQ report does return this one, not sure why the export isn't. (Rm is correct)
+>Conflicting HI at Entry 80919: (Rm is correct.)
+
+>Conflicting Income at Entry 238: 
+
+Conflicting Income at Exit 51074:
+
+Conflicting NCBs at Entry 2932:
+
+Conflicting NCBs at Exit 36844:
+
+Disabilities: missing Long Duration 1410:
+
+DKR Ethnicity 220355: the provider-level DQ report does return this one, not sure why the export isn't. (Rm is correct)
+
+DKR DOB: 219126
+
+DKR Race 218968: 
 
 DKR Living Situation: This is coded totally differently in ART. The ART report breaks down each data element whereas Rm takes "Living Situation" as a whole thing that depends on multiple data elements. In this case, the client's # of months homeless in the past 3 years is Client doesn't know. The ART Report is not picking this up at all, not sure why. (Rm is correct, but could use some attention in the way it's presented.)
 
@@ -216,7 +237,7 @@ Missing Name Data Quality: The ART report isn't picking this up because it was e
 
 Missing SSN: The client's SSN field is blank, but their SSN Data Quality field is "Client doesn't know" so really this should be coming out as DKR SSN, not Missing SSN! (Fixed this in Rm. Rm is correct.)
 
-No HoH: This is on the Union Senior Assistance HP project which we are excluding from the Data Quality Export. (Rm is correct, but we should exclude them in Rm also.)
+No HoH (84343): This is because the CSV Export still isn't picking up the correct record when there are two answers with identical Date Effectives. HARD EYE ROLL.
 
 NCBs Missing at Exit: This is on the Union Senior Assistance HP project which we are excluding from the Data Quality Export. (Rm is correct.)
 
@@ -231,7 +252,7 @@ Too Many Heads of Household: This is waiting on resolution on WS ticket# 858797.
 
 1. WS Ticket #837944 needs to be resolved, then retest.
 2. All the PATH-related Data Quality issues need to be added.
-3. Missing Destination needs to be added.
+3. Conflicting Disabilities need to only pull in if the subs have yeses for "of long duration".
 4. Figure out why the NCB at Entry and NCB at Exit is showing on the ART report (to be sure there's not something I'm missing)
 5. Redo the way Services and Referrals are imported. The HUD CSV is not enough. :(
 6. Rm should ignore HOPWA projects and EEs.
