@@ -128,35 +128,35 @@ gt(missingFromRIssues)
 
 >Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
 
->Missing Income at Entry (2096): 
+>Missing Income at Entry (2096): I think this is related to the fact that not all the subs are coming into the export. It's a very old entry. (VENDOR ISSUE)
 
->Missing Income at Exit (31777): 
+>Missing Income at Exit (31777): Not found in the actual ART report. (Both are correct.)
 
->Missing NCBs at Entry (16909): 
+>Missing NCBs at Entry (16909): This is because of the Export issue where it's not looking at the yes/no field. (ART is correct/VENDOR ISSUE)
 
->Missing NCBs at Exit (16909): This client should be showing in Rm. They have a null for NCB's y/n at Exit. UGH this is another vendor-related issue with the export.
+>Missing NCBs at Exit (16909): This client should be showing in Rm. They have a null for NCB's y/n at Exit. UGH this is another vendor-related issue with the export. (ART is correct/VENDOR ISSUE)
 
 >Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
 
 >The next four are to do with PATH Data Quality issues. These are not yet coded in Rm. (ART is correct.)
 
->Missing UDEs (224927): 
+>Missing UDEs (224927): This is a 2019 PIT client (!) and the reason it's not pulling in to the R_DQ is the Provider is not HMIS participating. (Rm is correct)
 
 >Too many HoHs (181306): Rm pulled in the other HoH! lol (Both are correct.)
 
->Non-HoHs with Services or Referrals (71366): 
+>Non-HoHs with Services or Referrals (71366): Rm seems to be correct here, bc for the two project stays ART is pointing to, this client was the HoH. (Rm is correct.)
 
->Old Outstanding Referrals (94505): 
+>Old Outstanding Referrals (94505): I'm not showing any Referrals on this client at all. (Rm is correct.)
 
 >Questionable Housing Data (or "Check Eligibility") (144708): Rm is only looking at hhs who entered PSH more recently than 2016 since rules were less clear back then.
 
 >Side Door (2621): Rm is only checking this from 1/1/2019 forward. (I think Rm is ok)
 
->Unmet Needs (2968): 
+>Unmet Needs (2968): This is a closed Referral where the Need was never closed. (ART is correct.)
 
->Unpaired Needs (4325):
+>Unpaired Needs (4325): This client has two stray Needs. I don't think I'm pulling in Needs on their own into R. (Do we have to?) (ART is correct.)
 
->Veterans with No Referral (10980):
+>Veterans with No Referral (10980): This veteran exited without a Referral. In R, I'm only showing veteran Stayers because you can't really do anything about it once the veteran is gone and we don't want users making stuff up. (Rm is correct.)
 
 ## What ClientIDs are showing in R that are not showing in ART?
 
@@ -171,19 +171,19 @@ gt(missingFromARTIssues)
 ```
 
 
-Access Point with Entry Exits 146259: not looking at this in ART. (Rm is correct.)
+>Access Point with Entry Exits 146259: not looking at this in ART. (Rm is correct.)
 
-Check Eligibility 8155: ART report is ignoring HOPWA providers. (ART is correct.)
+>Check Eligibility 8155: ART report is ignoring HOPWA providers. (ART is correct.)
 
-Check Veteran Status for Accuracy 222526: The provider-level ART report does show this. (Both are correct.)
+>Check Veteran Status for Accuracy 222526: The provider-level ART report does show this. (Both are correct.)
 
-Children Only Household 218108: I checked the ART report but not sure why it didn't find these. They're clear cut cases. (Rm is correct.)
+>Children Only Household 218108: I checked the ART report but not sure why it didn't find these. They're clear cut cases. (Rm is correct.)
 
-Client w No Disability Receiving SSI/SSDI 51308: The provider-level ART report is catching this. Probably not pulling into the export because the Provider is not Operational currently. (Rm is correct)
+>Client w No Disability Receiving SSI/SSDI 51308: The provider-level ART report is catching this. Probably not pulling into the export because the Provider is not Operational currently. (Rm is correct)
 
-Conflicting HI at Entry (and Exit) 1410:
+>Conflicting HI at Entry 80919: (Rm is correct.)
 
-Conflicting Income at Entry 238:
+>Conflicting Income at Entry 238: 
 
 Conflicting Income at Exit 51074:
 
