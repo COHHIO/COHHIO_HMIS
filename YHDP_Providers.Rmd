@@ -1,0 +1,36 @@
+---
+title: "How I Decided Which Providers to Use"
+author: "Genelle Denzin"
+date: "9/9/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+Need to know which projects are maybe outside the region but that serve clients inside the region.
+Filter projects based on which ones were operational during the date range, keep it to ES, TH, PSH, RRH, HP, OUT, and SH, but exclude the Unsheltered provider. Do not filter on funding source.
+Run quick Bed/Unit Utilization report on each provider to look for weirdnesses (these are available publicly here: https://ohiobalanceofstatecoc.shinyapps.io/Rminor/)
+Found a YHDP project with zero clients in HMIS. Including them anyway, as it serves to show capacity.
+Found RHP TLP project with zero clients.
+Our Vinton TH project has super low utilization. Keeping them in.
+Our Vinton TH YHDP project has zero clients. So does the RHY BCPes and BCPp.
+There’s “Lawrence Gallia” SSVF RRH and SSVF HP projects. Including those.
+
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
