@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(readxl)
+library(flextable)
 ```
 
 Need to know which projects are maybe outside the region but that serve clients inside the region.
@@ -23,7 +24,7 @@ There’s “Lawrence Gallia” SSVF RRH and SSVF HP projects. Including those.
 
 ### Data Sources
 
-I'm beginning with the HUD CSV Export. I ran the Export on ALL providers that have been active in the past two years. I will only need the following files: Enrollment, Exit, Geography, Inventory, Organization, Project, ProjectCoC.
+I'm beginning with the HUD CSV Export. I ran the Export on ALL providers that have been active in the past two years. I will only need the following files: Enrollment, Exit, Organization, and Project.
 
 ```{r getting_csv_data}
 
@@ -36,51 +37,30 @@ Exit <-
   read_csv("data/Exit.csv",
            col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 
-Geography <- 
-  read_csv("data/Geography.csv",
-           col_types = "nncDnnccccnTTnTn")
-
-Inventory <- 
-  read_csv("data/Inventory.csv",
-           col_types = "nncnnnnnnnnDDnTTDnTn")
 Organization <- 
   read_csv("data/Organization.csv",
            col_types = "nccTTnTn")
+
 Project <- 
   read_csv("data/Project.csv",
            col_types = "nnccDDnnnnnnnnTTnTn")
-ProjectCoC <- 
-  read_csv("data/ProjectCoC.csv",
-           col_types = "nncTTnTn")
+
 ```
 
 ## Further Adjustments to WS's HUD CSV Export
 
-Over the past year or so I've found numerous errors in WS's HUD CSV Export. The ones that affect this analysis are being adjusted for by importing the data from their custom reporting tool. The following logic is because the Youth Beds do not show in Inventory.csv and the Provider addresses do not show in Project.csv.
+Over the past year or so I've found numerous errors in WS's HUD CSV Export. The one that affects this analysis is being adjusted for by importing the data from the custom reporting tool in SP. The following logic is because the Provider addresses do not show in Project.csv. It also ADDS the County in which the Project is located to the address data.
 
 ```{r csv_adjustments}
 
-# Youth Beds not coming through correctly (vendor issue) -----------------
-youth_beds <- read_xlsx("data/RMisc.xlsx",
-                       sheet = 8,
-                       range = cell_cols("A:C"))
-Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
-  select(1, ProjectID = 2, 3:9, YouthBedInventory = 22, 11:20) 
-
-rm(youth_beds)
-
-# Provider Addresses also not coming out in Export (vendor issue) ---------
 provider_data <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
-                            range = cell_cols("A:M")) %>%
+                            range = cell_cols("A:N")) %>%
   mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
-
-# temporary, because you should add this to the ART report:
-provider_county <- read_csv("data/providercounties.csv", col_types = "nc")
 
 ```
 
-The following logic ADDS data regarding the County each client was served in at Entry into a project, that is not necessarily collected by other CoCs.
+The following logic ADDS data regarding the County each client was served in at Entry into a project, that we collect for the Ohio BoS.
 
 ```{r}
 counties <- read_xlsx("data/RMisc.xlsx",
@@ -92,20 +72,19 @@ Enrollment <- left_join(Enrollment, counties, by = "EnrollmentID")
 rm(counties)
 ```
 
-The following logic overwrites the Project names because some of our Project names go over 50 characters (mostly because we precede all our project names with the County the project is located in).
+The following logic overwrites the Project names because some of our Project names go over 50 characters (mostly because we precede all our project names with the County the project is located in). It also addes in the Provider County.
 
 ```{r}
 Project <- Project %>%
   select(-ProjectName,-ProjectCommonName) %>%
-  left_join(., provider_data, by = "ProjectID") %>%
-  left_join(., provider_county, by = "ProjectID")
+  left_join(., provider_data, by = "ProjectID")
 
-rm(provider_data, provider_county)
+rm(provider_data)
 ```
 
 ## Finding the YHDP Projects to Include
 
-Here I am just setting up by assigning a Report Start and Report End and I copied a function I created for determining which projects were operating during the reporting period.
+Here I am just setting up by assigning a Report Start and Report End and I copied a function I created for determining which projects were operating during the reporting period for use in this analysis. Also creating an object to make it easier to call the Counties in question into later logic.
 
 ```{r set_up_objects, echo=FALSE}
 ReportStart <- "10012018"
@@ -126,14 +105,10 @@ operating_between <- function(table, start, end) {
 YHDP_Counties <- c("Athens", "Jackson", "Vinton", "Gallia", "Meigs")
 ```
 
-I am wild-guessing about what Project Types to include. We don't have any PH - Housing w/ Services or Day Shelters, so I never include it in anything, but I would imagine other CoCs might want to include them. I'm excluding Services Only, because 1. we dont have any of this project type in these counties and 2. that project type doesn't require homeless verification, so I'm thinking it's outside the scope of what we're doing. I'm including Outreach because I am hoping it will start to be included in HUD reporting so that we are not always missing our unsheltered clients. And I figure if it isn't needed, it can be ignored. I'm excluding Prevention because that project type doesn't require homeless verification, so I'm thinking it's outside the scope of what we're doing.
-
-I'm also limiting my results to those projects that were operational during the reporting period.
+Just getting a slimmed down version of the Project.csv.
 
 ```{r figuring}
 small_projects <- Project %>%
-  filter(ProjectType %in% c(1:4, 8:9, 13) &
-           operating_between(., ReportStart, ReportEnd)) %>% 
   select(
     ProjectID,
     ProjectName,
@@ -143,19 +118,75 @@ small_projects <- Project %>%
     OperatingEndDate,
     ProjectType,
     "ProviderCounty" = County,
-  ) %>% unique()
+  )
 ```
 
-At this point I have cast a wide net and these projects are all over the Balance of State. I want to filter down to the definite set of projects:
+I am wild-guessing about what Project Types to include. We don't have any PH - Housing w/ Services or Day Shelters, so I never include it in anything, but I would imagine other CoCs might want to include them. I'm excluding Services Only, because 1. we dont have any of this project type in these counties and 2. that project type doesn't require homeless verification, so I'm thinking it's outside the scope of what you're doing. I'm including Outreach because I am hoping it will start to be included in HUD reporting so that we are not always missing our unsheltered clients and I figure if it isn't needed, it can be ignored. I'm excluding Prevention because that project type doesn't require homeless verification, so I'm thinking it's also outside the scope of what we're doing.
+
+I'm also limiting my results to those projects that were operational during the reporting period. (Using the Operating Start and End Dates.)
+
+Finally, I want to filter down to the definite set of projects. ProviderCounty comes from their address record.
 
 ```{r strict}
 strictly_in_the_region <- small_projects %>%
-  filter(ProviderCounty %in% YHDP_Counties)
+  filter(ProjectType %in% c(1:4, 8:9, 13) &
+           operating_between(., ReportStart, ReportEnd) &
+           ProviderCounty %in% YHDP_Counties) %>%
+    select(ProjectID,
+         ProjectName,
+         OrganizationName,
+         ProjectType,
+         ProviderCounty)
 ```
 
-Now that we have a core set of projects that will be included, I need to also gather the projects in the BoS who served households inside the set of counties.
+Now that we have a core set of projects that will be included, I need to also gather the projects in the BoS that served households inside the YHDP counties.
 
+```{r served_in_region}
+projects_serving_in_region <-
+  Enrollment[c("PersonalID",
+               "EnrollmentID",
+               "EntryDate",
+               "ProjectID",
+               "CountyServed")] %>%
+  left_join(Exit[c("PersonalID", 
+                   "EnrollmentID", 
+                   "ExitDate")], by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(small_projects, by = "ProjectID") %>%
+  filter(ProjectType %in% c(1:4, 8:9, 13) &
+           operating_between(., ReportStart, ReportEnd) &
+           CountyServed %in% YHDP_Counties) %>%
+  select(ProjectID,
+         ProjectName,
+         OrganizationName,
+         ProjectType,
+         ProviderCounty) %>%
+  unique()
+```
 
+There are clearly some projects that exist outside the YHDP region who serve households in the region. So in order to wind up with a final list of projects to select for the LSA reporting group, we would add those to the projects that actually exist within the boundaries of the YHDP region.
+
+```{r final}
+final_list <- strictly_in_the_region %>%
+  full_join(
+    projects_serving_in_region,
+    by = c(
+      "ProjectID",
+      "ProjectName",
+      "OrganizationName",
+      "ProjectType",
+      "ProviderCounty"
+    )
+  ) %>%
+  select(
+    "Project ID" = ProjectID,
+    "Project Type" = ProjectType,
+    "Project" = ProjectName,
+    "Organization" = OrganizationName,
+    "Project County" = ProviderCounty
+  )
+
+formattable(final_list)
+```
 
 
 
