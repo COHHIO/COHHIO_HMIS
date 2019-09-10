@@ -121,7 +121,7 @@ rm(bowman_entry_exits, counties)
 # overwriting HUD CSV columns bc of the 50 character limit
 provider_extras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
-                            range = cell_cols("A:M")) %>%
+                            range = cell_cols("A:N")) %>%
   mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
 
 Project <- Project %>%
