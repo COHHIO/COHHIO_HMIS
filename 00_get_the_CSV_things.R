@@ -237,13 +237,20 @@ Services <- services_1 %>%
 
 rm(services_1, services_funds)
 
+project_names <- Project %>%
+  select(ProjectID, ProjectName) 
+
+staging_enrollment <- Enrollment %>%
+  left_join(project_names, by = "ProjectID")
+
 staging_services <- Services[c("PersonalID",
+                              "ServiceProvider",
                               "ServiceID",
                               "ServiceStartDate",
-                              "ServiceEndDate",
-                              "ServiceHHID")] %>%
-  left_join(Enrollment[c("EnrollmentID",
+                              "ServiceEndDate")] %>%
+  left_join(staging_enrollment[c("EnrollmentID",
                          "PersonalID",
+                         "ProjectName",
                          "EntryDate",
                          "ExitAdjust")],
             by = "PersonalID") %>%
@@ -251,29 +258,27 @@ staging_services <- Services[c("PersonalID",
     ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
     ServiceRange = interval(ymd(ServiceStartDate), ymd(ServiceEndAdjust)),
     EERange = interval(ymd(EntryDate), ymd(ExitAdjust)),
-    Valid = if_else(int_overlaps(ServiceRange, EERange), TRUE, FALSE)
-  ) %>%
+    Valid = if_else(int_overlaps(ServiceRange, EERange) &
+                      ServiceProvider == ProjectName, TRUE, FALSE)
+  ) 
+
+stray_services <- staging_services %>%
+  filter(is.na(Valid))
+
+staging_services <- staging_services %>%
   filter(Valid == TRUE) %>%
   select(PersonalID,
          ServiceID,
          EnrollmentID,
-         ServiceHHID)
-
-# the code above pulls in the HHID associated with the SERVICE, not the EE. In
-# general, the ServiceHHID does not help anything except finding obscure data
-# quality problems, like that the Service was built using a different HH than
-# the associated EE. It's not a big deal anymore, since we're not even
-# entering Services/Referrals onto non-HoHs anyway. Currently I cannot think of
-# a reason to use the Service's HH ID ever but I'll keep it in just in case.
+         ServiceProvider)
 
 Services <- staging_services %>%
-  full_join(Services, by = c("ServiceID", "PersonalID", "ServiceHHID"))
+  left_join(Services, by = c("ServiceID", "PersonalID", "ServiceProvider"))
 
-# the code above pulls in Services that cannot be associated to an EE, so some 
-# EnrollmentIDs will be NULL. These should be filtered out when reporting on
-# Services, but they're needed for Data Quality checking so I'm leaving them in.
+# the code above does not pull in Services that cannot be associated to an EE. 
+# Any Services that don't align with an EE can be found in stray_services
 
-rm(staging_services)
+rm(staging_services, staging_enrollment)
 
 # Referrals ---------------------------------------------------------------
 
