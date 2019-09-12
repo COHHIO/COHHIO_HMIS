@@ -479,4 +479,3 @@ update_date <- file.info("data/Enrollment.csv")$mtime
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
 
-rm(list = ls())

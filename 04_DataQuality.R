@@ -1819,7 +1819,6 @@ save.image("images/Data_Quality.RData")
 # end <- now()
 # end - start
 # 
-rm(list = ls())
 # 
 # # Errors by Provider ------------------------------------------------------
 # 

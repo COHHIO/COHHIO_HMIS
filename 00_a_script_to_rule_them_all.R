@@ -21,13 +21,19 @@
 # recent data and code.
 
 source("00_get_the_CSV_things.R")
+rm(list = ls())
 
 source("01_Bed_Unit_Utilization.R")
+rm(list = ls())
 
 source("02_QPR_SPDATs.R")
+rm(list = ls())
 
 source("02_QPR_EEs.R")
+rm(list = ls())
 
 source("03_Veterans.R")
+rm(list = ls())
 
 source("04_DataQuality.R")
+rm(list = ls())
