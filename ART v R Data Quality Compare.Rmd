@@ -114,17 +114,17 @@ gt(missingFromRIssues)
 ```
 
 
->The Disability subs Not Matching (387): The problem is the Yes subs have No's for "of long duration", which means they really shouldn't count. The R logic needs to be cleaned up here. (ART is correct.)
+>The Disability subs Not Matching (6011): The Yes subs have No's for "of long duration", but in R, the Developmental is getting an automatic "of long duration" because that's how it is in the FY2020 Data Standards. So that counts as a "Yes" for "of long duration" which means there is a sub to match the outside Yes. (Rm is correct.)
 
 >Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
-> HoHs Entering PH without SPDATs (1396): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
+> HoHs Entering PH without SPDATs (6195): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
 
 >HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
 
->Missing HI at Entry (110573): Export is not showing the Medicaid subassessment correctly. (VENDOR ISSUE)
+>Missing HI at Entry (69112): Export is not showing the outside Yes correctly. (VENDOR ISSUE)
 
->Missing HI at Exit (219137): Entered this as WS case #864582 because what I'm seeing in SP is DIFFERENT than what I'm seeing in the HUD CSV Export. (VENDOR ISSUE)
+>Missing HI at Exit (69112): Export is not showing the outside Yes correctly. (VENDOR ISSUE)
 
 >Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
 
@@ -132,9 +132,9 @@ gt(missingFromRIssues)
 
 >Missing Income at Exit (31777): Not found in the actual ART report. (Both are correct.)
 
->Missing NCBs at Entry (16909): This is because of the Export issue where it's not looking at the yes/no field. (ART is correct/VENDOR ISSUE)
+>Missing NCBs at Entry (16909): This is because of the Export issue where it's not looking at the yes/no field. (VENDOR ISSUE)
 
->Missing NCBs at Exit (16909): This client should be showing in Rm. They have a null for NCB's y/n at Exit. UGH this is another vendor-related issue with the export. (ART is correct/VENDOR ISSUE)
+>Missing NCBs at Exit (16909): This is because of the Export issue where it's not looking at the yes/no field. (VENDOR ISSUE)
 
 >Missing or Incorrect SSN: Client 4216 is our demo client on the live site. The COHHIO providers are not being pulled into the Rm providers to be checked for DQ so this client is not showing in Rm. (Rm is correct)
 
@@ -250,7 +250,7 @@ Too Many Heads of Household: This is waiting on resolution on WS ticket# 858797.
 
 ## List of Things to Solve Prior to Killing the ART Reports
 
-1. Certain disability subs shouldn't count unless the "of long duration" is a yes. This needs to be coded into Data_Quality.R.
+1. 
 2. All the PATH-related Data Quality issues need to be added.
 3. All the SSVF-related Data Quality issues need to be added.
 4. Conflicting Disabilities need to only pull in if the subs have yeses for "of long duration".
