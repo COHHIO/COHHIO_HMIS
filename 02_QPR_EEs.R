@@ -230,7 +230,6 @@ rm(Client,
 
 save.image("images/QPR_EEs.RData")
 
-rm(list = ls())
 
 
 # somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",

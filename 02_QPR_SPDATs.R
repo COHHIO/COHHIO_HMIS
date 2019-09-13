@@ -150,4 +150,3 @@ rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, Users)
 
 save.image("images/QPR_SPDATs.RData")
 
-rm(list = ls())

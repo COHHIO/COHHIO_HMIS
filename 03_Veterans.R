@@ -113,5 +113,4 @@ rm(Client, Enrollment, Inventory, Project, Regions, VeteranCE, Veterans)
 
 save.image("images/Veterans.RData")
 
-rm(list = ls())
 

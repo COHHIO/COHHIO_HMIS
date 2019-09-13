@@ -778,6 +778,5 @@ rm(Households, Clients, Capacity, Enrollment, Project, Inventory,
 
 save.image("images/Utilization.RData")
 
-rm(list = ls())
 
 
