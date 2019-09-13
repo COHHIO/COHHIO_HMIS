@@ -463,6 +463,8 @@ smallDisabilities <- Disabilities %>%
            ((DisabilityType == 10 & DisabilityResponse %in% c(1:3)) | 
            (DisabilityType != 10 & DisabilityResponse == 1))
            ) %>%
+  mutate(IndefiniteAndImpairs =
+           if_else(DisabilityType %in% c(6, 8), 1, IndefiniteAndImpairs)) %>%
   select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
          DisabilityType, IndefiniteAndImpairs)
 
@@ -483,8 +485,6 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
   ) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(DisablingCondition %in% c(0, 1)) %>%
-  mutate(IndefiniteAndImpairs =
-           if_else(DisabilityType %in% c(6, 8), 1, IndefiniteAndImpairs)) %>%
   group_by(
     PersonalID,
     EnrollmentID,
@@ -702,7 +702,7 @@ checkEligibility <- checkEligibility %>%
   mutate(Issue = "Check Eligibility", Type = "Warning") %>%
   select(vars_we_want)
 
-# Missing PATH Data at Entry
+
 # Missing Destination
 missingDestination <- servedInDateRange %>%
   filter(!is.na(ExitDate) & 
@@ -716,12 +716,52 @@ dkrDestination <- servedInDateRange %>%
   mutate(Issue = "Don't Know/Refused Destination",
          Type = "Warning") %>%
   select(vars_we_want)
-# Missing SSVF Data
-# Incorrect PATH Contact Date
-# Missing PATH Contact End Date
-# Missing PATH Contacts
-# Missing PATH Data at Exit
 
+# Missing SSVF Data
+
+# Missing PATH Data at Entry
+
+#* Length of Stay in Res Prior
+### adult, PATH-enrolled, and:
+### Length of Stay is null or DNC -> error -OR-
+### Length of Stay is DKR -> warning
+
+#* Engagement at Entry/Exit
+### adult, PATH-enrolled, Date of Engagement is null -> error
+
+#* Status Determination at Entry
+### adult, PATH-Enrolled is not null 
+### Date of Status Determ is null -> error
+
+#* PATH Enrolled at Entry/Exit
+### adult and:
+### PATH Enrolled null or DNC -> error -OR-
+### PATH Enrolled DKR -> warning
+
+#* Not Enrolled Reason
+### adult
+### PATH Enrolled = No
+### Reason is null -> error
+
+#* Connection with SOAR at Exit
+### adult 
+### Connection w/ SOAR is null or DNC -> error -OR-
+### Connection w/ SOAR DKR -> warning
+
+#* Status Determination at Exit
+### adult, 
+### PATH-Enrolled is null -> error
+### Date of Status Determ > Date of Engagement + 1 day -> error
+
+# Missing PATH Contacts
+## client is adult/hoh and has no contact record in the EE -> error
+
+# Incorrect PATH Contact Date
+## client is adult/hoh, has a contact record, and the first record in the EE 
+## does not equal the Entry Date ->  error
+
+# Missing PATH Contact End Date
+## client is adult/hoh, has a contact record, and the End Date is null -> error
 
 
 # Duplicate EEs -----------------------------------------------------------
