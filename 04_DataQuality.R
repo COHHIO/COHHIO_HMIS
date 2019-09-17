@@ -726,6 +726,20 @@ dkrDestination <- servedInDateRange %>%
 ### Length of Stay is null or DNC -> error -OR-
 ### Length of Stay is DKR -> warning
 
+path_missing_los_res_prior <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
+         LengthOfStay, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+         AgeAtEntry > 17 &
+         ClientEnrolledInPATH == 1 &
+         (is.na(LengthOfStay)| LengthOfStay == 99)) %>%
+  mutate(Issue = "Missing Residence Prior Length of Stay (PATH)",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+
 #* Engagement at Entry/Exit
 ### adult, PATH-enrolled, Date of Engagement is null -> error
 
@@ -1477,7 +1491,7 @@ servicesOnHHMembersSSVF <- servedInDateRange %>%
       GrantType == "SSVF"
   ) %>%
   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
-  mutate(Issue = "Service Transaction on a non Head of Household",
+  mutate(Issue = "Service Transaction on a non Head of Household (SSVF)",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1530,14 +1544,20 @@ referralsOnHHMembersSSVF <- servedInDateRange %>%
 # Unpaired Needs ----------------------------------------------------------
 # can't get this from the CSV Export
 
-# Service Date Before Entry -----------------------------------------------
-# can't get this from the CSV Export
+# Stray Services (fall outside EE) ----------------------------------------
+# Because a lot of these records are stray Services due to there being no
+# Entry Exit at all, this can't be shown in the same data set as all the other 
+# errors. I'm going to have to make this its own thing somehow. :(
+stray_services <- stray_services %>% 
+  mutate(Issue = "Service Not Attached to an Entry Exit",
+         Type = "Warning") %>%
+  select(PersonalID, ServiceProvider, ServiceStartDate, Issue, Type)
 
 # Unmet Needs -------------------------------------------------------------
 # can't get this from the CSV Export
 
 # AP No Recent Referrals --------------------------------------------------
-# can't get this from the CSV export
+
 
 # AP entering project stays -----------------------------------------------
 smallProject <- Project %>% select(ProjectID, 
@@ -1553,10 +1573,7 @@ APsWithEEs <- Enrollment %>%
   select(vars_we_want)
 
 # Need Status Referral Outcomes -------------------------------------------
-# can't get this from the HUD CSV Export
-
-# Veterans with No Referral -----------------------------------------------
-# can't get this from the HUD CSV Export
+# would need to pull in the Needs records to calculate this
 
 
 # Side Door ---------------------------------------------------------------
@@ -1564,8 +1581,12 @@ APsWithEEs <- Enrollment %>%
 
 
 # Old Outstanding Referrals -----------------------------------------------
-# can't get this from the HUD CSV Export
-
+# Referred-FromProvider is all nulls. Probably not correct in ReportWriter?
+# Using ProviderCreating instead.
+old_outstanding_referrals <- Referrals %>%
+  filter(!is.na(ReferralOutcome) &
+           ReferralDate < today() - days(14)) %>%
+  select(PersonalID, ReferralDate, ProviderCreating)
 
 # Service Date Before Entry -----------------------------------------------
 # can't get this from the CSV Export
@@ -1688,6 +1709,7 @@ DataQualityHMIS <- rbind(
   missingResidencePrior,
   missingUDEs,
   overlaps,
+  path_missing_los_res_prior,
   referralsOnHHMembers,
   referralsOnHHMembersSSVF,
   servicesOnHHMembers,
@@ -1745,8 +1767,8 @@ diversionDataQuality <- rbind(
 DataQualityHMIS <- DataQualityHMIS %>%
   filter(
     !Issue %in% c(
-      "Conflicting Disability yes/no at Entry",
-      "Conflicting Disability yes/no at Exit",
+      "Conflicting Disability yes/no",
+      # "Conflicting Disability yes/no at Exit",
       "Conflicting Health Insurance yes/no at Entry",
       "Conflicting Health Insurance yes/no at Exit",
       "Conflicting Income yes/no at Entry",
