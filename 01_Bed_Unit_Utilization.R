@@ -774,8 +774,25 @@ names(ClientUtilizers) <-
   )
 
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
-   small_inventory, small_project)
+   small_inventory, small_project, Referrals, stray_services)
 
+bed_utilization_note <- "Bed Utilization is the percentage of a project's available beds being populated by individual clients."
+
+unit_utilization_note <- "Unit Utilization is the percentage of a project's available units being populated by households. A household can be a single individual or multiple clients presenting together for housing."
+
+calculation_note <- "Bed Utilization = bed nights* served / total possible bed nights** in a month.
+<p> Unit Utilization = unit nights served / total possible unit nights in a month.
+
+<p>* A bed night is a single night in a bed.
+<p>* A unit night is a single night in a unit.
+<p>** Total possible bed/unit nights = number of beds/units a project has × how many days are in the given month.
+<p>Example A: Client A enters a shelter on May 1 and exits on May 5. They spent four nights in the shelter, so that was 4 bed nights from that client alone in the month of May for that shelter.
+
+<p>Example B: PSH Project A served 10 people every single night in the month of June. Each client was served 30 bed nights during that month, and since there were 10 clients, that PSH project served a total of 300 bed nights for the month of June.
+
+<p>Example C: PSH Project B has 5 beds. That project's total possible bed nights for the month of April (which has 30 days in it) is 30 x 5, which is 150.
+
+<p>Example D: Using what we know from Example B of PSH Project A's total bed nights for the month of June, let's calculate what their bed utilization was for that month. They have 11 beds and June has 30 days so since 11 × 30 = 330 possible bed nights. Their bed utilization is bed nights (300) divided by possible bed nights (330), which is: 91%!"
 save.image("images/Utilization.RData")
 
 
