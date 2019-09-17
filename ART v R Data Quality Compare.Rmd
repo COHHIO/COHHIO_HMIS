@@ -83,7 +83,9 @@ Getting the same data, but using the logic in the 04_DataQuality.R script (which
 ```{r R_DQ, echo=TRUE}
 load("images/Data_Quality.RData")
 
-DataQualityHMIS <- as.data.frame(DataQualityHMIS)
+DataQualityHMIS <- as.data.frame(DataQualityHMIS) %>%
+  filter(served_between(., "09012018", "09172019"))
+
 
 R_DQ <- DataQualityHMIS %>% select(Issue, ProjectName, PersonalID)
 ```
@@ -114,9 +116,11 @@ gt(missingFromRIssues)
 ```
 
 
->The Disability subs Not Matching (6011): The Yes subs have No's for "of long duration", but in R, the Developmental is getting an automatic "of long duration" because that's how it is in the FY2020 Data Standards. So that counts as a "Yes" for "of long duration" which means there is a sub to match the outside Yes. (Rm is correct.)
+Children Only Household (168314): The HoH was exited but the child was not. I don't know how ART is picking this up but it's cool as hell. Need to work this into Rme. (ART is correct)
 
->Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
+The Disability subs Not Matching (149731): This Enrollment was entered after I created the exports so that's why it's not in R.
+
+Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
 > HoHs Entering PH without SPDATs (6195): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
 
