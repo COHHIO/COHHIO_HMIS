@@ -1582,7 +1582,8 @@ APsWithEEs <- Enrollment %>%
 
 # Old Outstanding Referrals -----------------------------------------------
 # Referred-FromProvider is all nulls. Probably not correct in ReportWriter?
-# Using ProviderCreating instead.
+# Using ProviderCreating instead. Either way, I feel this should go in the 
+# Provider Dashboard, not the Data Quality report.
 old_outstanding_referrals <- Referrals %>%
   filter(!is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
