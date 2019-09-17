@@ -146,7 +146,8 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(ProjectName, PersonalID, EntryDate, ExitDate, Score) %>%
   arrange(ProjectName)
 
-rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, Users)
+rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, Users,
+   Referrals, stray_services)
 
 save.image("images/QPR_SPDATs.RData")
 

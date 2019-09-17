@@ -226,7 +226,9 @@ rm(Client,
    incomeMostRecent,
    incomeAtEntry,
    smallIncomeDiff,
-   IncomeBenefits)
+   IncomeBenefits,
+   Referrals,
+   stray_services)
 
 save.image("images/QPR_EEs.RData")
 
