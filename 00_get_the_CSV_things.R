@@ -437,8 +437,8 @@ if(ncol(read_csv("data/Client.csv")) == 36)
       (is.na(SSN) & !SSNDataQuality %in% c(8, 9)) |
         is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
       SSNDataQuality %in% c(8, 9) ~ "DKR",
-      substr(SSN, 1, 1) == 0 |
-        substr(SSN, 1, 2) == "00" |
+      # substr(SSN, 1, 1) == 0 |
+        # substr(SSN, 1, 2) == "00" |
         (nchar(SSN) != 9 & SSNDataQuality != 2) |
         substr(SSN, 1, 3) %in% c("000", "666") |
         substr(SSN, 1, 1) == 9 |
