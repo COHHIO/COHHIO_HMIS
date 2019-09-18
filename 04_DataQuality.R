@@ -726,6 +726,11 @@ dkrDestination <- servedInDateRange %>%
 ### Length of Stay is null or DNC -> error -OR-
 ### Length of Stay is DKR -> warning
 
+smallProject <- Project %>% select(ProjectID, 
+                                   ProjectName, 
+                                   Region,
+                                   "ProviderCounty" = County)
+
 path_missing_los_res_prior <- Enrollment %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
@@ -1560,10 +1565,6 @@ stray_services <- stray_services %>%
 
 
 # AP entering project stays -----------------------------------------------
-smallProject <- Project %>% select(ProjectID, 
-                                   ProjectName, 
-                                   Region,
-                                   "ProviderCounty" = County)
 
 APsWithEEs <- Enrollment %>%
   filter(ProjectType == 14) %>%
