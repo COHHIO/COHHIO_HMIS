@@ -30,8 +30,7 @@ if(ncol(read_csv("data/Client.csv")) == 36) {
 } else {
   Client <-
     read_csv("data/Client.csv",
-             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
-    filter(!PersonalID %in% c(5, 4216))
+             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn"))
 }
 
 Disabilities <-
