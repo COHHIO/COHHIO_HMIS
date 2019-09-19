@@ -719,7 +719,7 @@ dkrDestination <- servedInDateRange %>%
 
 # Missing SSVF Data
 
-# Missing PATH Data at Entry
+# Missing PATH Data
 
 #* Length of Stay in Res Prior
 ### adult, PATH-enrolled, and:
@@ -749,7 +749,7 @@ path_missing_los_res_prior <- Enrollment %>%
 ### adult, PATH-enrolled, Date of Engagement is null -> error
 
 
-#* Status Determination at Entry
+#* Status Determination at Exit
 ### adult, PATH-Enrolled is not null 
 ### Date of Status Determ is null -> error
 path_status_determination <- Enrollment %>%
@@ -833,13 +833,6 @@ path_SOAR_missing_at_exit <- Enrollment %>%
   select(vars_we_want)
 
 rm(smallIncomeSOAR)
-
-#* Status Determination at Exit
-### adult, 
-### PATH-Enrolled is null -> error
-### Date of Status Determ > Date of Engagement + 1 day -> error
-
-
 
 # Missing PATH Contacts
 ## client is adult/hoh and has no contact record in the EE -> error
@@ -1771,7 +1764,10 @@ DataQualityHMIS <- rbind(
   missingResidencePrior,
   missingUDEs,
   overlaps,
+  path_enrolled_missing,
   path_missing_los_res_prior,
+  path_reason_missing,
+  path_SOAR_missing_at_exit,
   path_status_determination,
   referralsOnHHMembers,
   referralsOnHHMembersSSVF,
