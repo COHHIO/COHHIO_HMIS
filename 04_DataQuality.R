@@ -748,9 +748,21 @@ path_missing_los_res_prior <- Enrollment %>%
 #* Engagement at Entry/Exit
 ### adult, PATH-enrolled, Date of Engagement is null -> error
 
+
 #* Status Determination at Entry
 ### adult, PATH-Enrolled is not null 
 ### Date of Status Determ is null -> error
+path_status_determination <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
+         DateOfPATHStatus, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           !is.na(ClientEnrolledInPATH) &
+           is.na(DateOfPATHStatus)) %>%
+  mutate(Issue = "Missing Date of PATH Status",
+         Type = "Error") %>%
+  select(vars_we_want)
 
 #* PATH Enrolled at Entry/Exit
 ### adult and:
@@ -1578,20 +1590,17 @@ APsWithEEs <- Enrollment %>%
 
 
 # Side Door ---------------------------------------------------------------
-# can't get this from the HUD CSV Export
+# use Referrals, get logic from ART report- it's pretty lax I think
 
 
 # Old Outstanding Referrals -----------------------------------------------
-# Referred-FromProvider is all nulls. Probably not correct in ReportWriter?
+# CW says ProviderCreating should work instead of Referred-From Provider
 # Using ProviderCreating instead. Either way, I feel this should go in the 
 # Provider Dashboard, not the Data Quality report.
 old_outstanding_referrals <- Referrals %>%
   filter(!is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
   select(PersonalID, ReferralDate, ProviderCreating)
-
-# Service Date Before Entry -----------------------------------------------
-# can't get this from the CSV Export
 
 # Diversion Incorrect Destination -----------------------------------------
 # Currently, the BoS is collecting Diversion via EEs on a single provider
@@ -1618,12 +1627,6 @@ diversionIncorrectExitDate <- filter(diversionEnrollments,
   select(vars_we_want)
 
 # Diversion Missing # in HH -----------------------------------------------
-# can't get this from the CSV Export
-
-# Diversion No Provider in CM Record --------------------------------------
-# can't get this from the CSV Export
-
-# Diversion Missing CM ----------------------------------------------------
 # can't get this from the CSV Export
 
 # Diversion Entered all HH members ----------------------------------------
@@ -1712,6 +1715,7 @@ DataQualityHMIS <- rbind(
   missingUDEs,
   overlaps,
   path_missing_los_res_prior,
+  path_status_determination,
   referralsOnHHMembers,
   referralsOnHHMembersSSVF,
   servicesOnHHMembers,
