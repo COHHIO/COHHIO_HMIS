@@ -758,6 +758,7 @@ path_status_determination <- Enrollment %>%
          DateOfPATHStatus, EEType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
            !is.na(ClientEnrolledInPATH) &
            is.na(DateOfPATHStatus)) %>%
   mutate(Issue = "Missing Date of PATH Status",
@@ -767,22 +768,78 @@ path_status_determination <- Enrollment %>%
 #* PATH Enrolled at Entry/Exit
 ### adult and:
 ### PATH Enrolled null or DNC -> error -OR-
-### PATH Enrolled DKR -> warning
+
+path_enrolled_missing <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           (ClientEnrolledInPATH == 99 |
+              is.na(ClientEnrolledInPATH))) %>% 
+  mutate(Issue = "Missing Enrollment",
+         Type = "Error") %>%
+  select(vars_we_want)
 
 #* Not Enrolled Reason
 ### adult
 ### PATH Enrolled = No
 ### Reason is null -> error
 
+path_reason_missing <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
+         ReasonNotEnrolled) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           ClientEnrolledInPATH == 0 &
+              is.na(ReasonNotEnrolled)) %>% 
+  mutate(Issue = "Missing Reason Not Enrolled",
+         Type = "Error") %>%
+  select(vars_we_want)
+
 #* Connection with SOAR at Exit
 ### adult 
 ### Connection w/ SOAR is null or DNC -> error -OR-
 ### Connection w/ SOAR DKR -> warning
 
+smallIncomeSOAR <- IncomeBenefits %>%
+  select(PersonalID, EnrollmentID, ConnectionWithSOAR, DataCollectionStage) %>%
+  filter(DataCollectionStage == 3)
+
+path_SOAR_missing_at_exit <- Enrollment %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    ProjectID,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    UserCreating,
+    AgeAtEntry,
+    ClientEnrolledInPATH,
+    EEType
+  ) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  left_join(smallIncomeSOAR, by = c("PersonalID", "EnrollmentID")) %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           DataCollectionStage == 3 &
+           is.na(ConnectionWithSOAR)) %>%
+  mutate(Issue = "Missing Connection with SOAR at Exit",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+rm(smallIncomeSOAR)
+
 #* Status Determination at Exit
 ### adult, 
 ### PATH-Enrolled is null -> error
 ### Date of Status Determ > Date of Engagement + 1 day -> error
+
+
 
 # Missing PATH Contacts
 ## client is adult/hoh and has no contact record in the EE -> error
