@@ -463,6 +463,8 @@ smallDisabilities <- Disabilities %>%
            ((DisabilityType == 10 & DisabilityResponse %in% c(1:3)) | 
            (DisabilityType != 10 & DisabilityResponse == 1))
            ) %>%
+  mutate(IndefiniteAndImpairs =
+           if_else(DisabilityType %in% c(6, 8), 1, IndefiniteAndImpairs)) %>%
   select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
          DisabilityType, IndefiniteAndImpairs)
 
@@ -483,8 +485,6 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
   ) %>%
   left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(DisablingCondition %in% c(0, 1)) %>%
-  mutate(IndefiniteAndImpairs =
-           if_else(DisabilityType %in% c(6, 8), 1, IndefiniteAndImpairs)) %>%
   group_by(
     PersonalID,
     EnrollmentID,
@@ -702,7 +702,7 @@ checkEligibility <- checkEligibility %>%
   mutate(Issue = "Check Eligibility", Type = "Warning") %>%
   select(vars_we_want)
 
-# Missing PATH Data at Entry
+
 # Missing Destination
 missingDestination <- servedInDateRange %>%
   filter(!is.na(ExitDate) & 
@@ -716,12 +716,140 @@ dkrDestination <- servedInDateRange %>%
   mutate(Issue = "Don't Know/Refused Destination",
          Type = "Warning") %>%
   select(vars_we_want)
-# Missing SSVF Data
-# Incorrect PATH Contact Date
-# Missing PATH Contact End Date
-# Missing PATH Contacts
-# Missing PATH Data at Exit
 
+# Missing SSVF Data
+
+# Missing PATH Data at Entry
+
+#* Length of Stay in Res Prior
+### adult, PATH-enrolled, and:
+### Length of Stay is null or DNC -> error -OR-
+### Length of Stay is DKR -> warning
+
+smallProject <- Project %>% select(ProjectID, 
+                                   ProjectName, 
+                                   Region,
+                                   "ProviderCounty" = County)
+
+path_missing_los_res_prior <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
+         LengthOfStay, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+         AgeAtEntry > 17 &
+         ClientEnrolledInPATH == 1 &
+         (is.na(LengthOfStay)| LengthOfStay == 99)) %>%
+  mutate(Issue = "Missing Residence Prior Length of Stay (PATH)",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+
+#* Engagement at Entry/Exit
+### adult, PATH-enrolled, Date of Engagement is null -> error
+
+
+#* Status Determination at Entry
+### adult, PATH-Enrolled is not null 
+### Date of Status Determ is null -> error
+path_status_determination <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
+         DateOfPATHStatus, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           !is.na(ClientEnrolledInPATH) &
+           is.na(DateOfPATHStatus)) %>%
+  mutate(Issue = "Missing Date of PATH Status",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+#* PATH Enrolled at Entry/Exit
+### adult and:
+### PATH Enrolled null or DNC -> error -OR-
+
+path_enrolled_missing <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           (ClientEnrolledInPATH == 99 |
+              is.na(ClientEnrolledInPATH))) %>% 
+  mutate(Issue = "Missing Enrollment",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+#* Not Enrolled Reason
+### adult
+### PATH Enrolled = No
+### Reason is null -> error
+
+path_reason_missing <- Enrollment %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
+         ReasonNotEnrolled) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           ClientEnrolledInPATH == 0 &
+              is.na(ReasonNotEnrolled)) %>% 
+  mutate(Issue = "Missing Reason Not Enrolled",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+#* Connection with SOAR at Exit
+### adult 
+### Connection w/ SOAR is null or DNC -> error -OR-
+### Connection w/ SOAR DKR -> warning
+
+smallIncomeSOAR <- IncomeBenefits %>%
+  select(PersonalID, EnrollmentID, ConnectionWithSOAR, DataCollectionStage) %>%
+  filter(DataCollectionStage == 3)
+
+path_SOAR_missing_at_exit <- Enrollment %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    ProjectID,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    UserCreating,
+    AgeAtEntry,
+    ClientEnrolledInPATH,
+    EEType
+  ) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  left_join(smallIncomeSOAR, by = c("PersonalID", "EnrollmentID")) %>%
+  filter(EEType == "PATH" &
+           AgeAtEntry > 17 &
+           DataCollectionStage == 3 &
+           is.na(ConnectionWithSOAR)) %>%
+  mutate(Issue = "Missing Connection with SOAR at Exit",
+         Type = "Error") %>%
+  select(vars_we_want)
+
+rm(smallIncomeSOAR)
+
+#* Status Determination at Exit
+### adult, 
+### PATH-Enrolled is null -> error
+### Date of Status Determ > Date of Engagement + 1 day -> error
+
+
+
+# Missing PATH Contacts
+## client is adult/hoh and has no contact record in the EE -> error
+
+# Incorrect PATH Contact Date
+## client is adult/hoh, has a contact record, and the first record in the EE 
+## does not equal the Entry Date ->  error
+
+# Missing PATH Contact End Date
+## client is adult/hoh, has a contact record, and the End Date is null -> error
 
 
 # Duplicate EEs -----------------------------------------------------------
@@ -1437,7 +1565,7 @@ servicesOnHHMembersSSVF <- servedInDateRange %>%
       GrantType == "SSVF"
   ) %>%
   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
-  mutate(Issue = "Service Transaction on a non Head of Household",
+  mutate(Issue = "Service Transaction on a non Head of Household (SSVF)",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1490,20 +1618,22 @@ referralsOnHHMembersSSVF <- servedInDateRange %>%
 # Unpaired Needs ----------------------------------------------------------
 # can't get this from the CSV Export
 
-# Service Date Before Entry -----------------------------------------------
-# can't get this from the CSV Export
+# Stray Services (fall outside EE) ----------------------------------------
+# Because a lot of these records are stray Services due to there being no
+# Entry Exit at all, this can't be shown in the same data set as all the other 
+# errors. I'm going to have to make this its own thing somehow. :(
+stray_services <- stray_services %>% 
+  mutate(Issue = "Service Not Attached to an Entry Exit",
+         Type = "Warning") %>%
+  select(PersonalID, ServiceProvider, ServiceStartDate, Issue, Type)
 
 # Unmet Needs -------------------------------------------------------------
 # can't get this from the CSV Export
 
 # AP No Recent Referrals --------------------------------------------------
-# can't get this from the CSV export
+
 
 # AP entering project stays -----------------------------------------------
-smallProject <- Project %>% select(ProjectID, 
-                                   ProjectName, 
-                                   Region,
-                                   "ProviderCounty" = County)
 
 APsWithEEs <- Enrollment %>%
   filter(ProjectType == 14) %>%
@@ -1513,22 +1643,21 @@ APsWithEEs <- Enrollment %>%
   select(vars_we_want)
 
 # Need Status Referral Outcomes -------------------------------------------
-# can't get this from the HUD CSV Export
-
-# Veterans with No Referral -----------------------------------------------
-# can't get this from the HUD CSV Export
+# would need to pull in the Needs records to calculate this
 
 
 # Side Door ---------------------------------------------------------------
-# can't get this from the HUD CSV Export
+# use Referrals, get logic from ART report- it's pretty lax I think
 
 
 # Old Outstanding Referrals -----------------------------------------------
-# can't get this from the HUD CSV Export
-
-
-# Service Date Before Entry -----------------------------------------------
-# can't get this from the CSV Export
+# CW says ProviderCreating should work instead of Referred-From Provider
+# Using ProviderCreating instead. Either way, I feel this should go in the 
+# Provider Dashboard, not the Data Quality report.
+old_outstanding_referrals <- Referrals %>%
+  filter(!is.na(ReferralOutcome) &
+           ReferralDate < today() - days(14)) %>%
+  select(PersonalID, ReferralDate, ProviderCreating)
 
 # Diversion Incorrect Destination -----------------------------------------
 # Currently, the BoS is collecting Diversion via EEs on a single provider
@@ -1555,12 +1684,6 @@ diversionIncorrectExitDate <- filter(diversionEnrollments,
   select(vars_we_want)
 
 # Diversion Missing # in HH -----------------------------------------------
-# can't get this from the CSV Export
-
-# Diversion No Provider in CM Record --------------------------------------
-# can't get this from the CSV Export
-
-# Diversion Missing CM ----------------------------------------------------
 # can't get this from the CSV Export
 
 # Diversion Entered all HH members ----------------------------------------
@@ -1648,6 +1771,8 @@ DataQualityHMIS <- rbind(
   missingResidencePrior,
   missingUDEs,
   overlaps,
+  path_missing_los_res_prior,
+  path_status_determination,
   referralsOnHHMembers,
   referralsOnHHMembersSSVF,
   servicesOnHHMembers,
@@ -1705,8 +1830,8 @@ diversionDataQuality <- rbind(
 DataQualityHMIS <- DataQualityHMIS %>%
   filter(
     !Issue %in% c(
-      "Conflicting Disability yes/no at Entry",
-      "Conflicting Disability yes/no at Exit",
+      "Conflicting Disability yes/no",
+      # "Conflicting Disability yes/no at Exit",
       "Conflicting Health Insurance yes/no at Entry",
       "Conflicting Health Insurance yes/no at Exit",
       "Conflicting Income yes/no at Entry",

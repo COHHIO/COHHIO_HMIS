@@ -12,6 +12,10 @@
 # GNU Affero General Public License for more details at 
 #<https://www.gnu.org/licenses/>.
 
+## PLEASE NOTE THIS SCRIPT OVERWRITES THE CLIENT.CSV FILE ON YOUR HARD DRIVE!
+## IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
+## IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
+
 library(tidyverse)
 library(lubridate)
 library(readxl)
@@ -30,8 +34,7 @@ if(ncol(read_csv("data/Client.csv")) == 36) {
 } else {
   Client <-
     read_csv("data/Client.csv",
-             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
-    filter(!PersonalID %in% c(5, 4216))
+             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 }
 
 Disabilities <-
@@ -437,8 +440,8 @@ if(ncol(read_csv("data/Client.csv")) == 36)
       (is.na(SSN) & !SSNDataQuality %in% c(8, 9)) |
         is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
       SSNDataQuality %in% c(8, 9) ~ "DKR",
-      substr(SSN, 1, 1) == 0 |
-        substr(SSN, 1, 2) == "00" |
+      # substr(SSN, 1, 1) == 0 |
+        # substr(SSN, 1, 2) == "00" |
         (nchar(SSN) != 9 & SSNDataQuality != 2) |
         substr(SSN, 1, 3) %in% c("000", "666") |
         substr(SSN, 1, 1) == 9 |
