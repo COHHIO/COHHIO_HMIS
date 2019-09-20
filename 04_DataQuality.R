@@ -28,6 +28,7 @@ rm(
   Funder,
   Geography,
   HealthAndDV,
+  Offers,
   ProjectCoC,
   Regions,
   VeteranCE
@@ -1677,6 +1678,8 @@ APsWithEEs <- Enrollment %>%
          Type = "Error") %>%
   left_join(smallProject, by = "ProjectID") %>%
   select(vars_we_want)
+
+rm(Enrollment)
 
 # Need Status Referral Outcomes -------------------------------------------
 # would need to pull in the Needs records to calculate this
