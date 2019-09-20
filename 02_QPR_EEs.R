@@ -16,8 +16,6 @@
 
 library(tidyverse)
 library(lubridate)
-# library(plotly)
-library(readxl)
 library(janitor)
 
 load("images/COHHIOHMIS.RData")
@@ -26,7 +24,9 @@ rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, Export,
    Funder, Geography, HealthAndDV, Offers, Organization, ProjectCoC, Scores, 
    Services, VeteranCE, Users)
 
-goals <- read_xlsx("data/Goals.xlsx")
+# decided to continue to use a separate file for Goals (instead of building it
+# in a tribble) because this way the CoC team can review it more easily.
+goals <- read_csv("data/Goals.csv", col_types = "cccdddddddd")
 
 goals <- goals %>%
   gather(key = "ProjectType", 
@@ -34,7 +34,6 @@ goals <- goals %>%
          -SummaryMeasure, -Measure, -Operator) %>%
   mutate(ProjectType = as.numeric(ProjectType)) %>%
   filter(!is.na(Goal))
-
 
 # Building QPR_EEs ----------------------------------------------------
 
