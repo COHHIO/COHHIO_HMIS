@@ -15,8 +15,7 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-# library(plotly)
-# start <- now()
+
 load("images/COHHIOHMIS.RData")
 
 rm(
@@ -1066,8 +1065,6 @@ conflictingIncomeYNatEntry <- incomeSubs %>%
   mutate(Issue = "Conflicting Income yes/no at Entry",
          Type = "Error") %>%
   select(vars_we_want)
-
-
 
 # Not calculating Conflicting Income Amounts bc they're calculating the TMI from the
 # subs instead of using the field itself. Understandable but that means I would 
