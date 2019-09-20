@@ -57,6 +57,7 @@ vars_we_want <- c(
 )
 
 # several measures will use this
+# Adults who entered during date range
 
 co_adults_all_entered <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
@@ -68,6 +69,7 @@ co_adults_all_entered <-  Enrollment %>%
   select(vars_we_want)
 
 # for ncb logic
+# Adults who moved in and exited during date range
 
 co_adults_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
@@ -82,6 +84,7 @@ co_adults_movein_leavers <-  Enrollment %>%
   select(vars_we_want)	
 
 # increase income
+#Adults who moved in and were served during date range
 
 co_adults_movein_all <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
@@ -93,6 +96,7 @@ co_adults_movein_all <-  Enrollment %>%
   select(vars_we_want)	
 
 # health insurance
+# Clients who moved in and exited during date range
 
 co_client_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
@@ -106,6 +110,7 @@ co_client_movein_leavers <-  Enrollment %>%
   select(vars_we_want)	
 
 # exits to PH
+# Heads of Household who were served during date range
 
 co_hohs_all <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
@@ -117,6 +122,7 @@ co_hohs_all <-  Enrollment %>%
   select(vars_we_want)	
 
 # own housing and LoS
+# Heads of Household who moved in and exited during date range
 
 co_hohs_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
