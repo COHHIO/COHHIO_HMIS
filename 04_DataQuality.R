@@ -19,6 +19,20 @@ library(lubridate)
 # start <- now()
 load("images/COHHIOHMIS.RData")
 
+rm(
+  Affiliation,
+  EmploymentEducation,
+  EnrollmentCoC,
+  Exit,
+  Export,
+  Funder,
+  Geography,
+  HealthAndDV,
+  ProjectCoC,
+  Regions,
+  VeteranCE
+)
+
 # Providers to Check ------------------------------------------------------
 
 hmisParticipatingCurrent <- Project %>%
@@ -44,6 +58,8 @@ hmisParticipatingCurrent <- Project %>%
     "ProviderCounty" = County,
     Region
   ) %>% unique()
+
+rm(Inventory, Organization)
     
 # Clients to Check --------------------------------------------------------
 
@@ -58,9 +74,12 @@ servedInDateRange <- Enrollment %>%
          DateToStreetESSH, TimesHomelessPastThreeYears, AgeAtEntry,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement, 
          MoveInDate, MoveInDateAdjust, EEType, CountyServed, CountyPrior, 
-         ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, UserCreating) %>%
+         ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, 
+         UserCreating, ClientEnrolledInPATH, LengthOfStay, DateOfPATHStatus, 
+         ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
+rm(Client, FileStart, FileEnd, FilePeriod, hmisParticipatingCurrent)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -458,6 +477,7 @@ missingDisabilitiesDetail <- servedInDateRange %>%
 missingDisabilities <- missingDisabilitiesDetail %>%
   select(vars_we_want)
 
+
 smallDisabilities <- Disabilities %>%
   filter(DataCollectionStage == 1 & 
            ((DisabilityType == 10 & DisabilityResponse %in% c(1:3)) | 
@@ -467,6 +487,8 @@ smallDisabilities <- Disabilities %>%
            if_else(DisabilityType %in% c(6, 8), 1, IndefiniteAndImpairs)) %>%
   select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
          DisabilityType, IndefiniteAndImpairs)
+
+rm(Disabilities)
 
 conflictingDisabilitiesDetail <- servedInDateRange %>%
   select(
@@ -513,6 +535,8 @@ conflictingDisabilitiesDetail <- servedInDateRange %>%
 conflictingDisabilities <- conflictingDisabilitiesDetail %>%
   select(vars_we_want)
 
+rm(conflictingDisabilitiesDetail)
+
 # INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
 missingDisabilitySubs <- servedInDateRange %>%
   select(PersonalID,
@@ -557,6 +581,8 @@ missingLongDuration <- servedInDateRange %>%
   mutate(Issue = "Disabilities: missing Long Duration in subassessment",
          Type = "Error") %>%
   select(vars_we_want)
+
+rm(smallDisabilities)
 
 # MoveInDate
 # check that these aren't just bad data from WellSky
@@ -731,7 +757,9 @@ smallProject <- Project %>% select(ProjectID,
                                    Region,
                                    "ProviderCounty" = County)
 
-path_missing_los_res_prior <- Enrollment %>%
+rm(Project)
+
+path_missing_los_res_prior <- servedInDateRange %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
          LengthOfStay, EEType) %>%
@@ -752,7 +780,7 @@ path_missing_los_res_prior <- Enrollment %>%
 #* Status Determination at Exit
 ### adult, PATH-Enrolled is not null 
 ### Date of Status Determ is null -> error
-path_status_determination <- Enrollment %>%
+path_status_determination <- servedInDateRange %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
          DateOfPATHStatus, EEType) %>%
@@ -769,7 +797,7 @@ path_status_determination <- Enrollment %>%
 ### adult and:
 ### PATH Enrolled null or DNC -> error -OR-
 
-path_enrolled_missing <- Enrollment %>%
+path_enrolled_missing <- servedInDateRange %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType) %>%
   left_join(smallProject, by = "ProjectID") %>%
@@ -786,7 +814,7 @@ path_enrolled_missing <- Enrollment %>%
 ### PATH Enrolled = No
 ### Reason is null -> error
 
-path_reason_missing <- Enrollment %>%
+path_reason_missing <- servedInDateRange %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
          ReasonNotEnrolled) %>%
@@ -808,7 +836,7 @@ smallIncomeSOAR <- IncomeBenefits %>%
   select(PersonalID, EnrollmentID, ConnectionWithSOAR, DataCollectionStage) %>%
   filter(DataCollectionStage == 3)
 
-path_SOAR_missing_at_exit <- Enrollment %>%
+path_SOAR_missing_at_exit <- servedInDateRange %>%
   select(
     PersonalID,
     EnrollmentID,
@@ -906,6 +934,8 @@ EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
   select(-MaxScoreDate, -MaxScore) %>%
   mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
 
+rm(Scores)
+
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(ProjectType %in% c(3, 9, 13),
@@ -941,6 +971,8 @@ SPDATCreatedOnNonHoH <- EEsWithSPDATs %>%
   mutate(Issue = "SPDAT Created on a Non-Head-of-Household",
          Type = "Warning") %>%
   select(vars_we_want)
+
+rm(EEsWithSPDATs)
 
 # Missing Income at Entry -------------------------------------------------
 IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
@@ -1020,6 +1052,8 @@ incomeSubs <- servedInDateRange[c("PersonalID",
       OtherIncomeSource
   )
 
+rm(smallIncome)
+
 conflictingIncomeYNatEntry <- incomeSubs %>%
   filter(DataCollectionStage == 1 &
            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
@@ -1067,6 +1101,8 @@ conflictingIncomeYNatExit <- incomeSubs %>%
   mutate(Issue = "Conflicting Income yes/no at Exit",
          Type = "Error") %>%
   select(vars_we_want)
+
+rm(incomeSubs)
 
 # conflictingIncomeYN <- servedInDateRange %>%
 #   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -1301,6 +1337,8 @@ conflictingHealthInsuranceYNatExit <- healthInsuranceSubs %>%
          Type = "Error") %>%
   select(vars_we_want)
 
+rm(healthInsuranceSubs)
+
 # Missing NCBs at Entry ---------------------------------------------------
 
 NCBSubs <- IncomeBenefits %>%
@@ -1476,6 +1514,7 @@ conflictingNCBsAtExit <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
+rm(NCBSubs)
 
 # SSI/SSDI but no Disability (Q) ------------------------------------------
 smallIncome <- IncomeBenefits %>%
@@ -1505,6 +1544,8 @@ checkDisabilityForAccuracy <- servedInDateRange %>%
   mutate(Issue = "Client with No Disability Receiving SSI/SSDI (could be ok)",
          Type = "Warning") %>%
   select(vars_we_want)
+
+rm(IncomeBenefits, smallIncome)
 
 # Non HoHs w Svcs or Referrals --------------------------------------------
 # SSVF projects should be showing this as an Error, whereas non-SSVF projects 
@@ -1561,6 +1602,8 @@ servicesOnHHMembersSSVF <- servedInDateRange %>%
   mutate(Issue = "Service Transaction on a non Head of Household (SSVF)",
          Type = "Error") %>%
   select(vars_we_want)
+
+rm(Services)
 
 # # why isn't this catching any records, i don't know.
 referralsOnHHMembers <- servedInDateRange %>%
@@ -1652,39 +1695,7 @@ old_outstanding_referrals <- Referrals %>%
            ReferralDate < today() - days(14)) %>%
   select(PersonalID, ReferralDate, ProviderCreating)
 
-# Diversion Incorrect Destination -----------------------------------------
-# Currently, the BoS is collecting Diversion via EEs on a single provider
-# shared by all access points in the system. This is changing soon.
-
-diversionEnrollments <- servedInDateRange %>%
-  filter(ProjectID == 1775) %>%
-  select(HouseholdID, PersonalID, EnrollmentID, ProjectID, ProjectName, 
-         ProjectType, EntryDate, MoveInDateAdjust, ExitDate, RelationshipToHoH, 
-         LivingSituation, AgeAtEntry, EEType, Destination, 
-         CountyServed, ProviderCounty, Region, UserCreating)
-
-diversionIncorrectDestination <- diversionEnrollments %>%
-  filter(Destination %in% c(1:3, 8:9, 16, 18, 24, 31, 99)) %>%
-  mutate(Issue = "Incorrect Destination or Not a Diversion",
-         Type = "Error") %>%
-  select(vars_we_want)
-
-# Diversion Exit Date Missing or Incorrect --------------------------------
-diversionIncorrectExitDate <- filter(diversionEnrollments,
-       ymd(EntryDate) != ymd(ExitDate) | is.na(ExitDate)) %>%
-  mutate(Issue = "Incorrect Exit Date",
-         Type = "Error") %>%
-  select(vars_we_want)
-
-# Diversion Missing # in HH -----------------------------------------------
-# can't get this from the CSV Export
-
-# Diversion Entered all HH members ----------------------------------------
-diversionEnteredHHMembers <- filter(diversionEnrollments,
-                                    str_starts(HouseholdID, "h_")) %>%
-  mutate(Issue = "Entered Household Members on a Diversion",
-         Type = "Error") %>%
-  select(vars_we_want)
+rm(Referrals)
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
 unshelteredEnrollments <- servedInDateRange %>%
@@ -1815,11 +1826,7 @@ unshelteredDataQuality <- rbind(
   left_join(Users, by = "UserCreating") %>%
   select(-UserID, -UserName) 
 
-diversionDataQuality <- rbind(
-  diversionEnteredHHMembers,
-  diversionIncorrectDestination,
-  diversionIncorrectExitDate
-)
+rm(Users)
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
 
@@ -1842,51 +1849,26 @@ DataQualityHMIS <- DataQualityHMIS %>%
 # Clean up the house ------------------------------------------------------
 
 rm(
-  Affiliation,
   APsWithEEs,
   checkDisabilityForAccuracy,
   checkEligibility,
-  Client,
   conflictingDisabilities,
-  conflictingDisabilitiesDetail,
   conflictingHealthInsuranceYNatEntry,
   conflictingHealthInsuranceYNatExit,
   conflictingIncomeYNatEntry,
-  conflictingIncomeYNatExit,  
+  conflictingIncomeYNatExit,
   conflictingNCBsAtEntry,
   conflictingNCBsAtExit,
-  Disabilities,
-  diversionEnrollments,
-  diversionEnteredHHMembers,
-  diversionIncorrectDestination,
-  diversionIncorrectExitDate,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
   dkrDestination,
-  dkrLoS,  
-  duplicateEEs,  
-  EEsWithSPDATs,
-  EmploymentEducation,
-  Enrollment,
-  EnrollmentCoC,
+  dkrLoS,
+  duplicateEEs,
   enteredPHwithoutSPDAT,
-  Exit,
-  Export,
-  FileEnd,
-  FileStart,
-  FilePeriod,  
-  Funder,
   futureEEs,
-  Geography,
-  HealthAndDV,
-  healthInsuranceSubs,
-  hmisParticipatingCurrent,
   householdIssues,
-  IncomeBenefits,
-  incomeSubs,
   incorrectEntryExitType,
-  incorrectMoveInDate,  
-  Inventory,
+  incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
   missingCountyPrior,
@@ -1899,38 +1881,30 @@ rm(
   missingHealthInsuranceatExit,
   missingIncomeAtEntry,
   missingIncomeAtExit,
-  missingLivingSituationData, 
+  missingLivingSituationData,
   missingLongDuration,
   missingLoS,
   missingMonthsTimesHomeless,
   missingNCBsAtEntry,
   missingNCBsAtExit,
-  missingResidencePrior,  
+  missingResidencePrior,
   missingUDEs,
-  NCBSubs,
-  Offers,
-  Organization,
-  overlaps,  
-  Project,
-  ProjectCoC,
-  Referrals,
+  overlaps,
+  path_enrolled_missing,
+  path_missing_los_res_prior,
+  path_reason_missing,
+  path_SOAR_missing_at_exit,
+  path_status_determination,
   referralsOnHHMembers,
   referralsOnHHMembersSSVF,
-  Regions,
-  Scores,
   servedInDateRange,
-  Services,
   servicesOnHHMembers,
-  servicesOnHHMembersSSVF, 
-  smallDisabilities,
-  smallIncome,
+  servicesOnHHMembersSSVF,
   smallProject,
   SPDATCreatedOnNonHoH,
   unshelteredEnrollments,
   unshelteredNotUnsheltered,
-  update_date,
-  Users,
-  VeteranCE
+  update_date
 )
 
 dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
