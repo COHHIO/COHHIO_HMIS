@@ -10,7 +10,8 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(gt)
 library(lubridate)
-load("images/COHHIOHMIS.RData")
+library(here)
+load(here("images/COHHIOHMIS.RData"))
 ```
 
 ## Are Targeted RRH projects serving TAY
