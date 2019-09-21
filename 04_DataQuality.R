@@ -805,7 +805,7 @@ path_enrolled_missing <- servedInDateRange %>%
            AgeAtEntry > 17 &
            (ClientEnrolledInPATH == 99 |
               is.na(ClientEnrolledInPATH))) %>% 
-  mutate(Issue = "Missing Enrollment",
+  mutate(Issue = "Missing PATH Enrollment",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -823,7 +823,7 @@ path_reason_missing <- servedInDateRange %>%
            AgeAtEntry > 17 &
            ClientEnrolledInPATH == 0 &
               is.na(ReasonNotEnrolled)) %>% 
-  mutate(Issue = "Missing Reason Not Enrolled",
+  mutate(Issue = "Missing Reason Not PATH Enrolled",
          Type = "Error") %>%
   select(vars_we_want)
 
