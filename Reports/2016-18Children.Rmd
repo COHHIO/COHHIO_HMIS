@@ -23,8 +23,7 @@ library(gt)
 
 ```{r basicdatasets, echo=FALSE}
 Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"),
-                       col_types =
-                         "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+                       col_types =                        "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 Exit <- read_csv(here("threeyearsdata/Exit.csv"),
                  col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 Project <- read_csv(here("threeyearsdata/Project.csv"),
