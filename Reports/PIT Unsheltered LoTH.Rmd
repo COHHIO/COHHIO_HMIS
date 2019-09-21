@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
-load("images/COHHIOHMIS.RData")
+library(here)
+load(here("images/COHHIOHMIS.RData"))
 ```
 
 ## Data to Help with Extrapolating Length of Time Homeless data for Unsheltered
