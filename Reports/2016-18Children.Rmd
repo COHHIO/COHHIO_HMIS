@@ -470,7 +470,7 @@ plot_ly(
 ```
 
 
-## Individual Children in ES or TH {.tabset .tabset-fade}
+## Individual Children Served {.tabset .tabset-fade}
 Homeless children served 2016 - 2018 in 80 rural and suburban counties in Ohio
 
 ### All
