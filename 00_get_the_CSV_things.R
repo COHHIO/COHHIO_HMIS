@@ -101,6 +101,15 @@ Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
 
 rm(youth_beds)
 
+# Youth Beds from RW ------------------------------------------------------
+
+# unzip(zipfile = "./data/youthbeds.zip",
+#       exdir = "./data")
+# 
+# file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+#             "data/youthbeds.csv")
+# 
+# file.remove("data/youthbeds.zip")
 
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
@@ -120,8 +129,10 @@ Enrollment <- left_join(Enrollment, bowman_entry_exits, by = "EnrollmentID") %>%
 
 rm(bowman_entry_exits, counties)
 
+
 # grabbing extra provider data from sheet 5 -------------------------------
 # overwriting HUD CSV columns bc of the 50 character limit
+
 provider_extras <- read_xlsx("data/RMisc.xlsx",
                             sheet = 5,
                             range = cell_cols("A:N")) %>%

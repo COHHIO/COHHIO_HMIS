@@ -22,6 +22,7 @@ library(lubridate)
 library(janitor)
 # loading the COHHIOHMIS data, dropping unnecessary objects
 load("images/COHHIOHMIS.RData")
+
 rm(Affiliation, Client, EnrollmentCoC, EmploymentEducation, Export, Exit, 
    Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, 
    Offers, Organization, ProjectCoC, Services, VeteranCE)

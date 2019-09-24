@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE)
 library(tidyverse)
+library(lubridate)
 library(janitor)
 library(readxl)
 library(gt)
@@ -70,7 +71,9 @@ dq2 <- rbind(
 
 colnames(dq2) <-c("Issue", "Provider", "ClientID")
 
-ART_DQ <- rbind(dq2, ART_DQ1)
+ART_DQ <- rbind(dq2, ART_DQ1) %>% filter(!is.na(ClientID) &
+                                           !ClientID %in% c(5, 4216))
+
 
 rm(ART_DQ1, dq2)
 
@@ -83,8 +86,7 @@ Getting the same data, but using the logic in the 04_DataQuality.R script (which
 ```{r R_DQ, echo=TRUE}
 load("images/Data_Quality.RData")
 
-DataQualityHMIS <- as.data.frame(DataQualityHMIS) %>%
-  filter(served_between(., "09012018", "09172019"))
+DataQualityHMIS <- as.data.frame(DataQualityHMIS)
 
 
 R_DQ <- DataQualityHMIS %>% select(Issue, ProjectName, PersonalID)
@@ -107,34 +109,28 @@ colnames(ART_ClientIDs) <- "ClientID"
 
 missingFromR <- anti_join(ART_ClientIDs, R_ClientIDs, by = "ClientID")
 
-missingFromRIssues <- missingFromR %>% left_join(ART_DQ, by = "ClientID") %>%
+missingFromRIssues <- missingFromR %>% 
+  left_join(ART_DQ, by = "ClientID") %>%
   group_by(Issue) %>% 
-  summarise(Example = min(ClientID)) %>%
-  filter(!is.na(Example))
+  summarise(Example = min(ClientID), n())
 
 gt(missingFromRIssues)
 ```
 
 
-Children Only Household (168314): The HoH was exited but the child was not. I don't know how ART is picking this up but it's cool as hell. Need to work this into Rme. (ART is correct)
-
-The Disability subs Not Matching (149731): This Enrollment was entered after I created the exports so that's why it's not in R.
+The Disability subs Not Matching (6011): R is automatically giving clients with Disability Types 6 or 8 (Developmental or HIV/AIDS) a 1 for IndefiniteAndImpairs whereas ART does not do that. (R is correct)
 
 Future Entry Exit (11495): For PSHs prior to 10/2016, Future Entry Exits were a common thing because the Entry Date was the Move In Date back then so users would often enter their clients into HMIS prior to the client moving in. (Rm is ok.)
 
-> HoHs Entering PH without SPDATs (6195): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
+HoHs Entering PH without SPDATs (6195): In Rm, we're only looking at 1/1/2019 forward. (Rm is ok)
 
->HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
+HoHs In Shelter w/o SPDAT (3856): In Rm, we're only looking at 1/1/2019 forward AND we're only looking at Stayers because once they've left, there's no way to really "fix" it and then users start making stuff up. (Rm is ok)
 
->Missing HI at Entry (69112): Export is not showing the outside Yes correctly. (VENDOR ISSUE)
+Missing HI at Entry (69112): Export is not showing the outside Yes correctly. (VENDOR ISSUE)
 
->Missing HI at Exit (69112): Export is not showing the outside Yes correctly. (VENDOR ISSUE)
+Missing HI at Exit (69112): Export is not showing the outside Yes correctly. (VENDOR ISSUE)
 
->Missing HoH (4216): This and Client ID 5 are not pulled into Rm at all so.. (Rm is correct)
-
->Missing Income at Entry (2096): I think this is related to the fact that not all the subs are coming into the export. It's a very old entry. (VENDOR ISSUE)
-
->Missing Income at Exit (31777): Not found in the actual ART report. (Both are correct.)
+Missing Income at Entry (2096): I think this is related to the fact that not all the subs are coming into the export. It's a very old entry. (VENDOR ISSUE)
 
 >Missing NCBs at Entry (16909): This is because of the Export issue where it's not looking at the yes/no field. (VENDOR ISSUE)
 
@@ -169,7 +165,7 @@ missingFromART <- anti_join(R_ClientIDs, ART_ClientIDs, by = "ClientID")
 
 missingFromARTIssues <- missingFromART %>% 
   left_join(R_DQ, by = c("ClientID" = "PersonalID")) %>%
-  group_by(Issue) %>% summarise(Example = min(ClientID))
+  group_by(Issue) %>% summarise(Example = min(ClientID), n())
 
 gt(missingFromARTIssues)
 ```

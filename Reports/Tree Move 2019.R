@@ -16,12 +16,7 @@ moves <- moves %>%
   select("ProjectID" = providers_to_move,
          ProjectName,
          "NewOrganizationID" = orgs,
-         "NewOrganizationName" = Organizationname) %>%
-  mutate(NewOrganizationName = if_else(NewOrganizationID == 2048,
-                                       "Highland County CAO",
-                                       NewOrganizationName))
-
-# added the Org Name manually because it's too newly created to be in HMIS yet.
+         "NewOrganizationName" = Organizationname)
 
 write_csv(moves, "Reports/2019_tree_moves.csv")
 
