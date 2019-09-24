@@ -19,6 +19,8 @@
 # R minor and R minor elevated. Running this after updating the data files should
 # be all that's necessary in order to be sure the apps are getting the most 
 # recent data and code.
+
+# clearing the environment prior to running all the scripts
 rm(list = ls())
 
 source("00_get_the_CSV_things.R")
@@ -38,3 +40,4 @@ rm(list = ls())
 
 source("04_DataQuality.R")
 rm(list = ls())
+ 
