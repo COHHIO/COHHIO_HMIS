@@ -793,6 +793,7 @@ calculation_note <- "Bed Utilization = bed nights* served / total possible bed n
 <p>Example C: PSH Project B has 5 beds. That project's total possible bed nights for the month of April (which has 30 days in it) is 30 x 5, which is 150.
 
 <p>Example D: Using what we know from Example B of PSH Project A's total bed nights for the month of June, let's calculate what their bed utilization was for that month. They have 11 beds and June has 30 days so since 11 × 30 = 330 possible bed nights. Their bed utilization is bed nights (300) divided by possible bed nights (330), which is: 91%!"
+
 save.image("images/Utilization.RData")
 
 
