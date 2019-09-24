@@ -488,6 +488,8 @@ smallDisabilities <- Disabilities %>%
   select(PersonalID, DisabilitiesID, EnrollmentID, InformationDate, 
          DisabilityType, IndefiniteAndImpairs)
 
+# Developmental & HIV/AIDS get automatically IndefiniteAndImpairs = 1 per FY2020
+
 rm(Disabilities)
 
 conflictingDisabilitiesDetail <- servedInDateRange %>%
@@ -1226,14 +1228,94 @@ stagingOverlaps <- servedInDateRange %>%
   filter(!is.na(PreviousEntryAdjust)) %>%
   ungroup()
 
-forAmanda <- stagingOverlaps %>%
+rrh_overlaps <- servedInDateRange %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ExitAdjust,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  ) %>%
   mutate(
-    PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
-    Overlap = int_overlaps(LiterallyInProject, PreviousStay)
+    ExitAdjust = ExitAdjust - days(1),
+    # bc a client can exit&enter same day
+    InProject = interval(EntryDate, ExitAdjust),
+    Issue = "Overlapping RRH Stays",
+    Type = "Error"
+  ) %>%
+  filter(ProjectType == 13) %>%
+  get_dupes(., PersonalID) %>%
+  group_by(PersonalID) %>%
+  arrange(PersonalID, EntryDate) %>%
+  mutate(
+    PreviousEntry = lag(EntryDate),
+    PreviousExit = lag(ExitAdjust)
+  ) %>%
+  filter(!is.na(PreviousEntry)) %>%
+  ungroup() %>%
+  mutate(
+    PreviousStay = interval(PreviousEntry, PreviousExit),
+    Overlap = int_overlaps(InProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(PersonalID, dupe_count, ProjectName, EntryDate, MoveInDateAdjust,
-         ExitDate, UserCreating, LiterallyInProject, PreviousStay, Overlap)
+  select(vars_we_want)
+
+psh_overlaps <- servedInDateRange %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ExitAdjust,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  ) %>%
+  mutate(
+    ExitAdjust = ExitAdjust - days(1),
+    # bc a client can exit&enter same day
+    InProject = interval(EntryDate, ExitAdjust),
+    Issue = "Overlapping RRH Stays",
+    Type = "Error"
+  ) %>%
+  filter(ProjectType == 3) %>%
+  get_dupes(., PersonalID) %>%
+  group_by(PersonalID) %>%
+  arrange(PersonalID, EntryDate) %>%
+  mutate(
+    PreviousEntry = lag(EntryDate),
+    PreviousExit = lag(ExitAdjust)
+  ) %>%
+  filter(!is.na(PreviousEntry)) %>%
+  ungroup() %>%
+  mutate(
+    PreviousStay = interval(PreviousEntry, PreviousExit),
+    Overlap = int_overlaps(InProject, PreviousStay)
+  ) %>%
+  filter(Overlap == TRUE) %>%
+  select(vars_we_want)
+
+# forAmanda <- stagingOverlaps %>%
+#   mutate(
+#     PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
+#     Overlap = int_overlaps(LiterallyInProject, PreviousStay)
+#   ) %>%
+#   filter(Overlap == TRUE) %>%
+#   select(PersonalID, dupe_count, ProjectName, EntryDate, MoveInDateAdjust,
+#          ExitDate, UserCreating, LiterallyInProject, PreviousStay, Overlap)
 
 overlaps <- stagingOverlaps %>%
   mutate(
@@ -1243,9 +1325,14 @@ overlaps <- stagingOverlaps %>%
   filter(Overlap == TRUE) %>%
   select(vars_we_want)
 
-write_csv(forAmanda, "data/OverlapsToChase.csv")
+overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps)
 
-rm(stagingOverlaps, forAmanda)
+# write_csv(forAmanda, "data/OverlapsToChase.csv")
+
+rm(stagingOverlaps,
+   # forAmanda,
+   rrh_overlaps,
+   psh_overlaps)
 
 # Missing Health Ins ------------------------------------------------------
 
