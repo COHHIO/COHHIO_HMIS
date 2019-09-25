@@ -1054,7 +1054,6 @@ incomeSubs <- servedInDateRange[c("PersonalID",
       OtherIncomeSource
   )
 
-rm(smallIncome)
 
 conflictingIncomeYNatEntry <- incomeSubs %>%
   filter(DataCollectionStage == 1 &
@@ -1223,7 +1222,8 @@ stagingOverlaps <- servedInDateRange %>%
   arrange(PersonalID, EntryAdjust) %>%
   mutate(
     PreviousEntryAdjust = lag(EntryAdjust),
-    PreviousExitAdjust = lag(ExitAdjust)
+    PreviousExitAdjust = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
   ) %>%
   filter(!is.na(PreviousEntryAdjust)) %>%
   ungroup()
@@ -1257,7 +1257,8 @@ rrh_overlaps <- servedInDateRange %>%
   arrange(PersonalID, EntryDate) %>%
   mutate(
     PreviousEntry = lag(EntryDate),
-    PreviousExit = lag(ExitAdjust)
+    PreviousExit = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
   ) %>%
   filter(!is.na(PreviousEntry)) %>%
   ungroup() %>%
@@ -1266,7 +1267,7 @@ rrh_overlaps <- servedInDateRange %>%
     Overlap = int_overlaps(InProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(vars_we_want)
+  select(vars_we_want, PreviousProject)
 
 psh_overlaps <- servedInDateRange %>%
   select(
@@ -1297,7 +1298,8 @@ psh_overlaps <- servedInDateRange %>%
   arrange(PersonalID, EntryDate) %>%
   mutate(
     PreviousEntry = lag(EntryDate),
-    PreviousExit = lag(ExitAdjust)
+    PreviousExit = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
   ) %>%
   filter(!is.na(PreviousEntry)) %>%
   ungroup() %>%
@@ -1306,7 +1308,7 @@ psh_overlaps <- servedInDateRange %>%
     Overlap = int_overlaps(InProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(vars_we_want)
+  select(vars_we_want, PreviousProject)
 
 # forAmanda <- stagingOverlaps %>%
 #   mutate(
@@ -1323,7 +1325,7 @@ overlaps <- stagingOverlaps %>%
     Overlap = int_overlaps(LiterallyInProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(vars_we_want)
+  select(vars_we_want, PreviousProject)
 
 overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps)
 
@@ -1861,7 +1863,6 @@ DataQualityHMIS <- rbind(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_reason_missing,
@@ -1883,7 +1884,7 @@ DataQualityHMIS <- rbind(
 
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
-  conflictingDisabilities,
+  # conflictingDisabilities,
   dkrDestination,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
@@ -1897,14 +1898,14 @@ unshelteredDataQuality <- rbind(
   missingCountyPrior,
   missingDestination,
   missingCountyServed,
-  missingDisabilities,
-  missingDisabilitySubs,
+  # missingDisabilities,
+  # missingDisabilitySubs,
 #  missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
+  # overlaps,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
@@ -1976,7 +1977,6 @@ rm(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_reason_missing,
