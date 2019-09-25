@@ -156,7 +156,7 @@ Regions <- tribble(
   1,
   "Paulding",
   1,
-  "Vanwert",
+  "Van Wert",
   1,
   "Williams",
   1,
