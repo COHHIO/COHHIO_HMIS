@@ -16,6 +16,9 @@
 ## IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
 ## IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
 
+## Save your ReportWriter export zip files directly to the data folder. This 
+## script will unzip and rename them appropriately.
+
 library(tidyverse)
 library(lubridate)
 library(readxl)
@@ -136,7 +139,9 @@ file.append("data/scores.csv", "data/scoresind.csv")
 
 file.append("data/scores.csv", "data/scorestay.csv")
 
+if(file.exists("data/scoresind.csv")) {
 file.remove(c("data/scoresind.csv", "data/scorestay.csv"))
+}
 
 Scores <- read_csv("data/scores.csv",
                    col_types = "ccc") %>%
@@ -182,7 +187,7 @@ if(file.exists("data/cocscoring.zip")) {
 }
 
 provider_extras <- read_csv("data/providers.csv",
-                            col_types = "icccccccccccc")
+                            col_types = "icccccc")
 
 coc_scoring <- read_csv("data/cocscoring.csv",
                        col_types = "dccdi?iiii")
@@ -196,7 +201,7 @@ Project <- Project %>%
   left_join(., provider_extras, by = "ProjectID") %>%
   left_join(coc_scoring, by = "ProjectID")
 
-rm(provider_extras)
+rm(provider_extras, coc_scoring)
 
 # Region data -------------------------------------------------------------
 Regions <- tribble(
