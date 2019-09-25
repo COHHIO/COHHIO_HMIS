@@ -91,25 +91,26 @@ ProjectCoC <-
 
 # - All other data comes from either the RMisc ART report or ReportWriter #
 
+# Youth Beds from RW ------------------------------------------------------
+if(file.exists("data/youthbeds.zip")) {
+  unzip(zipfile = "./data/youthbeds.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/youthbeds.csv")
+  
+  file.remove("data/youthbeds.zip")
+}
+
 # Youth Beds not coming through correctly ---------------------------------
 
-youth_beds <- read_xlsx("data/RMisc.xlsx",
-                       sheet = 8,
-                       range = cell_cols("A:C"))
+youth_beds <- read_csv("data/youthbeds.csv",
+                       col_types = "ii")
 Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
-  select(1, ProjectID = 2, 3:9, YouthBedInventory = 22, 11:20) 
+  select(1:9, YouthBedInventory = 21, 11:20) 
 
 rm(youth_beds)
 
-# Youth Beds from RW ------------------------------------------------------
 
-# unzip(zipfile = "./data/youthbeds.zip",
-#       exdir = "./data")
-# 
-# file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-#             "data/youthbeds.csv")
-# 
-# file.remove("data/youthbeds.zip")
 
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
