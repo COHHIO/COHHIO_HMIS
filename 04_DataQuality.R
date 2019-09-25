@@ -1248,7 +1248,7 @@ rrh_overlaps <- servedInDateRange %>%
     ExitAdjust = ExitAdjust - days(1),
     # bc a client can exit&enter same day
     InProject = interval(EntryDate, ExitAdjust),
-    Issue = "Overlapping RRH Stays",
+    Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
   filter(ProjectType == 13) %>%
@@ -1289,7 +1289,7 @@ psh_overlaps <- servedInDateRange %>%
     ExitAdjust = ExitAdjust - days(1),
     # bc a client can exit&enter same day
     InProject = interval(EntryDate, ExitAdjust),
-    Issue = "Overlapping RRH Stays",
+    Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
   filter(ProjectType == 3) %>%
