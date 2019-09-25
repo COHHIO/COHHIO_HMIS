@@ -163,14 +163,38 @@ rm(bowman_entry_exits, counties)
 # grabbing extra provider data from sheet 5 -------------------------------
 # overwriting HUD CSV columns bc of the 50 character limit
 
-provider_extras <- read_xlsx("data/RMisc.xlsx",
-                            sheet = 5,
-                            range = cell_cols("A:N")) %>%
-  mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
+if(file.exists("data/providers.zip")) {
+  unzip(zipfile = "./data/providers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/providers.csv")
+  
+  file.remove("data/providers.zip")
+}
+
+if(file.exists("data/cocscoring.zip")) {
+  unzip(zipfile = "./data/cocscoring.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cocscoring.csv")
+  
+  file.remove("data/cocscoring.zip")
+}
+
+provider_extras <- read_csv("data/providers.csv",
+                            col_types = "icccccccccccc")
+
+coc_scoring <- read_csv("data/cocscoring.csv",
+                       col_types = "dccdi?iiii")
+
+coc_scoring <- coc_scoring %>%
+  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs)) %>%
+  select(1, 4:10)
 
 Project <- Project %>%
-  select(-ProjectName,-ProjectCommonName) %>%
-  left_join(., provider_extras, by = "ProjectID")
+  select(-ProjectName) %>%
+  left_join(., provider_extras, by = "ProjectID") %>%
+  left_join(coc_scoring, by = "ProjectID")
 
 rm(provider_extras)
 
