@@ -82,13 +82,6 @@ ProjectCoC <-
   read_csv("data/ProjectCoC.csv",
            col_types = "nncTTnTn")
 
-# not pulling in Services from the HUD CSVs because the CSV Export does not 
-# pull in all the kinds of Services we collect. (Services will be imported
-# from two ReportWriter reports.)
-# Services <- 
-#   read_csv("data/Services.csv", 
-#            col_types = "cnnDnncnnnTTnTn")
-
 # - All other data comes from either the RMisc ART report or ReportWriter #
 
 # Youth Beds from RW ------------------------------------------------------
@@ -315,12 +308,30 @@ rm(small_project)
 # this comes from two ReportWriter reports: An Export: Services and 
 # An Export: Services & Funds. Saving them as services1.csv and services2.csv.
 
+if(file.exists("data/services1.zip")) {
+  unzip(zipfile = "./data/services1.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/services1.csv")
+  
+  file.remove("data/services1.zip")
+}
+
 services_1 <- read_csv("data/services1.csv",
                       col_types = "nnnn??cccc")
 
 services_1 <- services_1 %>%
   mutate(ServiceStartDate = mdy(ServiceStartDate),
          ServiceEndDate = mdy(ServiceEndDate))
+
+if(file.exists("data/services2.zip")) {
+  unzip(zipfile = "./data/services2.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/services2.csv")
+  
+  file.remove("data/services2.zip")
+}
 
 services_funds <- read_csv("data/services2.csv",
                       col_types = "ncd")
@@ -376,7 +387,16 @@ rm(staging_services, staging_enrollment)
 
 # Referrals ---------------------------------------------------------------
 
-Referrals <- read_csv("data/Referrals.csv",
+if(file.exists("data/referrals.zip")) {
+  unzip(zipfile = "./data/referrals.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/referrals.csv")
+  
+  file.remove("data/referrals.zip")
+}
+
+Referrals <- read_csv("data/referrals.csv",
                       col_types = "nnn?ccccccccc")
 
 Referrals <- Referrals %>%
