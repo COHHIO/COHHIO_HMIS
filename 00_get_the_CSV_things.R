@@ -110,8 +110,6 @@ Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
 
 rm(youth_beds)
 
-
-
 # from sheet 1, creating a Scores table -----------------------------------
 Scores <- read_xlsx("data/RMisc.xlsx",
                     sheet = 1,
