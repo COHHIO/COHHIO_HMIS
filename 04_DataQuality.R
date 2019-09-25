@@ -921,19 +921,28 @@ incorrectEntryExitType <- servedInDateRange %>%
 
 # HoHs Entering PH without SPDATs -----------------------------------------
 
-EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, RelationshipToHoH, EntryDate, ExitAdjust, 
-         SPDATRecordID, SPDATProvider, StartDate, Score) %>%
-  filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(StartDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
+EEsWithSPDATs <-
+  left_join(servedInDateRange, Scores, by = "PersonalID") %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    RelationshipToHoH,
+    EntryDate,
+    ExitAdjust,
+    ScoreDate,
+    Score
+  ) %>%
+  filter(ymd(ScoreDate) + years(1) > ymd(EntryDate) &
+           # score is < 1 yr old
+           ymd(ScoreDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
   group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
-  filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
+  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
+  filter(ymd(ScoreDate) == ymd(MaxScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>%
   filter(Score == MaxScore) %>%
   distinct() %>%
   ungroup() %>%
-  select(-MaxScoreDate, -MaxScore) %>%
+  select(-MaxScoreDate,-MaxScore) %>%
   mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
 
 rm(Scores)
@@ -1200,7 +1209,8 @@ stagingOverlaps <- servedInDateRange %>%
   mutate(
     EntryAdjust = case_when(
       #for PSH and RRH, EntryAdjust = MoveInDate
-      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
+      ProjectType %in% c(1, 2, 8, 12) | 
+        ProjectName == "Unsheltered Clients - OUTREACH" ~ EntryDate,
       ProjectType %in% c(3, 9, 13) &
         !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
       ProjectType %in% c(3, 9, 13) &
@@ -1895,7 +1905,7 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
-  missingCountyPrior,
+  # missingCountyPrior,
   missingDestination,
   missingCountyServed,
   # missingDisabilities,
