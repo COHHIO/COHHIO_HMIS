@@ -104,10 +104,48 @@ Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
 rm(youth_beds)
 
 # from sheet 1, creating a Scores table -----------------------------------
-Scores <- read_xlsx("data/RMisc.xlsx",
-                    sheet = 1,
-                    range = cell_cols("A:E"))
-Scores <- mutate(Scores, StartDate = as.Date(StartDate, origin = "1899-12-30"))
+
+if(file.exists("data/scoresfam.zip")) {
+  unzip(zipfile = "./data/scoresfam.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scores.csv")
+  
+  file.remove("data/scoresfam.zip")
+}
+
+if(file.exists("data/scoresind.zip")) {
+  unzip(zipfile = "./data/scoresind.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scoresind.csv")
+  
+  file.remove("data/scoresind.zip")
+}
+
+if(file.exists("data/scorestay.zip")) {
+  unzip(zipfile = "./data/scorestay.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scorestay.csv")
+  
+  file.remove("data/scorestay.zip")
+}
+
+file.append("data/scores.csv", "data/scoresind.csv")
+
+file.append("data/scores.csv", "data/scorestay.csv")
+
+file.remove(c("data/scoresind.csv", "data/scorestay.csv"))
+
+Scores <- read_csv("data/scores.csv",
+                   col_types = "ccc") %>%
+  filter(Score != "Score") %>%
+  mutate(
+    ScoreDate = mdy(ScoreDate),
+    PersonalID = as.double(PersonalID),
+    Score = as.double(Score)
+  )
 
 # from sheets 2 and 3, getting EE-related data, joining both to En --------
 counties <- read_xlsx("data/RMisc.xlsx",
@@ -233,27 +271,41 @@ Project <- left_join(project_county, Regions, by = "County")
 
 rm(project_county)
 # Custom Veteran Data -----------------------------------------------------
-VeteranCE <- read_xlsx("data/RMisc.xlsx",
-                         sheet = 6,
-                         range = cell_cols("A:J"))
+
+if(file.exists("data/cevets.zip")) {
+  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cevets.csv")
+  
+  file.remove("data/cevets.zip")
+}
+
+VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+
 VeteranCE <- 
   mutate(
     VeteranCE,
-    DateVeteranIdentified = as.Date(DateVeteranIdentified, origin = "1899-12-30"),
-    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30"),
-    MostRecentOfferDate = as.Date(MostRecentOfferDate, origin = "1899-12-30")
+    DateVeteranIdentified = mdy(DateVeteranIdentified),
+    ExpectedPHDate = mdy(ExpectedPHDate),
+    MostRecentOfferDate = mdy(MostRecentOfferDate)
   )
 
 # Offers of Housing -------------------------------------------------------
-Offers <- read_xlsx("data/RMisc.xlsx",
-                    sheet = 7,
-                    range = cell_cols("A:G"))
-Offers <- 
+
+if(file.exists("data/offers.zip")) {
+  unzip(zipfile = "./data/offers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/offers.csv")
+  
+  file.remove("data/offers.zip")
+}
+
+Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
   mutate(
-    Offers,
-    DateAdded = as.Date(DateAdded, origin = "1899-12-30"),
-    OfferDate = as.Date(OfferDate, origin = "1899-12-30"),
-    AcceptDeclineDate = as.Date(AcceptDeclineDate, origin = "1899-12-30")
+    OfferDate = mdy(OfferDate),
+    AcceptDeclineDate = mdy(AcceptDeclineDate)
   )
 
 # User Contact Info from ART ----------------------------------------------
