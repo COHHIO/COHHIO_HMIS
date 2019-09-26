@@ -902,13 +902,15 @@ incorrectEntryExitType <- servedInDateRange %>%
       is.na(GrantType) & 
         !grepl("GPD", ProjectName) & 
         !grepl("HCHV", ProjectName) & 
+        !grepl("VET ", ProjectName) &
         ProjectID != 1695 &
         EEType != "HUD"
     ) |
       ((
         GrantType == "SSVF" | 
           grepl("GPD", ProjectName) | 
-          grepl("HCHV", ProjectName)
+          grepl("HCHV", ProjectName) |
+          grepl("VET ", ProjectName)
       ) &
         EEType != "VA") |
       (GrantType == "RHY" & EEType != "RHY") |
