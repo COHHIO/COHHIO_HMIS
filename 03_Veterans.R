@@ -41,7 +41,7 @@ VeteranHHs <- Project %>%
   right_join(VeteranHHs, by = "ProjectID")
 
 VeteranHHs <- VeteranHHs %>%
-  left_join(VeteranCE, by = c("PersonalID" = "ClientID"))
+  left_join(VeteranCE, by = c("PersonalID"))
 
 
 CurrentVeterans <- VeteranHHs %>%

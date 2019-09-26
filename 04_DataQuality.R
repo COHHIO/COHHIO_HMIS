@@ -921,19 +921,28 @@ incorrectEntryExitType <- servedInDateRange %>%
 
 # HoHs Entering PH without SPDATs -----------------------------------------
 
-EEsWithSPDATs <- left_join(servedInDateRange, Scores, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, RelationshipToHoH, EntryDate, ExitAdjust, 
-         SPDATRecordID, SPDATProvider, StartDate, Score) %>%
-  filter(ymd(StartDate) + years(1) > ymd(EntryDate) & # score is < 1 yr old
-    ymd(StartDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
+EEsWithSPDATs <-
+  left_join(servedInDateRange, Scores, by = "PersonalID") %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    RelationshipToHoH,
+    EntryDate,
+    ExitAdjust,
+    ScoreDate,
+    Score
+  ) %>%
+  filter(ymd(ScoreDate) + years(1) > ymd(EntryDate) &
+           # score is < 1 yr old
+           ymd(ScoreDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
   group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
-  filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
+  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
+  filter(ymd(ScoreDate) == ymd(MaxScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>%
   filter(Score == MaxScore) %>%
   distinct() %>%
   ungroup() %>%
-  select(-MaxScoreDate, -MaxScore) %>%
+  select(-MaxScoreDate,-MaxScore) %>%
   mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
 
 rm(Scores)
@@ -1054,7 +1063,6 @@ incomeSubs <- servedInDateRange[c("PersonalID",
       OtherIncomeSource
   )
 
-rm(smallIncome)
 
 conflictingIncomeYNatEntry <- incomeSubs %>%
   filter(DataCollectionStage == 1 &
@@ -1201,7 +1209,8 @@ stagingOverlaps <- servedInDateRange %>%
   mutate(
     EntryAdjust = case_when(
       #for PSH and RRH, EntryAdjust = MoveInDate
-      ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
+      ProjectType %in% c(1, 2, 8, 12) | 
+        ProjectName == "Unsheltered Clients - OUTREACH" ~ EntryDate,
       ProjectType %in% c(3, 9, 13) &
         !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
       ProjectType %in% c(3, 9, 13) &
@@ -1223,7 +1232,8 @@ stagingOverlaps <- servedInDateRange %>%
   arrange(PersonalID, EntryAdjust) %>%
   mutate(
     PreviousEntryAdjust = lag(EntryAdjust),
-    PreviousExitAdjust = lag(ExitAdjust)
+    PreviousExitAdjust = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
   ) %>%
   filter(!is.na(PreviousEntryAdjust)) %>%
   ungroup()
@@ -1248,7 +1258,7 @@ rrh_overlaps <- servedInDateRange %>%
     ExitAdjust = ExitAdjust - days(1),
     # bc a client can exit&enter same day
     InProject = interval(EntryDate, ExitAdjust),
-    Issue = "Overlapping RRH Stays",
+    Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
   filter(ProjectType == 13) %>%
@@ -1257,7 +1267,8 @@ rrh_overlaps <- servedInDateRange %>%
   arrange(PersonalID, EntryDate) %>%
   mutate(
     PreviousEntry = lag(EntryDate),
-    PreviousExit = lag(ExitAdjust)
+    PreviousExit = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
   ) %>%
   filter(!is.na(PreviousEntry)) %>%
   ungroup() %>%
@@ -1266,7 +1277,7 @@ rrh_overlaps <- servedInDateRange %>%
     Overlap = int_overlaps(InProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(vars_we_want)
+  select(vars_we_want, PreviousProject)
 
 psh_overlaps <- servedInDateRange %>%
   select(
@@ -1288,7 +1299,7 @@ psh_overlaps <- servedInDateRange %>%
     ExitAdjust = ExitAdjust - days(1),
     # bc a client can exit&enter same day
     InProject = interval(EntryDate, ExitAdjust),
-    Issue = "Overlapping RRH Stays",
+    Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
   filter(ProjectType == 3) %>%
@@ -1297,7 +1308,8 @@ psh_overlaps <- servedInDateRange %>%
   arrange(PersonalID, EntryDate) %>%
   mutate(
     PreviousEntry = lag(EntryDate),
-    PreviousExit = lag(ExitAdjust)
+    PreviousExit = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
   ) %>%
   filter(!is.na(PreviousEntry)) %>%
   ungroup() %>%
@@ -1306,7 +1318,7 @@ psh_overlaps <- servedInDateRange %>%
     Overlap = int_overlaps(InProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(vars_we_want)
+  select(vars_we_want, PreviousProject)
 
 # forAmanda <- stagingOverlaps %>%
 #   mutate(
@@ -1323,7 +1335,7 @@ overlaps <- stagingOverlaps %>%
     Overlap = int_overlaps(LiterallyInProject, PreviousStay)
   ) %>%
   filter(Overlap == TRUE) %>%
-  select(vars_we_want)
+  select(vars_we_want, PreviousProject)
 
 overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps)
 
@@ -1861,7 +1873,6 @@ DataQualityHMIS <- rbind(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_reason_missing,
@@ -1883,7 +1894,7 @@ DataQualityHMIS <- rbind(
 
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
-  conflictingDisabilities,
+  # conflictingDisabilities,
   dkrDestination,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
@@ -1894,17 +1905,17 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
-  missingCountyPrior,
+  # missingCountyPrior,
   missingDestination,
   missingCountyServed,
-  missingDisabilities,
-  missingDisabilitySubs,
+  # missingDisabilities,
+  # missingDisabilitySubs,
 #  missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
+  # overlaps,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
@@ -1976,7 +1987,6 @@ rm(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_reason_missing,

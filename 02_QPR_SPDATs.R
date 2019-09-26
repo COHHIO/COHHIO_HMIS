@@ -65,28 +65,45 @@ CountyData <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
-      RelationshipToHoH == 1 & 
-      ymd(StartDate) <= ymd(EntryDate) & 
-      !CountyServed %in% c("Montgomery", 
-                           "Cuyahoga", 
-                           "Mahoning", 
-                           "Lucas", 
-                           "Stark", 
-                           "Summit", 
-                           "Hamilton", 
-                           "Franklin",
-                           "--Outside of Ohio--") &
-      !is.na(CountyServed)) %>%
-  select(EnrollmentID, PersonalID, ProjectName, EntryDate, ExitDate, CountyServed, StartDate, Score) %>%
+      RelationshipToHoH == 1 &
+      ymd(ScoreDate) <= ymd(EntryDate) &
+      !CountyServed %in% c(
+        "Montgomery",
+        "Cuyahoga",
+        "Mahoning",
+        "Lucas",
+        "Stark",
+        "Summit",
+        "Hamilton",
+        "Franklin",
+        "--Outside of Ohio--"
+      ) &
+      !is.na(CountyServed)
+  ) %>%
+  select(
+    EnrollmentID,
+    PersonalID,
+    ProjectName,
+    EntryDate,
+    ExitDate,
+    CountyServed,
+    ScoreDate,
+    Score
+  ) %>%
   group_by(PersonalID) %>%
   mutate(MaxEntry = max(ymd(EntryDate))) %>% # most recent EE
-  filter(ymd(MaxEntry) == ymd(EntryDate)) %>%  
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>% # most recent score
-  filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
+  filter(ymd(MaxEntry) == ymd(EntryDate)) %>%
+  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>% # most recent score
+  filter(ymd(ScoreDate) == ymd(MaxScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>% # highest score
   filter(Score == MaxScore) %>%
   ungroup() %>%
-  select(PersonalID, ProjectName, CountyServed, Score, EntryDate, ExitDate) 
+  select(PersonalID,
+         ProjectName,
+         CountyServed,
+         Score,
+         EntryDate,
+         ExitDate)
 
 hhsHousedInCounty <- "The triangle represents the average score of each 
 household entering into a permanent housing project in a County during the 
@@ -107,12 +124,10 @@ Ohio Balance of State, they will also not show here."
 SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
          -OperatingStartDate,
-         -OperatingEndDate,
-         -SPDATRecordID,
-         -SPDATProvider) %>%
+         -OperatingEndDate) %>%
   filter(
     RelationshipToHoH == 1 &
-      (ymd(StartDate) <= ymd(EntryDate) | is.na(StartDate)) &
+      (ymd(ScoreDate) <= ymd(EntryDate) | is.na(ScoreDate)) &
       !CountyServed %in% c(
         "Montgomery",
         "Cuyahoga",
@@ -127,10 +142,10 @@ SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
       !is.na(CountyServed)
   ) %>%
   group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
-  filter(ymd(StartDate) == ymd(MaxScoreDate) | is.na(StartDate)) %>%
+  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
+  filter(ymd(ScoreDate) == ymd(MaxScoreDate) | is.na(ScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>%
-  filter(Score == MaxScore | is.na(StartDate)) %>%
+  filter(Score == MaxScore | is.na(ScoreDate)) %>%
   distinct() %>%
   ungroup() %>%
   select(-MaxScoreDate, -MaxScore) %>%

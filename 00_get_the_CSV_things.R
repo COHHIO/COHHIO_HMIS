@@ -16,6 +16,9 @@
 ## IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
 ## IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
 
+## Save your ReportWriter export zip files directly to the data folder. This 
+## script will unzip and rename them appropriately.
+
 library(tidyverse)
 library(lubridate)
 library(readxl)
@@ -82,40 +85,72 @@ ProjectCoC <-
   read_csv("data/ProjectCoC.csv",
            col_types = "nncTTnTn")
 
-# not pulling in Services from the HUD CSVs because the CSV Export does not 
-# pull in all the kinds of Services we collect. (Services will be imported
-# from two ReportWriter reports.)
-# Services <- 
-#   read_csv("data/Services.csv", 
-#            col_types = "cnnDnncnnnTTnTn")
-
 # - All other data comes from either the RMisc ART report or ReportWriter #
+
+# Youth Beds from RW ------------------------------------------------------
+if(file.exists("data/youthbeds.zip")) {
+  unzip(zipfile = "./data/youthbeds.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/youthbeds.csv")
+  
+  file.remove("data/youthbeds.zip")
+}
 
 # Youth Beds not coming through correctly ---------------------------------
 
-youth_beds <- read_xlsx("data/RMisc.xlsx",
-                       sheet = 8,
-                       range = cell_cols("A:C"))
+youth_beds <- read_csv("data/youthbeds.csv",
+                       col_types = "ii")
 Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
-  select(1, ProjectID = 2, 3:9, YouthBedInventory = 22, 11:20) 
+  select(1:9, YouthBedInventory = 21, 11:20) 
 
 rm(youth_beds)
 
-# Youth Beds from RW ------------------------------------------------------
-
-# unzip(zipfile = "./data/youthbeds.zip",
-#       exdir = "./data")
-# 
-# file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-#             "data/youthbeds.csv")
-# 
-# file.remove("data/youthbeds.zip")
-
 # from sheet 1, creating a Scores table -----------------------------------
-Scores <- read_xlsx("data/RMisc.xlsx",
-                    sheet = 1,
-                    range = cell_cols("A:E"))
-Scores <- mutate(Scores, StartDate = as.Date(StartDate, origin = "1899-12-30"))
+
+if(file.exists("data/scoresfam.zip")) {
+  unzip(zipfile = "./data/scoresfam.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scores.csv")
+  
+  file.remove("data/scoresfam.zip")
+}
+
+if(file.exists("data/scoresind.zip")) {
+  unzip(zipfile = "./data/scoresind.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scoresind.csv")
+  
+  file.remove("data/scoresind.zip")
+}
+
+if(file.exists("data/scorestay.zip")) {
+  unzip(zipfile = "./data/scorestay.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scorestay.csv")
+  
+  file.remove("data/scorestay.zip")
+}
+
+file.append("data/scores.csv", "data/scoresind.csv")
+
+file.append("data/scores.csv", "data/scorestay.csv")
+
+if(file.exists("data/scoresind.csv")) {
+file.remove(c("data/scoresind.csv", "data/scorestay.csv"))
+}
+
+Scores <- read_csv("data/scores.csv",
+                   col_types = "ccc") %>%
+  filter(Score != "Score") %>%
+  mutate(
+    ScoreDate = mdy(ScoreDate),
+    PersonalID = as.double(PersonalID),
+    Score = as.double(Score)
+  )
 
 # from sheets 2 and 3, getting EE-related data, joining both to En --------
 counties <- read_xlsx("data/RMisc.xlsx",
@@ -133,181 +168,124 @@ rm(bowman_entry_exits, counties)
 # grabbing extra provider data from sheet 5 -------------------------------
 # overwriting HUD CSV columns bc of the 50 character limit
 
-provider_extras <- read_xlsx("data/RMisc.xlsx",
-                            sheet = 5,
-                            range = cell_cols("A:N")) %>%
-  mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
+if(file.exists("data/providers.zip")) {
+  unzip(zipfile = "./data/providers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/providers.csv")
+  
+  file.remove("data/providers.zip")
+}
+
+if(file.exists("data/cocscoring.zip")) {
+  unzip(zipfile = "./data/cocscoring.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cocscoring.csv")
+  
+  file.remove("data/cocscoring.zip")
+}
+
+provider_extras <- read_csv("data/providers.csv",
+                            col_types = "icccccc")
+
+coc_scoring <- read_csv("data/cocscoring.csv",
+                       col_types = "dccdi?iiii")
+
+coc_scoring <- coc_scoring %>%
+  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs)) %>%
+  select(1, 4:10)
 
 Project <- Project %>%
-  select(-ProjectName,-ProjectCommonName) %>%
-  left_join(., provider_extras, by = "ProjectID")
+  select(-ProjectName) %>%
+  left_join(., provider_extras, by = "ProjectID") %>%
+  left_join(coc_scoring, by = "ProjectID")
 
-rm(provider_extras)
+rm(provider_extras, coc_scoring)
 
 # Region data -------------------------------------------------------------
 Regions <- tribble(
-  ~ County,
-  ~ Region,
-  "Defiance",
-  1,
-  "Fulton",
-  1,
-  "Henry",
-  1,
-  "Paulding",
-  1,
-  "Vanwert",
-  1,
-  "Williams",
-  1,
-  "Erie",
-  2,
-  "Huron",
-  2,
-  "Ottawa",
-  2,
-  "Richland",
-  2,
-  "Sandusky",
-  2,
-  "Seneca",
-  2,
-  "Wood",
-  2,
-  "Adams",
-  3,
-  "Brown",
-  3,
-  "Lawrence",
-  3,
-  "Pike",
-  3,
-  "Scioto",
-  3,
-  "Ashland",
-  4,
-  "Lorain",
-  4,
-  "Medina",
-  4,
-  "Wayne",
-  4,
-  "Ashtabula",
-  5,
-  "Geauga",
-  5,
-  "Lake",
-  5,
-  "Portage",
-  5,
-  "Trumbull",
-  5,
-  "Carroll",
-  6,
-  "Columbiana",
-  6,
-  "Harrison",
-  6,
-  "Jefferson",
-  6,
-  "Tuscarawas",
-  6,
-  "Belmont",
-  7,
-  "Guernsey",
-  7,
-  "Monroe",
-  7,
-  "Noble",
-  7,
-  "Morgan",
-  8,
-  "Muskingum",
-  8,
-  "Washington",
-  8,
-  "Coshocton",
-  9,
-  "Fairfield",
-  9,
-  "Holmes",
-  9,
-  "Knox",
-  9,
-  "Licking",
-  9,
-  "Delaware",
-  10,
-  "Madison",
-  10,
-  "Marion",
-  10,
-  "Morrow",
-  10,
-  "Union",
-  10,
-  "Crawford",
-  11,
-  "Hancock",
-  11,
-  "Hardin",
-  11,
-  "Putnam",
-  11,
-  "Wyandot",
-  11,
-  "Allen",
-  12,
-  "Auglaize",
-  12,
-  "Mercer",
-  12,
-  "Champaign",
-  13,
-  "Darke",
-  13,
-  "Logan",
-  13,
-  "Miami",
-  13,
-  "Preble",
-  13,
-  "Shelby",
-  13,
-  "Butler",
-  14,
-  "Clermont",
-  14,
-  "Warren",
-  14,
-  "Clark",
-  15,
-  "Greene",
-  15,
-  "Clinton",
-  16,
-  "Fayette",
-  16,
-  "Highland",
-  16,
-  "Pickaway",
-  16,
-  "Ross",
-  16,
-  "Athens",
-  17,
-  "Gallia",
-  17,
-  "Hocking",
-  17,
-  "Jackson",
-  17,
-  "Meigs",
-  17,
-  "Perry",
-  17,
-  "Vinton",
-  17
+  ~ County, ~ Region,
+  "Defiance", 1,
+  "Fulton", 1,
+  "Henry", 1,
+  "Paulding", 1,
+  "Van Wert", 1,
+  "Williams", 1,
+  "Erie", 2,
+  "Huron", 2,
+  "Ottawa", 2,
+  "Richland", 2,
+  "Sandusky", 2,
+  "Seneca", 2,
+  "Wood", 2,
+  "Adams", 3,
+  "Brown", 3,
+  "Lawrence", 3,
+  "Pike", 3,
+  "Scioto", 3,
+  "Ashland", 4,
+  "Lorain", 4,
+  "Medina", 4,
+  "Wayne", 4,
+  "Ashtabula", 5,
+  "Geauga", 5,
+  "Lake", 5,
+  "Portage", 5,
+  "Trumbull", 5,
+  "Carroll", 6,
+  "Columbiana", 6,
+  "Harrison", 6,
+  "Jefferson", 6,
+  "Tuscarawas", 6,
+  "Belmont", 7,
+  "Guernsey", 7,
+  "Monroe", 7,
+  "Noble", 7,
+  "Morgan", 8,
+  "Muskingum", 8,
+  "Washington", 8,
+  "Coshocton", 9,
+  "Fairfield", 9,
+  "Holmes", 9,
+  "Knox", 9,
+  "Licking", 9,
+  "Delaware", 10,
+  "Madison", 10,
+  "Marion", 10,
+  "Morrow", 10,
+  "Union", 10,
+  "Crawford", 11,
+  "Hancock", 11,
+  "Hardin", 11,
+  "Putnam", 11,
+  "Wyandot", 11,
+  "Allen", 12,
+  "Auglaize", 12,
+  "Mercer", 12,
+  "Champaign", 13,
+  "Darke", 13,
+  "Logan", 13,
+  "Miami", 13,
+  "Preble", 13,
+  "Shelby", 13,
+  "Butler", 14,
+  "Clermont", 14,
+  "Warren", 14,
+  "Clark", 15,
+  "Greene", 15,
+  "Clinton", 16,
+  "Fayette", 16,
+  "Highland", 16,
+  "Pickaway", 16,
+  "Ross", 16,
+  "Athens", 17,
+  "Gallia", 17,
+  "Hocking", 17,
+  "Jackson", 17,
+  "Meigs",17,
+  "Perry", 17,
+  "Vinton", 17
 ) %>%
   mutate(RegionName = paste("Homeless Planning Region", Region))
 
@@ -322,27 +300,41 @@ Project <- left_join(project_county, Regions, by = "County")
 
 rm(project_county)
 # Custom Veteran Data -----------------------------------------------------
-VeteranCE <- read_xlsx("data/RMisc.xlsx",
-                         sheet = 6,
-                         range = cell_cols("A:J"))
+
+if(file.exists("data/cevets.zip")) {
+  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cevets.csv")
+  
+  file.remove("data/cevets.zip")
+}
+
+VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+
 VeteranCE <- 
   mutate(
     VeteranCE,
-    DateVeteranIdentified = as.Date(DateVeteranIdentified, origin = "1899-12-30"),
-    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30"),
-    MostRecentOfferDate = as.Date(MostRecentOfferDate, origin = "1899-12-30")
+    DateVeteranIdentified = mdy(DateVeteranIdentified),
+    ExpectedPHDate = mdy(ExpectedPHDate),
+    MostRecentOfferDate = mdy(MostRecentOfferDate)
   )
 
 # Offers of Housing -------------------------------------------------------
-Offers <- read_xlsx("data/RMisc.xlsx",
-                    sheet = 7,
-                    range = cell_cols("A:G"))
-Offers <- 
+
+if(file.exists("data/offers.zip")) {
+  unzip(zipfile = "./data/offers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/offers.csv")
+  
+  file.remove("data/offers.zip")
+}
+
+Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
   mutate(
-    Offers,
-    DateAdded = as.Date(DateAdded, origin = "1899-12-30"),
-    OfferDate = as.Date(OfferDate, origin = "1899-12-30"),
-    AcceptDeclineDate = as.Date(AcceptDeclineDate, origin = "1899-12-30")
+    OfferDate = mdy(OfferDate),
+    AcceptDeclineDate = mdy(AcceptDeclineDate)
   )
 
 # User Contact Info from ART ----------------------------------------------
@@ -397,12 +389,30 @@ rm(small_project)
 # this comes from two ReportWriter reports: An Export: Services and 
 # An Export: Services & Funds. Saving them as services1.csv and services2.csv.
 
+if(file.exists("data/services1.zip")) {
+  unzip(zipfile = "./data/services1.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/services1.csv")
+  
+  file.remove("data/services1.zip")
+}
+
 services_1 <- read_csv("data/services1.csv",
                       col_types = "nnnn??cccc")
 
 services_1 <- services_1 %>%
   mutate(ServiceStartDate = mdy(ServiceStartDate),
          ServiceEndDate = mdy(ServiceEndDate))
+
+if(file.exists("data/services2.zip")) {
+  unzip(zipfile = "./data/services2.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/services2.csv")
+  
+  file.remove("data/services2.zip")
+}
 
 services_funds <- read_csv("data/services2.csv",
                       col_types = "ncd")
@@ -458,7 +468,16 @@ rm(staging_services, staging_enrollment)
 
 # Referrals ---------------------------------------------------------------
 
-Referrals <- read_csv("data/Referrals.csv",
+if(file.exists("data/referrals.zip")) {
+  unzip(zipfile = "./data/referrals.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/referrals.csv")
+  
+  file.remove("data/referrals.zip")
+}
+
+Referrals <- read_csv("data/referrals.csv",
                       col_types = "nnn?ccccccccc")
 
 Referrals <- Referrals %>%
