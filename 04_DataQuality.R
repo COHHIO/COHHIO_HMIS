@@ -1964,7 +1964,7 @@ ReportEnd <- format.Date(today(), "%m-%d-%Y")
 
 cocDataQualityHMIS <- DataQualityHMIS %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
-  left_join(Project[ProjectID, ProjectName], by = "ProjectName")
+  left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
 
 rm(ReportStart, ReportEnd)
 
