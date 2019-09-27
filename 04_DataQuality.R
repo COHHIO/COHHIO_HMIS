@@ -127,6 +127,7 @@ missingUDEs <- servedInDateRange %>%
       Issue %in% c("Missing Name Data Quality",
                    "Missing DOB",
                    "Incorrect Date of Birth or Entry Date",
+                   "Missing Date of Birth Data Quality",
                    "Missing SSN",
                    "Invalid SSN",
                    "Missing Race",
@@ -136,6 +137,7 @@ missingUDEs <- servedInDateRange %>%
                    ) ~ "Error",
       Issue %in% c("Incomplete or DKR Name",
                   "DKR or Approx. Date of Birth",
+                  "Don't Know/Refused SSN",
                   "DKR Race",
                   "DKR Ethnicity",
                   "DKR Gender",
@@ -758,8 +760,6 @@ smallProject <- Project %>% select(ProjectID,
                                    ProjectName, 
                                    Region,
                                    "ProviderCounty" = County)
-
-rm(Project)
 
 path_missing_los_res_prior <- servedInDateRange %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
@@ -1942,9 +1942,31 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Conflicting Non-cash Benefits yes/no at Entry",
       "Conflicting Non-cash Benefits yes/no at Exit",
       "Missing Disability Subs",
-      "Incomplete Living Situation Data"
+      "Incomplete Living Situation Data",
+      "Missing Approximate Date Homeless",
+      "Missing Months or Times Homeless",
+      "Check Eligibility",
+      "Don't Know/Refused Residence Prior",
+      "Don't Know/Refused Months or Times Homeless",
+      "Health Insurance Missing at Entry",
+      "Health Insurance Missing at Exit",
+      "Income Missing at Entry",
+      "Income Missing at Exit",
+      "Missing Residence Prior",
+      "Non-cash Benefits Missing at Entry",
+      "Non-cash Benefits Missing at Exit",
+      "SPDAT Created on a Non-Head-of-Household"
     )
   )
+
+ReportStart <- "10012018"
+ReportEnd <- format.Date(today(), "%m-%d-%Y")
+
+cocDataQualityHMIS <- DataQualityHMIS %>%
+  filter(served_between(., ReportStart, ReportEnd)) %>%
+  left_join(Project[ProjectID, ProjectName], by = "ProjectName")
+
+rm(ReportStart, ReportEnd)
 
 # Clean up the house ------------------------------------------------------
 
@@ -1994,6 +2016,7 @@ rm(
   path_reason_missing,
   path_SOAR_missing_at_exit,
   path_status_determination,
+  Project,
   referralsOnHHMembers,
   referralsOnHHMembersSSVF,
   servedInDateRange,
@@ -2009,148 +2032,5 @@ rm(
 dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
 
 save.image("images/Data_Quality.RData")
-# 
-# end <- now()
-# end - start
-# 
-# 
-# # Errors by Provider ------------------------------------------------------
-# 
-# 
-# library(plotly)
-# library(viridis)
-# 
-# plotErrors <- DataQualityHMIS %>%
-#   filter(Type == "Error") %>%
-#   select(PersonalID, ProjectName) %>%
-#   unique() %>%
-#   group_by(ProjectName) %>%
-#   summarise(clientsWithErrors = n()) %>%
-#   ungroup() %>%
-#   arrange(desc(clientsWithErrors))
-# 
-# plotErrors$hover <-
-#   with(
-#     plotErrors,
-#     paste(clientsWithErrors, "Clients with Errors")
-#   )
-# 
-# 
-# errorsProviderPlot <- 
-#   plot_ly(
-#   head(plotErrors, 20L),
-#   x = ~ ProjectName,
-#   y = ~ clientsWithErrors,
-#   color = ~ clientsWithErrors,
-#   type = 'bar',
-#   text = ~ hover,
-#   colors = viridis_pal(option = "D", direction = -1)(7)
-# ) %>%
-#   layout(
-#     title = "HMIS Errors by Provider",
-#     xaxis = list(
-#       title = ~ ProjectName,
-#       categoryorder = "array",
-#       categoryarray = ~ clientsWithErrors
-#     ),
-#     yaxis = list(title = "Clients in Error")
-#   )
-# 
-# # Error Types Plot --------------------------------------------------------
-# errorTypes <- DataQualityHMIS %>%
-#   filter(Type == "Error") %>%
-#   group_by(Issue) %>%
-#   summarise(Errors = n()) %>%
-#   ungroup() %>%
-#   arrange(desc(Errors))
-# 
-# errorTypePlot <- plot_ly(
-#   head(errorTypes, 20L),
-#   x = ~ Issue,
-#   y = ~ Errors,
-#   type = 'bar',
-#   color = ~ Errors,
-#   colors = viridis_pal(option = "D", direction = -1)(7)
-# ) %>%
-#   layout(
-#     title = "HMIS Errors Across the Ohio BoS CoC",
-#     xaxis = list(
-#       title = ~ Issue,
-#       categoryorder = "array",
-#       categoryarray = ~ Errors
-#     ),
-#     yaxis = list(title = "All Errors")
-#   )
-# 
-# # Widespread Issues -------------------------------------------------------
-# 
-#  widespreadIssue <- DataQualityHMIS %>%
-#    select(Issue, ProjectName, Type) %>%
-#    unique() %>%
-#    group_by(Issue, Type) %>%
-#    summarise(HowManyProjects = n()) %>%
-#    arrange(desc(HowManyProjects))
-# 
-# # Warnings by Provider ----------------------------------------------------
-# 
-# plotWarnings <- DataQualityHMIS %>%
-#   filter(Type == "Warning") %>%
-#   group_by(ProjectName) %>%
-#   summarise(Warnings = n()) %>%
-#   ungroup() %>%
-#   arrange(desc(Warnings))
-# 
-#  plotWarnings$hover <-
-#    with(
-#      plotWarnings,
-#      paste(Warnings, "Warnings")
-#    )
-# 
-#  warningsProviderPlot <- plot_ly(
-#    head(plotWarnings, 20L),
-#    x = ~ ProjectName,
-#    y = ~ Warnings,
-#    type = 'bar',
-#    text = ~ hover,
-#    color = ~ Warnings,
-#    colors = viridis_pal(option = "D", direction = -1)(7)
-#  ) %>%
-#    layout(
-#      title = "HMIS Warnings by Provider",
-#      xaxis = list(
-#        title = ~ ProjectName,
-#        categoryorder = "array",
-#        categoryarray = ~ Warnings
-#      ),
-#      yaxis = list(title = "All Warnings")
-#    )
-# 
-# 
-# # Warning Types -----------------------------------------------------------
-# 
-#  warningTypes <- DataQualityHMIS %>%
-#    filter(Type == "Warning") %>%
-#    group_by(Issue) %>%
-#    summarise(Warnings = n()) %>%
-#    ungroup() %>%
-#    arrange(desc(Warnings))
-# 
-#  warningTypePlot <- plot_ly(
-#    warningTypes,
-#    x = ~ Issue,
-#    y = ~ Warnings,
-#    type = 'bar',
-#    color = ~ Warnings,
-#    colors = viridis_pal(option = "D", direction = -1)(7)
-#  ) %>%
-#    layout(
-#      title = "HMIS Warnings Across the Ohio BoS CoC",
-#      xaxis = list(
-#        title = ~ Issue,
-#        categoryorder = "array",
-#        categoryarray = ~ Warnings
-#      ),
-#      yaxis = list(title = "All Warnings")
-#    )
 
  
