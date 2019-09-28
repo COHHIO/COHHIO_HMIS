@@ -749,7 +749,18 @@ dkrDestination <- servedInDateRange %>%
 
 # Missing SSVF Data
 
-# Missing PATH Data
+# Percent of AMI (HoH Only)
+# Last Permanent Address	
+# SOAR	
+# Year Entered Service	
+# Theater of Operations	
+# Branch	
+# Discharge Status	
+# VAMC Station Number	 
+# HP Targeting Criteria
+
+
+# Missing PATH Data -------------------------------------------------------
 
 #* Length of Stay in Res Prior
 ### adult, PATH-enrolled, and:
