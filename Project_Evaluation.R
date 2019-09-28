@@ -21,14 +21,18 @@ load("images/COHHIOHMIS.RData")
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
 # Staging -----------------------------------------------------------------
-# filter to only CoC-funded projects
 reporting_year <- 2018
+
+ReportStart <- paste("0101", reporting_year)
+ReportEnd <- paste("1231", reporting_year)
+
+# filter to only CoC-funded projects
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
-           ymd(StartDate) <= mdy(paste("1231", reporting_year)) &
+           ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(paste("0101", reporting_year)))) %>%
+              ymd(EndDate) >= mdy(ReportStart))) %>%
   select(ProjectID, Funder)
 
 vars_we_want <- c(
@@ -61,9 +65,7 @@ vars_we_want <- c(
 
 co_adults_all_entered <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(entered_between(., 
-                         paste("0101", reporting_year),
-                         paste("1231", reporting_year)) &
+  filter(entered_between(., ReportStart, ReportEnd) &
          AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)
@@ -73,12 +75,8 @@ co_adults_all_entered <-  Enrollment %>%
 
 co_adults_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(exited_between(., 
-                         paste("0101", reporting_year),
-                         paste("1231", reporting_year)) &
-           stayed_between(.,
-                          paste("0101", reporting_year),
-                          paste("1231", reporting_year)) &
+  filter(exited_between(., ReportStart, ReportEnd) &
+           stayed_between(., ReportStart, ReportEnd) &
          AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
@@ -88,9 +86,7 @@ co_adults_movein_leavers <-  Enrollment %>%
 
 co_adults_movein_all <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(stayed_between(., 
-                         paste("0101", reporting_year),
-                         paste("1231", reporting_year)) &
+  filter(stayed_between(., ReportStart, ReportEnd) &
          AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
@@ -100,12 +96,8 @@ co_adults_movein_all <-  Enrollment %>%
 
 co_client_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(exited_between(., 
-                         paste("0101", reporting_year),
-                         paste("1231", reporting_year)) &
-           stayed_between(., 
-                          paste("0101", reporting_year),
-                          paste("1231", reporting_year))) %>%
+  filter(exited_between(., ReportStart, ReportEnd) &
+           stayed_between(., ReportStart, ReportEnd)) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
@@ -114,9 +106,7 @@ co_client_movein_leavers <-  Enrollment %>%
 
 co_hohs_all <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
-  filter(served_between(., 
-                         paste("0101", reporting_year),
-                         paste("1231", reporting_year)) &
+  filter(served_between(., ReportStart, ReportEnd) &
          RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
@@ -127,16 +117,8 @@ co_hohs_all <-  Enrollment %>%
 co_hohs_movein_leavers <-  Enrollment %>%
   right_join(coc_funded, by = "ProjectID")  %>%
   filter(
-    stayed_between(
-      .,
-      paste("0101", reporting_year),
-      paste("1231", reporting_year)
-    ) &
-      exited_between(
-        .,
-        paste("0101", reporting_year),
-        paste("1231", reporting_year)
-      ) &
+    stayed_between(., ReportStart, ReportEnd) &
+      exited_between(., ReportStart, ReportEnd) &
       RelationshipToHoH == 1
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
