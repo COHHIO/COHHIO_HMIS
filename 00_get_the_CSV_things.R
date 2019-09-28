@@ -356,7 +356,7 @@ rm(small_exit)
 # Adding ProjectType to Enrollment too bc we need EntryAdjust & MoveInAdjust
 
 small_project <- Project %>%
-  select(ProjectID, ProjectType) 
+  select(ProjectID, ProjectType, ProjectName) 
 
 Enrollment <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
@@ -423,18 +423,12 @@ Services <- services_1 %>%
 
 rm(services_1, services_funds)
 
-project_names <- Project %>%
-  select(ProjectID, ProjectName) 
-
-staging_enrollment <- Enrollment %>%
-  left_join(project_names, by = "ProjectID")
-
 staging_services <- Services[c("PersonalID",
                               "ServiceProvider",
                               "ServiceID",
                               "ServiceStartDate",
                               "ServiceEndDate")] %>%
-  left_join(staging_enrollment[c("EnrollmentID",
+  left_join(Enrollment[c("EnrollmentID",
                          "PersonalID",
                          "ProjectName",
                          "EntryDate",
@@ -464,7 +458,7 @@ Services <- staging_services %>%
 # the code above does not pull in Services that cannot be associated to an EE. 
 # Any Services that don't align with an EE can be found in stray_services
 
-rm(staging_services, staging_enrollment)
+rm(staging_services)
 
 # Referrals ---------------------------------------------------------------
 
