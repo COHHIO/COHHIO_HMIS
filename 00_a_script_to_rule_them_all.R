@@ -40,4 +40,7 @@ rm(list = ls())
 
 source("04_DataQuality.R")
 rm(list = ls())
+
+source("05_Cohorts.R")
+rm(list = ls())
  
