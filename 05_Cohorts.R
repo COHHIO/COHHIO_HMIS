@@ -17,8 +17,8 @@ library(lubridate)
 
 load("images/COHHIOHMIS.RData")
 
-ReportStart <- "01012019"
-ReportEnd <- "12312019"
+ReportStart <- "01012018"
+ReportEnd <- "12312018"
 
 vars_we_want <- c(
   "PersonalID",
@@ -168,15 +168,44 @@ summary_adults_moved_in_leavers <- co_adults_moved_in_leavers %>%
   summarise(adults_moved_in_leavers = n())
 
 summary <- summary_all_served %>%
-  left_join(summary_moved_in_served, by = "ProjectName") %>%
-  left_join(summary_adults_served, by = "ProjectName") %>%
-  left_join(summary_adults_moved_in, by = "ProjectName") %>%
-  left_join(summary_client_moved_in_leavers, by = "ProjectName") %>%
-  left_join(summary_adults_moved_in_leavers, by = "ProjectName") %>%
-  left_join(summary_hoh_served, by = "ProjectName") %>%
-  left_join(summary_hoh_enterers, by = "ProjectName") %>%
-  left_join(summary_hoh_served_leavers, by= "ProjectName") %>%
-  left_join(summary_adults_entered, by = "ProjectName") %>%
-  left_join(summary_hoh_leavers_died, by = "ProjectName")
+  full_join(summary_moved_in_served, by = "ProjectName") %>%
+  full_join(summary_adults_served, by = "ProjectName") %>%
+  full_join(summary_adults_moved_in, by = "ProjectName") %>%
+  full_join(summary_client_moved_in_leavers, by = "ProjectName") %>%
+  full_join(summary_adults_moved_in_leavers, by = "ProjectName") %>%
+  full_join(summary_hoh_served, by = "ProjectName") %>%
+  full_join(summary_hoh_enterers, by = "ProjectName") %>%
+  full_join(summary_hoh_served_leavers, by= "ProjectName") %>%
+  full_join(summary_adults_entered, by = "ProjectName") %>%
+  full_join(summary_hoh_leavers_died, by = "ProjectName")
   
+rm(
+  Affiliation,
+  Client,
+  Disabilities,
+  EmploymentEducation,
+  Enrollment,
+  EnrollmentCoC,
+  Exit,
+  Export,
+  Funder,
+  Geography,
+  HealthAndDV,
+  IncomeBenefits,
+  Inventory,
+  Organization,
+  Project,
+  ProjectCoC,
+  Referrals,
+  Regions,
+  stray_services,
+  Scores,
+  Services,
+  Users,
+  Offers,
+  VeteranCE
+)
 
+rm(list = ls(pattern = "summary_"))
+
+save.image("images/cohorts.RData")
