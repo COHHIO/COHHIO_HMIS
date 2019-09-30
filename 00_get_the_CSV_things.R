@@ -362,14 +362,14 @@ Enrollment <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
   mutate(
     MoveInDateAdjust = case_when(
-      ymd(EntryDate) <= ymd(MoveInDate) &
-        ymd(MoveInDate) <= ExitAdjust &
+        EntryDate < mdy("10012017") &
+          ProjectType %in% c(3, 9)
+         ~ EntryDate,
+      EntryDate >= mdy("10012017") &
         ProjectType %in% c(3, 9) &
-        EntryDate < mdy("10012017") ~ EntryDate,
-      ymd(EntryDate) <= ymd(MoveInDate) &
-        ymd(MoveInDate) <= ExitAdjust &
-        ProjectType %in% c(3, 9) &
-        EntryDate >= mdy("10012017") ~ MoveInDate,
+        ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(MoveInDate) <= ExitAdjust
+         ~ MoveInDate,
       ymd(EntryDate) <= ymd(MoveInDate) &
         ymd(MoveInDate) <= ExitAdjust &
         ProjectType == 13 ~ MoveInDate
