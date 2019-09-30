@@ -15,6 +15,7 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
+library(plotly)
 
 load("images/COHHIOHMIS.RData")
 
@@ -650,6 +651,7 @@ checkEligibility <- servedInDateRange %>%
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
            ymd(EntryDate) > mdy("10012016") &
+           ProjectType %in% c(2:4, 8:10, 12:13) &
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
            (
              is.na(LivingSituation) |
@@ -675,7 +677,7 @@ checkEligibility <- servedInDateRange %>%
            ))|
            (ProjectType == 12 &
               !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
-           (ProjectType %in% c(8, 4) & # Outreach and Safe Havens
+           (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
               !LivingSituation == 16)) # unsheltered only
 
 smallEligibility <- checkEligibility %>%
@@ -913,7 +915,8 @@ incorrectEntryExitType <- servedInDateRange %>%
       is.na(GrantType) & 
         !grepl("GPD", ProjectName) & 
         !grepl("HCHV", ProjectName) & 
-        !grepl("VET ", ProjectName) &
+        !grepl("VET", ProjectName) &
+        !grepl("Veterans", ProjectName) &
         ProjectID != 1695 &
         EEType != "HUD"
     ) |
@@ -921,10 +924,16 @@ incorrectEntryExitType <- servedInDateRange %>%
         GrantType == "SSVF" | 
           grepl("GPD", ProjectName) | 
           grepl("HCHV", ProjectName) |
-          grepl("VET ", ProjectName)
+          grepl("Veterans", ProjectName) &
+          grepl("VET", ProjectName)
       ) &
         EEType != "VA") |
-      (GrantType == "RHY" & EEType != "RHY") |
+      (GrantType == "RHY" & 
+         !grepl("YHDP", ProjectName) & 
+         EEType != "RHY") |
+      (GrantType == "RHY" &
+         grepl("YHDP", ProjectName) &
+         EEType != "HUD") |
       (GrantType == "PATH" & EEType != "PATH") |
       (ProjectID == 1695 & EEType != "Standard")
   ) %>% 
@@ -1785,7 +1794,6 @@ APsWithEEs <- Enrollment %>%
   filter(ProjectType == 14) %>%
   mutate(Issue = "Access Point with Entry Exits",
          Type = "Error") %>%
-  left_join(smallProject, by = "ProjectID") %>%
   select(vars_we_want)
 
 rm(Enrollment)
@@ -1956,7 +1964,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Incomplete Living Situation Data",
       "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
-      "Check Eligibility",
+      # "Check Eligibility",
       "Don't Know/Refused Residence Prior",
       "Don't Know/Refused Months or Times Homeless",
       "Health Insurance Missing at Entry",
@@ -2041,6 +2049,166 @@ rm(
 )
 
 dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
+
+plotErrors <- cocDataQualityHMIS %>%
+  filter(Type == "Error" &
+           !Issue %in% c("No Head of Household",
+                        "Too Many Heads of Household",
+                        "Children Only Household")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(clientsWithErrors = n()) %>%
+  ungroup() %>%
+  arrange(desc(clientsWithErrors))
+
+plotErrors$hover <-
+  with(plotErrors,
+       paste(ProjectName, ":", ProjectID))
+
+top_20_projects_errors <-
+  ggplot(head(plotErrors, 20L),
+         aes(
+           x = reorder(hover, clientsWithErrors),
+           y = clientsWithErrors,
+           fill = clientsWithErrors
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "Providers",
+       y = "Clients") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotWarnings <- cocDataQualityHMIS %>%
+  filter(Type == "Warning") %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Warnings = n()) %>%
+  ungroup() %>%
+  arrange(desc(Warnings))
+
+plotWarnings$hover <-
+  with(plotWarnings,
+       paste(ProjectName, ":", ProjectID))      
+
+top_20_projects_warnings <-
+  ggplot(head(plotWarnings, 20L),
+         aes(
+           x = reorder(hover, Warnings),
+           y = Warnings,
+           fill = Warnings
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "Providers",
+       y = "Clients") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+errorTypes <- cocDataQualityHMIS %>%
+  filter(Type == "Error") %>%
+  group_by(Issue) %>%
+  summarise(Errors = n()) %>%
+  ungroup() %>%
+  arrange(desc(Errors))
+
+top_10_errors <-
+  ggplot(head(errorTypes, 10L),
+         aes(
+           x = reorder(Issue, Errors),
+           y = Errors,
+           fill = Errors
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "Error Types",
+       y = "Clients") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+warningTypes <- cocDataQualityHMIS %>%
+  filter(Type == "Warning") %>%
+  group_by(Issue) %>%
+  summarise(Warnings = n()) %>%
+  ungroup() %>%
+  arrange(desc(Warnings))
+
+top_10_warnings <-
+  ggplot(head(warningTypes, 10L),
+         aes(
+           x = reorder(Issue, Warnings),
+           y = Warnings,
+           fill = Warnings
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "Warning Types",
+       y = "Clients") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotHHIssues <- cocDataQualityHMIS %>%
+  filter(Type == "Error" &
+           Issue %in% c("No Head of Household",
+                        "Too Many Heads of Household",
+                        "Children Only Household")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  arrange(desc(Households))
+
+plotHHIssues$hover <-
+  with(plotHHIssues,
+       paste(ProjectName, ":", ProjectID))
+
+top_20_projects_hh_errors <-
+  ggplot(head(plotHHIssues, 20L),
+         aes(
+           x = reorder(hover, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "Providers") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotEligibility <- cocDataQualityHMIS %>%
+  filter(Type == "Warning" &
+           Issue %in% c("Check Eligibility")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  arrange(desc(Households))
+
+plotEligibility$hover <-
+  with(plotEligibility,
+       paste(ProjectName, ":", ProjectID))
+
+top_20_eligibility <-
+  ggplot(head(plotEligibility, 20L),
+         aes(
+           x = reorder(hover, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "Providers") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+rm(plotErrors,
+   plotWarnings,
+   errorTypes,
+   warningTypes,
+   plotHHIssues,
+   plotEligibility)
 
 save.image("images/Data_Quality.RData")
 
