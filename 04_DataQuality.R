@@ -651,7 +651,7 @@ checkEligibility <- servedInDateRange %>%
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
            ymd(EntryDate) > mdy("10012016") &
-           ProjectType %in% c(2:4, 8:10, 12:13) &
+           ProjectID != 1859 & # "Crisis TH" which should be treated like an es
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
            (
              is.na(LivingSituation) |
@@ -1931,12 +1931,12 @@ unshelteredDataQuality <- rbind(
   missingCountyServed,
   # missingDisabilities,
   # missingDisabilitySubs,
-#  missingLivingSituationData, 
+  # missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  # overlaps,
+  overlaps,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
