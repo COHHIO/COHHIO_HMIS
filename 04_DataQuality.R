@@ -364,9 +364,6 @@ dkrMonthsTimesHomeless <- servedInDateRange %>%
          Type = "Warning") %>%
   select(vars_we_want)
 
-# THIS IS RETURNING FALSE POSITIVES. I think something is up with the HUD CSV
-# Export's LOSUnderThreshold logic. I put in a case with WS.
-
 missingLivingSituationData <- servedInDateRange %>%
   select(
     PersonalID,
@@ -662,7 +659,7 @@ checkEligibility <- servedInDateRange %>%
                        is.na(LengthOfStay) |
                        PreviousStreetESSH == 0 | # LH prior
                        is.na(PreviousStreetESSH)
-                   ) 
+                   )
                ) |
                (
                  LivingSituation %in% c(2:3, 8, 9, 12:14, 19:23, 25, 26) &
@@ -1342,15 +1339,6 @@ psh_overlaps <- servedInDateRange %>%
   filter(Overlap == TRUE) %>%
   select(vars_we_want, PreviousProject)
 
-# forAmanda <- stagingOverlaps %>%
-#   mutate(
-#     PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
-#     Overlap = int_overlaps(LiterallyInProject, PreviousStay)
-#   ) %>%
-#   filter(Overlap == TRUE) %>%
-#   select(PersonalID, dupe_count, ProjectName, EntryDate, MoveInDateAdjust,
-#          ExitDate, UserCreating, LiterallyInProject, PreviousStay, Overlap)
-
 overlaps <- stagingOverlaps %>%
   mutate(
     PreviousStay = interval(PreviousEntryAdjust, PreviousExitAdjust),
@@ -1360,8 +1348,6 @@ overlaps <- stagingOverlaps %>%
   select(vars_we_want, PreviousProject)
 
 overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps)
-
-# write_csv(forAmanda, "data/OverlapsToChase.csv")
 
 rm(stagingOverlaps,
    # forAmanda,
@@ -1724,25 +1710,27 @@ servicesOnHHMembersSSVF <- servedInDateRange %>%
 
 rm(Services)
 
-# # why isn't this catching any records, i don't know.
 referralsOnHHMembers <- servedInDateRange %>%
-  select(HouseholdID,
-         PersonalID,
-         EnrollmentID,
-         ProjectName,
-         EntryDate,
-         MoveInDateAdjust,
-         ExitDate,
-         ProjectType,
-         CountyServed,
-         ProviderCounty,
-         Region,
-         RelationshipToHoH,
-         UserCreating,
-         GrantType) %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    RelationshipToHoH,
+    UserCreating,
+    GrantType
+  ) %>%
   filter(RelationshipToHoH != 1 &
            (GrantType != "SSVF"  | is.na(GrantType))) %>%
-  semi_join(Referrals, by = c("PersonalID")) %>%
+  semi_join(Referrals,
+            by = c("PersonalID", "ProjectName" = "ProviderCreating")) %>%
   mutate(Issue = "Referral on a non Head of Household",
          Type = "Warning") %>%
   select(vars_we_want)
@@ -1798,10 +1786,6 @@ APsWithEEs <- Enrollment %>%
 
 rm(Enrollment)
 
-# Need Status Referral Outcomes -------------------------------------------
-# would need to pull in the Needs records to calculate this
-
-
 # Side Door ---------------------------------------------------------------
 # use Referrals, get logic from ART report- it's pretty lax I think
 
@@ -1841,9 +1825,6 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
 # Unsheltered Missing Outreach Contact Record -----------------------------
 
 # Unsheltered Outreach Contact Incorrect Start Date -----------------------
-
-
-# Unsheltered 30+ Days Exited w No Referral -------------------------------
 
 
 # Unsheltered Currently Unsheltered 30+ Days w No Referral ----------------
@@ -1964,7 +1945,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Incomplete Living Situation Data",
       "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
-      # "Check Eligibility",
+      "Check Eligibility",
       "Don't Know/Refused Residence Prior",
       "Don't Know/Refused Months or Times Homeless",
       "Health Insurance Missing at Entry",
