@@ -26,64 +26,69 @@ library(readxl)
 # Pulling in the CSVs -----------------------------------------------------
 
 Affiliation <- 
-  read_csv("data/Affiliation.csv", 
+  read_csv("fy2020/Affiliation.csv", 
            col_types = "nnnTTnTn")
 
-if(ncol(read_csv("data/Client.csv")) == 36) {
+if(ncol(read_csv("fy2020/Client.csv")) == 36) {
   Client <-
-    read_csv("data/Client.csv",
-             col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn") %>%
+    read_csv("fy2020/Client.csv",
+             col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
     filter(!PersonalID %in% c(5, 4216))
 } else {
   Client <-
-    read_csv("data/Client.csv",
-             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+    read_csv("fy2020/Client.csv",
+             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
 }
-
+CurrentLivingSituation <- 
+  read_csv("fy2020/CurrentLivingSituation.csv",
+           col_types = "nnnDncnnnnncTTcTc")
 Disabilities <-
-  read_csv("data/Disabilities.csv",
+  read_csv("fy2020/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
 EmploymentEducation <-
-  read_csv("data/EmploymentEducation.csv",
+  read_csv("fy2020/EmploymentEducation.csv",
            col_types = "cnnDnnnnnnTTnTn")
 Enrollment <-
-  read_csv("data/Enrollment.csv",
+  read_csv("fy2020/Enrollment.csv",
            col_types =
-             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 EnrollmentCoC <- 
-  read_csv("data/EnrollmentCoC.csv", 
+  read_csv("fy2020/EnrollmentCoC.csv", 
            col_types = "cncnnDcnTTnTn")
+Event <- 
+  read_csv("fy2020/Event.csv",
+           col_types = "nnnDnnncDTTcTc")
 Exit <-
-  read_csv("data/Exit.csv",
-           col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
+  read_csv("fy2020/Exit.csv",
+           col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 Export <- 
-  read_csv("data/Export.csv",
+  read_csv("fy2020/Export.csv",
            col_types = "nnnccccncTDDccnnn")
 Funder <- 
-  read_csv("data/Funder.csv",
-           col_types = "nnncDDTTnTn")
-Geography <- 
-  read_csv("data/Geography.csv",
-           col_types = "nncDnnccccnTTnTn")
+  read_csv("fy2020/Funder.csv",
+           col_types = "nnnccDDTTcTn")
 HealthAndDV <-
-  read_csv("data/HealthAndDV.csv",
+  read_csv("fy2020/HealthAndDV.csv",
            col_types = "cnnDnnnnnnnDnTTnTn")
 IncomeBenefits <- 
-  read_csv("data/IncomeBenefits.csv",
+  read_csv("fy2020/IncomeBenefits.csv",
            col_types = 
              "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
 Inventory <- 
-  read_csv("data/Inventory.csv",
-           col_types = "nncnnnnnnnnDDnTTDnTn")
+  read_csv("fy2020/Inventory.csv",
+           col_types = "nncnnnnnnnnnnnnnnDDTTcTn")
 Organization <- 
-  read_csv("data/Organization.csv",
-           col_types = "nccTTnTn")
+  read_csv("fy2020/Organization.csv",
+           col_types = "ncncTTnTn")
 Project <- 
-  read_csv("data/Project.csv",
-           col_types = "nnccDDnnnnnnnnTTnTn")
+  read_csv("fy2020/Project.csv",
+           col_types = "nnccDDnnnnnnTTcTn")
 ProjectCoC <- 
-  read_csv("data/ProjectCoC.csv",
-           col_types = "nncTTnTn")
+  read_csv("fy2020/ProjectCoC.csv",
+           col_types = "nncnccccnnTTcTn")
+User <- 
+  read_csv("fy2020/User.csv",
+           col_types = "nccnncTTTn")
 
 # - All other data comes from either the RMisc ART report or ReportWriter #
 
