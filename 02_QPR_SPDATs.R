@@ -28,7 +28,7 @@ rm(Affiliation, Client, EnrollmentCoC, EmploymentEducation, Export, Exit,
    Offers, Organization, ProjectCoC, Services, VeteranCE)
 # more paring down, only taking what variables I need from Enrollment
 smallEnrollment <- Enrollment %>%
-  left_join(Project, by = c("ProjectType", "ProjectID")) %>%
+  left_join(Project, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
   select(
     EnrollmentID,
     PersonalID,
