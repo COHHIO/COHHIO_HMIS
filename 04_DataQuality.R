@@ -2051,7 +2051,7 @@ top_20_projects_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2076,7 +2076,7 @@ top_20_projects_warnings <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2097,7 +2097,7 @@ top_10_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Error Types",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2118,7 +2118,7 @@ top_10_warnings <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Warning Types",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2148,7 +2148,7 @@ top_20_projects_hh_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers") +
+  labs(x = "") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
@@ -2175,7 +2175,7 @@ top_20_eligibility <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers") +
+  labs(x = "") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
