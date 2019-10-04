@@ -967,9 +967,14 @@ rm(Scores)
 
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(3, 9, 13),
-         ymd(EntryDate) > ymd("20190101") & # only looking at 1/1/2019 forward
-           RelationshipToHoH == 1) %>% # HoHs only
+  filter(
+    ProjectType %in% c(3, 9, 13) &
+      !grepl("SSVF", ProjectName) &
+      !grepl("GPD", ProjectName) &
+      ymd(EntryDate) > ymd("20190101") &
+      # only looking at 1/1/2019 forward
+      RelationshipToHoH == 1
+  ) %>% 
   mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(vars_we_want)
@@ -981,6 +986,7 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
+      VeteranStatus != 1 &
       RelationshipToHoH == 1 &
       ymd(EntryDate) < today() - days(8) &
       is.na(ExitDate) &
@@ -2179,13 +2185,38 @@ top_20_eligibility <-
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
+plotWithoutSPDAT <- cocDataQualityHMIS %>%
+  filter(Type == "Warning" &
+           Issue %in% c("HoHs Entering PH without SPDAT",
+                        "HoHs in shelter or Transitional Housing for 8+ days without SPDAT")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  mutate(ProjectDisplay = paste(ProjectName, ":", ProjectID)) %>%
+  arrange(desc(Households))
+
+NoSPDATHoHs <-
+  ggplot(head(plotWithoutSPDAT, 20L),
+         aes(
+           x = reorder(ProjectDisplay, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
 rm(plotErrors,
    plotWarnings,
    errorTypes,
    warningTypes,
    plotHHIssues,
-   plotEligibility)
+   plotEligibility,
+   plotWithoutSPDAT)
 
 save.image("images/Data_Quality.RData")
 
- 
