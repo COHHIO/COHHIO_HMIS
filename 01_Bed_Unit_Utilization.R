@@ -714,14 +714,14 @@ providerids <- Capacity %>%
 #here is where you could add a left join to the Regions object and add in Region
 
 Clients <- Enrollment %>%
-  left_join(., providerids, by = "ProjectID") %>%
+  left_join(., providerids, by = c("ProjectID", "ProjectName")) %>%
   filter(is.na(ExitDate)) %>%
   group_by(ProjectID, ProjectName) %>%
   summarise(Clients = n_distinct(PersonalID)) %>%
   ungroup()
 
 Households <- Enrollment %>%
-  left_join(., providerids, by = "ProjectID") %>%
+  left_join(., providerids, by = c("ProjectID", "ProjectName")) %>%
   filter(is.na(ExitDate)) %>%
   group_by(ProjectID, ProjectName) %>%
   summarise(Households = n_distinct(HouseholdID)) %>%
