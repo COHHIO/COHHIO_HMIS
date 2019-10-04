@@ -15,7 +15,6 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(plotly)
 
 load("images/COHHIOHMIS.RData")
 
@@ -1896,7 +1895,6 @@ DataQualityHMIS <- rbind(
 
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
-  # conflictingDisabilities,
   dkrDestination,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
@@ -1907,17 +1905,14 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
-  # missingCountyPrior,
   missingDestination,
   missingCountyServed,
-  # missingDisabilities,
-  # missingDisabilitySubs,
   # missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
+  # overlaps,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
@@ -1945,7 +1940,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Incomplete Living Situation Data",
       "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
-      "Check Eligibility",
+      # "Check Eligibility",
       "Don't Know/Refused Residence Prior",
       "Don't Know/Refused Months or Times Homeless",
       "Health Insurance Missing at Entry",
