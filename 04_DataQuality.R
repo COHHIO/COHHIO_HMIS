@@ -1770,15 +1770,56 @@ stray_services <- stray_services %>%
          Type = "Warning") %>%
   select(PersonalID, ServiceProvider, ServiceStartDate, Issue, Type)
 
-# Unmet Needs -------------------------------------------------------------
-# can't get this from the CSV Export
-
 # AP No Recent Referrals --------------------------------------------------
+co_APs <- Project %>%
+  filter(ProjectType == 14) %>%
+  select(ProjectID,
+         OperatingStartDate,
+         OperatingEndDate,
+         ProjectName,
+         ProjectAKA,
+         UsesSP,
+         County)
 
+APsNoReferrals <- Referrals %>%
+  right_join(co_APs, by = c("ProviderCreating" = "ProjectName")) %>%
+  filter(is.na(PersonalID)) %>% 
+  select(ProviderCreating) %>% 
+  unique()
 
+APsWithReferrals <- Referrals %>%
+  right_join(co_APs, by = c("ProviderCreating" = "ProjectName")) %>%
+  filter(!is.na(PersonalID)) %>% 
+  select(ProviderCreating) %>% 
+  unique()
+
+data_APs <- data.frame(
+  category = c("No Referrals", "Has Created Referrals"),
+  count = c(nrow(APsNoReferrals), nrow(APsWithReferrals)),
+  providertype = rep("Access Points"),
+  total = rep(c(nrow(APsNoReferrals) + nrow(APsWithReferrals)))
+)
+
+data_APs <- data_APs %>%
+  mutate(percent = (count/total))
+
+plot_aps_referrals <-
+  ggplot(data_APs, aes(fill = category, x = providertype, y = percent)) +
+  geom_bar(position = "fill", stat = "identity") +
+  geom_label(aes(label = data_APs$category),
+             position = position_stack(),
+             vjust = 2,
+             fill = "white",
+             colour = "black",
+             fontface = "bold") +
+  scale_fill_manual(values = c("#00E446", "#F6493C"), guide = FALSE) +
+  theme_void()
+
+rm(data_APs)
+  
 # AP entering project stays -----------------------------------------------
 
-APsWithEEs <- Enrollment %>%
+APsWithEEs <- servedInDateRange %>%
   filter(ProjectType == 14) %>%
   mutate(Issue = "Access Point with Entry Exits",
          Type = "Error") %>%
