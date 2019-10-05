@@ -1820,7 +1820,7 @@ plot_aps_referrals <-
   scale_fill_manual(values = c("#00E446", "#F6493C"), guide = FALSE) +
   theme_void()
 
-rm(data_APs)
+rm(data_APs, APsWithReferrals, co_APs)
   
 # AP entering project stays -----------------------------------------------
 
@@ -1843,7 +1843,13 @@ rm(Enrollment)
 old_outstanding_referrals <- Referrals %>%
   filter(!is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
-  select(PersonalID, ReferralDate, ProviderCreating)
+  select(PersonalID, ReferralDate, ProviderCreating) %>%
+  left_join(servedInDateRange, by = c("ProviderCreating" = "ProjectName",
+                                      "PersonalID")) %>%
+  mutate(ProjectName = ProviderCreating,
+         Issue = "Old Outstanding Referral",
+         Type = "Warning") %>%
+  select(vars_we_want)
 
 rm(Referrals)
 
@@ -1921,6 +1927,7 @@ DataQualityHMIS <- rbind(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
+  old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_reason_missing,
@@ -1959,7 +1966,7 @@ unshelteredDataQuality <- rbind(
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  # overlaps,
+  old_outstanding_referrals,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
@@ -2199,6 +2206,29 @@ top_20_projects_hh_errors <-
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
+plotOutstandingReferrals <- cocDataQualityHMIS %>%
+  filter(Issue== "Old Outstanding Referral") %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  arrange(desc(Households)) %>%
+  mutate(hover = paste(ProjectName, ":", ProjectID))
+
+top_20_projects_outstanding_referrals <-
+  ggplot(head(plotOutstandingReferrals, 20L),
+         aes(
+           x = reorder(hover, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
 plotEligibility <- cocDataQualityHMIS %>%
   filter(Type == "Warning" &
            Issue %in% c("Check Eligibility")) %>%
@@ -2257,7 +2287,8 @@ rm(plotErrors,
    warningTypes,
    plotHHIssues,
    plotEligibility,
-   plotWithoutSPDAT)
+   plotWithoutSPDAT,
+   plotOutstandingReferrals)
 
 save.image("images/Data_Quality.RData")
 
