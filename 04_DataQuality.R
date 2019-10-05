@@ -15,7 +15,6 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(plotly)
 
 load("images/COHHIOHMIS.RData")
 
@@ -968,9 +967,14 @@ rm(Scores)
 
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(3, 9, 13),
-         ymd(EntryDate) > ymd("20190101") & # only looking at 1/1/2019 forward
-           RelationshipToHoH == 1) %>% # HoHs only
+  filter(
+    ProjectType %in% c(3, 9, 13) &
+      !grepl("SSVF", ProjectName) &
+      !grepl("GPD", ProjectName) &
+      ymd(EntryDate) > ymd("20190101") &
+      # only looking at 1/1/2019 forward
+      RelationshipToHoH == 1
+  ) %>% 
   mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(vars_we_want)
@@ -982,6 +986,7 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
+      VeteranStatus != 1 &
       RelationshipToHoH == 1 &
       ymd(EntryDate) < today() - days(8) &
       is.na(ExitDate) &
@@ -1937,7 +1942,6 @@ DataQualityHMIS <- rbind(
 
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
-  # conflictingDisabilities,
   dkrDestination,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
@@ -1948,17 +1952,14 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
-  # missingCountyPrior,
   missingDestination,
   missingCountyServed,
-  # missingDisabilities,
-  # missingDisabilitySubs,
   # missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
+  # overlaps,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
@@ -1986,7 +1987,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Incomplete Living Situation Data",
       "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
-      "Check Eligibility",
+      # "Check Eligibility",
       "Don't Know/Refused Residence Prior",
       "Don't Know/Refused Months or Times Homeless",
       "Health Insurance Missing at Entry",
@@ -2097,7 +2098,7 @@ top_20_projects_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2122,7 +2123,7 @@ top_20_projects_warnings <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2143,7 +2144,7 @@ top_10_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Error Types",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2164,7 +2165,7 @@ top_10_warnings <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Warning Types",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2194,7 +2195,7 @@ top_20_projects_hh_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers") +
+  labs(x = "") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
@@ -2221,7 +2222,32 @@ top_20_eligibility <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers") +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotWithoutSPDAT <- cocDataQualityHMIS %>%
+  filter(Type == "Warning" &
+           Issue %in% c("HoHs Entering PH without SPDAT",
+                        "HoHs in shelter or Transitional Housing for 8+ days without SPDAT")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  mutate(ProjectDisplay = paste(ProjectName, ":", ProjectID)) %>%
+  arrange(desc(Households))
+
+NoSPDATHoHs <-
+  ggplot(head(plotWithoutSPDAT, 20L),
+         aes(
+           x = reorder(ProjectDisplay, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
@@ -2230,8 +2256,8 @@ rm(plotErrors,
    errorTypes,
    warningTypes,
    plotHHIssues,
-   plotEligibility)
+   plotEligibility,
+   plotWithoutSPDAT)
 
 save.image("images/Data_Quality.RData")
 
- 
