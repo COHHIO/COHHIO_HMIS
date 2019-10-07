@@ -1820,7 +1820,7 @@ plot_aps_referrals <-
   scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
   theme_void()
 
-rm(data_APs, APsWithReferrals, co_APs)
+rm(APsWithReferrals, co_APs)
   
 
 # AP entering project stays -----------------------------------------------
