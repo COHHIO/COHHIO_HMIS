@@ -37,7 +37,7 @@ rm(
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12) | 
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
            # including Diversion, Unsheltered, PATH Outreach & SO, Prevention,
            # and PH - Housing Only projects
            (
@@ -79,7 +79,7 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(Client, FileStart, FileEnd, FilePeriod, hmisParticipatingCurrent)
+rm(Client, FileStart, FileEnd, FilePeriod)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -1810,18 +1810,19 @@ data_APs <- data_APs %>%
 
 plot_aps_referrals <-
   ggplot(data_APs, aes(fill = category, x = providertype, y = percent)) +
-  geom_bar(position = "fill", stat = "identity") +
+  geom_bar(position = "fill", stat = "identity", width = .1) +
   geom_label(aes(label = data_APs$category),
              position = position_stack(),
              vjust = 2,
              fill = "white",
              colour = "black",
              fontface = "bold") +
-  scale_fill_manual(values = c("#00E446", "#F6493C"), guide = FALSE) +
+  scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
   theme_void()
 
 rm(data_APs, APsWithReferrals, co_APs)
   
+
 # AP entering project stays -----------------------------------------------
 
 APsWithEEs <- servedInDateRange %>%
@@ -2003,8 +2004,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Income Missing at Exit",
       "Missing Residence Prior",
       "Non-cash Benefits Missing at Entry",
-      "Non-cash Benefits Missing at Exit",
-      "SPDAT Created on a Non-Head-of-Household"
+      "Non-cash Benefits Missing at Exit"
     )
   )
 
@@ -2017,10 +2017,21 @@ cocDataQualityHMIS <- DataQualityHMIS %>%
 
 rm(ReportStart, ReportEnd)
 
+# dqProviders <- hmisParticipatingCurrent %>% 
+#   filter(ProjectID != 1695) %>%
+#   select(ProjectName) %>%
+#   unique() %>%
+#   arrange(ProjectName)
+# 
+# dqProviders <- as.vector(dqProviders)
+
+dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
+
 # Clean up the house ------------------------------------------------------
 
 rm(
   APsWithEEs,
+  APsWithReferrals,
   checkDisabilityForAccuracy,
   checkEligibility,
   conflictingDisabilities,
@@ -2078,8 +2089,6 @@ rm(
   update_date
 )
 
-dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
-
 plotErrors <- cocDataQualityHMIS %>%
   filter(Type == "Error" &
            !Issue %in% c("No Head of Household",
@@ -2094,7 +2103,7 @@ plotErrors <- cocDataQualityHMIS %>%
 
 plotErrors$hover <-
   with(plotErrors,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_projects_errors <-
   ggplot(head(plotErrors, 20L),
@@ -2119,7 +2128,7 @@ plotWarnings <- cocDataQualityHMIS %>%
 
 plotWarnings$hover <-
   with(plotWarnings,
-       paste(ProjectName, ":", ProjectID))      
+       paste0(ProjectName, ":", ProjectID))      
 
 top_20_projects_warnings <-
   ggplot(head(plotWarnings, 20L),
@@ -2191,7 +2200,7 @@ plotHHIssues <- cocDataQualityHMIS %>%
 
 plotHHIssues$hover <-
   with(plotHHIssues,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_projects_hh_errors <-
   ggplot(head(plotHHIssues, 20L),
@@ -2241,7 +2250,7 @@ plotEligibility <- cocDataQualityHMIS %>%
 
 plotEligibility$hover <-
   with(plotEligibility,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_eligibility <-
   ggplot(head(plotEligibility, 20L),
@@ -2265,7 +2274,7 @@ plotWithoutSPDAT <- cocDataQualityHMIS %>%
   group_by(ProjectName, ProjectID) %>%
   summarise(Households = n()) %>%
   ungroup() %>%
-  mutate(ProjectDisplay = paste(ProjectName, ":", ProjectID)) %>%
+  mutate(ProjectDisplay = paste0(ProjectName, ":", ProjectID)) %>%
   arrange(desc(Households))
 
 NoSPDATHoHs <-
