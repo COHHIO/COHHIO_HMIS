@@ -2007,7 +2007,15 @@ cocDataQualityHMIS <- DataQualityHMIS %>%
 
 rm(ReportStart, ReportEnd)
 
-dqProviders <- sort(hmisParticipatingCurrent$ProjectName) %>% unique()
+# dqProviders <- hmisParticipatingCurrent %>% 
+#   filter(ProjectID != 1695) %>%
+#   select(ProjectName) %>%
+#   unique() %>%
+#   arrange(ProjectName)
+# 
+# dqProviders <- as.vector(dqProviders)
+
+dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
 
 # Clean up the house ------------------------------------------------------
 
