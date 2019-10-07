@@ -2017,13 +2017,8 @@ cocDataQualityHMIS <- DataQualityHMIS %>%
 
 rm(ReportStart, ReportEnd)
 
-# dqProviders <- hmisParticipatingCurrent %>% 
-#   filter(ProjectID != 1695) %>%
-#   select(ProjectName) %>%
-#   unique() %>%
-#   arrange(ProjectName)
-# 
-# dqProviders <- as.vector(dqProviders)
+hmisParticipatingCurrent <- hmisParticipatingCurrent %>%
+  filter(ProjectID != 1695) 
 
 dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
 
@@ -2031,7 +2026,6 @@ dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
 
 rm(
   APsWithEEs,
-  APsWithReferrals,
   checkDisabilityForAccuracy,
   checkEligibility,
   conflictingDisabilities,
@@ -2049,6 +2043,7 @@ rm(
   enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
+  hmisParticipatingCurrent,
   incorrectEntryExitType,
   incorrectMoveInDate,
   LHwithoutSPDAT,
