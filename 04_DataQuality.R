@@ -1359,6 +1359,15 @@ rm(stagingOverlaps,
    rrh_overlaps,
    psh_overlaps)
 
+unsh_overlaps <- overlaps %>%
+  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
+  left_join(Users, by = "UserCreating") %>%
+  select(PersonalID,
+         DefaultProvider,
+         EntryDate,
+         ExitDate,
+         PreviousProject)
+
 # Missing Health Ins ------------------------------------------------------
 
 missingHealthInsuranceatEntry <- servedInDateRange %>%
@@ -1842,15 +1851,37 @@ rm(Enrollment)
 # Using ProviderCreating instead. Either way, I feel this should go in the 
 # Provider Dashboard, not the Data Quality report.
 old_outstanding_referrals <- Referrals %>%
-  filter(!is.na(ReferralOutcome) &
+  filter(is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
   select(PersonalID, ReferralDate, ProviderCreating) %>%
   left_join(servedInDateRange, by = c("ProviderCreating" = "ProjectName",
                                       "PersonalID")) %>%
   mutate(ProjectName = ProviderCreating,
          Issue = "Old Outstanding Referral",
-         Type = "Warning") %>%
+         Type = "Warning",
+         ProjectID = NULL) %>%
   select(vars_we_want)
+
+staging_outstanding_referrals <- old_outstanding_referrals %>%
+  left_join(Project[c("ProjectName", "ProjectID")], by = "ProjectName") %>%
+  select(ProjectName, ProjectID, PersonalID) %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Open_Referrals = n()) %>%
+  arrange(desc(Open_Referrals)) %>%
+  mutate(Project = paste0(ProjectName, ":", ProjectID))
+
+top_20_outstanding_referrals <- ggplot(head(staging_outstanding_referrals, 20L),
+       aes(
+         x = reorder(Project, Open_Referrals),
+         y = Open_Referrals,
+         fill = Open_Referrals
+       )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "",
+       y = "Referrals") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
 
 rm(Referrals)
 
