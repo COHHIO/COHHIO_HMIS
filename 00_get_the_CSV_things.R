@@ -310,7 +310,7 @@ if(file.exists("data/cevets.zip")) {
   file.remove("data/cevets.zip")
 }
 
-VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??cc?cccc")
+VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
 
 VeteranCE <- 
   mutate(

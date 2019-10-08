@@ -37,7 +37,7 @@ rm(
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12) | 
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
            # including Diversion, Unsheltered, PATH Outreach & SO, Prevention,
            # and PH - Housing Only projects
            (
@@ -79,7 +79,7 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(Client, FileStart, FileEnd, FilePeriod, hmisParticipatingCurrent)
+rm(Client, FileStart, FileEnd, FilePeriod)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -967,9 +967,14 @@ rm(Scores)
 
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(3, 9, 13),
-         ymd(EntryDate) > ymd("20190101") & # only looking at 1/1/2019 forward
-           RelationshipToHoH == 1) %>% # HoHs only
+  filter(
+    ProjectType %in% c(3, 9, 13) &
+      !grepl("SSVF", ProjectName) &
+      !grepl("GPD", ProjectName) &
+      ymd(EntryDate) > ymd("20190101") &
+      # only looking at 1/1/2019 forward
+      RelationshipToHoH == 1
+  ) %>% 
   mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(vars_we_want)
@@ -981,6 +986,7 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
+      VeteranStatus != 1 &
       RelationshipToHoH == 1 &
       ymd(EntryDate) < today() - days(8) &
       is.na(ExitDate) &
@@ -1769,15 +1775,57 @@ stray_services <- stray_services %>%
          Type = "Warning") %>%
   select(PersonalID, ServiceProvider, ServiceStartDate, Issue, Type)
 
-# Unmet Needs -------------------------------------------------------------
-# can't get this from the CSV Export
-
 # AP No Recent Referrals --------------------------------------------------
+co_APs <- Project %>%
+  filter(ProjectType == 14) %>%
+  select(ProjectID,
+         OperatingStartDate,
+         OperatingEndDate,
+         ProjectName,
+         ProjectAKA,
+         UsesSP,
+         County)
 
+APsNoReferrals <- Referrals %>%
+  right_join(co_APs, by = c("ProviderCreating" = "ProjectName")) %>%
+  filter(is.na(PersonalID)) %>% 
+  select(ProviderCreating) %>% 
+  unique()
+
+APsWithReferrals <- Referrals %>%
+  right_join(co_APs, by = c("ProviderCreating" = "ProjectName")) %>%
+  filter(!is.na(PersonalID)) %>% 
+  select(ProviderCreating) %>% 
+  unique()
+
+data_APs <- data.frame(
+  category = c("No Referrals", "Has Created Referrals"),
+  count = c(nrow(APsNoReferrals), nrow(APsWithReferrals)),
+  providertype = rep("Access Points"),
+  total = rep(c(nrow(APsNoReferrals) + nrow(APsWithReferrals)))
+)
+
+data_APs <- data_APs %>%
+  mutate(percent = (count/total))
+
+plot_aps_referrals <-
+  ggplot(data_APs, aes(fill = category, x = providertype, y = percent)) +
+  geom_bar(position = "fill", stat = "identity", width = .1) +
+  geom_label(aes(label = data_APs$category),
+             position = position_stack(),
+             vjust = 2,
+             fill = "white",
+             colour = "black",
+             fontface = "bold") +
+  scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
+  theme_void()
+
+rm(APsWithReferrals, co_APs)
+  
 
 # AP entering project stays -----------------------------------------------
 
-APsWithEEs <- Enrollment %>%
+APsWithEEs <- servedInDateRange %>%
   filter(ProjectType == 14) %>%
   mutate(Issue = "Access Point with Entry Exits",
          Type = "Error") %>%
@@ -1796,7 +1844,13 @@ rm(Enrollment)
 old_outstanding_referrals <- Referrals %>%
   filter(!is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
-  select(PersonalID, ReferralDate, ProviderCreating)
+  select(PersonalID, ReferralDate, ProviderCreating) %>%
+  left_join(servedInDateRange, by = c("ProviderCreating" = "ProjectName",
+                                      "PersonalID")) %>%
+  mutate(ProjectName = ProviderCreating,
+         Issue = "Old Outstanding Referral",
+         Type = "Warning") %>%
+  select(vars_we_want)
 
 rm(Referrals)
 
@@ -1874,6 +1928,7 @@ DataQualityHMIS <- rbind(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
+  old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_reason_missing,
@@ -1912,7 +1967,7 @@ unshelteredDataQuality <- rbind(
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  # overlaps,
+  old_outstanding_referrals,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
   unshelteredNotUnsheltered
@@ -1949,8 +2004,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Income Missing at Exit",
       "Missing Residence Prior",
       "Non-cash Benefits Missing at Entry",
-      "Non-cash Benefits Missing at Exit",
-      "SPDAT Created on a Non-Head-of-Household"
+      "Non-cash Benefits Missing at Exit"
     )
   )
 
@@ -1962,6 +2016,11 @@ cocDataQualityHMIS <- DataQualityHMIS %>%
   left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
 
 rm(ReportStart, ReportEnd)
+
+hmisParticipatingCurrent <- hmisParticipatingCurrent %>%
+  filter(ProjectID != 1695) 
+
+dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
 
 # Clean up the house ------------------------------------------------------
 
@@ -1984,6 +2043,7 @@ rm(
   enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
+  hmisParticipatingCurrent,
   incorrectEntryExitType,
   incorrectMoveInDate,
   LHwithoutSPDAT,
@@ -2024,8 +2084,6 @@ rm(
   update_date
 )
 
-dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
-
 plotErrors <- cocDataQualityHMIS %>%
   filter(Type == "Error" &
            !Issue %in% c("No Head of Household",
@@ -2040,7 +2098,7 @@ plotErrors <- cocDataQualityHMIS %>%
 
 plotErrors$hover <-
   with(plotErrors,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_projects_errors <-
   ggplot(head(plotErrors, 20L),
@@ -2065,7 +2123,7 @@ plotWarnings <- cocDataQualityHMIS %>%
 
 plotWarnings$hover <-
   with(plotWarnings,
-       paste(ProjectName, ":", ProjectID))      
+       paste0(ProjectName, ":", ProjectID))      
 
 top_20_projects_warnings <-
   ggplot(head(plotWarnings, 20L),
@@ -2137,10 +2195,33 @@ plotHHIssues <- cocDataQualityHMIS %>%
 
 plotHHIssues$hover <-
   with(plotHHIssues,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_projects_hh_errors <-
   ggplot(head(plotHHIssues, 20L),
+         aes(
+           x = reorder(hover, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotOutstandingReferrals <- cocDataQualityHMIS %>%
+  filter(Issue== "Old Outstanding Referral") %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  arrange(desc(Households)) %>%
+  mutate(hover = paste(ProjectName, ":", ProjectID))
+
+top_20_projects_outstanding_referrals <-
+  ggplot(head(plotOutstandingReferrals, 20L),
          aes(
            x = reorder(hover, Households),
            y = Households,
@@ -2164,7 +2245,7 @@ plotEligibility <- cocDataQualityHMIS %>%
 
 plotEligibility$hover <-
   with(plotEligibility,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_eligibility <-
   ggplot(head(plotEligibility, 20L),
@@ -2179,13 +2260,39 @@ top_20_eligibility <-
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
+plotWithoutSPDAT <- cocDataQualityHMIS %>%
+  filter(Type == "Warning" &
+           Issue %in% c("HoHs Entering PH without SPDAT",
+                        "HoHs in shelter or Transitional Housing for 8+ days without SPDAT")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  mutate(ProjectDisplay = paste0(ProjectName, ":", ProjectID)) %>%
+  arrange(desc(Households))
+
+NoSPDATHoHs <-
+  ggplot(head(plotWithoutSPDAT, 20L),
+         aes(
+           x = reorder(ProjectDisplay, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
 rm(plotErrors,
    plotWarnings,
    errorTypes,
    warningTypes,
    plotHHIssues,
-   plotEligibility)
+   plotEligibility,
+   plotWithoutSPDAT,
+   plotOutstandingReferrals)
 
 save.image("images/Data_Quality.RData")
 
- 
