@@ -1900,7 +1900,18 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
   select(vars_we_want)
 
 # Unsheltered Incorrect Provider in CM Record -----------------------------
-# can't get this from the HUD CSV export 
+
+unsh_incorrect_cmprovider <- CaseManagers %>%
+  left_join(unshelteredEnrollments %>%
+              filter(EntryDate > mdy("01012019")),
+            by = c("PersonalID")) %>%
+  filter(
+    EEProvider == "Unsheltered Clients - OUTREACH" &
+      CMProvider == "Unsheltered Clients - OUTREACH"
+  ) %>%
+  mutate(Type = "Error",
+         Issue = "Incorrect Provider in Case Manager record") %>%
+  select(vars_we_want)
 
 # Missing End Date on Outreach Contact ------------------------------------
 
@@ -1910,12 +1921,34 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
 
 # Unsheltered Outreach Contact Incorrect Start Date -----------------------
 
-
 # Unsheltered Currently Unsheltered 30+ Days w No Referral ----------------
 
+long_unsheltered <- unshelteredEnrollments %>%
+  filter(is.na(ExitDate) &
+           ymd(EntryDate) < today() - days(30))
 
+unsheltered_referred <- Referrals %>%
+  filter(ProviderCreating == "Unsheltered Clients - OUTREACH") 
+
+unsheltered_long_not_referred <- 
+  anti_join(long_unsheltered, unsheltered_referred, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Unsheltered 30+ Days with no Referral") %>%
+  select(vars_we_want)
+  
+rm(long_unsheltered, unsheltered_referred)
 # Unsheltered No Case Manager ---------------------------------------------
 
+unsh_missing_cm <- unshelteredEnrollments %>%
+  filter(EntryDate > mdy("01012019")) %>%
+  anti_join(
+    CaseManagers %>%
+      filter(EEProvider == "Unsheltered Clients - OUTREACH"),
+    by = c("PersonalID")
+  ) %>%
+  mutate(Type = "Error",
+         Issue = "Missing Case Manager record") %>%
+  select(vars_we_want)
 
 # All together now --------------------------------------------------------
 
@@ -2001,7 +2034,10 @@ unshelteredDataQuality <- rbind(
   old_outstanding_referrals,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
-  unshelteredNotUnsheltered
+  unshelteredNotUnsheltered,
+  unsh_incorrect_cmprovider,
+  unsh_missing_cm,
+  unsheltered_long_not_referred
 ) %>%
   filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
