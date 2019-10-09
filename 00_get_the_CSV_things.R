@@ -97,6 +97,21 @@ if(file.exists("data/youthbeds.zip")) {
   file.remove("data/youthbeds.zip")
 }
 
+
+# Case Manager Records ----------------------------------------------------
+
+if(file.exists("data/casemanagers.zip")) {
+  unzip(zipfile = "./data/casemanagers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/casemanagers.csv")
+  
+  file.remove("data/casemanagers.zip")
+}
+
+CaseManagers <- read_csv("data/casemanagers.csv",
+                             col_types = "dccccc")
+
 # Youth Beds not coming through correctly ---------------------------------
 
 youth_beds <- read_csv("data/youthbeds.csv",
