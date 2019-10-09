@@ -154,10 +154,10 @@ Scores <- read_csv("data/scores.csv",
 
 # from sheets 2 and 3, getting EE-related data, joining both to En --------
 counties <- read_xlsx("data/RMisc.xlsx",
-                      sheet = 2,
+                      sheet = 1,
                       range = cell_cols("A:C"))
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
-                          sheet = 3,
+                          sheet = 2,
                           range = cell_cols("A:D"))
 Enrollment <- left_join(Enrollment, bowman_entry_exits, by = "EnrollmentID") %>%
   left_join(., counties, by = "EnrollmentID") 
@@ -339,7 +339,7 @@ Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
 
 # User Contact Info from ART ----------------------------------------------
 Users <- read_xlsx("data/RMisc.xlsx",
-                   sheet = 4,
+                   sheet = 3,
                    range = cell_cols("A:G"))
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------
