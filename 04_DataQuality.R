@@ -79,7 +79,7 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(Client, FileStart, FileEnd, FilePeriod)
+rm(FileStart, FileEnd, FilePeriod)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -2191,6 +2191,7 @@ rm(
   APsWithEEs,
   checkDisabilityForAccuracy,
   checkEligibility,
+  Client,
   conflictingDisabilities,
   conflictingHealthInsuranceYNatEntry,
   conflictingHealthInsuranceYNatExit,
