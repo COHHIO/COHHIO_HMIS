@@ -1771,14 +1771,10 @@ referralsOnHHMembersSSVF <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-
-# Unpaired Needs ----------------------------------------------------------
-# can't get this from the CSV Export
-
 # Stray Services (fall outside EE) ----------------------------------------
 # Because a lot of these records are stray Services due to there being no
 # Entry Exit at all, this can't be shown in the same data set as all the other 
-# errors. I'm going to have to make this its own thing somehow. :(
+# errors. I'm going to have to make this its own thing. :(
 stray_services <- stray_services %>% 
   mutate(Issue = "Service Not Attached to an Entry Exit",
          Type = "Warning") %>%
@@ -1839,8 +1835,6 @@ APsWithEEs <- servedInDateRange %>%
   mutate(Issue = "Access Point with Entry Exits",
          Type = "Error") %>%
   select(vars_we_want)
-
-rm(Enrollment)
 
 # Side Door ---------------------------------------------------------------
 # use Referrals, get logic from ART report- it's pretty lax I think
@@ -1948,6 +1942,109 @@ unsh_missing_cm <- unshelteredEnrollments %>%
   mutate(Type = "Error",
          Issue = "Missing Case Manager record") %>%
   select(vars_we_want)
+
+# SSVF --------------------------------------------------------------------
+
+ssvf_served_in_date_range <- Enrollment %>%
+  select(EnrollmentID, PersonalID, ProjectID, EntryDate, RelationshipToHoH,
+         MoveInDate, MoveInDateAdjust, ExitDate, PercentAMI, LastPermanentStreet,
+         LastPermanentCity, LastPermanentState, LastPermanentZIP, 
+         AddressDataQuality, VAMCStation, HPScreeningScore, ThresholdScore,
+         IraqAfghanistan, FemVet, ProjectType, ProjectName, UserCreating,
+         HouseholdID) %>%
+  right_join(
+    servedInDateRange %>%
+      filter(GrantType == "SSVF") %>%
+      select(PersonalID, EnrollmentID, HouseholdID),
+    by = c("PersonalID", "EnrollmentID", "HouseholdID")
+  ) %>%
+  left_join(
+    Client %>%
+      select(
+        PersonalID,
+        VeteranStatus,
+        YearEnteredService,
+        YearSeparated,
+        WorldWarII,
+        KoreanWar,
+        VietnamWar,
+        DesertStorm,
+        AfghanistanOEF,
+        IraqOIF,
+        IraqOND,
+        OtherTheater,
+        MilitaryBranch,
+        DischargeStatus
+      ),
+    by = "PersonalID"
+  )
+
+missing_client_veteran_info <- ssvf_served_in_date_range %>%
+  filter(VeteranStatus == 1) %>%
+  mutate(
+    Issue = case_when(
+      is.na(YearEnteredService) ~ "Missing Year Entered Service",
+      YearEnteredService > year(today()) ~ "Incorrect Year Entered Service",
+      is.na(YearSeparated) ~ "Missing Year Separated",
+      YearSeparated > year(today()) ~ "Incorrect Year Separated",
+      is.na(WorldWarII) | WorldWarII == 99 |
+        is.na(KoreanWar) | KoreanWar == 99 |
+        is.na(VietnamWar) | VietnamWar == 99 |
+        is.na(DesertStorm) | DesertStorm == 99 |
+        is.na(AfghanistanOEF) | AfghanistanOEF == 99 |
+        is.na(IraqOIF) | IraqOIF == 99 |
+        is.na(IraqOND) | IraqOND == 99 |
+        is.na(OtherTheater) | OtherTheater == 99  ~ "Missing War(s)",
+      is.na(MilitaryBranch) ~ "Missing Military Branch",
+      is.na(DischargeStatus) ~ "Missing Discharge Status"
+    ),
+    Type = "Error"
+  ) %>% 
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+dkr_client_veteran_info <- ssvf_served_in_date_range %>%
+  filter(VeteranStatus == 1) %>%
+  mutate(
+    Issue = case_when(
+      WorldWarII %in% c(8, 9) |
+        KoreanWar %in% c(8, 9) |
+        VietnamWar %in% c(8, 9) |
+        DesertStorm  %in% c(8, 9) |
+        AfghanistanOEF %in% c(8, 9) |
+        IraqOIF %in% c(8, 9) |
+        IraqOND %in% c(8, 9) |
+        OtherTheater  %in% c(8, 9)  ~ "Don't Know/Refused War(s)",
+      MilitaryBranch %in% c(8, 9) ~ "Missing Military Branch",
+      DischargeStatus %in% c(8, 9) ~ "Missing Discharge Status"
+    ),
+    Type = "Warning"
+  ) %>% 
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+ssvf_at_entry <- ssvf_served_in_date_range %>%
+  filter(RelationshipToHoH == 1) %>%
+  mutate(Issue = case_when(
+    is.na(PercentAMI) ~ "Missing Percent AMI",
+    is.na(VAMCStation) ~ "Missing VAMC Station Number",
+    is.na(LastPermanentStreet) |
+      is.na(LastPermanentCity) |
+#      is.na(LastPermanentState) | # another vendor error
+      is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
+  ),
+  Type = "Error") %>%
+  filter(!is.na(Issue))
+
+ssvf_hp_screen <- ssvf_served_in_date_range %>%
+  filter(ProjectType == 12 &
+           RelationshipToHoH == 1 &
+           (is.na(HPScreeningScore) |
+           is.na(ThresholdScore))) %>%
+  mutate(Issue = "Missing HP Screening or Threshold Score",
+         Type = "Error") %>%
+  select(vars_we_want)
+  
 
 # All together now --------------------------------------------------------
 
@@ -2106,6 +2203,7 @@ rm(
   dkrDestination,
   dkrLoS,
   duplicateEEs,
+  Enrollment,
   enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
