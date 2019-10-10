@@ -645,7 +645,7 @@ checkEligibility <- servedInDateRange %>%
     Region,
     UserCreating
   ) %>%
-  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
+  filter((RelationshipToHoH == 1) & 
            ymd(EntryDate) > mdy("10012016") &
            ProjectID != 1859 & # "Crisis TH" which should be treated like an es
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
