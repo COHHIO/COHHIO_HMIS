@@ -1883,7 +1883,6 @@ top_20_outstanding_referrals <- ggplot(head(staging_outstanding_referrals, 20L),
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
-rm(Referrals)
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
 unshelteredEnrollments <- servedInDateRange %>%
@@ -1936,7 +1935,7 @@ unsheltered_long_not_referred <-
          Issue = "Unsheltered 30+ Days with no Referral") %>%
   select(vars_we_want)
   
-rm(long_unsheltered, unsheltered_referred)
+rm(long_unsheltered, unsheltered_referred, Referrals)
 # Unsheltered No Case Manager ---------------------------------------------
 
 unsh_missing_cm <- unshelteredEnrollments %>%
