@@ -12,12 +12,26 @@
 # GNU Affero General Public License for more details at 
 #<https://www.gnu.org/licenses/>.
 
-## PLEASE NOTE THIS SCRIPT OVERWRITES THE CLIENT.CSV FILE ON YOUR HARD DRIVE!
-## IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
-## IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
+# PLEASE NOTE THIS SCRIPT OVERWRITES THE CLIENT.CSV FILE ON YOUR HARD DRIVE!
+# IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
+# IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
 
-## Save your ReportWriter export zip files directly to the data folder. This 
-## script will unzip and rename them appropriately.
+# Save your ReportWriter export zip files directly to the data folder. This 
+# script will unzip and rename them appropriately.
+
+# Currently, this file is expecting the following files in your data/ directory:
+
+# RMisc.xlsx
+# (all the v6.12 HUD CSV Export .csv files)
+# referrals.zip or .csv
+# services1.zip or .csv
+# services2.zip or .csv
+# cevets.zip or .csv
+# offers.zip or .csv
+# cocscoring.zip or .csv
+# providers.zip or .csv
+# youthbeds.zip or .csv
+# casemanagers.zip or .csv
 
 library(tidyverse)
 library(lubridate)
@@ -97,6 +111,20 @@ if(file.exists("data/youthbeds.zip")) {
   file.remove("data/youthbeds.zip")
 }
 
+# Case Manager Records ----------------------------------------------------
+
+if(file.exists("data/casemanagers.zip")) {
+  unzip(zipfile = "./data/casemanagers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/casemanagers.csv")
+  
+  file.remove("data/casemanagers.zip")
+}
+
+CaseManagers <- read_csv("data/casemanagers.csv",
+                             col_types = "dccccc")
+
 # Youth Beds not coming through correctly ---------------------------------
 
 youth_beds <- read_csv("data/youthbeds.csv",
@@ -154,10 +182,10 @@ Scores <- read_csv("data/scores.csv",
 
 # from sheets 2 and 3, getting EE-related data, joining both to En --------
 counties <- read_xlsx("data/RMisc.xlsx",
-                      sheet = 2,
+                      sheet = 1,
                       range = cell_cols("A:C"))
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
-                          sheet = 3,
+                          sheet = 2,
                           range = cell_cols("A:D"))
 Enrollment <- left_join(Enrollment, bowman_entry_exits, by = "EnrollmentID") %>%
   left_join(., counties, by = "EnrollmentID") 
@@ -339,7 +367,7 @@ Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
 
 # User Contact Info from ART ----------------------------------------------
 Users <- read_xlsx("data/RMisc.xlsx",
-                   sheet = 4,
+                   sheet = 3,
                    range = cell_cols("A:G"))
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------

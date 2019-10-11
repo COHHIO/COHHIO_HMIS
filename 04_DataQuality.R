@@ -79,7 +79,7 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(Client, FileStart, FileEnd, FilePeriod)
+rm(FileStart, FileEnd, FilePeriod)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -645,7 +645,7 @@ checkEligibility <- servedInDateRange %>%
     Region,
     UserCreating
   ) %>%
-  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
+  filter(RelationshipToHoH == 1 & 
            ymd(EntryDate) > mdy("10012016") &
            ProjectID != 1859 & # "Crisis TH" which should be treated like an es
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
@@ -1359,6 +1359,15 @@ rm(stagingOverlaps,
    rrh_overlaps,
    psh_overlaps)
 
+unsh_overlaps <- overlaps %>%
+  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
+  left_join(Users, by = "UserCreating") %>%
+  select(PersonalID,
+         DefaultProvider,
+         EntryDate,
+         ExitDate,
+         PreviousProject)
+
 # Missing Health Ins ------------------------------------------------------
 
 missingHealthInsuranceatEntry <- servedInDateRange %>%
@@ -1762,14 +1771,10 @@ referralsOnHHMembersSSVF <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-
-# Unpaired Needs ----------------------------------------------------------
-# can't get this from the CSV Export
-
 # Stray Services (fall outside EE) ----------------------------------------
 # Because a lot of these records are stray Services due to there being no
 # Entry Exit at all, this can't be shown in the same data set as all the other 
-# errors. I'm going to have to make this its own thing somehow. :(
+# errors. I'm going to have to make this its own thing. :(
 stray_services <- stray_services %>% 
   mutate(Issue = "Service Not Attached to an Entry Exit",
          Type = "Warning") %>%
@@ -1831,8 +1836,6 @@ APsWithEEs <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-rm(Enrollment)
-
 # Side Door ---------------------------------------------------------------
 # use Referrals, get logic from ART report- it's pretty lax I think
 
@@ -1842,17 +1845,38 @@ rm(Enrollment)
 # Using ProviderCreating instead. Either way, I feel this should go in the 
 # Provider Dashboard, not the Data Quality report.
 old_outstanding_referrals <- Referrals %>%
-  filter(!is.na(ReferralOutcome) &
+  filter(is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
   select(PersonalID, ReferralDate, ProviderCreating) %>%
   left_join(servedInDateRange, by = c("ProviderCreating" = "ProjectName",
                                       "PersonalID")) %>%
   mutate(ProjectName = ProviderCreating,
          Issue = "Old Outstanding Referral",
-         Type = "Warning") %>%
+         Type = "Warning",
+         ProjectID = NULL) %>%
   select(vars_we_want)
 
-rm(Referrals)
+staging_outstanding_referrals <- old_outstanding_referrals %>%
+  left_join(Project[c("ProjectName", "ProjectID")], by = "ProjectName") %>%
+  select(ProjectName, ProjectID, PersonalID) %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Open_Referrals = n()) %>%
+  arrange(desc(Open_Referrals)) %>%
+  mutate(Project = paste0(ProjectName, ":", ProjectID))
+
+top_20_outstanding_referrals <- ggplot(head(staging_outstanding_referrals, 20L),
+       aes(
+         x = reorder(Project, Open_Referrals),
+         y = Open_Referrals,
+         fill = Open_Referrals
+       )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "",
+       y = "Referrals") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
 unshelteredEnrollments <- servedInDateRange %>%
@@ -1869,7 +1893,18 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
   select(vars_we_want)
 
 # Unsheltered Incorrect Provider in CM Record -----------------------------
-# can't get this from the HUD CSV export 
+
+unsh_incorrect_cmprovider <- CaseManagers %>%
+  left_join(unshelteredEnrollments %>%
+              filter(EntryDate > mdy("01012019")),
+            by = c("PersonalID")) %>%
+  filter(
+    EEProvider == "Unsheltered Clients - OUTREACH" &
+      CMProvider == "Unsheltered Clients - OUTREACH"
+  ) %>%
+  mutate(Type = "Error",
+         Issue = "Incorrect Provider in Case Manager record") %>%
+  select(vars_we_want)
 
 # Missing End Date on Outreach Contact ------------------------------------
 
@@ -1879,12 +1914,137 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
 
 # Unsheltered Outreach Contact Incorrect Start Date -----------------------
 
-
 # Unsheltered Currently Unsheltered 30+ Days w No Referral ----------------
 
+long_unsheltered <- unshelteredEnrollments %>%
+  filter(is.na(ExitDate) &
+           ymd(EntryDate) < today() - days(30))
 
+unsheltered_referred <- Referrals %>%
+  filter(ProviderCreating == "Unsheltered Clients - OUTREACH") 
+
+unsheltered_long_not_referred <- 
+  anti_join(long_unsheltered, unsheltered_referred, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Unsheltered 30+ Days with no Referral") %>%
+  select(vars_we_want)
+  
+rm(long_unsheltered, unsheltered_referred, Referrals)
 # Unsheltered No Case Manager ---------------------------------------------
 
+unsh_missing_cm <- unshelteredEnrollments %>%
+  filter(EntryDate > mdy("01012019")) %>%
+  anti_join(
+    CaseManagers %>%
+      filter(EEProvider == "Unsheltered Clients - OUTREACH"),
+    by = c("PersonalID")
+  ) %>%
+  mutate(Type = "Error",
+         Issue = "Missing Case Manager record") %>%
+  select(vars_we_want)
+
+# SSVF --------------------------------------------------------------------
+
+ssvf_served_in_date_range <- Enrollment %>%
+  select(EnrollmentID, PersonalID, ProjectID, EntryDate, RelationshipToHoH,
+         MoveInDate, MoveInDateAdjust, ExitDate, PercentAMI, LastPermanentStreet,
+         LastPermanentCity, LastPermanentState, LastPermanentZIP, 
+         AddressDataQuality, VAMCStation, HPScreeningScore, ThresholdScore,
+         IraqAfghanistan, FemVet, ProjectType, ProjectName, UserCreating,
+         HouseholdID) %>%
+  right_join(
+    servedInDateRange %>%
+      filter(GrantType == "SSVF") %>%
+      select(PersonalID, EnrollmentID, HouseholdID),
+    by = c("PersonalID", "EnrollmentID", "HouseholdID")
+  ) %>%
+  left_join(
+    Client %>%
+      select(
+        PersonalID,
+        VeteranStatus,
+        YearEnteredService,
+        YearSeparated,
+        WorldWarII,
+        KoreanWar,
+        VietnamWar,
+        DesertStorm,
+        AfghanistanOEF,
+        IraqOIF,
+        IraqOND,
+        OtherTheater,
+        MilitaryBranch,
+        DischargeStatus
+      ),
+    by = "PersonalID"
+  )
+
+missing_client_veteran_info <- ssvf_served_in_date_range %>%
+  filter(VeteranStatus == 1) %>%
+  mutate(
+    Issue = case_when(
+      is.na(YearEnteredService) ~ "Missing Year Entered Service",
+      YearEnteredService > year(today()) ~ "Incorrect Year Entered Service",
+      is.na(YearSeparated) ~ "Missing Year Separated",
+      YearSeparated > year(today()) ~ "Incorrect Year Separated",
+      is.na(WorldWarII) | WorldWarII == 99 |
+        is.na(KoreanWar) | KoreanWar == 99 |
+        is.na(VietnamWar) | VietnamWar == 99 |
+        is.na(DesertStorm) | DesertStorm == 99 |
+        is.na(AfghanistanOEF) | AfghanistanOEF == 99 |
+        is.na(IraqOIF) | IraqOIF == 99 |
+        is.na(IraqOND) | IraqOND == 99 |
+        is.na(OtherTheater) | OtherTheater == 99  ~ "Missing War(s)",
+      is.na(MilitaryBranch) ~ "Missing Military Branch",
+      is.na(DischargeStatus) ~ "Missing Discharge Status"
+    ),
+    Type = "Error"
+  ) %>% 
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+dkr_client_veteran_info <- ssvf_served_in_date_range %>%
+  filter(VeteranStatus == 1) %>%
+  mutate(
+    Issue = case_when(
+      WorldWarII %in% c(8, 9) |
+        KoreanWar %in% c(8, 9) |
+        VietnamWar %in% c(8, 9) |
+        DesertStorm  %in% c(8, 9) |
+        AfghanistanOEF %in% c(8, 9) |
+        IraqOIF %in% c(8, 9) |
+        IraqOND %in% c(8, 9) |
+        OtherTheater  %in% c(8, 9)  ~ "Don't Know/Refused War(s)",
+      MilitaryBranch %in% c(8, 9) ~ "Missing Military Branch",
+      DischargeStatus %in% c(8, 9) ~ "Missing Discharge Status"
+    ),
+    Type = "Warning"
+  ) %>% 
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+ssvf_at_entry <- ssvf_served_in_date_range %>%
+  filter(RelationshipToHoH == 1) %>%
+  mutate(Issue = case_when(
+    is.na(PercentAMI) ~ "Missing Percent AMI",
+    is.na(VAMCStation) ~ "Missing VAMC Station Number",
+    is.na(LastPermanentStreet) |
+      is.na(LastPermanentCity) |
+#      is.na(LastPermanentState) | # another vendor error
+      is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
+  ),
+  Type = "Error") %>%
+  filter(!is.na(Issue))
+
+ssvf_hp_screen <- ssvf_served_in_date_range %>%
+  filter(ProjectType == 12 &
+           RelationshipToHoH == 1 &
+           (is.na(HPScreeningScore) |
+           is.na(ThresholdScore))) %>%
+  mutate(Issue = "Missing HP Screening or Threshold Score",
+         Type = "Error") %>%
+  select(vars_we_want)
+  
 
 # All together now --------------------------------------------------------
 
@@ -1970,7 +2130,10 @@ unshelteredDataQuality <- rbind(
   old_outstanding_referrals,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
-  unshelteredNotUnsheltered
+  unshelteredNotUnsheltered,
+  unsh_incorrect_cmprovider,
+  unsh_missing_cm,
+  unsheltered_long_not_referred
 ) %>%
   filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
@@ -2028,6 +2191,7 @@ rm(
   APsWithEEs,
   checkDisabilityForAccuracy,
   checkEligibility,
+  Client,
   conflictingDisabilities,
   conflictingHealthInsuranceYNatEntry,
   conflictingHealthInsuranceYNatExit,
@@ -2040,6 +2204,7 @@ rm(
   dkrDestination,
   dkrLoS,
   duplicateEEs,
+  Enrollment,
   enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
