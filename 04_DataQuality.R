@@ -2037,7 +2037,8 @@ ssvf_at_entry <- ssvf_served_in_date_range %>%
       is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
   ),
   Type = "Error") %>%
-  filter(!is.na(Issue))
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
 
 ssvf_hp_screen <- ssvf_served_in_date_range %>%
   filter(ProjectType == 12 &
@@ -2062,6 +2063,7 @@ DataQualityHMIS <- rbind(
   conflictingIncomeYNatExit,
   conflictingNCBsAtEntry,
   conflictingNCBsAtExit,
+  dkr_client_veteran_info,
   dkrDestination,
   dkrLoS,
   dkrMonthsTimesHomeless,
@@ -2074,6 +2076,7 @@ DataQualityHMIS <- rbind(
   incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
+  missing_client_veteran_info,
   missingCountyServed,
   missingCountyPrior,  
   missingDestination,
@@ -2101,7 +2104,9 @@ DataQualityHMIS <- rbind(
   referralsOnHHMembersSSVF,
   servicesOnHHMembers,
   servicesOnHHMembersSSVF,
-  SPDATCreatedOnNonHoH
+  SPDATCreatedOnNonHoH,
+  ssvf_at_entry,
+  ssvf_hp_screen
 ) %>%
   filter(!ProjectName %in% c(
     "Diversion from Homeless System",
