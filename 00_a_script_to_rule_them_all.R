@@ -45,4 +45,9 @@ if (ymd(FileActualStart) <= mdy(FileStart)) {
   
   source("05_Cohorts.R")
   rm(list = ls())
+  
+  print("Done!")
+} else
+{
+  print("Check your export Start and End Dates")
 }
