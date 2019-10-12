@@ -1811,12 +1811,15 @@ data_APs <- data.frame(
 )
 
 data_APs <- data_APs %>%
-  mutate(percent = (count/total))
+  mutate(percent = count/total,
+         prettypercent = percent(count/total))
 
 plot_aps_referrals <-
   ggplot(data_APs, aes(fill = category, x = providertype, y = percent)) +
   geom_bar(position = "fill", stat = "identity", width = .1) +
-  geom_label(aes(label = data_APs$category),
+  geom_label(aes(label = paste(data_APs$category,
+                               "\n",
+                               data_APs$prettypercent)),
              position = position_stack(),
              vjust = 2,
              fill = "white",
