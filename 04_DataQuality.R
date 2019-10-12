@@ -784,9 +784,24 @@ path_missing_los_res_prior <- servedInDateRange %>%
   select(vars_we_want)
 
 
-#* Engagement at Entry/Exit
+#* Engagement at Exit
 ### adult, PATH-enrolled, Date of Engagement is null -> error
 
+path_no_status_at_exit <- servedInDateRange %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
+         DateOfPATHStatus, ReasonNotEnrolled, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           !is.na(ExitDate) &
+           AgeAtEntry > 17 &
+           (is.na(ClientEnrolledInPATH) |
+              is.na(DateOfPATHStatus) |
+              (ClientEnrolledInPATH == 0 &
+                 is.na(ReasonNotEnrolled)))) %>%
+  mutate(Issue = "PATH Status at Exit Missing or Incomplete",
+         Type = "Error") %>%
+  select(vars_we_want)
 
 #* Status Determination at Exit
 ### adult, PATH-Enrolled is not null 
@@ -2097,6 +2112,7 @@ DataQualityHMIS <- rbind(
   old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
+  path_no_status_at_exit,
   path_reason_missing,
   path_SOAR_missing_at_exit,
   path_status_determination,
@@ -2211,6 +2227,7 @@ rm(
   dkrResidencePrior,
   dkrDestination,
   dkrLoS,
+  dkr_client_veteran_info,
   duplicateEEs,
   Enrollment,
   enteredPHwithoutSPDAT,
@@ -2221,6 +2238,7 @@ rm(
   incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
+  missing_client_veteran_info,
   missingCountyPrior,
   missingCountyServed,
   missingDestination,
@@ -2241,6 +2259,7 @@ rm(
   missingUDEs,
   path_enrolled_missing,
   path_missing_los_res_prior,
+  path_no_status_at_exit,
   path_reason_missing,
   path_SOAR_missing_at_exit,
   path_status_determination,
@@ -2252,8 +2271,14 @@ rm(
   servicesOnHHMembersSSVF,
   smallProject,
   SPDATCreatedOnNonHoH,
+  ssvf_at_entry,
+  ssvf_hp_screen,
+  ssvf_served_in_date_range,
   unshelteredEnrollments,
   unshelteredNotUnsheltered,
+  unsh_missing_cm,
+  unsh_incorrect_cmprovider,
+  unsheltered_long_not_referred,
   update_date
 )
 
