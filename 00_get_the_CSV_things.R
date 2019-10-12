@@ -687,7 +687,7 @@ Client <- Client %>%
 # this overwrites the raw Client.csv file on your computer with the final Client
 # object as a security measure.
 
-if(ncol(read_csv("data/Client.csv")) == 33)
+if(ncol(Client) == 33)
 {write_csv(Client, "data/Client.csv", append = FALSE)}
 
 # Update Date -------------------------------------------------------------
