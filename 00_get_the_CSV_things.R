@@ -629,6 +629,7 @@ HMIS_participating_between <- function(table, start, end) {
 FileEnd <- format.Date(file.info("data/Client.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
+FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 
 # Masking PII in the Client file (but not DOB) ----------------------------
@@ -686,7 +687,7 @@ Client <- Client %>%
 # this overwrites the raw Client.csv file on your computer with the final Client
 # object as a security measure.
 
-if(ncol(read_csv("data/Client.csv")) == 33)
+if(ncol(Client) == 33)
 {write_csv(Client, "data/Client.csv", append = FALSE)}
 
 # Update Date -------------------------------------------------------------
