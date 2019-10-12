@@ -629,6 +629,7 @@ HMIS_participating_between <- function(table, start, end) {
 FileEnd <- format.Date(file.info("data/Client.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
+FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 
 # Masking PII in the Client file (but not DOB) ----------------------------
