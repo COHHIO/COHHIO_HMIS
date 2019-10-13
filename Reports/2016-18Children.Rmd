@@ -817,7 +817,7 @@ plot_ly(
 
 ```{r counties, echo=FALSE}
 counties <- read_xlsx(here("data/RMisc.xlsx"),
-                      sheet = 2,
+                      sheet = 1,
                       range = cell_cols("A:B"))
 
 regions <- read_csv(here("data/Regions.csv"), col_types = "cd") 
@@ -826,7 +826,6 @@ counties2018 <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   left_join(., smallExit, by = "EnrollmentID") %>%
   left_join(., smallProject, by = "ProjectID") %>%  
   left_join(counties, by = "EnrollmentID") %>%
-  mutate(CountyServed = if_else(CountyServed == "Van Wert", "Vanwert", CountyServed)) %>%
   left_join(regions, by = c("CountyServed" = "County")) %>%
   filter(ProjectType %in% c(1, 2, 3, 8, 9, 13)) %>%
   mutate(age = age_years(DOB, ymd("2018-12-31")),
@@ -834,8 +833,7 @@ counties2018 <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
                                   (
                                     is.na(ExitDate) |
                                       ymd(ExitDate) >= ymd("2018-01-01")
-                                  ), 1, 0),
-         CountyServed = if_else(CountyServed == "Vanwert", "Van Wert", CountyServed)) %>%
+                                  ), 1, 0)) %>%
   filter(age <= 18, servedIn2018 == 1)
 
 childs <- counties2018 %>%
