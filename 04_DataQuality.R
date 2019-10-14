@@ -671,11 +671,11 @@ checkEligibility <- servedInDateRange %>%
                        is.na(PreviousStreetESSH)
                    ) 
                )
-           ))|
+           )|
            (ProjectType == 12 &
               !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
            (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
-              !LivingSituation == 16)) # unsheltered only
+              !LivingSituation == 16))) # unsheltered only
 
 smallEligibility <- checkEligibility %>%
   select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
