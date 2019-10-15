@@ -382,22 +382,32 @@ Enrollment <- left_join(Enrollment, small_exit, by = "EnrollmentID") %>%
 rm(small_exit)
 
 # Adding ProjectType to Enrollment too bc we need EntryAdjust & MoveInAdjust
-
 small_project <- Project %>%
   select(ProjectID, ProjectType, ProjectName) 
 
-Enrollment <- Enrollment %>%
+# getting HoH's Entry Dates bc WS is using that to overwrite MoveIn Dates
+HoHsEntry <- Enrollment %>%
+  filter(RelationshipToHoH == 1) %>%
+  select(HouseholdID, "HoHsEntry" = EntryDate) %>%
+  unique()
+
+y <- Enrollment %>%
+  left_join(HoHsEntry, by = "HouseholdID")
+
+Enrollment <- y %>%
   left_join(small_project, by = "ProjectID") %>%
   mutate(
     MoveInDateAdjust = case_when(
-        EntryDate < mdy("10012017") &
-          ProjectType %in% c(3, 9)
-         ~ EntryDate,
+      EntryDate < mdy("10012017") &
+        ProjectType %in% c(3, 9)
+      ~ EntryDate,
+      EntryDate != HoHsEntry &
+        ProjectType %in% c(3, 9, 13) ~ EntryDate,
       EntryDate >= mdy("10012017") &
         ProjectType %in% c(3, 9) &
         ymd(EntryDate) <= ymd(MoveInDate) &
         ymd(MoveInDate) <= ExitAdjust
-         ~ MoveInDate,
+      ~ MoveInDate,
       ymd(EntryDate) <= ymd(MoveInDate) &
         ymd(MoveInDate) <= ExitAdjust &
         ProjectType == 13 ~ MoveInDate
@@ -409,7 +419,7 @@ Enrollment <- Enrollment %>%
     )
   )
 
-rm(small_project)
+rm(small_project, y)
 
 
 # Services ----------------------------------------------------------------
