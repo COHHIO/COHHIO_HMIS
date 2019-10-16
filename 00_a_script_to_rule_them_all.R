@@ -28,6 +28,7 @@ source("00_get_the_CSV_things.R")
 # checking that the earliest Exit Dates in the data = what the reporting is 
 # expecting
 if (ymd(FileActualStart) <= mdy(FileStart)) {
+  print("working on Bed_Unit_Utilization")
   rm(list = ls())
   
   source("01_Bed_Unit_Utilization.R")
