@@ -32,23 +32,23 @@ if (ymd(FileActualStart) <= mdy(FileStart)) {
   
   source("01_Bed_Unit_Utilization.R")
   rm(list = ls())
-  print("finished Bed_Unit_Utilization")
+  print("working on QPR_SPDATs")
   
   source("02_QPR_SPDATs.R")
   rm(list = ls())
-  print("finished QPR_SPDATs")
+  print("working on QPR_EEs")
   
   source("02_QPR_EEs.R")
   rm(list = ls())
-  print("finished QPR_EEs")
+  print("working on Veterans")
   
   source("03_Veterans.R")
   rm(list = ls())
-  print("finished Veterans")
+  print("working on Data Quality")
   
   source("04_DataQuality.R")
   rm(list = ls())
-  print("finished DataQuality")
+  print("working on Cohorts")
   
   source("05_Cohorts.R")
   rm(list = ls())
