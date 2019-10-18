@@ -19,10 +19,10 @@ All the code in this repository is written using R and R Studio. Please consult 
    * User Creating (because it is incorrect in our vendor's export)
    * Entry Exit Type (Specific to ServicePoint)
    * User Contact 
-   * Full Provider Names (beyond the 50 character limit), Grant Type, Facility Type, Operational, Uses SP (All specific to ServicePoint)
+   * Full Provider Names (beyond the 50 character limit), Grant Type, Operational, Uses SP (All specific to ServicePoint)
    * Provider Addresses, Youth Beds (because they are incorrect in our vendor's export)
    * Veteran data for Coordinated Entry (Custom fields)
-   * Housing Offers (Custom fields)
+   * Housing Offers (Custom fields for Veteran Active List)
 
 You may not need a miscellaneous (RMisc) file, so whatever you use from this repository will need to be adjusted to leave it out. Or you may need a different miscellaneous data file which will need to be incorporated to fit your needs.
 
@@ -33,10 +33,10 @@ The workflow I'm currently using (which I expect to become less tedious eventual
 0. Be sure you have the following directories in your R project:
    * data (to keep your HUD CSV files and whatever other data you will use)
    * images (see 4.)
-1. Download and unzip the HUD CSV export into the data directory of the R Studio project.
+1. Download and unzip your HUD CSV export into the data directory of the R Studio project.
 2. Run and save the RMisc report in .xlsx format to the data directory of this project.
-3. Run the first script, beginning with 00_...R, then the other scripts that begin with a number, incrementally by the number.
-4. Doing 3. will create 1 .RData file per script that you run and drop it in the images folder.
+3. Run 00_a_script_to_rule_them_all.R, which will run all the other scripts that begin with a number. 
+4. Doing 3. will create a .RData image file for each script that runs and drop it in the images folder.
 5. Your other projects (like R minor or R minor elevated) each have data folders with symbolic links in them, each pointing to any relevant .RData files.
 
 This will one day be written as a package, hopefully.
