@@ -28,29 +28,29 @@ source("00_get_the_CSV_things.R")
 # checking that the earliest Exit Dates in the data = what the reporting is 
 # expecting
 if (ymd(FileActualStart) <= mdy(FileStart)) {
-  print("working on Bed_Unit_Utilization")
   rm(list = ls())
   
+  print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
   rm(list = ls())
-  print("working on QPR_SPDATs")
   
+  print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
   rm(list = ls())
-  print("working on QPR_EEs")
   
+  print("working on QPR_EEs")
   source("02_QPR_EEs.R")
   rm(list = ls())
-  print("working on Veterans")
   
+  print("working on Veterans")
   source("03_Veterans.R")
   rm(list = ls())
-  print("working on Data Quality")
   
+  print("working on Data Quality")
   source("04_DataQuality.R")
   rm(list = ls())
-  print("working on Cohorts")
   
+  print("working on Cohorts")
   source("05_Cohorts.R")
   rm(list = ls())
   
