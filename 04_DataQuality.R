@@ -646,6 +646,7 @@ checkEligibility <- servedInDateRange %>%
     UserCreating
   ) %>%
   filter(RelationshipToHoH == 1 & 
+           AgeAtEntry > 17 &
            ymd(EntryDate) > mdy("10012016") &
            ProjectID != 1859 & # "Crisis TH" which should be treated like an es
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
@@ -670,11 +671,11 @@ checkEligibility <- servedInDateRange %>%
                        is.na(PreviousStreetESSH)
                    ) 
                )
-           ))|
+           )|
            (ProjectType == 12 &
               !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
            (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
-              !LivingSituation == 16)) # unsheltered only
+              !LivingSituation == 16))) # unsheltered only
 
 smallEligibility <- checkEligibility %>%
   select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
