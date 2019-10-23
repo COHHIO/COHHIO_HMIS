@@ -1324,7 +1324,8 @@ same_day_overlaps <- servedInDateRange %>%
     PreviousProject = lag(ProjectName)
   ) %>%
   filter(ExitDate > PreviousEntryAdjust & ExitDate < PreviousExitAdjust) %>%
-  ungroup()
+  ungroup() %>%
+  select(vars_we_want, PreviousProject)
 
 rrh_overlaps <- servedInDateRange %>%
   select(
