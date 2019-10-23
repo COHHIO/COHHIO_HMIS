@@ -21,17 +21,20 @@
 
 # Currently, this file is expecting the following files in your data/ directory:
 
-# RMisc.xlsx
+# RMisc.xlsx (going away soon hopefully!)
 # (all the v6.12 HUD CSV Export .csv files)
+# casemanagers.zip or .csv
+# cevets.zip or .csv
+# cocscoring.zip or .csv
+# offers.zip or .csv
+# providers.zip or .csv
 # referrals.zip or .csv
+# scoresfam.zip or.csv
+# scoresind.zip or .csv
+# scorestay.zip or .csv
 # services1.zip or .csv
 # services2.zip or .csv
-# cevets.zip or .csv
-# offers.zip or .csv
-# cocscoring.zip or .csv
-# providers.zip or .csv
 # youthbeds.zip or .csv
-# casemanagers.zip or .csv
 
 library(tidyverse)
 library(lubridate)
@@ -180,7 +183,8 @@ Scores <- read_csv("data/scores.csv",
     Score = as.double(Score)
   )
 
-# from sheets 2 and 3, getting EE-related data, joining both to En --------
+# from sheets 1 and 2, getting EE-related data, joining both to En --------
+# will eventually come from aa: ees in ReportWriter, waiting on WS
 counties <- read_xlsx("data/RMisc.xlsx",
                       sheet = 1,
                       range = cell_cols("A:C"))
