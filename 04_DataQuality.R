@@ -586,8 +586,7 @@ missingLongDuration <- servedInDateRange %>%
 rm(smallDisabilities)
 
 # MoveInDate
-# check that these aren't just bad data from WellSky
-# also check the ART report to see what logic I'm using exactly
+
 incorrectMoveInDate <- servedInDateRange %>%
   filter(ProjectType %in% c(3, 9, 13),
          (ymd(MoveInDate) < ymd(EntryDate) |
@@ -1266,7 +1265,8 @@ stagingOverlaps <- servedInDateRange %>%
     Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
-  filter(!is.na(LiterallyInProject)) %>%
+  filter(!is.na(LiterallyInProject) &
+         int_length(LiterallyInProject) > 0) %>%
   get_dupes(., PersonalID) %>%
   group_by(PersonalID) %>%
   arrange(PersonalID, EntryAdjust) %>%
@@ -1277,6 +1277,55 @@ stagingOverlaps <- servedInDateRange %>%
   ) %>%
   filter(!is.na(PreviousEntryAdjust)) %>%
   ungroup()
+
+same_day_overlaps <- servedInDateRange %>%
+  filter((ProjectType == 13 & MoveInDateAdjust == ExitDate) |
+           ProjectType != 13) %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ExitAdjust,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  ) %>%
+  mutate(
+    EntryAdjust = case_when(
+      #for PSH and RRH, EntryAdjust = MoveInDate
+      ProjectType %in% c(1, 2, 8, 12) | 
+        ProjectName == "Unsheltered Clients - OUTREACH" ~ EntryDate,
+      ProjectType %in% c(3, 9, 13) &
+        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
+      ProjectType %in% c(3, 9, 13) &
+        is.na(MoveInDateAdjust) ~ EntryDate
+    ),
+    LiterallyInProject = case_when(
+      ProjectType %in% c(3, 9) ~ interval(MoveInDateAdjust, ExitAdjust),
+      ProjectType %in% c(1, 2, 4, 8, 12) ~ interval(EntryAdjust, ExitAdjust)
+    ),
+    Issue = "Overlapping Project Stays",
+    Type = "Error"
+  ) %>%
+  filter((!is.na(LiterallyInProject) & ProjectType != 13) | 
+           ProjectType == 13) %>%
+  get_dupes(., PersonalID) %>%
+  group_by(PersonalID) %>%
+  arrange(PersonalID, EntryAdjust) %>%
+  mutate(
+    PreviousEntryAdjust = lag(EntryAdjust),
+    PreviousExitAdjust = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
+  ) %>%
+  filter(ExitDate > PreviousEntryAdjust & ExitDate < PreviousExitAdjust) %>%
+  ungroup() %>%
+  select(vars_we_want, PreviousProject)
 
 rrh_overlaps <- servedInDateRange %>%
   select(
@@ -1368,10 +1417,10 @@ overlaps <- stagingOverlaps %>%
   filter(Overlap == TRUE) %>%
   select(vars_we_want, PreviousProject)
 
-overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps)
+overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps, same_day_overlaps)
 
 rm(stagingOverlaps,
-   # forAmanda,
+   same_day_overlaps,
    rrh_overlaps,
    psh_overlaps)
 

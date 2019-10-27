@@ -23,8 +23,8 @@ load("images/COHHIOHMIS.RData")
 # Staging -----------------------------------------------------------------
 reporting_year <- 2018
 
-ReportStart <- paste("0101", reporting_year)
-ReportEnd <- paste("1231", reporting_year)
+ReportStart <- paste0("0101", reporting_year)
+ReportEnd <- paste0("1231", reporting_year)
 
 # filter to only CoC-funded projects
 
@@ -40,7 +40,7 @@ vars_we_want <- c(
   "ProjectType",
   "VeteranStatus",
   "EnrollmentID",
-  "ProjectID",
+  "ProjectName",
   "EntryDate",
   "HouseholdID",
   "RelationshipToHoH",
@@ -150,7 +150,7 @@ exits_to_ph <- co_hohs_all %>%
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(PersonalID, ProjectType, EntryDate, MoveInDate, ExitDate, Destination,
+  select(ProjectType, ProjectName, PersonalID, EntryDate, MoveInDate, ExitDate, Destination,
          DestinationGroup, MeetsObjective)
 
 # Housing Stability: Moved into Own Housing -------------------------------
@@ -178,7 +178,7 @@ non_cash_at_exit <- co_adults_movein_leavers %>%
            ProjectType,
            VeteranStatus,
            EnrollmentID,
-           ProjectID,
+           ProjectName,
            EntryDate,
            HouseholdID,
            RelationshipToHoH,
@@ -212,7 +212,7 @@ health_ins_at_exit <- co_client_movein_leavers %>%
            ProjectType,
            VeteranStatus,
            EnrollmentID,
-           ProjectID,
+           ProjectName,
            EntryDate,
            HouseholdID,
            RelationshipToHoH,
@@ -273,6 +273,20 @@ increase_income <- co_adults_movein_all %>%
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
+
+
+TotalLeavers <- co_hohs_movein_leavers %>%
+  group_by(ProjectName) %>%
+  summarise(Leavers = n())
+
+length_of_stay_summary <- co_hohs_movein_leavers %>%
+  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
+  group_by(ProjectName, ProjectType) %>%
+  summarise(
+    AverageDays = as.numeric(mean(DaysInProject)),
+    MedianDays = as.numeric(median(DaysInProject))
+  ) %>%
+  left_join(TotalLeavers, by = "ProjectName") 
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)

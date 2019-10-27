@@ -21,8 +21,8 @@ library(janitor)
 load("images/COHHIOHMIS.RData")
 
 rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, Export, 
-   Funder, Geography, HealthAndDV, Offers, Organization, ProjectCoC, Scores, 
-   Services, VeteranCE, Users)
+   Funder, Geography, HealthAndDV, Offers, ProjectCoC, Scores, 
+   VeteranCE, Users)
 
 # decided to continue to use a separate file for Goals (instead of building it
 # in a tribble) because this way the CoC team can review it more easily.
@@ -216,8 +216,33 @@ QPR_Income <- smallProject %>%
   ) %>% 
   arrange(ProjectName, HouseholdID)
 
+QPR_RRH_HP_Spending <- Services %>%
+  left_join(Enrollment,
+            by = c("EnrollmentID", "PersonalID",
+                   "ServiceProvider" = "ProjectName")) %>%
+  left_join(smallProject, by = c("ProjectID", "ProjectType")) %>%
+  select(
+    PersonalID,
+    OrganizationName,
+    Region,
+    ProjectType,
+    Amount,
+    RelationshipToHoH,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate
+  ) %>% 
+  filter((ProjectType == 13 & !is.na(MoveInDateAdjust) | 
+           ProjectType == 12) &
+           RelationshipToHoH == 1 &
+           !is.na(Amount)) %>%
+  select(-RelationshipToHoH)
+  
 rm(Client, 
    Enrollment, 
+   CaseManagers,
+   Organization,
+   Services,
    smallEnrollment,
    smallProject, 
    Regions, 
