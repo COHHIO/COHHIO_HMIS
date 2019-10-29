@@ -181,6 +181,7 @@ summary <- summary_all_served %>%
   
 rm(
   Affiliation,
+  CaseManagers,
   Client,
   Disabilities,
   EmploymentEducation,
@@ -203,6 +204,7 @@ rm(
   Services,
   Users,
   Offers,
+  vars_we_want,
   VeteranCE
 )
 

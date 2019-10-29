@@ -23,9 +23,9 @@ library(janitor)
 # loading the COHHIOHMIS data, dropping unnecessary objects
 load("images/COHHIOHMIS.RData")
 
-rm(Affiliation, Client, EnrollmentCoC, EmploymentEducation, Export, Exit, 
-   Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, 
-   Offers, Organization, ProjectCoC, Services, VeteranCE)
+rm(Affiliation, CaseManagers, Client, EnrollmentCoC, EmploymentEducation, 
+   Export, Exit, Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, 
+   Inventory, Offers, Organization, ProjectCoC, Services, VeteranCE)
 # more paring down, only taking what variables I need from Enrollment
 smallEnrollment <- Enrollment %>%
   left_join(Project, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
@@ -163,7 +163,7 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
   arrange(ProjectName)
 
 rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, Users,
-   Referrals, stray_services)
+   Referrals, stray_services, SPDATsOnNonHoHs)
 
 save.image("images/QPR_SPDATs.RData")
 
