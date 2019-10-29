@@ -423,7 +423,7 @@ Enrollment <- y %>%
     )
   )
 
-rm(small_project, y)
+rm(small_project, y, HoHsEntry)
 
 
 # Services ----------------------------------------------------------------
