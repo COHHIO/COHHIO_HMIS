@@ -15,7 +15,6 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
-library(plotly)
 
 load("images/COHHIOHMIS.RData")
 
@@ -38,7 +37,7 @@ rm(
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12) | 
+  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
            # including Diversion, Unsheltered, PATH Outreach & SO, Prevention,
            # and PH - Housing Only projects
            (
@@ -80,7 +79,7 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(Client, FileStart, FileEnd, FilePeriod, hmisParticipatingCurrent)
+rm(FileStart, FileEnd, FilePeriod)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -587,8 +586,7 @@ missingLongDuration <- servedInDateRange %>%
 rm(smallDisabilities)
 
 # MoveInDate
-# check that these aren't just bad data from WellSky
-# also check the ART report to see what logic I'm using exactly
+
 incorrectMoveInDate <- servedInDateRange %>%
   filter(ProjectType %in% c(3, 9, 13),
          (ymd(MoveInDate) < ymd(EntryDate) |
@@ -646,7 +644,8 @@ checkEligibility <- servedInDateRange %>%
     Region,
     UserCreating
   ) %>%
-  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) & 
+  filter(RelationshipToHoH == 1 & 
+           AgeAtEntry > 17 &
            ymd(EntryDate) > mdy("10012016") &
            ProjectID != 1859 & # "Crisis TH" which should be treated like an es
            (ProjectType %in% c(2, 3, 9, 10, 13) & # PTCs that require LH status
@@ -671,11 +670,11 @@ checkEligibility <- servedInDateRange %>%
                        is.na(PreviousStreetESSH)
                    ) 
                )
-           ))|
+           )|
            (ProjectType == 12 &
               !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
            (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
-              !LivingSituation == 16)) # unsheltered only
+              !LivingSituation == 16))) # unsheltered only
 
 smallEligibility <- checkEligibility %>%
   select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
@@ -785,9 +784,24 @@ path_missing_los_res_prior <- servedInDateRange %>%
   select(vars_we_want)
 
 
-#* Engagement at Entry/Exit
+#* Engagement at Exit
 ### adult, PATH-enrolled, Date of Engagement is null -> error
 
+path_no_status_at_exit <- servedInDateRange %>%
+  select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
+         DateOfPATHStatus, ReasonNotEnrolled, EEType) %>%
+  left_join(smallProject, by = "ProjectID") %>%
+  filter(EEType == "PATH" &
+           !is.na(ExitDate) &
+           AgeAtEntry > 17 &
+           (is.na(ClientEnrolledInPATH) |
+              is.na(DateOfPATHStatus) |
+              (ClientEnrolledInPATH == 0 &
+                 is.na(ReasonNotEnrolled)))) %>%
+  mutate(Issue = "PATH Status at Exit Missing or Incomplete",
+         Type = "Error") %>%
+  select(vars_we_want)
 
 #* Status Determination at Exit
 ### adult, PATH-Enrolled is not null 
@@ -968,9 +982,14 @@ rm(Scores)
 
 enteredPHwithoutSPDAT <- 
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
-  filter(ProjectType %in% c(3, 9, 13),
-         ymd(EntryDate) > ymd("20190101") & # only looking at 1/1/2019 forward
-           RelationshipToHoH == 1) %>% # HoHs only
+  filter(
+    ProjectType %in% c(3, 9, 13) &
+      !grepl("SSVF", ProjectName) &
+      !grepl("GPD", ProjectName) &
+      ymd(EntryDate) > ymd("20190101") &
+      # only looking at 1/1/2019 forward
+      RelationshipToHoH == 1
+  ) %>% 
   mutate(Issue = "HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(vars_we_want)
@@ -982,6 +1001,7 @@ LHwithoutSPDAT <-
   anti_join(servedInDateRange, EEsWithSPDATs, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
+      VeteranStatus != 1 &
       RelationshipToHoH == 1 &
       ymd(EntryDate) < today() - days(8) &
       is.na(ExitDate) &
@@ -1245,7 +1265,8 @@ stagingOverlaps <- servedInDateRange %>%
     Issue = "Overlapping Project Stays",
     Type = "Error"
   ) %>%
-  filter(!is.na(LiterallyInProject)) %>%
+  filter(!is.na(LiterallyInProject) &
+         int_length(LiterallyInProject) > 0) %>%
   get_dupes(., PersonalID) %>%
   group_by(PersonalID) %>%
   arrange(PersonalID, EntryAdjust) %>%
@@ -1256,6 +1277,55 @@ stagingOverlaps <- servedInDateRange %>%
   ) %>%
   filter(!is.na(PreviousEntryAdjust)) %>%
   ungroup()
+
+same_day_overlaps <- servedInDateRange %>%
+  filter((ProjectType == 13 & MoveInDateAdjust == ExitDate) |
+           ProjectType != 13) %>%
+  select(
+    HouseholdID,
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    ExitAdjust,
+    ProjectType,
+    CountyServed,
+    ProviderCounty,
+    Region,
+    UserCreating
+  ) %>%
+  mutate(
+    EntryAdjust = case_when(
+      #for PSH and RRH, EntryAdjust = MoveInDate
+      ProjectType %in% c(1, 2, 8, 12) | 
+        ProjectName == "Unsheltered Clients - OUTREACH" ~ EntryDate,
+      ProjectType %in% c(3, 9, 13) &
+        !is.na(MoveInDateAdjust) ~ MoveInDateAdjust,
+      ProjectType %in% c(3, 9, 13) &
+        is.na(MoveInDateAdjust) ~ EntryDate
+    ),
+    LiterallyInProject = case_when(
+      ProjectType %in% c(3, 9) ~ interval(MoveInDateAdjust, ExitAdjust),
+      ProjectType %in% c(1, 2, 4, 8, 12) ~ interval(EntryAdjust, ExitAdjust)
+    ),
+    Issue = "Overlapping Project Stays",
+    Type = "Error"
+  ) %>%
+  filter((!is.na(LiterallyInProject) & ProjectType != 13) | 
+           ProjectType == 13) %>%
+  get_dupes(., PersonalID) %>%
+  group_by(PersonalID) %>%
+  arrange(PersonalID, EntryAdjust) %>%
+  mutate(
+    PreviousEntryAdjust = lag(EntryAdjust),
+    PreviousExitAdjust = lag(ExitAdjust),
+    PreviousProject = lag(ProjectName)
+  ) %>%
+  filter(ExitDate > PreviousEntryAdjust & ExitDate < PreviousExitAdjust) %>%
+  ungroup() %>%
+  select(vars_we_want, PreviousProject)
 
 rrh_overlaps <- servedInDateRange %>%
   select(
@@ -1347,12 +1417,21 @@ overlaps <- stagingOverlaps %>%
   filter(Overlap == TRUE) %>%
   select(vars_we_want, PreviousProject)
 
-overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps)
+overlaps <- rbind(overlaps, rrh_overlaps, psh_overlaps, same_day_overlaps)
 
 rm(stagingOverlaps,
-   # forAmanda,
+   same_day_overlaps,
    rrh_overlaps,
    psh_overlaps)
+
+unsh_overlaps <- overlaps %>%
+  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
+  left_join(Users, by = "UserCreating") %>%
+  select(PersonalID,
+         DefaultProvider,
+         EntryDate,
+         ExitDate,
+         PreviousProject)
 
 # Missing Health Ins ------------------------------------------------------
 
@@ -1757,34 +1836,73 @@ referralsOnHHMembersSSVF <- servedInDateRange %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-
-# Unpaired Needs ----------------------------------------------------------
-# can't get this from the CSV Export
-
 # Stray Services (fall outside EE) ----------------------------------------
 # Because a lot of these records are stray Services due to there being no
 # Entry Exit at all, this can't be shown in the same data set as all the other 
-# errors. I'm going to have to make this its own thing somehow. :(
+# errors. I'm going to have to make this its own thing. :(
 stray_services <- stray_services %>% 
   mutate(Issue = "Service Not Attached to an Entry Exit",
          Type = "Warning") %>%
   select(PersonalID, ServiceProvider, ServiceStartDate, Issue, Type)
 
-# Unmet Needs -------------------------------------------------------------
-# can't get this from the CSV Export
-
 # AP No Recent Referrals --------------------------------------------------
+co_APs <- Project %>%
+  filter(ProjectType == 14) %>%
+  select(ProjectID,
+         OperatingStartDate,
+         OperatingEndDate,
+         ProjectName,
+         ProjectAKA,
+         UsesSP,
+         County)
 
+APsNoReferrals <- Referrals %>%
+  right_join(co_APs, by = c("ProviderCreating" = "ProjectName")) %>%
+  filter(is.na(PersonalID)) %>% 
+  select(ProviderCreating) %>% 
+  unique()
+
+APsWithReferrals <- Referrals %>%
+  right_join(co_APs, by = c("ProviderCreating" = "ProjectName")) %>%
+  filter(!is.na(PersonalID)) %>% 
+  select(ProviderCreating) %>% 
+  unique()
+
+data_APs <- data.frame(
+  category = c("No Referrals", "Has Created Referrals"),
+  count = c(nrow(APsNoReferrals), nrow(APsWithReferrals)),
+  providertype = rep("Access Points"),
+  total = rep(c(nrow(APsNoReferrals) + nrow(APsWithReferrals)))
+)
+
+data_APs <- data_APs %>%
+  mutate(percent = count/total,
+         prettypercent = percent(count/total))
+
+plot_aps_referrals <-
+  ggplot(data_APs, aes(fill = category, x = providertype, y = percent)) +
+  geom_bar(position = "fill", stat = "identity", width = .1) +
+  geom_label(aes(label = paste(data_APs$category,
+                               "\n",
+                               data_APs$prettypercent)),
+             position = position_stack(),
+             vjust = 2,
+             fill = "white",
+             colour = "black",
+             fontface = "bold") +
+  scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
+  theme_void()
+
+rm(APsWithReferrals, co_APs, data_APs)
+  
 
 # AP entering project stays -----------------------------------------------
 
-APsWithEEs <- Enrollment %>%
+APsWithEEs <- servedInDateRange %>%
   filter(ProjectType == 14) %>%
   mutate(Issue = "Access Point with Entry Exits",
          Type = "Error") %>%
   select(vars_we_want)
-
-rm(Enrollment)
 
 # Side Door ---------------------------------------------------------------
 # use Referrals, get logic from ART report- it's pretty lax I think
@@ -1795,11 +1913,38 @@ rm(Enrollment)
 # Using ProviderCreating instead. Either way, I feel this should go in the 
 # Provider Dashboard, not the Data Quality report.
 old_outstanding_referrals <- Referrals %>%
-  filter(!is.na(ReferralOutcome) &
+  filter(is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
-  select(PersonalID, ReferralDate, ProviderCreating)
+  select(PersonalID, ReferralDate, ProviderCreating) %>%
+  left_join(servedInDateRange, by = c("ProviderCreating" = "ProjectName",
+                                      "PersonalID")) %>%
+  mutate(ProjectName = ProviderCreating,
+         Issue = "Old Outstanding Referral",
+         Type = "Warning",
+         ProjectID = NULL) %>%
+  select(vars_we_want)
 
-rm(Referrals)
+staging_outstanding_referrals <- old_outstanding_referrals %>%
+  left_join(Project[c("ProjectName", "ProjectID")], by = "ProjectName") %>%
+  select(ProjectName, ProjectID, PersonalID) %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Open_Referrals = n()) %>%
+  arrange(desc(Open_Referrals)) %>%
+  mutate(Project = paste0(ProjectName, ":", ProjectID))
+
+top_20_outstanding_referrals <- ggplot(head(staging_outstanding_referrals, 20L),
+       aes(
+         x = reorder(Project, Open_Referrals),
+         y = Open_Referrals,
+         fill = Open_Referrals
+       )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "",
+       y = "Referrals") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
 
 # Unsheltered Incorrect Residence Prior -----------------------------------
 unshelteredEnrollments <- servedInDateRange %>%
@@ -1816,7 +1961,18 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
   select(vars_we_want)
 
 # Unsheltered Incorrect Provider in CM Record -----------------------------
-# can't get this from the HUD CSV export 
+
+unsh_incorrect_cmprovider <- CaseManagers %>%
+  left_join(unshelteredEnrollments %>%
+              filter(EntryDate > mdy("01012019")),
+            by = c("PersonalID")) %>%
+  filter(
+    EEProvider == "Unsheltered Clients - OUTREACH" &
+      CMProvider == "Unsheltered Clients - OUTREACH"
+  ) %>%
+  mutate(Type = "Error",
+         Issue = "Incorrect Provider in Case Manager record") %>%
+  select(vars_we_want)
 
 # Missing End Date on Outreach Contact ------------------------------------
 
@@ -1826,12 +1982,138 @@ unshelteredNotUnsheltered <- unshelteredEnrollments %>%
 
 # Unsheltered Outreach Contact Incorrect Start Date -----------------------
 
-
 # Unsheltered Currently Unsheltered 30+ Days w No Referral ----------------
 
+long_unsheltered <- unshelteredEnrollments %>%
+  filter(is.na(ExitDate) &
+           ymd(EntryDate) < today() - days(30))
 
+unsheltered_referred <- Referrals %>%
+  filter(ProviderCreating == "Unsheltered Clients - OUTREACH") 
+
+unsheltered_long_not_referred <- 
+  anti_join(long_unsheltered, unsheltered_referred, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Unsheltered 30+ Days with no Referral") %>%
+  select(vars_we_want)
+  
+rm(long_unsheltered, unsheltered_referred, Referrals)
 # Unsheltered No Case Manager ---------------------------------------------
 
+unsh_missing_cm <- unshelteredEnrollments %>%
+  filter(EntryDate > mdy("01012019")) %>%
+  anti_join(
+    CaseManagers %>%
+      filter(EEProvider == "Unsheltered Clients - OUTREACH"),
+    by = c("PersonalID")
+  ) %>%
+  mutate(Type = "Error",
+         Issue = "Missing Case Manager record") %>%
+  select(vars_we_want)
+
+# SSVF --------------------------------------------------------------------
+
+ssvf_served_in_date_range <- Enrollment %>%
+  select(EnrollmentID, PersonalID, ProjectID, EntryDate, RelationshipToHoH,
+         MoveInDate, MoveInDateAdjust, ExitDate, PercentAMI, LastPermanentStreet,
+         LastPermanentCity, LastPermanentState, LastPermanentZIP, 
+         AddressDataQuality, VAMCStation, HPScreeningScore, ThresholdScore,
+         IraqAfghanistan, FemVet, ProjectType, ProjectName, UserCreating,
+         HouseholdID) %>%
+  right_join(
+    servedInDateRange %>%
+      filter(GrantType == "SSVF") %>%
+      select(PersonalID, EnrollmentID, HouseholdID),
+    by = c("PersonalID", "EnrollmentID", "HouseholdID")
+  ) %>%
+  left_join(
+    Client %>%
+      select(
+        PersonalID,
+        VeteranStatus,
+        YearEnteredService,
+        YearSeparated,
+        WorldWarII,
+        KoreanWar,
+        VietnamWar,
+        DesertStorm,
+        AfghanistanOEF,
+        IraqOIF,
+        IraqOND,
+        OtherTheater,
+        MilitaryBranch,
+        DischargeStatus
+      ),
+    by = "PersonalID"
+  )
+
+missing_client_veteran_info <- ssvf_served_in_date_range %>%
+  filter(VeteranStatus == 1) %>%
+  mutate(
+    Issue = case_when(
+      is.na(YearEnteredService) ~ "Missing Year Entered Service",
+      YearEnteredService > year(today()) ~ "Incorrect Year Entered Service",
+      is.na(YearSeparated) ~ "Missing Year Separated",
+      YearSeparated > year(today()) ~ "Incorrect Year Separated",
+      is.na(WorldWarII) | WorldWarII == 99 |
+        is.na(KoreanWar) | KoreanWar == 99 |
+        is.na(VietnamWar) | VietnamWar == 99 |
+        is.na(DesertStorm) | DesertStorm == 99 |
+        is.na(AfghanistanOEF) | AfghanistanOEF == 99 |
+        is.na(IraqOIF) | IraqOIF == 99 |
+        is.na(IraqOND) | IraqOND == 99 |
+        is.na(OtherTheater) | OtherTheater == 99  ~ "Missing War(s)",
+      is.na(MilitaryBranch) ~ "Missing Military Branch",
+      is.na(DischargeStatus) ~ "Missing Discharge Status"
+    ),
+    Type = "Error"
+  ) %>% 
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+dkr_client_veteran_info <- ssvf_served_in_date_range %>%
+  filter(VeteranStatus == 1) %>%
+  mutate(
+    Issue = case_when(
+      WorldWarII %in% c(8, 9) |
+        KoreanWar %in% c(8, 9) |
+        VietnamWar %in% c(8, 9) |
+        DesertStorm  %in% c(8, 9) |
+        AfghanistanOEF %in% c(8, 9) |
+        IraqOIF %in% c(8, 9) |
+        IraqOND %in% c(8, 9) |
+        OtherTheater  %in% c(8, 9)  ~ "Don't Know/Refused War(s)",
+      MilitaryBranch %in% c(8, 9) ~ "Missing Military Branch",
+      DischargeStatus %in% c(8, 9) ~ "Missing Discharge Status"
+    ),
+    Type = "Warning"
+  ) %>% 
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+ssvf_at_entry <- ssvf_served_in_date_range %>%
+  filter(RelationshipToHoH == 1) %>%
+  mutate(Issue = case_when(
+    is.na(PercentAMI) ~ "Missing Percent AMI",
+    is.na(VAMCStation) ~ "Missing VAMC Station Number",
+    is.na(LastPermanentStreet) |
+      is.na(LastPermanentCity) |
+#      is.na(LastPermanentState) | # another vendor error
+      is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
+  ),
+  Type = "Error") %>%
+  filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+ssvf_hp_screen <- ssvf_served_in_date_range %>%
+  filter(ProjectType == 12 &
+           RelationshipToHoH == 1 &
+           (is.na(HPScreeningScore) |
+           is.na(ThresholdScore))) %>%
+  mutate(Issue = "Missing HP Screening or Threshold Score",
+         Type = "Error") %>%
+  select(vars_we_want)
+  
 
 # All together now --------------------------------------------------------
 
@@ -1846,6 +2128,7 @@ DataQualityHMIS <- rbind(
   conflictingIncomeYNatExit,
   conflictingNCBsAtEntry,
   conflictingNCBsAtExit,
+  dkr_client_veteran_info,
   dkrDestination,
   dkrLoS,
   dkrMonthsTimesHomeless,
@@ -1858,6 +2141,7 @@ DataQualityHMIS <- rbind(
   incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
+  missing_client_veteran_info,
   missingCountyServed,
   missingCountyPrior,  
   missingDestination,
@@ -1875,8 +2159,10 @@ DataQualityHMIS <- rbind(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
+  old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
+  path_no_status_at_exit,
   path_reason_missing,
   path_SOAR_missing_at_exit,
   path_status_determination,
@@ -1884,7 +2170,9 @@ DataQualityHMIS <- rbind(
   referralsOnHHMembersSSVF,
   servicesOnHHMembers,
   servicesOnHHMembersSSVF,
-  SPDATCreatedOnNonHoH
+  SPDATCreatedOnNonHoH,
+  ssvf_at_entry,
+  ssvf_hp_screen
 ) %>%
   filter(!ProjectName %in% c(
     "Diversion from Homeless System",
@@ -1896,7 +2184,6 @@ DataQualityHMIS <- rbind(
 
 unshelteredDataQuality <- rbind(
   checkDisabilityForAccuracy,
-  # conflictingDisabilities,
   dkrDestination,
   dkrMonthsTimesHomeless,
   dkrResidencePrior,
@@ -1907,20 +2194,20 @@ unshelteredDataQuality <- rbind(
   incorrectEntryExitType,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
-  # missingCountyPrior,
   missingDestination,
   missingCountyServed,
-  # missingDisabilities,
-  # missingDisabilitySubs,
   # missingLivingSituationData, 
   missingLoS,
   missingMonthsTimesHomeless,
   missingResidencePrior,
   missingUDEs,
-  overlaps,
+  old_outstanding_referrals,
   referralsOnHHMembers,
   SPDATCreatedOnNonHoH,
-  unshelteredNotUnsheltered
+  unshelteredNotUnsheltered,
+  unsh_incorrect_cmprovider,
+  unsh_missing_cm,
+  unsheltered_long_not_referred
 ) %>%
   filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
@@ -1945,7 +2232,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Incomplete Living Situation Data",
       "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
-      "Check Eligibility",
+      # "Check Eligibility",
       "Don't Know/Refused Residence Prior",
       "Don't Know/Refused Months or Times Homeless",
       "Health Insurance Missing at Entry",
@@ -1954,8 +2241,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Income Missing at Exit",
       "Missing Residence Prior",
       "Non-cash Benefits Missing at Entry",
-      "Non-cash Benefits Missing at Exit",
-      "SPDAT Created on a Non-Head-of-Household"
+      "Non-cash Benefits Missing at Exit"
     )
   )
 
@@ -1968,12 +2254,19 @@ cocDataQualityHMIS <- DataQualityHMIS %>%
 
 rm(ReportStart, ReportEnd)
 
+hmisParticipatingCurrent <- hmisParticipatingCurrent %>%
+  filter(ProjectID != 1695) 
+
+dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
+
 # Clean up the house ------------------------------------------------------
 
 rm(
   APsWithEEs,
+  CaseManagers,
   checkDisabilityForAccuracy,
   checkEligibility,
+  Client,
   conflictingDisabilities,
   conflictingHealthInsuranceYNatEntry,
   conflictingHealthInsuranceYNatExit,
@@ -1985,14 +2278,18 @@ rm(
   dkrResidencePrior,
   dkrDestination,
   dkrLoS,
+  dkr_client_veteran_info,
   duplicateEEs,
+  Enrollment,
   enteredPHwithoutSPDAT,
   futureEEs,
   householdIssues,
+  hmisParticipatingCurrent,
   incorrectEntryExitType,
   incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
+  missing_client_veteran_info,
   missingCountyPrior,
   missingCountyServed,
   missingDestination,
@@ -2011,8 +2308,10 @@ rm(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
+  old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
+  path_no_status_at_exit,
   path_reason_missing,
   path_SOAR_missing_at_exit,
   path_status_determination,
@@ -2024,12 +2323,17 @@ rm(
   servicesOnHHMembersSSVF,
   smallProject,
   SPDATCreatedOnNonHoH,
+  ssvf_at_entry,
+  ssvf_hp_screen,
+  ssvf_served_in_date_range,
   unshelteredEnrollments,
   unshelteredNotUnsheltered,
-  update_date
+  unsh_missing_cm,
+  unsh_incorrect_cmprovider,
+  unsheltered_long_not_referred,
+  update_date,
+  vars_we_want
 )
-
-dqProviders <- sort(DataQualityHMIS$ProjectName) %>% unique()
 
 plotErrors <- cocDataQualityHMIS %>%
   filter(Type == "Error" &
@@ -2045,7 +2349,7 @@ plotErrors <- cocDataQualityHMIS %>%
 
 plotErrors$hover <-
   with(plotErrors,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_projects_errors <-
   ggplot(head(plotErrors, 20L),
@@ -2056,7 +2360,7 @@ top_20_projects_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2070,7 +2374,7 @@ plotWarnings <- cocDataQualityHMIS %>%
 
 plotWarnings$hover <-
   with(plotWarnings,
-       paste(ProjectName, ":", ProjectID))      
+       paste0(ProjectName, ":", ProjectID))      
 
 top_20_projects_warnings <-
   ggplot(head(plotWarnings, 20L),
@@ -2081,7 +2385,7 @@ top_20_projects_warnings <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2102,7 +2406,7 @@ top_10_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Error Types",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2123,7 +2427,7 @@ top_10_warnings <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Warning Types",
+  labs(x = "",
        y = "Clients") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
@@ -2142,7 +2446,7 @@ plotHHIssues <- cocDataQualityHMIS %>%
 
 plotHHIssues$hover <-
   with(plotHHIssues,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_projects_hh_errors <-
   ggplot(head(plotHHIssues, 20L),
@@ -2153,7 +2457,30 @@ top_20_projects_hh_errors <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers") +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotOutstandingReferrals <- cocDataQualityHMIS %>%
+  filter(Issue== "Old Outstanding Referral") %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  arrange(desc(Households)) %>%
+  mutate(hover = paste(ProjectName, ":", ProjectID))
+
+top_20_projects_outstanding_referrals <-
+  ggplot(head(plotOutstandingReferrals, 20L),
+         aes(
+           x = reorder(hover, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
@@ -2169,7 +2496,7 @@ plotEligibility <- cocDataQualityHMIS %>%
 
 plotEligibility$hover <-
   with(plotEligibility,
-       paste(ProjectName, ":", ProjectID))
+       paste0(ProjectName, ":", ProjectID))
 
 top_20_eligibility <-
   ggplot(head(plotEligibility, 20L),
@@ -2180,17 +2507,45 @@ top_20_eligibility <-
          )) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
-  labs(x = "Providers") +
+  labs(x = "") +
+  scale_fill_viridis_c(direction = -1) +
+  theme_minimal(base_size = 18)
+
+plotWithoutSPDAT <- cocDataQualityHMIS %>%
+  filter(Type == "Warning" &
+           Issue %in% c("HoHs Entering PH without SPDAT",
+                        "HoHs in shelter or Transitional Housing for 8+ days without SPDAT")) %>%
+  select(PersonalID, ProjectID, ProjectName) %>%
+  unique() %>%
+  group_by(ProjectName, ProjectID) %>%
+  summarise(Households = n()) %>%
+  ungroup() %>%
+  mutate(ProjectDisplay = paste0(ProjectName, ":", ProjectID)) %>%
+  arrange(desc(Households))
+
+NoSPDATHoHs <-
+  ggplot(head(plotWithoutSPDAT, 20L),
+         aes(
+           x = reorder(ProjectDisplay, Households),
+           y = Households,
+           fill = Households
+         )) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  labs(x = "") +
   scale_fill_viridis_c(direction = -1) +
   theme_minimal(base_size = 18)
 
 rm(plotErrors,
    plotWarnings,
+   stray_services,
    errorTypes,
    warningTypes,
+   staging_outstanding_referrals,
    plotHHIssues,
-   plotEligibility)
+   plotEligibility,
+   plotWithoutSPDAT,
+   plotOutstandingReferrals)
 
 save.image("images/Data_Quality.RData")
 
- 
