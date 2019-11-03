@@ -25,7 +25,6 @@ rm(
   Exit,
   Export,
   Funder,
-  Geography,
   HealthAndDV,
   Offers,
   ProjectCoC,
@@ -37,14 +36,13 @@ rm(
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
-           # including Diversion, Unsheltered, PATH Outreach & SO, Prevention,
-           # and PH - Housing Only projects
-           (
-             HMIS_participating_between(., FileStart, FileEnd) &
-               operating_between(., FileStart, FileEnd) &
-               (GrantType != "HOPWA" | is.na(GrantType)) # excluding HOPWA
-           )) %>%
+  filter(ProjectID == 1695 | (
+    HMISParticipatingProject == 1 &
+      !str_detect(ProjectName, "zz") & # <- since we can't trust HMISParticipatingProject
+      operating_between(., FileStart, FileEnd) &
+      (GrantType != "HOPWA" |
+         is.na(GrantType)) # excluding HOPWA
+  )) %>% 
   select(
     ProjectID,
     OrganizationID,
@@ -652,7 +650,7 @@ checkEligibility <- servedInDateRange %>%
            (
              is.na(LivingSituation) |
                (
-                 LivingSituation %in% c(4:7, 15, 24) & # institution
+                 LivingSituation %in% c(4:7, 15, 25:27, 29) & # institution
                    (
                      !LengthOfStay %in% c(2, 3, 10, 11) | # <90 days
                        is.na(LengthOfStay) |
@@ -661,7 +659,7 @@ checkEligibility <- servedInDateRange %>%
                    )
                ) |
                (
-                 LivingSituation %in% c(2:3, 8, 9, 12:14, 19:23, 25, 26) &
+                 LivingSituation %in% c(3, 10, 11, 19:23, 28, 31) &
                    # not homeless
                    (
                      !LengthOfStay %in% c(10, 11) |  # <1 week
@@ -672,7 +670,7 @@ checkEligibility <- servedInDateRange %>%
                )
            )|
            (ProjectType == 12 &
-              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
+              !LivingSituation %in% c(1, 2, 12, 13, 14, 16, 18, 27)) |
            (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
               !LivingSituation == 16))) # unsheltered only
 
@@ -2244,6 +2242,9 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Non-cash Benefits Missing at Exit"
     )
   )
+
+
+# Controls what is shown in the CoC-wide DQ tab ---------------------------
 
 ReportStart <- "10012018"
 ReportEnd <- format.Date(today(), "%m-%d-%Y")
