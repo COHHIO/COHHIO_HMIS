@@ -18,8 +18,8 @@ library(lubridate)
 load("images/COHHIOHMIS.RData")
 
 rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
-   Export, Funder, Geography, HealthAndDV, IncomeBenefits, Offers,
-   Organization, ProjectCoC, Scores, Services, Users)
+   Export, Funder, HealthAndDV, IncomeBenefits, Offers, CurrentLivingSituation,
+   Organization, ProjectCoC, Scores, Services, Users, stray_services)
 
 Veterans <- Client %>%
   filter(VeteranStatus == 1) %>%
@@ -110,8 +110,7 @@ VetEngagementSummary <- VetEngagementSummary %>%
   )
 
 rm(Client, CaseManagers, Enrollment, Inventory, Project, Regions, VeteranCE, 
-   Veterans, Referrals, stray_services, CurrentVeterans, VeteranEngagement, 
-   VeteranHHs)
+   Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs)
 
 save.image("images/Veterans.RData")
 
