@@ -28,7 +28,7 @@ Veterans <- Client %>%
 
 VeteranHHs <- Veterans %>%
   left_join(Enrollment, by = "PersonalID") %>%
-  select(PersonalID, EnrollmentID, ProjectID, EntryDate, HouseholdID, 
+  select(PersonalID, ProjectID, EntryDate, HouseholdID, 
          RelationshipToHoH, LivingSituation, LengthOfStay, LOSUnderThreshold,
          PreviousStreetESSH, DateToStreetESSH, TimesHomelessPastThreeYears,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement,
@@ -109,8 +109,9 @@ VetEngagementSummary <- VetEngagementSummary %>%
       )
   )
 
-rm(Client, Enrollment, Inventory, Project, Regions, VeteranCE, Veterans, 
-   Referrals, stray_services)
+rm(Client, CaseManagers, Enrollment, Inventory, Project, Regions, VeteranCE, 
+   Veterans, Referrals, stray_services, CurrentVeterans, VeteranEngagement, 
+   VeteranHHs)
 
 save.image("images/Veterans.RData")
 

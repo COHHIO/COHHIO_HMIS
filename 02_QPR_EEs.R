@@ -20,8 +20,8 @@ library(janitor)
 
 load("images/COHHIOHMIS.RData")
 
-rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, Export, 
-   Funder, Geography, HealthAndDV, Offers, ProjectCoC, Scores, 
+rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
+   Exit, Export, Funder, Geography, HealthAndDV, Offers, ProjectCoC, Scores, 
    VeteranCE, Users)
 
 # decided to continue to use a separate file for Goals (instead of building it
@@ -240,7 +240,6 @@ QPR_RRH_HP_Spending <- Services %>%
   
 rm(Client, 
    Enrollment, 
-   CaseManagers,
    Organization,
    Services,
    smallEnrollment,

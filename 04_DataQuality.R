@@ -1893,7 +1893,7 @@ plot_aps_referrals <-
   scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
   theme_void()
 
-rm(APsWithReferrals, co_APs)
+rm(APsWithReferrals, co_APs, data_APs)
   
 
 # AP entering project stays -----------------------------------------------
@@ -2263,6 +2263,7 @@ dqProviders <- sort(hmisParticipatingCurrent$ProjectName)
 
 rm(
   APsWithEEs,
+  CaseManagers,
   checkDisabilityForAccuracy,
   checkEligibility,
   Client,
@@ -2307,6 +2308,7 @@ rm(
   missingNCBsAtExit,
   missingResidencePrior,
   missingUDEs,
+  old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_no_status_at_exit,
@@ -2329,7 +2331,8 @@ rm(
   unsh_missing_cm,
   unsh_incorrect_cmprovider,
   unsheltered_long_not_referred,
-  update_date
+  update_date,
+  vars_we_want
 )
 
 plotErrors <- cocDataQualityHMIS %>%
@@ -2535,8 +2538,10 @@ NoSPDATHoHs <-
 
 rm(plotErrors,
    plotWarnings,
+   stray_services,
    errorTypes,
    warningTypes,
+   staging_outstanding_referrals,
    plotHHIssues,
    plotEligibility,
    plotWithoutSPDAT,
