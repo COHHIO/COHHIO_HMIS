@@ -1862,7 +1862,7 @@ co_APs <- Project %>%
          OperatingEndDate,
          ProjectName,
          ProjectAKA,
-         UsesSP,
+         HMISParticipatingProject,
          County)
 
 APsNoReferrals <- Referrals %>%
