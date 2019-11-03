@@ -23,10 +23,12 @@ load("images/COHHIOHMIS.RData")
 small_project <- Project %>%
   select(ProjectID,
          ProjectName,
-         ProjectType) %>%
+         ProjectType,
+         HMISParticipatingProject) %>%
   filter(ProjectType %in% c(1, 2, 3, 8, 9) &
            operating_between(Project, FileStart, FileEnd) &
-           is.na(Project$GrantType))
+           is.na(Project$GrantType) &
+           HMISParticipatingProject == 1) # <- meaningless rn bc of export error
 
 small_inventory <- Inventory %>%
   select(
@@ -35,9 +37,8 @@ small_inventory <- Inventory %>%
     UnitInventory,
     BedInventory,
     InventoryStartDate,
-    InventoryEndDate,
-    HMISParticipatingBeds
-  )  %>%
+    InventoryEndDate
+    )  %>%
   filter((
     ymd(InventoryStartDate) <= mdy(FileEnd) &
       (
@@ -45,7 +46,6 @@ small_inventory <- Inventory %>%
           is.na(InventoryEndDate)
       )
   ) &
-    !is.na(HMISParticipatingBeds) &
     Inventory$CoCCode == "OH-507")
 
 Beds <- inner_join(small_project, small_inventory, by = "ProjectID")
@@ -85,9 +85,10 @@ Utilizers <- left_join(Utilizers, small_project, by = "ProjectID") %>%
 # Cleaning up the house ---------------------------------------------------
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
-   Export, Funder, Geography, HealthAndDV, IncomeBenefits, Organization, 
+   Export, Funder, HealthAndDV, IncomeBenefits, Organization, 
    ProjectCoC, Scores, Services, small_enrollment, small_inventory, small_project, 
-   Users, Offers, VeteranCE)
+   Users, Offers, VeteranCE, CurrentLivingSituation, CaseManagers, Referrals,
+   stray_services)
 # Client Utilization of Beds ----------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
@@ -667,7 +668,8 @@ small_project <- Project %>%
   select(ProjectID,
          ProjectName,
          ProjectType, 
-         OrganizationName)
+         OrganizationName,
+         HMISParticipatingProject)
 
 # Current Bed Utilization -------------------------------------------------
 
@@ -677,7 +679,6 @@ small_inventory <- Inventory %>%
               ymd(InventoryEndDate) >= today() |
                 is.na(InventoryEndDate)
             )) &
-           !is.na(HMISParticipatingBeds) &
            Inventory$CoCCode == "OH-507") %>%
   select(
     ProjectID,
@@ -685,8 +686,7 @@ small_inventory <- Inventory %>%
     UnitInventory,
     BedInventory,
     InventoryStartDate,
-    InventoryEndDate,
-    HMISParticipatingBeds
+    InventoryEndDate
   )
 
 small_inventory <- inner_join(small_project, small_inventory, by = "ProjectID")
@@ -773,8 +773,8 @@ names(ClientUtilizers) <-
     format.Date(int_start(TwentyfourthMonth), "%m%d%Y")
   )
 
-rm(Households, CaseManagers, Clients, Capacity, Enrollment, Project, Inventory, 
-   small_inventory, small_project, Referrals, stray_services, providerids)
+rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
+   small_inventory, small_project, providerids)
 
 bed_utilization_note <- "Bed Utilization is the percentage of a project's available beds being populated by individual clients."
 
