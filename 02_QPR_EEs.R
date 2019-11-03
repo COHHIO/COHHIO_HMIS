@@ -97,9 +97,9 @@ QPR_EEs <- smallProject %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10, 11, 19:23, 28, 31) ~ "Permanent",
+      Destination %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+      Destination %in% c(8, 9, 17, 24, 30, 37, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
     Region = paste("Homeless Planning Region", Region),
