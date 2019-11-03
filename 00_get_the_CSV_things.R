@@ -222,7 +222,9 @@ coc_scoring <- coc_scoring %>%
 Project <- Project %>%
   select(-ProjectName) %>%
   left_join(., provider_extras, by = "ProjectID") %>%
-  left_join(coc_scoring, by = "ProjectID")
+  left_join(coc_scoring, by = "ProjectID") %>%
+  mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0)) %>% 
+  select(-UsesSP)
 
 rm(provider_extras, coc_scoring)
 
