@@ -58,7 +58,9 @@ if(ncol(read_csv("fy2020/Client.csv")) == 36) {
 }
 CurrentLivingSituation <- 
   read_csv("fy2020/CurrentLivingSituation.csv",
-           col_types = "nnnDncnnnnncTTcTc")
+           # col_types = "nnnDncnnnnncTTcTc") <- the way the HUD specs say
+            col_types = "nnnTncnnnnncTTcTc")
+
 Disabilities <-
   read_csv("fy2020/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
@@ -72,9 +74,9 @@ Enrollment <-
 EnrollmentCoC <- 
   read_csv("fy2020/EnrollmentCoC.csv", 
            col_types = "cncnnDcnTTnTn")
-Event <- 
-  read_csv("fy2020/Event.csv",
-           col_types = "nnnDnnncDTTcTc")
+# Event <- 
+#   read_csv("fy2020/Event.csv",
+#            col_types = "nnnDnnncDTTcTc") <- no data
 Exit <-
   read_csv("fy2020/Exit.csv",
            col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
@@ -93,31 +95,24 @@ IncomeBenefits <-
              "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
 Inventory <- 
   read_csv("fy2020/Inventory.csv",
-           col_types = "nncnnnnnnnnnnnnnnDDTTcTn")
+           # col_types = "nncnnnnnnnnnnnnnnDDTTcTn") <- the way the HUD specs say
+            col_types = "nncnnnnnnnnnnnnDDTTcTn")
 Organization <- 
   read_csv("fy2020/Organization.csv",
            col_types = "ncncTTnTn")
 Project <- 
   read_csv("fy2020/Project.csv",
-           col_types = "nnccDDnnnnnnTTcTn")
+           col_types = "nnccDDnnnnnnnnTTcTn") 
+# col_types = "nnccDDnnnnnnTTcTn") <- the way the HUD specs say
 ProjectCoC <- 
   read_csv("fy2020/ProjectCoC.csv",
            col_types = "nncnccccnnTTcTn")
-User <- 
-  read_csv("fy2020/User.csv",
-           col_types = "nccnncTTTn")
+# User <- 
+#   read_csv("fy2020/User.csv",
+#            col_types = "nccnncTTTn") <- useless bc only contains active
+# users and doesn't include Default Provider, which we need
 
 # - All other data comes from either the RMisc ART report or ReportWriter #
-
-# Youth Beds from RW ------------------------------------------------------
-if(file.exists("data/youthbeds.zip")) {
-  unzip(zipfile = "./data/youthbeds.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/youthbeds.csv")
-  
-  file.remove("data/youthbeds.zip")
-}
 
 # Case Manager Records ----------------------------------------------------
 
@@ -132,15 +127,6 @@ if(file.exists("data/casemanagers.zip")) {
 
 CaseManagers <- read_csv("data/casemanagers.csv",
                              col_types = "dccccc")
-
-# Youth Beds not coming through correctly ---------------------------------
-
-youth_beds <- read_csv("data/youthbeds.csv",
-                       col_types = "ii")
-Inventory <- left_join(Inventory, youth_beds, by = "InventoryID") %>%
-  select(1:9, YouthBedInventory = 21, 11:20) 
-
-rm(youth_beds)
 
 # from sheet 1, creating a Scores table -----------------------------------
 
@@ -378,6 +364,8 @@ Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
 Users <- read_xlsx("data/RMisc.xlsx",
                    sheet = 3,
                    range = cell_cols("A:G"))
+# keeping this one instead of the one in the export because it has
+# "Default Provider" (which means no ditching ART in the near future)
 
 # Adding Exit Data to Enrollment because c'mon ----------------------------
 small_exit <- Exit %>% select(EnrollmentID, 
@@ -630,22 +618,24 @@ beds_available_between <- function(table, start, end) {
   available
 }
 
-# HMIS participating Between --------------------------------------------------
+# # HMIS participating Between --------------------------------------------------
+# 
+# HMIS_participating_between <- function(table, start, end) {
+#   HMISParticipating <-  if_else(
+#     (table$HMISParticipatingBeds == 0 | is.na(table$HMISParticipatingBeds)) |
+#     (is.na(table$InventoryStartDate) |
+#       ymd(table$InventoryStartDate) > mdy(end)) |
+#       (!is.na(table$InventoryEndDate) &
+#          ymd(table$InventoryEndDate) < mdy(start)),
+#     FALSE,
+#     TRUE
+#   )
+#   HMISParticipating
+# }
+# not sure what the heck to do about this. :( will have to pull based
+# on UsesSP which is super clunky and will leave out providers
 
-HMIS_participating_between <- function(table, start, end) {
-  HMISParticipating <-  if_else(
-    (table$HMISParticipatingBeds == 0 | is.na(table$HMISParticipatingBeds)) |
-    (is.na(table$InventoryStartDate) |
-      ymd(table$InventoryStartDate) > mdy(end)) |
-      (!is.na(table$InventoryEndDate) &
-         ymd(table$InventoryEndDate) < mdy(start)),
-    FALSE,
-    TRUE
-  )
-  HMISParticipating
-}
-
-FileEnd <- format.Date(file.info("data/Client.csv")$mtime, "%m-%d-%Y")
+FileEnd <- format.Date(file.info("fy2020/Enrollment.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
@@ -653,7 +643,7 @@ FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 # Masking PII in the Client file (but not DOB) ----------------------------
 
-if(ncol(read_csv("data/Client.csv")) == 36)
+if(ncol(read_csv("fy2020/Client.csv")) == 36)
 {Client <- Client %>%
   mutate(
     FirstName = case_when(
@@ -707,11 +697,11 @@ Client <- Client %>%
 # object as a security measure.
 
 if(ncol(Client) == 33)
-{write_csv(Client, "data/Client.csv", append = FALSE)}
+{write_csv(Client, "fy2020/Client.csv", append = FALSE)}
 
 # Update Date -------------------------------------------------------------
 
-update_date <- file.info("data/Enrollment.csv")$mtime
+update_date <- file.info("fy2020/Enrollment.csv")$mtime
 
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
