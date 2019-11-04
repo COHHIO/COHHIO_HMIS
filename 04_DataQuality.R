@@ -587,21 +587,28 @@ rm(smallDisabilities)
 
 # MoveInDate
 
-incorrectMoveInDate <- servedInDateRange %>%
-  filter(ProjectType %in% c(3, 9, 13),
-         (ymd(MoveInDate) < ymd(EntryDate) |
-           ymd(MoveInDate) > ymd(ExitDate))) %>%
-  mutate(Issue = "Incorrect Move In Date",
-         Type = "Error") %>%
-  select(HouseholdID,
-         PersonalID,
-         ProjectName,
-         Issue,
-         Type,
-         EntryDate,
-         "MoveInDateAdjust" = MoveInDate,
-         ExitDate, 
-         UserCreating) 
+# incorrectMoveInDate <- servedInDateRange %>%
+#   filter(ProjectType %in% c(3, 9, 13) &
+#            RelationshipToHoH == 1 &
+#            ((
+#              ymd(MoveInDate) < ymd(EntryDate) |
+#                ymd(MoveInDate) > ymd(ExitDate)
+#            ) |
+#              (ProjectType %in% c(3, 9) &
+#                ymd(EntryDate) < mdy("10012017") &
+#                  ymd(EntryDate) != ymd(MoveInDate)
+#              ))) %>% 
+#   mutate(Issue = "Incorrect Move In Date",
+#          Type = "Error") %>%
+#   select(HouseholdID,
+#          PersonalID,
+#          ProjectName,
+#          Issue,
+#          Type,
+#          EntryDate,
+#          "MoveInDateAdjust" = MoveInDate,
+#          ExitDate, 
+#          UserCreating) 
   
 # CountyServed
 
@@ -2137,7 +2144,7 @@ DataQualityHMIS <- rbind(
   futureEEs,
   householdIssues,
   incorrectEntryExitType,
-  incorrectMoveInDate,
+  # incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
   missing_client_veteran_info,
@@ -2285,7 +2292,7 @@ rm(
   householdIssues,
   hmisParticipatingCurrent,
   incorrectEntryExitType,
-  incorrectMoveInDate,
+  # incorrectMoveInDate,
   LHwithoutSPDAT,
   missingApproxDateHomeless,
   missing_client_veteran_info,
