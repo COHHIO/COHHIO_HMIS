@@ -93,17 +93,16 @@ IncomeBenefits <-
   read_csv("fy2020/IncomeBenefits.csv",
            col_types = 
              "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
-Inventory <- 
+Inventory <-
   read_csv("fy2020/Inventory.csv",
-           # col_types = "nncnnnnnnnnnnnnnnDDTTcTn") <- the way the HUD specs say
-            col_types = "nncnnnnnnnnnnnnDDTTcTn")
+           col_types = "nncnnnnnnnnnnnnDDTTcTn")
 Organization <- 
   read_csv("fy2020/Organization.csv",
            col_types = "ncncTTnTn")
 Project <- 
   read_csv("fy2020/Project.csv",
            col_types = "nnccDDnnnnnnnnTTcTn") 
-# col_types = "nnccDDnnnnnnTTcTn") <- the way the HUD specs say
+
 ProjectCoC <- 
   read_csv("fy2020/ProjectCoC.csv",
            col_types = "nncnccccnnTTcTn")
