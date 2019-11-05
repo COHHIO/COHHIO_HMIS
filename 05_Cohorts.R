@@ -190,7 +190,6 @@ rm(
   Exit,
   Export,
   Funder,
-  Geography,
   HealthAndDV,
   IncomeBenefits,
   Inventory,
