@@ -56,10 +56,9 @@ if(ncol(read_csv("fy2020/Client.csv")) == 36) {
     read_csv("fy2020/Client.csv",
              col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
 }
-CurrentLivingSituation <- 
-  read_csv("fy2020/CurrentLivingSituation.csv",
-           # col_types = "nnnDncnnnnncTTcTc") <- the way the HUD specs say
-            col_types = "nnnTncnnnnncTTcTc")
+# CurrentLivingSituation <- 
+#   read_csv("fy2020/CurrentLivingSituation.csv",
+#             col_types = "nnnTncnnnnncTTcTc") DON'T NEED YET
 
 Disabilities <-
   read_csv("fy2020/Disabilities.csv",
