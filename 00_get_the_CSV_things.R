@@ -177,7 +177,7 @@ Scores <- read_csv("data/scores.csv",
 # will eventually come from aa: ees in ReportWriter, waiting on WS
 counties <- read_xlsx("data/RMisc.xlsx",
                       sheet = 1,
-                      range = cell_cols("A:C"))
+                      range = cell_cols("B:D"))
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                           sheet = 2,
                           range = cell_cols("A:D"))
