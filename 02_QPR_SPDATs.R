@@ -25,8 +25,8 @@ load("images/COHHIOHMIS.RData")
 
 rm(Affiliation, CaseManagers, Client, EnrollmentCoC, EmploymentEducation, 
    Export, Exit, Funder, HealthAndDV, Disabilities, IncomeBenefits, Inventory, 
-   Offers, Organization, ProjectCoC, Services, VeteranCE, CurrentLivingSituation,
-   Referrals, stray_services, Users)
+   Offers, Organization, ProjectCoC, Services, VeteranCE, Referrals, 
+   stray_services, Users)
 # more paring down, only taking what variables I need from Enrollment
 smallEnrollment <- Enrollment %>%
   left_join(Project, by = c("ProjectType", "ProjectID", "ProjectName")) %>%

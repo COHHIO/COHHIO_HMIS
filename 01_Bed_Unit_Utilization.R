@@ -87,7 +87,7 @@ Utilizers <- left_join(Utilizers, small_project, by = "ProjectID") %>%
 rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
    Export, Funder, HealthAndDV, IncomeBenefits, Organization, 
    ProjectCoC, Scores, Services, small_enrollment, small_inventory, small_project, 
-   Users, Offers, VeteranCE, CurrentLivingSituation, CaseManagers, Referrals,
+   Users, Offers, VeteranCE, CaseManagers, Referrals,
    stray_services)
 # Client Utilization of Beds ----------------------------------------------
 

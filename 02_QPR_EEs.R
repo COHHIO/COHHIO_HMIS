@@ -22,7 +22,7 @@ load("images/COHHIOHMIS.RData")
 
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 
-   Users, CurrentLivingSituation, Referrals, stray_services, Inventory)
+   Users, Referrals, stray_services, Inventory)
 
 # decided to continue to use a separate file for Goals (instead of building it
 # in a tribble) because this way the CoC team can review it more easily.

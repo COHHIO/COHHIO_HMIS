@@ -18,8 +18,8 @@ library(lubridate)
 load("images/COHHIOHMIS.RData")
 
 rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
-   Export, Funder, HealthAndDV, IncomeBenefits, Offers, CurrentLivingSituation,
-   Organization, ProjectCoC, Scores, Services, Users, stray_services)
+   Export, Funder, HealthAndDV, IncomeBenefits, Offers, Organization, 
+   ProjectCoC, Scores, Services, Users, stray_services)
 
 Veterans <- Client %>%
   filter(VeteranStatus == 1) %>%
