@@ -37,8 +37,9 @@ rm(
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID %in% c(1775, 1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
-           # including Diversion, Unsheltered, PATH Outreach & SO, Prevention,
+  filter(ProjectID != 1775) %>%
+  filter(ProjectID %in% c(1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
+           # including Unsheltered, PATH Outreach & SO, Prevention,
            # and PH - Housing Only projects
            (
              HMIS_participating_between(., FileStart, FileEnd) &
