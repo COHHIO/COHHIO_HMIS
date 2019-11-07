@@ -185,16 +185,20 @@ Scores <- read_csv("data/scores.csv",
 
 # from sheets 1 and 2, getting EE-related data, joining both to En --------
 # will eventually come from aa: ees in ReportWriter, waiting on WS
-counties <- read_xlsx("data/RMisc.xlsx",
+counties_rel_to_hoh <- read_xlsx("data/RMisc.xlsx",
                       sheet = 1,
-                      range = cell_cols("B:D"))
+                      range = cell_cols("B:E"),
+                      col_types = c("numeric", "numeric", "text", "text"))
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                           sheet = 2,
                           range = cell_cols("A:D"))
-Enrollment <- left_join(Enrollment, bowman_entry_exits, by = "EnrollmentID") %>%
-  left_join(., counties, by = "EnrollmentID") 
 
-rm(bowman_entry_exits, counties)
+
+Enrollment <- Enrollment %>% select(-RelationshipToHoH) %>%
+  left_join(., bowman_entry_exits, by = "EnrollmentID") %>%
+  left_join(., counties_rel_to_hoh, by = "EnrollmentID") 
+
+rm(bowman_entry_exits, counties_rel_to_hoh)
 
 
 # grabbing extra provider data from sheet 5 -------------------------------
