@@ -169,7 +169,7 @@ childrenOnly <- servedInDateRange %>%
 noHoH <- servedInDateRange %>%
   group_by(HouseholdID) %>%
   summarise(
-    hasHoH = if_else(min(RelationshipToHoH, na.rm = TRUE) != 1,
+    hasHoH = if_else(min(RelationshipToHoH) != 1,
                      FALSE,
                      TRUE),
     PersonalID = min(PersonalID)
