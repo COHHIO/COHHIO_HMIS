@@ -43,70 +43,70 @@ library(readxl)
 # Pulling in the CSVs -----------------------------------------------------
 
 Affiliation <- 
-  read_csv("fy2020/Affiliation.csv", 
+  read_csv("data/Affiliation.csv", 
            col_types = "nnnTTnTn")
 
-if(ncol(read_csv("fy2020/Client.csv")) == 36) {
+if(ncol(read_csv("data/Client.csv")) == 36) {
   Client <-
-    read_csv("fy2020/Client.csv",
+    read_csv("data/Client.csv",
              col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
     filter(!PersonalID %in% c(5, 4216))
 } else {
   Client <-
-    read_csv("fy2020/Client.csv",
+    read_csv("data/Client.csv",
              col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
 }
 # CurrentLivingSituation <- 
-#   read_csv("fy2020/CurrentLivingSituation.csv",
+#   read_csv("data/CurrentLivingSituation.csv",
 #             col_types = "nnnTncnnnnncTTcTc") DON'T NEED YET
 
 Disabilities <-
-  read_csv("fy2020/Disabilities.csv",
+  read_csv("data/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
 EmploymentEducation <-
-  read_csv("fy2020/EmploymentEducation.csv",
+  read_csv("data/EmploymentEducation.csv",
            col_types = "cnnDnnnnnnTTnTn")
 Enrollment <-
-  read_csv("fy2020/Enrollment.csv",
+  read_csv("data/Enrollment.csv",
            col_types =
              "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 EnrollmentCoC <- 
-  read_csv("fy2020/EnrollmentCoC.csv", 
+  read_csv("data/EnrollmentCoC.csv", 
            col_types = "cncnnDcnTTnTn")
 # Event <- 
-#   read_csv("fy2020/Event.csv",
+#   read_csv("data/Event.csv",
 #            col_types = "nnnDnnncDTTcTc") <- no data
 Exit <-
-  read_csv("fy2020/Exit.csv",
+  read_csv("data/Exit.csv",
            col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 Export <- 
-  read_csv("fy2020/Export.csv",
+  read_csv("data/Export.csv",
            col_types = "nnnccccncTDDccnnn")
 Funder <- 
-  read_csv("fy2020/Funder.csv",
+  read_csv("data/Funder.csv",
            col_types = "nnnccDDTTcTn")
 HealthAndDV <-
-  read_csv("fy2020/HealthAndDV.csv",
+  read_csv("data/HealthAndDV.csv",
            col_types = "cnnDnnnnnnnDnTTnTn")
 IncomeBenefits <- 
-  read_csv("fy2020/IncomeBenefits.csv",
+  read_csv("data/IncomeBenefits.csv",
            col_types = 
              "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
 Inventory <-
-  read_csv("fy2020/Inventory.csv",
+  read_csv("data/Inventory.csv",
            col_types = "nncnnnnnnnnnnnnDDTTcTn")
 Organization <- 
-  read_csv("fy2020/Organization.csv",
+  read_csv("data/Organization.csv",
            col_types = "ncncTTnTn")
 Project <- 
-  read_csv("fy2020/Project.csv",
+  read_csv("data/Project.csv",
            col_types = "nnccDDnnnnnnnnTTcTn") 
 
 ProjectCoC <- 
-  read_csv("fy2020/ProjectCoC.csv",
+  read_csv("data/ProjectCoC.csv",
            col_types = "nncnccccnnTTcTn")
 # User <- 
-#   read_csv("fy2020/User.csv",
+#   read_csv("data/User.csv",
 #            col_types = "nccnncTTTn") <- useless bc only contains active
 # users and doesn't include Default Provider, which we need
 
@@ -640,7 +640,7 @@ beds_available_between <- function(table, start, end) {
 # not sure what the heck to do about this. :( will have to pull based
 # on UsesSP which is super clunky and will leave out providers
 
-FileEnd <- format.Date(file.info("fy2020/Enrollment.csv")$mtime, "%m-%d-%Y")
+FileEnd <- format.Date(file.info("data/Enrollment.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
@@ -648,7 +648,7 @@ FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 # Masking PII in the Client file (but not DOB) ----------------------------
 
-if(ncol(read_csv("fy2020/Client.csv")) == 36)
+if(ncol(read_csv("data/Client.csv")) == 36)
 {Client <- Client %>%
   mutate(
     FirstName = case_when(
@@ -702,11 +702,11 @@ Client <- Client %>%
 # object as a security measure.
 
 if(ncol(Client) == 33)
-{write_csv(Client, "fy2020/Client.csv", append = FALSE)}
+{write_csv(Client, "data/Client.csv", append = FALSE)}
 
 # Update Date -------------------------------------------------------------
 
-update_date <- file.info("fy2020/Enrollment.csv")$mtime
+update_date <- file.info("data/Enrollment.csv")$mtime
 
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
