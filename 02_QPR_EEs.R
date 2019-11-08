@@ -21,8 +21,8 @@ library(janitor)
 load("images/COHHIOHMIS.RData")
 
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
-   Exit, Export, Funder, Geography, HealthAndDV, Offers, ProjectCoC, Scores, 
-   VeteranCE, Users)
+   Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 
+   Users, Referrals, stray_services, Inventory)
 
 # decided to continue to use a separate file for Goals (instead of building it
 # in a tribble) because this way the CoC team can review it more easily.
@@ -40,48 +40,24 @@ goals <- goals %>%
 smallProject <- Project %>%
   select(ProjectID,
          OrganizationName,
+         OperatingStartDate,
+         OperatingEndDate,
          ProjectAKA,
          ProjectName,
          ProjectType,
+         HMISParticipatingProject,
          GrantType,
          County,
-         Region) 
-
-
-hmisbeds <- Inventory %>%
-  filter(HMIS_participating_between(Inventory, FileStart, FileEnd)) %>%
-  select(ProjectID) %>% unique()
-
-hpOutreach <- Project %>% 
-  filter(ProjectType %in% c(4, 12) &
-           operating_between(., FileStart, FileEnd)) %>% 
-  select(ProjectID)
-
-rm(Project, Inventory)
-
-allHMISParticipating <- rbind(hmisbeds, hpOutreach)
-
-rm(hmisbeds, hpOutreach)
-
-# the problem with this is you're pulling in all the projects that participated
-# during the fileperiod, which would include those who are no longer 
-# participating, but have a year's worth of PIT data entered. Like 126 for 
-# example. I am not sure how to remedy this except to literally move ALL of this
-# to the app, which I think is too much.
-
-smallProject <- smallProject %>% 
-  semi_join(allHMISParticipating, by = "ProjectID") 
-
-rm(allHMISParticipating)
-
-smallProject <- smallProject %>%
-  filter(!is.na(Region)) %>%
+         Region) %>%
+  filter(HMISParticipatingProject == 1 &
+           operating_between(., FileStart, FileEnd) &
+           !is.na(Region)) %>%
   mutate(
     FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA))
 
-smallProject <- as.data.frame(smallProject)
+rm(Project)
 
-smallEnrollment <- Enrollment %>% #only pulls in singles or HoHs
+smallEnrollment <- Enrollment %>% 
   select(
     EnrollmentID,
     PersonalID,
@@ -108,9 +84,8 @@ validation <- smallProject %>%
 smallEnrollment <- smallEnrollment %>%
   filter(str_detect(HouseholdID, fixed("s_")) |
            (str_detect(HouseholdID, fixed("h_")) &
-              RelationshipToHoH == 1))
+              RelationshipToHoH == 1)) #<- only pulls in hohs and singles
 
-smallEnrollment <- as.data.frame(smallEnrollment)
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
 
@@ -122,9 +97,9 @@ QPR_EEs <- smallProject %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10, 11, 19:23, 28, 31) ~ "Permanent",
+      Destination %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+      Destination %in% c(8, 9, 17, 24, 30, 37, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
     Region = paste("Homeless Planning Region", Region),
@@ -249,9 +224,7 @@ rm(Client,
    incomeMostRecent,
    incomeAtEntry,
    smallIncomeDiff,
-   IncomeBenefits,
-   Referrals,
-   stray_services)
+   IncomeBenefits)
 
 save.image("images/QPR_EEs.RData")
 

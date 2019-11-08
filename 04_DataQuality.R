@@ -25,7 +25,6 @@ rm(
   Exit,
   Export,
   Funder,
-  Geography,
   HealthAndDV,
   Offers,
   ProjectCoC,
@@ -37,15 +36,13 @@ rm(
 
 hmisParticipatingCurrent <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID != 1775) %>%
-  filter(ProjectID %in% c(1695) | ProjectType %in% c(4, 6, 9, 12, 14) | 
-           # including Unsheltered, PATH Outreach & SO, Prevention,
-           # and PH - Housing Only projects
-           (
-             HMIS_participating_between(., FileStart, FileEnd) &
-               operating_between(., FileStart, FileEnd) &
-               (GrantType != "HOPWA" | is.na(GrantType)) # excluding HOPWA
-           )) %>%
+  filter(ProjectID == 1695 | (
+    HMISParticipatingProject == 1 &
+      !str_detect(ProjectName, "zz") & # <- since we can't trust HMISParticipatingProject
+      operating_between(., FileStart, FileEnd) &
+      (GrantType != "HOPWA" |
+         is.na(GrantType)) # excluding HOPWA
+  )) %>% 
   select(
     ProjectID,
     OrganizationID,
@@ -660,7 +657,7 @@ checkEligibility <- servedInDateRange %>%
            (
              is.na(LivingSituation) |
                (
-                 LivingSituation %in% c(4:7, 15, 24) & # institution
+                 LivingSituation %in% c(4:7, 15, 25:27, 29) & # institution
                    (
                      !LengthOfStay %in% c(2, 3, 10, 11) | # <90 days
                        is.na(LengthOfStay) |
@@ -669,7 +666,7 @@ checkEligibility <- servedInDateRange %>%
                    )
                ) |
                (
-                 LivingSituation %in% c(2:3, 8, 9, 12:14, 19:23, 25, 26) &
+                 LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) &
                    # not homeless
                    (
                      !LengthOfStay %in% c(10, 11) |  # <1 week
@@ -680,59 +677,70 @@ checkEligibility <- servedInDateRange %>%
                )
            )|
            (ProjectType == 12 &
-              !LivingSituation %in% c(8, 9, 12:14, 19:23, 25)) |
+              !LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36)) |
            (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
               !LivingSituation == 16))) # unsheltered only
 
 smallEligibility <- checkEligibility %>%
   select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
          ExitDate, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH) %>%
-  mutate(ResidencePrior = case_when(
-    LivingSituation == 1 ~ "Emergency shelter, incl hotel or motel paid for with
-    emergency shelter voucher",
-    LivingSituation == 2 ~ "Transitional housing for homeless persons",
-    LivingSituation == 3 ~ "Permanent housing (other than RRH) for formerly 
+  mutate(
+    ResidencePrior = case_when(
+      LivingSituation == 1 ~ "Emergency shelter, incl hotel or motel paid for with
+    emergency shelter voucher or RHY Host Home",
+      LivingSituation == 2 ~ "Transitional housing for homeless persons",
+      LivingSituation == 3 ~ "Permanent housing (other than RRH) for formerly
     homeless persons",
-    LivingSituation == 4 ~ "Psychiatric hospital or other psychiatric facility",
-    LivingSituation == 5 ~ "Substance abuse treatment facility or detox center",
-    LivingSituation == 6 ~ "Hospital or other residential non-psychiatric medical
+      LivingSituation == 4 ~ "Psychiatric hospital or other psychiatric facility",
+      LivingSituation == 5 ~ "Substance abuse treatment facility or detox center",
+      LivingSituation == 6 ~ "Hospital or other residential non-psychiatric medical
     facility",
-    LivingSituation == 7 ~ "Jail, prison or juvenile detention facility",
-    LivingSituation == 8 ~ "Client doesn't know",
-    LivingSituation == 9 ~ "Client refused",
-    LivingSituation == 12 ~ "Staying or living in a family member's room, 
-    apartment, or house",
-    LivingSituation == 13 ~ "Staying or living in a friend's room, apartment or
-    house",
-    LivingSituation == 14 ~ "Hotel or motel paid for without emergency shelter 
+      LivingSituation == 7 ~ "Jail, prison or juvenile detention facility",
+      LivingSituation == 8 ~ "Client doesn't know",
+      LivingSituation == 9 ~ "Client refused",
+      LivingSituation == 10 ~ "Rental by client, no ongoing housing subsidy",
+      LivingSituation == 11 ~ "Owned by client, no ongoing housing subsidy",
+      LivingSituation == 12 ~ "Staying or living with family, temporary tenure",
+      LivingSituation == 13 ~ "Staying or living with friends, temporary tenure",
+      LivingSituation == 14 ~ "Hotel or motel paid for without emergency shelter
     voucher",
-    LivingSituation == 15 ~ "Foster care home or foster care group home",
-    LivingSituation == 16 ~ "Place not meant for habitation",
-    LivingSituation == 18 ~ "Safe Haven",
-    LivingSituation == 19 ~ "Rental by client, with VASH subsidy",
-    LivingSituation == 20 ~ "Rental by client, with other housing subsidy (incl
+      LivingSituation == 15 ~ "Foster care home or foster care group home",
+      LivingSituation == 16 ~ "Place not meant for habitation",
+      LivingSituation == 17 ~ "Other",
+      LivingSituation == 18 ~ "Safe Haven",
+      LivingSituation == 19 ~ "Rental by client, with VASH subsidy",
+      LivingSituation == 20 ~ "Rental by client, with other housing subsidy (incl
     RRH)",
-    LivingSituation == 21 ~ "Owned by client, with ongoing housing subsidy",
-    LivingSituation == 22 ~ "Rental by client, no ongoing housing subsidy",
-    LivingSituation == 23 ~ "Owned by client, no ongoing housing subsidy",
-    LivingSituation == 24 ~ "Long-term care facility or nursing home",
-    LivingSituation == 25 ~ "Rental by client, with GPD TIP subsidy",
-    LivingSituation == 26 ~ "Residential project or halfway house with no 
+      LivingSituation == 21 ~ "Owned by client, with ongoing housing subsidy",
+      LivingSituation == 22 ~ "Staying or living with family, permanent tenure",
+      LivingSituation == 23 ~ "Staying or living with friends, permanent tenure",
+      LivingSituation == 25 ~ "Long-term care facility or nursing home",
+      LivingSituation == 27 ~ "Retired- please correct",
+      LivingSituation == 28 ~ "Rental by client, with GPD TIP subsidy",
+      LivingSituation == 29 ~ "Residential project or halfway house with no
     homeless criteria",
-    LivingSituation == 27 ~ "Interim housing",
-    LivingSituation == 99 ~ "Data not collected"
-  ),
-  LengthOfStay = case_when(
-    LengthOfStay == 2 ~ "One week or more but less than one month",
-    LengthOfStay == 3 ~ "One month or more but less than 90 days",
-    LengthOfStay == 4 ~ "90 days or more but less than one year",
-    LengthOfStay == 5 ~ "One year or longer",
-    LengthOfStay == 8 ~ "Client doesn't know",
-    LengthOfStay == 9 ~ "Client refused",
-    LengthOfStay == 10 ~ "One night or less",
-    LengthOfStay == 11 ~ "Two to six nights",
-    LengthOfStay == 99 ~ "Data not collected"
-  ))
+      LivingSituation == 31 ~ "Rental by client, with RRH",
+      LivingSituation == 32 ~ "Host Home (non-crisis)",
+      LivingSituation == 33 ~ "Rental by client, with HCV voucher",
+      LivingSituation == 34 ~ "Rental by client in a public housing unit",
+      LivingSituation == 35 ~ "Staying or living in a family member's room,
+    apartment, or house",
+      LivingSituation == 36 ~ "Staying or living in a friend's room, apartment or
+    house",
+      LivingSituation == 99 ~ "Data not collected"
+    ),
+    LengthOfStay = case_when(
+      LengthOfStay == 2 ~ "One week or more but less than one month",
+      LengthOfStay == 3 ~ "One month or more but less than 90 days",
+      LengthOfStay == 4 ~ "90 days or more but less than one year",
+      LengthOfStay == 5 ~ "One year or longer",
+      LengthOfStay == 8 ~ "Client doesn't know",
+      LengthOfStay == 9 ~ "Client refused",
+      LengthOfStay == 10 ~ "One night or less",
+      LengthOfStay == 11 ~ "Two to six nights",
+      LengthOfStay == 99 ~ "Data not collected"
+    )
+  )
 
 checkEligibility <- checkEligibility %>%
   mutate(Issue = "Check Eligibility", Type = "Warning") %>%
@@ -1861,7 +1869,7 @@ co_APs <- Project %>%
          OperatingEndDate,
          ProjectName,
          ProjectAKA,
-         UsesSP,
+         HMISParticipatingProject,
          County)
 
 APsNoReferrals <- Referrals %>%
@@ -2251,6 +2259,9 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Non-cash Benefits Missing at Exit"
     )
   )
+
+
+# Controls what is shown in the CoC-wide DQ tab ---------------------------
 
 ReportStart <- "10012018"
 ReportEnd <- format.Date(today(), "%m-%d-%Y")
