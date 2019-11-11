@@ -27,12 +27,12 @@ rm(list = ls())
 
 if(length(list.files("./data", pattern = "(report_)")) > 0){
   "There is an unnamed ReportWriter download in the data/ folder. Please either name it properly or delete it."
-} else {"You renamed all your ReportWriter files, yay!"}
+} else {"No errant ReportWriter files floating around in the data/ folder, yay."}
 
 if(format.Date(file.info("data/Enrollment.csv")$mtime, "%F") != today()){
   "The HUD CSV Export files are not up to date. Please be sure you unzipped the 
   export."
-} else{"You exported and unzipped the HUD CSV Export correctly."}
+} else{"Your HUD CSV Export is all good."}
 
 if(format.Date(file.info("data/RMisc.xlsx")$mtime, "%F") != today()){
   "The RMisc.xlsx file is not up to date. Please run this ART report and 
