@@ -15,6 +15,7 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
+library(scales)
 
 load("images/COHHIOHMIS.RData")
 
@@ -25,7 +26,6 @@ rm(
   Exit,
   Export,
   Funder,
-  HealthAndDV,
   Offers,
   ProjectCoC,
   Regions,
@@ -77,7 +77,14 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(FileStart, FileEnd, FilePeriod)
+DV <- HealthAndDV %>%
+  filter(DataCollectionStage == 1) %>%
+  select(EnrollmentID, CurrentlyFleeing)
+
+servedInDateRange <- servedInDateRange %>%
+  left_join(DV, by = "EnrollmentID")
+
+rm(FileStart, FileEnd, FilePeriod, DV)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -1004,9 +1011,13 @@ enteredPHwithoutSPDAT <-
       !grepl("GPD", ProjectName) &
       ymd(EntryDate) > ymd("20190101") &
       # only looking at 1/1/2019 forward
-      RelationshipToHoH == 1
+      RelationshipToHoH == 1 &
+      (VeteranStatus != 1 |
+         is.na(VeteranStatus)) &
+      (CurrentlyFleeing != 1 |
+         is.na(CurrentlyFleeing))
   ) %>% 
-  mutate(Issue = "HoHs Entering PH without SPDAT",
+  mutate(Issue = "Non-Veteran Non-DV HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(vars_we_want)
 
