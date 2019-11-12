@@ -15,6 +15,7 @@
 library(tidyverse)
 library(janitor)
 library(lubridate)
+library(scales)
 
 load("images/COHHIOHMIS.RData")
 
@@ -25,7 +26,6 @@ rm(
   Exit,
   Export,
   Funder,
-  HealthAndDV,
   Offers,
   ProjectCoC,
   Regions,
@@ -77,7 +77,14 @@ servedInDateRange <- Enrollment %>%
          ReasonNotEnrolled) %>%
   inner_join(hmisParticipatingCurrent, by = "ProjectID")
 
-rm(FileStart, FileEnd, FilePeriod)
+DV <- HealthAndDV %>%
+  filter(DataCollectionStage == 1) %>%
+  select(EnrollmentID, CurrentlyFleeing)
+
+servedInDateRange <- servedInDateRange %>%
+  left_join(DV, by = "EnrollmentID")
+
+rm(FileStart, FileEnd, FilePeriod, DV)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -211,13 +218,42 @@ missingApproxDateHomeless <- servedInDateRange %>%
     ExitDate,
     AgeAtEntry,
     RelationshipToHoH,
+    LOSUnderThreshold,
     DateToStreetESSH,
+    PreviousStreetESSH,
     UserCreating
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            ymd(EntryDate) >= mdy("10012016") &
-           is.na(DateToStreetESSH)) %>% 
+           is.na(DateToStreetESSH) &
+           LOSUnderThreshold == 1 &
+           PreviousStreetESSH == 1) %>% 
   mutate(Issue = "Missing Approximate Date Homeless", Type = "Error") %>%
+  select(vars_we_want)
+
+missingPreviousStreeESSH <- servedInDateRange %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    AgeAtEntry,
+    RelationshipToHoH,
+    DateToStreetESSH,
+    PreviousStreetESSH,
+    LOSUnderThreshold,
+    UserCreating
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) >= mdy("10012016") &
+           is.na(PreviousStreetESSH) &
+           LOSUnderThreshold == 1) %>% 
+  mutate(Issue = "Missing Previously From Street, ES, or SH", Type = "Error") %>%
   select(vars_we_want)
 
 missingResidencePrior <- servedInDateRange %>%
@@ -1004,9 +1040,13 @@ enteredPHwithoutSPDAT <-
       !grepl("GPD", ProjectName) &
       ymd(EntryDate) > ymd("20190101") &
       # only looking at 1/1/2019 forward
-      RelationshipToHoH == 1
+      RelationshipToHoH == 1 &
+      (VeteranStatus != 1 |
+         is.na(VeteranStatus)) &
+      (CurrentlyFleeing != 1 |
+         is.na(CurrentlyFleeing))
   ) %>% 
-  mutate(Issue = "HoHs Entering PH without SPDAT",
+  mutate(Issue = "Non-Veteran Non-DV HoHs Entering PH without SPDAT",
          Type = "Warning") %>%
   select(vars_we_want)
 
@@ -2108,14 +2148,16 @@ dkr_client_veteran_info <- ssvf_served_in_date_range %>%
 
 ssvf_at_entry <- ssvf_served_in_date_range %>%
   filter(RelationshipToHoH == 1) %>%
-  mutate(Issue = case_when(
-    is.na(PercentAMI) ~ "Missing Percent AMI",
-    is.na(VAMCStation) ~ "Missing VAMC Station Number",
-    is.na(LastPermanentStreet) |
-      is.na(LastPermanentCity) |
-#      is.na(LastPermanentState) | # another vendor error
-      is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
-  ),
+  mutate(
+    Issue = case_when(
+      is.na(PercentAMI) ~ "Missing Percent AMI",
+      is.na(VAMCStation) ~ "Missing VAMC Station Number",
+      is.na(LastPermanentStreet) |
+        is.na(LastPermanentCity) |
+        is.na(LastPermanentState) | 
+        is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
+    ),
+    
   Type = "Error") %>%
   filter(!is.na(Issue)) %>%
   select(vars_we_want)
@@ -2172,6 +2214,7 @@ DataQualityHMIS <- rbind(
   missingMonthsTimesHomeless,
   missingNCBsAtEntry,
   missingNCBsAtExit,
+  missingPreviousStreeESSH,
   missingResidencePrior,
   missingUDEs,
   old_outstanding_referrals,
@@ -2245,7 +2288,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Conflicting Non-cash Benefits yes/no at Exit",
       "Missing Disability Subs",
       "Incomplete Living Situation Data",
-      "Missing Approximate Date Homeless",
+      # "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
       # "Check Eligibility",
       "Don't Know/Refused Residence Prior",

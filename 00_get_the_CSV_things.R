@@ -34,7 +34,6 @@
 # scorestay.zip or .csv
 # services1.zip or .csv
 # services2.zip or .csv
-# youthbeds.zip or .csv
 
 library(tidyverse)
 library(lubridate)
