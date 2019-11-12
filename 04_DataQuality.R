@@ -218,13 +218,42 @@ missingApproxDateHomeless <- servedInDateRange %>%
     ExitDate,
     AgeAtEntry,
     RelationshipToHoH,
+    LOSUnderThreshold,
     DateToStreetESSH,
+    PreviousStreetESSH,
     UserCreating
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            ymd(EntryDate) >= mdy("10012016") &
-           is.na(DateToStreetESSH)) %>% 
+           is.na(DateToStreetESSH) &
+           LOSUnderThreshold == 1 &
+           PreviousStreetESSH == 1) %>% 
   mutate(Issue = "Missing Approximate Date Homeless", Type = "Error") %>%
+  select(vars_we_want)
+
+missingPreviousStreeESSH <- servedInDateRange %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    AgeAtEntry,
+    RelationshipToHoH,
+    DateToStreetESSH,
+    PreviousStreetESSH,
+    LOSUnderThreshold,
+    UserCreating
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) >= mdy("10012016") &
+           is.na(PreviousStreetESSH) &
+           LOSUnderThreshold == 1) %>% 
+  mutate(Issue = "Missing Previously From Street, ES, or SH", Type = "Error") %>%
   select(vars_we_want)
 
 missingResidencePrior <- servedInDateRange %>%
@@ -2183,6 +2212,7 @@ DataQualityHMIS <- rbind(
   missingMonthsTimesHomeless,
   missingNCBsAtEntry,
   missingNCBsAtExit,
+  missingPreviousStreeESSH,
   missingResidencePrior,
   missingUDEs,
   old_outstanding_referrals,
@@ -2256,7 +2286,7 @@ DataQualityHMIS <- DataQualityHMIS %>%
       "Conflicting Non-cash Benefits yes/no at Exit",
       "Missing Disability Subs",
       "Incomplete Living Situation Data",
-      "Missing Approximate Date Homeless",
+      # "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
       # "Check Eligibility",
       "Don't Know/Refused Residence Prior",
