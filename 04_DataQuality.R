@@ -2148,14 +2148,16 @@ dkr_client_veteran_info <- ssvf_served_in_date_range %>%
 
 ssvf_at_entry <- ssvf_served_in_date_range %>%
   filter(RelationshipToHoH == 1) %>%
-  mutate(Issue = case_when(
-    is.na(PercentAMI) ~ "Missing Percent AMI",
-    is.na(VAMCStation) ~ "Missing VAMC Station Number",
-    is.na(LastPermanentStreet) |
-      is.na(LastPermanentCity) |
-#      is.na(LastPermanentState) | # another vendor error
-      is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
-  ),
+  mutate(
+    Issue = case_when(
+      is.na(PercentAMI) ~ "Missing Percent AMI",
+      is.na(VAMCStation) ~ "Missing VAMC Station Number",
+      is.na(LastPermanentStreet) |
+        is.na(LastPermanentCity) |
+        is.na(LastPermanentState) | 
+        is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
+    ),
+    
   Type = "Error") %>%
   filter(!is.na(Issue)) %>%
   select(vars_we_want)
