@@ -90,6 +90,11 @@ if((!file.exists("./data/scoresind.zip") |
   "The scoresxxx.zip files are missing or out of date."
 } else{"Your scores data is finery."}
 
+if(length(list.files("./data", pattern = "(odod_live_hudcsv)")) > 0){
+  stop <- 1
+  "Don't forget to delete the .7z file in your /data folder. It has PII in it!"
+} else {"Your data folder looks good."}
+
 source("00_get_the_CSV_things.R")
 
 if(ymd(FileActualStart) > mdy(FileStart)){
@@ -131,6 +136,4 @@ if (stop == 0) {
   print("Check your data folder for errors")
 }
 
-if(length(list.files("./data", pattern = "(odod_live_hudcsv)")) > 0){
-  "Don't forget to delete the .7z file in your /data folder. It has PII in it!"
-} else {"Your data folder looks good."}
+
