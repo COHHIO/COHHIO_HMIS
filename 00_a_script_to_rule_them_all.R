@@ -26,7 +26,8 @@ library(lubridate)
 # clearing the environment prior to running all the scripts
 rm(list = ls())
 stop <- 0
-# quick folder check
+
+# folder check
 
 if(length(list.files("./data", pattern = "(report_)")) > 0){
   stop <- 1
