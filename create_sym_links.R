@@ -19,14 +19,14 @@
 # obviously replace these paths with what's on your PC. It's basically:
 # mklink "where you want to add the link" "where you want the link to point"
 
-r_directory <- "insert the path to your R directory here"
+r_directory <- "C:\\Users\\HMIS\\Documents"
 
 DataQualityImageLocation <- paste0(r_directory, 
-                                   "\R\COHHIO_HMIS\images\Data_Quality.RData")
+                                   "\\R\\COHHIO_HMIS\\images\\Data_Quality.RData")
 DataQualityImageRmTarget <- paste0(r_directory, 
-                                   "\R\Rminor\data\Data_Quality.RData")
+                                   "\\R\\Rminor\\data\\Data_Quality.RData")
 DataQualityImageRmeTarget <- paste0(r_directory, 
-                                    "\R\Rminor_elevated\data\Data_Quality.RData")
+                                    "\\R\\Rminor_elevated\\data\\Data_Quality.RData")
 
 shell(sprintf("mklink /H %s %s", 
               normalizePath(DataQualityImageRmTarget, mustWork = FALSE),
@@ -39,11 +39,11 @@ shell(sprintf("mklink /H %s %s",
 
 
 QPR_EEsImageLocation <- paste0(r_directory, 
-                               "\R\COHHIO_HMIS\images\QPR_EEs.RData")
+                               "\\R\\COHHIO_HMIS\\images\\QPR_EEs.RData")
 QPR_EEsImageRmTarget <- paste0(r_directory, 
-                               "\R\Rminor\data\QPR_EEs.RData")
+                               "\\R\\Rminor\\data\\QPR_EEs.RData")
 QPR_EEsImageRmeTarget <- paste0(r_directory, 
-                                "\R\Rminor_elevated\data\QPR_EEs.RData")
+                                "\\R\\Rminor_elevated\\data\\QPR_EEs.RData")
 
 shell(sprintf("mklink /H %s %s", 
               normalizePath(QPR_EEsImageRmTarget, mustWork = FALSE),
@@ -56,11 +56,11 @@ shell(sprintf("mklink /H %s %s",
 
 
 QPR_SPDATImageLocation <- paste0(r_directory, 
-                                 "\R\COHHIO_HMIS\images\QPR_SPDAT.RData")
+                                 "\\R\\COHHIO_HMIS\\images\\QPR_SPDATs.RData")
 QPR_SPDATsImageRmTarget <- paste0(r_directory, 
-                                  "\R\Rminor\data\QPR_SPDAT.RData")
+                                  "\\R\\Rminor\\data\\QPR_SPDATs.RData")
 QPR_SPDATImageRmeTarget <- paste0(r_directory, 
-                                  "\R\Rminor_elevated\data\QPR_SPDAT.RData")
+                                  "\\R\\Rminor_elevated\\data\\QPR_SPDATs.RData")
 
 shell(sprintf("mklink /H %s %s", 
               normalizePath(QPR_SPDATsImageRmTarget, mustWork = FALSE),
@@ -72,11 +72,11 @@ shell(sprintf("mklink /H %s %s",
 ))
 
 UtilizationImageLocation <- paste0(r_directory, 
-                                   "\R\COHHIO_HMIS\images\Utilization.RData")
+                                   "\\R\\COHHIO_HMIS\\images\\Utilization.RData")
 UtilizationImageRmTarget <- paste0(r_directory, 
-                                   "\R\Rminor\data\Utilization.RData")
+                                   "\\R\\Rminor\\data\\Utilization.RData")
 UtilizationImageRmeTarget <- paste0(r_directory, 
-                                    "\R\Rminor_elevated\data\Utilization.RData")
+                                    "\\R\\Rminor_elevated\\data\\Utilization.RData")
 
 shell(sprintf("mklink /H %s %s", 
               normalizePath(UtilizationImageRmTarget, mustWork = FALSE),
@@ -88,11 +88,11 @@ shell(sprintf("mklink /H %s %s",
 ))
 
 VeteransImageLocation <- paste0(r_directory, 
-                                "\R\COHHIO_HMIS\images\Veterans.RData")
+                                "\\R\\COHHIO_HMIS\\images\\Veterans.RData")
 VeteransImageRmTarget <- paste0(r_directory, 
-                                "\R\Rminor\data\Veterans.RData")
+                                "\\R\\Rminor\\data\\Veterans.RData")
 VeteransImageRmeTarget <- paste0(r_directory, 
-                                 "\R\Rminor_elevated\data\Veterans.RData")
+                                 "\\R\\Rminor_elevated\\data\\Veterans.RData")
 
 shell(sprintf("mklink /H %s %s", 
               normalizePath(VeteransImageRmTarget, mustWork = FALSE),
