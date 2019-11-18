@@ -12,93 +12,43 @@
 # GNU Affero General Public License for more details at
 #<https://www.gnu.org/licenses/>.
 
-# HOW TO SET UP YOUR SYMBOLIC LINKS ON YOUR SYSTEM (Windows-specific)
-# command prompt As Administrator, then:
-# mklink "C:\Users\HMIS1\Documents\R\Rminor\data\Data_Quality.RData" 
-# "C:\Users\HMIS1\Documents\R\COHHIO_HMIS\images\Data_Quality.RData"
-# obviously replace these paths with what's on your PC. It's basically:
-# mklink "where you want to add the link" "where you want the link to point"
+# PLEASE NOTE: FOR THESE SCRIPTS TO WORK YOU HAVE TO:
+# 1. RIGHT-CLICK R STUDIO AND OPEN IT BY CLICKING "RUN AS ADMINISTRATOR"
+# 2. REPLACE r_directory WITH YOUR OWN
+# 3. REPLACE YOUR DOCUMENT AND PATH NAMES AS APPROPRIATE
 
-r_directory <- "insert the path to your R directory here"
+# "original" means where the data you're wanting to link to is located
+# "link" means where the link is located
 
-DataQualityImageLocation <- paste0(r_directory, 
-                                   "\R\COHHIO_HMIS\images\Data_Quality.RData")
-DataQualityImageRmTarget <- paste0(r_directory, 
-                                   "\R\Rminor\data\Data_Quality.RData")
-DataQualityImageRmeTarget <- paste0(r_directory, 
-                                    "\R\Rminor_elevated\data\Data_Quality.RData")
+r_directory <- "C:\\Users\\HMIS\\Documents\\R\\"
 
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(DataQualityImageRmTarget, mustWork = FALSE),
-              normalizePath(DataQualityImageLocation)
-))
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(DataQualityImageRmeTarget, mustWork = FALSE),
-              normalizePath(DataQualityImageLocation)
-))
+originating_project_name <- "COHHIO_HMIS"
 
+originating_path <- "images"
 
-QPR_EEsImageLocation <- paste0(r_directory, 
-                               "\R\COHHIO_HMIS\images\QPR_EEs.RData")
-QPR_EEsImageRmTarget <- paste0(r_directory, 
-                               "\R\Rminor\data\QPR_EEs.RData")
-QPR_EEsImageRmeTarget <- paste0(r_directory, 
-                                "\R\Rminor_elevated\data\QPR_EEs.RData")
+originating_file_name <- "Data_Quality.RData"
 
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(QPR_EEsImageRmTarget, mustWork = FALSE),
-              normalizePath(QPR_EEsImageLocation)
-))
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(QPR_EEsImageRmeTarget, mustWork = FALSE),
-              normalizePath(QPR_EEsImageLocation)
-))
+linking_project_name <- "Rminor"
 
+linking_project_path <- "data"
 
-QPR_SPDATImageLocation <- paste0(r_directory, 
-                                 "\R\COHHIO_HMIS\images\QPR_SPDAT.RData")
-QPR_SPDATsImageRmTarget <- paste0(r_directory, 
-                                  "\R\Rminor\data\QPR_SPDAT.RData")
-QPR_SPDATImageRmeTarget <- paste0(r_directory, 
-                                  "\R\Rminor_elevated\data\QPR_SPDAT.RData")
+link_name <- "Data_Quality.RData"
 
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(QPR_SPDATsImageRmTarget, mustWork = FALSE),
-              normalizePath(QPR_SPDATImageLocation)
-))
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(QPR_SPDATImageRmeTarget, mustWork = FALSE),
-              normalizePath(QPR_SPDATImageLocation)
-))
+original <- paste0(r_directory,
+                  originating_project_name,
+                  "\\",
+                  originating_path,
+                  "\\",
+                  originating_file_name)
 
-UtilizationImageLocation <- paste0(r_directory, 
-                                   "\R\COHHIO_HMIS\images\Utilization.RData")
-UtilizationImageRmTarget <- paste0(r_directory, 
-                                   "\R\Rminor\data\Utilization.RData")
-UtilizationImageRmeTarget <- paste0(r_directory, 
-                                    "\R\Rminor_elevated\data\Utilization.RData")
+new_link <- paste0(r_directory,
+                   linking_project_name,
+                   "\\",
+                   linking_project_path,
+                   "\\",
+                   link_name)
 
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(UtilizationImageRmTarget, mustWork = FALSE),
-              normalizePath(UtilizationImageLocation)
-))
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(UtilizationImageRmeTarget, mustWork = FALSE),
-              normalizePath(UtilizationImageLocation)
-))
-
-VeteransImageLocation <- paste0(r_directory, 
-                                "\R\COHHIO_HMIS\images\Veterans.RData")
-VeteransImageRmTarget <- paste0(r_directory, 
-                                "\R\Rminor\data\Veterans.RData")
-VeteransImageRmeTarget <- paste0(r_directory, 
-                                 "\R\Rminor_elevated\data\Veterans.RData")
-
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(VeteransImageRmTarget, mustWork = FALSE),
-              normalizePath(VeteransImageLocation)
-))
-shell(sprintf("mklink /H %s %s", 
-              normalizePath(VeteransImageRmeTarget, mustWork = FALSE),
-              normalizePath(VeteransImageLocation)
+shell(sprintf("mklink %s %s", 
+              normalizePath(new_link, mustWork = FALSE),
+              normalizePath(original)
 ))

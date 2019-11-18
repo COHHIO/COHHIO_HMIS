@@ -3,7 +3,7 @@ title: "How I Decided Which Providers to Use"
 subtitle: "Coalition on Homelessness and Housing in Ohio"
 author: "Genelle Denzin"
 date: "9/9/2019"
-output: html_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
@@ -43,8 +43,8 @@ Due to anamolies with ServicePoint's HUD CSV Export and data elements not requir
 ```{r csv_adjustments}
 
 provider_data <- read_xlsx("data/RMisc.xlsx",
-                            sheet = 5,
-                            range = cell_cols("A:N")) %>%
+                            sheet = 4,
+                            range = cell_cols("A:G")) %>%
   mutate(OrganizationName = str_remove(OrganizationName, "\\(.*\\)"))
 
 Project <- Project %>%
@@ -53,14 +53,16 @@ Project <- Project %>%
 
 rm(provider_data)
 
+
 ```
 
 4.  Since "County in which the Client is Served" is not a HUD-required data element, the following logic adds that data to Enrollment.csv. It is collected at Entry.
 
 ```{r}
 counties <- read_xlsx("data/RMisc.xlsx",
-                      sheet = 2,
-                      range = cell_cols("A:C"))
+                      sheet = 1,
+                      range = cell_cols("B:E"),
+                      col_types = c("numeric", "numeric", "text", "text"))
 
 Enrollment <- left_join(Enrollment, counties, by = "EnrollmentID") 
 
@@ -112,7 +114,7 @@ small_projects <- Project %>%
     OperatingStartDate,
     OperatingEndDate,
     ProjectType,
-    "ProviderCounty" = County,
+    ProjectCounty,
   )
 ```
 
@@ -136,12 +138,12 @@ Finally, I want to filter down to the definite set of projects based on Provider
 strictly_in_the_region <- small_projects %>%
   filter(ProjectType %in% c(1:3, 6, 8:9, 13) &
            operating_between(., ReportStart, ReportEnd) &
-           ProviderCounty %in% YHDP_Counties) %>%
+           ProjectCounty %in% YHDP_Counties) %>%
     select(ProjectID,
          ProjectName,
          OrganizationName,
          ProjectType,
-         ProviderCounty)
+         ProjectCounty)
 ```
 
 ### Which Projects Served Households in the Region?
@@ -168,7 +170,7 @@ projects_serving_in_region <-
          ProjectID,
          ProjectName,
          ProjectType,
-         ProviderCounty) %>%
+         ProjectCounty) %>%
   unique()
 ```
 
@@ -185,7 +187,7 @@ final_list <- strictly_in_the_region %>%
       "ProjectName",
       "OrganizationName",
       "ProjectType",
-      "ProviderCounty"
+      "ProjectCounty"
     )
   ) %>%
   select(
@@ -193,7 +195,7 @@ final_list <- strictly_in_the_region %>%
     "Project ID" = ProjectID,
     "Project" = ProjectName,
     "Project Type" = ProjectType,
-    "Project County" = ProviderCounty
+    "Project County" = ProjectCounty
   ) %>%
   arrange(Organization)
 
