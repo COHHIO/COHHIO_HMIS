@@ -2154,7 +2154,7 @@ ssvf_at_entry <- ssvf_served_in_date_range %>%
       is.na(VAMCStation) ~ "Missing VAMC Station Number",
       is.na(LastPermanentStreet) |
         is.na(LastPermanentCity) |
-        is.na(LastPermanentState) | 
+        # is.na(LastPermanentState) | # still not fixed in export
         is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
     ),
     
