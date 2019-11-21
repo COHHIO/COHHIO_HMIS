@@ -96,8 +96,8 @@ QPR_EEs <- smallProject %>%
            RelationshipToHoH == 1) %>%
   mutate(
     DestinationGroup = case_when(
-      Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) ~ "Permanent",
+      Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27, 32, 35) ~ "Temporary",
+      Destination %in% c(3, 10, 11, 19:23, 28, 31, 33, 34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 37, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
@@ -199,10 +199,13 @@ QPR_RRH_HP_Spending <- Services %>%
   select(
     PersonalID,
     OrganizationName,
+    ProjectName,
     Region,
     ProjectType,
     Amount,
+    Description,
     RelationshipToHoH,
+    ServiceStartDate,
     EntryDate,
     MoveInDateAdjust,
     ExitDate
