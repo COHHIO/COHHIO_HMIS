@@ -89,7 +89,7 @@ smallEnrollment <- smallEnrollment %>%
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
 
-QPR_EEs <- smallProject %>%
+qpr_leavers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter((!is.na(ExitDate) | ProjectType %in% c(3, 9, 12)) &
            served_between(., FileStart, FileEnd) &
