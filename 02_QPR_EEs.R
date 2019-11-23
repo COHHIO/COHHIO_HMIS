@@ -191,7 +191,7 @@ qpr_income <- smallProject %>%
   ) %>% 
   arrange(ProjectName, HouseholdID)
 
-QPR_RRH_HP_Spending <- Services %>%
+qpr_spending <- Services %>%
   left_join(Enrollment,
             by = c("EnrollmentID", "PersonalID",
                    "ServiceProvider" = "ProjectName")) %>%
