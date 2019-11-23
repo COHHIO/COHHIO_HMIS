@@ -35,7 +35,7 @@ goals <- goals %>%
   mutate(ProjectType = as.numeric(ProjectType)) %>%
   filter(!is.na(Goal))
 
-# Building QPR_EEs ----------------------------------------------------
+# Building qpr_leavers ----------------------------------------------------
 
 smallProject <- Project %>%
   select(ProjectID,
@@ -126,7 +126,7 @@ smallMainstreamBenefits <- IncomeBenefits %>%
   ungroup()
 
 
-QPR_MainstreamBenefits <- smallProject %>%
+qpr_benefits <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(exited_between(., FileStart, FileEnd) &
            RelationshipToHoH == 1) %>%
@@ -247,7 +247,7 @@ save.image("images/QPR_EEs.RData")
 # LookbackStart <- format.Date(mdy(ReportStart) - years(1), "%m-%d-%Y")
 # LookbackEnd <- format.Date(mdy(ReportEnd) - years(1), "%m-%d-%Y")
 # 
-# exitedToPH <- QPR_EEs %>%
+# exitedToPH <- qpr_leavers %>%
 #   filter(Destination %in% c(3, 10, 11, 19, 20, 21, 22, 23, 26, 28, 31) &
 #            ymd(ExitDate) >= mdy(LookbackStart) &
 #            ymd(ExitDate) <= mdy(LookbackEnd) &
