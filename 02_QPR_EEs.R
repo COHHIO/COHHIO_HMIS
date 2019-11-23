@@ -168,7 +168,7 @@ incomeAtEntry <- IncomeBenefits %>%
 smallIncomeDiff <- 
   full_join(incomeAtEntry, incomeMostRecent, by = "EnrollmentID")
 
-QPR_Income <- smallProject %>%
+qpr_income <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(served_between(., FileStart, FileEnd) &
            RelationshipToHoH == 1) %>%
