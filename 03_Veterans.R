@@ -109,7 +109,7 @@ VetEngagementSummary <- VetEngagementSummary %>%
       )
   )
 
-rm(Client, CaseManagers, Enrollment, Inventory, Project, Regions, VeteranCE, 
+rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 
    Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs)
 
 save.image("images/Veterans.RData")

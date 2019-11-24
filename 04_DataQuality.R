@@ -28,7 +28,7 @@ rm(
   Funder,
   Offers,
   ProjectCoC,
-  Regions,
+  regions,
   VeteranCE
 )
 

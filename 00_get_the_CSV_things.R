@@ -231,7 +231,7 @@ Project <- Project %>%
 rm(provider_extras, coc_scoring)
 
 # Region data -------------------------------------------------------------
-Regions <- tribble(
+regions <- tribble(
   ~ County, ~ Region,
   "Defiance", 1,
   "Fulton", 1,
@@ -323,7 +323,7 @@ project_county <- Project %>%
                      word(County, 1))
   ) 
 
-Project <- left_join(project_county, Regions, by = "County")
+Project <- left_join(project_county, regions, by = "County")
 
 rm(project_county)
 # Custom Veteran Data -----------------------------------------------------
