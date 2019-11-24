@@ -222,7 +222,7 @@ BedNights <- utilizers_clients %>%
     BN23 = sum(Month23, na.rm = TRUE),
     BN24 = sum(Month24, na.rm = TRUE)
   )
-# rm(ClientUtilizers) ClientUtilizers may be useful for R minor elevated
+
 # Bed Capacity ------------------------------------------------------------
 
 BedCapacity <- Beds %>%
@@ -736,7 +736,7 @@ utilization <-
   mutate(BedUtilization = percent(Clients/BedCount),
          UnitUtilization = percent(Households/UnitCount))
 
-names(ClientUtilizers) <-
+names(utilizers_clients) <-
   c(
     "ProjectName",
     "ProjectID",
