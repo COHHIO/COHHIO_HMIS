@@ -62,7 +62,7 @@ the same day, but if there are it is counting the highest score."
 # included so the numbers can be filtered by date range in the app. it takes
 # long to run.
 
-CountyData <-
+qpr_spdats_county <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
@@ -122,7 +122,7 @@ Ohio Balance of State, they will also not show here."
 
 # this pulls all entries into PSH or RRH
 
-SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
+qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
          -OperatingStartDate,
          -OperatingEndDate) %>%
