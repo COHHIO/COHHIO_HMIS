@@ -776,11 +776,11 @@ names(ClientUtilizers) <-
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
    small_inventory, small_project, providerids)
 
-bed_utilization_note <- "Bed Utilization is the percentage of a project's available beds being populated by individual clients."
+note_bed_utilization <- "Bed Utilization is the percentage of a project's available beds being populated by individual clients."
 
-unit_utilization_note <- "Unit Utilization is the percentage of a project's available units being populated by households. A household can be a single individual or multiple clients presenting together for housing."
+note_unit_utilization <- "Unit Utilization is the percentage of a project's available units being populated by households. A household can be a single individual or multiple clients presenting together for housing."
 
-calculation_note <- "Bed Utilization = bed nights* served / total possible bed nights** in a month.
+note_calculation_utilization <- "Bed Utilization = bed nights* served / total possible bed nights** in a month.
 <p> Unit Utilization = unit nights served / total possible unit nights in a month.
 
 <p>* A bed night is a single night in a bed.
