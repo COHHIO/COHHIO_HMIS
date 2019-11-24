@@ -49,7 +49,7 @@ Entries <- smallEnrollment %>%
 
 rm(Enrollment, Project)
 
-hhsServedInCounty <- "The horizontal lines represent the average scores of Heads 
+note_qpr_served_county <- "The horizontal lines represent the average scores of Heads 
 of Household who were served in the County in a ES, TH, SH, or Outreach project 
 during the reporting period and who were scored. If a Head of Household was 
 served in a County outside the Balance of State or if that data was missing, 
@@ -106,7 +106,7 @@ CountyData <-
          EntryDate,
          ExitDate)
 
-hhsHousedInCounty <- "The triangle represents the average score of each 
+note_qpr_housed_county <- "The triangle represents the average score of each 
 household entering into a permanent housing project in a County during the 
 reporting period. This will necessarily leave out households coming from 
 Domestic Violence shelters since they are not scored. Any Heads of Household 
