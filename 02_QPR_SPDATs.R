@@ -113,7 +113,7 @@ Domestic Violence shelters since they are not scored. Any Heads of Household
 who entered a permanent housing project without a score will be counted as 
 having a score of 0."
 
-noteToUsers <- "It is very important that your Duplicate Entry Exits and your 
+note_qpr_dq_community_need <- "It is very important that your Duplicate Entry Exits and your 
 Household Data Quality tabs are totally clear for this report to be accurate. 
 It is also important that your VI-SPDAT scores are ON THE HEAD OF HOUSEHOLD'S 
 RECORD. Any scores recorded on non-HoHs will not be counted here.  Also if a 
