@@ -107,7 +107,7 @@ qpr_leavers <- smallProject %>%
   ) %>% 
   filter(stayed_between(., FileStart, FileEnd))
 
-RRHEnterers <- smallProject %>%
+qpr_rrh_enterers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(ProjectType == 13 &
            entered_between(., FileStart, FileEnd) &
