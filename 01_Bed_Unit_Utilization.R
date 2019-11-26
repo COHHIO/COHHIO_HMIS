@@ -93,7 +93,7 @@ rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
 # fake training providers
-ClientUtilizers <- Utilizers %>%
+utilizers_clients <- Utilizers %>%
   mutate(StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))) %>%
   filter(
     int_overlaps(StayWindow, FilePeriod) &
@@ -159,41 +159,41 @@ TwentythirdMonth <- nth_Month(23)
 TwentyfourthMonth <- nth_Month(24)
 # adding in month columns with utilization numbers
 
-ClientUtilizers <- ClientUtilizers %>%
+utilizers_clients <- utilizers_clients %>%
   mutate(
-    FilePeriod = bed_nights_per_ee(ClientUtilizers, FilePeriod),
-    Month1 = bed_nights_per_ee(ClientUtilizers, FirstMonth),
-    Month2 = bed_nights_per_ee(ClientUtilizers, SecondMonth),
-    Month3 = bed_nights_per_ee(ClientUtilizers, ThirdMonth),
-    Month4 = bed_nights_per_ee(ClientUtilizers, FourthMonth),
-    Month5 = bed_nights_per_ee(ClientUtilizers, FifthMonth),
-    Month6 = bed_nights_per_ee(ClientUtilizers, SixthMonth),
-    Month7 = bed_nights_per_ee(ClientUtilizers, SeventhMonth),
-    Month8 = bed_nights_per_ee(ClientUtilizers, EighthMonth),
-    Month9 = bed_nights_per_ee(ClientUtilizers, NinthMonth),
-    Month10 = bed_nights_per_ee(ClientUtilizers, TenthMonth),
-    Month11 = bed_nights_per_ee(ClientUtilizers, EleventhMonth),
-    Month12 = bed_nights_per_ee(ClientUtilizers, TwelfthMonth),
-    Month13 = bed_nights_per_ee(ClientUtilizers, ThirteenthMonth),
-    Month14 = bed_nights_per_ee(ClientUtilizers, FourteenthMonth),
-    Month15 = bed_nights_per_ee(ClientUtilizers, FifteenthMonth),
-    Month16 = bed_nights_per_ee(ClientUtilizers, SixteenthMonth),
-    Month17 = bed_nights_per_ee(ClientUtilizers, SeventeenthMonth),
-    Month18 = bed_nights_per_ee(ClientUtilizers, EighteenthMonth),
-    Month19 = bed_nights_per_ee(ClientUtilizers, NineteenthMonth),
-    Month20 = bed_nights_per_ee(ClientUtilizers, TwentiethMonth),
-    Month21 = bed_nights_per_ee(ClientUtilizers, TwentyfirstMonth),
-    Month22 = bed_nights_per_ee(ClientUtilizers, TwentysecondMonth),
-    Month23 = bed_nights_per_ee(ClientUtilizers, TwentythirdMonth),
-    Month24 = bed_nights_per_ee(ClientUtilizers, TwentyfourthMonth)
+    FilePeriod = bed_nights_per_ee(utilizers_clients, FilePeriod),
+    Month1 = bed_nights_per_ee(utilizers_clients, FirstMonth),
+    Month2 = bed_nights_per_ee(utilizers_clients, SecondMonth),
+    Month3 = bed_nights_per_ee(utilizers_clients, ThirdMonth),
+    Month4 = bed_nights_per_ee(utilizers_clients, FourthMonth),
+    Month5 = bed_nights_per_ee(utilizers_clients, FifthMonth),
+    Month6 = bed_nights_per_ee(utilizers_clients, SixthMonth),
+    Month7 = bed_nights_per_ee(utilizers_clients, SeventhMonth),
+    Month8 = bed_nights_per_ee(utilizers_clients, EighthMonth),
+    Month9 = bed_nights_per_ee(utilizers_clients, NinthMonth),
+    Month10 = bed_nights_per_ee(utilizers_clients, TenthMonth),
+    Month11 = bed_nights_per_ee(utilizers_clients, EleventhMonth),
+    Month12 = bed_nights_per_ee(utilizers_clients, TwelfthMonth),
+    Month13 = bed_nights_per_ee(utilizers_clients, ThirteenthMonth),
+    Month14 = bed_nights_per_ee(utilizers_clients, FourteenthMonth),
+    Month15 = bed_nights_per_ee(utilizers_clients, FifteenthMonth),
+    Month16 = bed_nights_per_ee(utilizers_clients, SixteenthMonth),
+    Month17 = bed_nights_per_ee(utilizers_clients, SeventeenthMonth),
+    Month18 = bed_nights_per_ee(utilizers_clients, EighteenthMonth),
+    Month19 = bed_nights_per_ee(utilizers_clients, NineteenthMonth),
+    Month20 = bed_nights_per_ee(utilizers_clients, TwentiethMonth),
+    Month21 = bed_nights_per_ee(utilizers_clients, TwentyfirstMonth),
+    Month22 = bed_nights_per_ee(utilizers_clients, TwentysecondMonth),
+    Month23 = bed_nights_per_ee(utilizers_clients, TwentythirdMonth),
+    Month24 = bed_nights_per_ee(utilizers_clients, TwentyfourthMonth)
   ) %>%
   select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, 
          EntryDate, MoveInDate, ExitDate, FilePeriod, starts_with("Month"))
 
-ClientUtilizers <- as.data.frame(ClientUtilizers)
+utilizers_clients <- as.data.frame(utilizers_clients)
 
 # making granularity by provider instead of by enrollment id
-BedNights <- ClientUtilizers %>%
+BedNights <- utilizers_clients %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
   summarise(
     BNY = sum(FilePeriod, na.rm = TRUE),
@@ -222,7 +222,7 @@ BedNights <- ClientUtilizers %>%
     BN23 = sum(Month23, na.rm = TRUE),
     BN24 = sum(Month24, na.rm = TRUE)
   )
-# rm(ClientUtilizers) ClientUtilizers may be useful for R minor elevated
+
 # Bed Capacity ------------------------------------------------------------
 
 BedCapacity <- Beds %>%
@@ -328,7 +328,7 @@ BedCapacity <- BedCapacity %>%
   )
 # Bed Utilization ---------------------------------------------------------
 
-BedUtilization <- 
+utilization_bed <- 
   left_join(BedCapacity,
             BedNights,
             by = c("ProjectID", "ProjectName", "ProjectType")) %>%
@@ -364,7 +364,7 @@ BedUtilization <-
 rm(BedCapacity, BedNights) #leaving this in as it's too aggregated for R minor 
 # elevated
 
-names(BedUtilization) <-
+names(utilization_bed) <-
   c(
     "ProjectID",
     "ProjectName",
@@ -598,7 +598,7 @@ UnitCapacity <- UnitCapacity %>%
 
 # Unit Utilization --------------------------------------------------------
 
-UnitUtilization <- left_join(UnitCapacity,
+utilization_unit <- left_join(UnitCapacity,
                             HHNights,
                             by = c("ProjectID", "ProjectName", "ProjectType")) %>%
   mutate(
@@ -631,7 +631,7 @@ UnitUtilization <- left_join(UnitCapacity,
   select(ProjectID, ProjectName, ProjectType, FilePeriod, starts_with("Month"))
 rm(UnitCapacity, HHNights, Beds, Utilizers)
 
-names(UnitUtilization) <- 
+names(utilization_unit) <- 
   c("ProjectID", "ProjectName", "ProjectType", "FilePeriod",
     format.Date(int_start(FirstMonth), "%m%d%Y"),
     format.Date(int_start(SecondMonth), "%m%d%Y"),
@@ -727,7 +727,7 @@ Households <- Enrollment %>%
   summarise(Households = n_distinct(HouseholdID)) %>%
   ungroup()
 
-Utilization <-
+utilization <-
   left_join(Capacity, Clients,
             by = c("ProjectID", "ProjectName")) %>%
   left_join(., Households, 
@@ -736,7 +736,7 @@ Utilization <-
   mutate(BedUtilization = percent(Clients/BedCount),
          UnitUtilization = percent(Households/UnitCount))
 
-names(ClientUtilizers) <-
+names(utilizers_clients) <-
   c(
     "ProjectName",
     "ProjectID",
@@ -776,11 +776,11 @@ names(ClientUtilizers) <-
 rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
    small_inventory, small_project, providerids)
 
-bed_utilization_note <- "Bed Utilization is the percentage of a project's available beds being populated by individual clients."
+note_bed_utilization <- "Bed Utilization is the percentage of a project's available beds being populated by individual clients."
 
-unit_utilization_note <- "Unit Utilization is the percentage of a project's available units being populated by households. A household can be a single individual or multiple clients presenting together for housing."
+note_unit_utilization <- "Unit Utilization is the percentage of a project's available units being populated by households. A household can be a single individual or multiple clients presenting together for housing."
 
-calculation_note <- "Bed Utilization = bed nights* served / total possible bed nights** in a month.
+note_calculation_utilization <- "Bed Utilization = bed nights* served / total possible bed nights** in a month.
 <p> Unit Utilization = unit nights served / total possible unit nights in a month.
 
 <p>* A bed night is a single night in a bed.

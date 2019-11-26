@@ -49,7 +49,7 @@ Entries <- smallEnrollment %>%
 
 rm(Enrollment, Project)
 
-hhsServedInCounty <- "The horizontal lines represent the average scores of Heads 
+note_qpr_served_county <- "The horizontal lines represent the average scores of Heads 
 of Household who were served in the County in a ES, TH, SH, or Outreach project 
 during the reporting period and who were scored. If a Head of Household was 
 served in a County outside the Balance of State or if that data was missing, 
@@ -62,7 +62,7 @@ the same day, but if there are it is counting the highest score."
 # included so the numbers can be filtered by date range in the app. it takes
 # long to run.
 
-CountyData <-
+qpr_spdats_county <-
   left_join(smallEnrollment, Scores, by = "PersonalID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
@@ -106,14 +106,14 @@ CountyData <-
          EntryDate,
          ExitDate)
 
-hhsHousedInCounty <- "The triangle represents the average score of each 
+note_qpr_housed_county <- "The triangle represents the average score of each 
 household entering into a permanent housing project in a County during the 
 reporting period. This will necessarily leave out households coming from 
 Domestic Violence shelters since they are not scored. Any Heads of Household 
 who entered a permanent housing project without a score will be counted as 
 having a score of 0."
 
-noteToUsers <- "It is very important that your Duplicate Entry Exits and your 
+note_qpr_dq_community_need <- "It is very important that your Duplicate Entry Exits and your 
 Household Data Quality tabs are totally clear for this report to be accurate. 
 It is also important that your VI-SPDAT scores are ON THE HEAD OF HOUSEHOLD'S 
 RECORD. Any scores recorded on non-HoHs will not be counted here.  Also if a 
@@ -122,7 +122,7 @@ Ohio Balance of State, they will also not show here."
 
 # this pulls all entries into PSH or RRH
 
-SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
+qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
          -OperatingStartDate,
          -OperatingEndDate) %>%

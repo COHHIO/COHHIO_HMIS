@@ -35,7 +35,7 @@ goals <- goals %>%
   mutate(ProjectType = as.numeric(ProjectType)) %>%
   filter(!is.na(Goal))
 
-# Building QPR_EEs ----------------------------------------------------
+# Building qpr_leavers ----------------------------------------------------
 
 smallProject <- Project %>%
   select(ProjectID,
@@ -89,7 +89,7 @@ smallEnrollment <- smallEnrollment %>%
 # captures all leavers PLUS stayers in either HP or PSH because we include those
 # stayers in Permanent Destinations. This is used for LoS and Exits to PH.
 
-QPR_EEs <- smallProject %>%
+qpr_leavers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter((!is.na(ExitDate) | ProjectType %in% c(3, 9, 12)) &
            served_between(., FileStart, FileEnd) &
@@ -107,7 +107,7 @@ QPR_EEs <- smallProject %>%
   ) %>% 
   filter(stayed_between(., FileStart, FileEnd))
 
-RRHEnterers <- smallProject %>%
+qpr_rrh_enterers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(ProjectType == 13 &
            entered_between(., FileStart, FileEnd) &
@@ -126,7 +126,7 @@ smallMainstreamBenefits <- IncomeBenefits %>%
   ungroup()
 
 
-QPR_MainstreamBenefits <- smallProject %>%
+qpr_benefits <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(exited_between(., FileStart, FileEnd) &
            RelationshipToHoH == 1) %>%
@@ -168,7 +168,7 @@ incomeAtEntry <- IncomeBenefits %>%
 smallIncomeDiff <- 
   full_join(incomeAtEntry, incomeMostRecent, by = "EnrollmentID")
 
-QPR_Income <- smallProject %>%
+qpr_income <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(served_between(., FileStart, FileEnd) &
            RelationshipToHoH == 1) %>%
@@ -191,7 +191,7 @@ QPR_Income <- smallProject %>%
   ) %>% 
   arrange(ProjectName, HouseholdID)
 
-QPR_RRH_HP_Spending <- Services %>%
+qpr_spending <- Services %>%
   left_join(Enrollment,
             by = c("EnrollmentID", "PersonalID",
                    "ServiceProvider" = "ProjectName")) %>%
@@ -222,7 +222,7 @@ rm(Client,
    Services,
    smallEnrollment,
    smallProject, 
-   Regions, 
+   regions, 
    smallMainstreamBenefits,
    incomeMostRecent,
    incomeAtEntry,
@@ -247,7 +247,7 @@ save.image("images/QPR_EEs.RData")
 # LookbackStart <- format.Date(mdy(ReportStart) - years(1), "%m-%d-%Y")
 # LookbackEnd <- format.Date(mdy(ReportEnd) - years(1), "%m-%d-%Y")
 # 
-# exitedToPH <- QPR_EEs %>%
+# exitedToPH <- qpr_leavers %>%
 #   filter(Destination %in% c(3, 10, 11, 19, 20, 21, 22, 23, 26, 28, 31) &
 #            ymd(ExitDate) >= mdy(LookbackStart) &
 #            ymd(ExitDate) <= mdy(LookbackEnd) &

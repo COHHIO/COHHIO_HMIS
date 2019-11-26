@@ -197,7 +197,7 @@ rm(
   Project,
   ProjectCoC,
   Referrals,
-  Regions,
+  regions,
   stray_services,
   Scores,
   Services,

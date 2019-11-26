@@ -103,7 +103,7 @@ if(ymd(FileActualStart) > mdy(FileStart)){
   "Check that you ran your HUD CSV Export on the correct dates."
 } else{"Your HUD CSV Export was run on the correct dates."}
 
-# checking that the data folder passes all the tests above. 
+# if the data folder passes all the tests above, let's run the rest of the scripts 
 if (stop == 0) {
   rm(list = ls())
   

@@ -20,12 +20,12 @@ load("images/COHHIOHMIS.RData")
 rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
    Export, Funder, HealthAndDV, IncomeBenefits, Offers, Organization, 
    ProjectCoC, Scores, Services, Users, stray_services)
-
+# getting all the veterans
 Veterans <- Client %>%
   filter(VeteranStatus == 1) %>%
   select(PersonalID, AmIndAKNative, Asian, BlackAfAmerican, NativeHIOtherPacific,
          White, RaceNone, Ethnicity, Gender)
-
+# getting all the EE data of all the veterans
 VeteranHHs <- Veterans %>%
   left_join(Enrollment, by = "PersonalID") %>%
   select(PersonalID, ProjectID, EntryDate, HouseholdID, 
@@ -34,7 +34,7 @@ VeteranHHs <- Veterans %>%
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement,
          MoveInDate, VAMCStation, CountyServed, CountyPrior, ExitDate, 
          Destination, OtherDestination, ExitAdjust, AgeAtEntry)
-
+# adding in all the provider data 
 VeteranHHs <- Project %>%
   select(ProjectID, OrganizationName, OperatingStartDate, OperatingEndDate,
          ProjectType, GrantType, ProjectName, ProjectAKA, RegionName, Region) %>%
@@ -73,16 +73,16 @@ VeteranEngagement <- CurrentVeterans %>%
   select(ProjectName, ProjectType, RegionName, PersonalID, PHTrack, 
          ExpectedPHDate, EngagementStatus)
 
-VetEngagementSummary <- VeteranEngagement %>%
+veteran_current_in_project <- VeteranEngagement %>%
   group_by(ProjectName, ProjectType, RegionName, EngagementStatus) %>%
   summarise(CurrentVeteranCount = n()) %>%
   spread(key = EngagementStatus, value = CurrentVeteranCount) %>%
   rename(HasCurrentHousingPlan = `Has Current Housing Plan`,
          NoCurrentHousingPlan = `No Current Housing Plan`) 
 
-VetEngagementSummary[is.na(VetEngagementSummary)] <- 0 
+veteran_current_in_project[is.na(veteran_current_in_project)] <- 0 
 
-VetEngagementSummary <- VetEngagementSummary %>%
+veteran_current_in_project <- veteran_current_in_project %>%
   mutate(
     Summary =
       case_when(
@@ -107,10 +107,13 @@ VetEngagementSummary <- VetEngagementSummary %>%
           paste(HasCurrentHousingPlan, 
                 "of these veterans have current Housing Plans")
       )
-  )
+  ) %>%
+  left_join(CurrentVeteranCounts, by = c("ProjectName", "RegionName")) %>%
+  ungroup()
 
-rm(Client, CaseManagers, Enrollment, Inventory, Project, Regions, VeteranCE, 
-   Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs)
+rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 
+   Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, 
+   Referrals, CurrentVeteranCounts)
 
 save.image("images/Veterans.RData")
 
