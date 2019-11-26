@@ -330,18 +330,6 @@ y <- utilization_unit %>%
   )) %>%
   select(ProjectID, ProjectName, ProjectType, FilePeriod, lowest, highest)
 
-low_across_the_year <- y %>%
-  filter(FilePeriod < .2)
-
-high_across_the_year <- y %>%
-  filter(FilePeriod > 1.1)
-
-lowest_point_too_low <- y %>%
-  filter(lowest < .1)
-
-highest_point_too_high <- y %>%
-  filter(highest > 1.2)
-
 y <- y %>%
   mutate(flag = case_when(
     FilePeriod < .2 ~ "2019 rate too low",
