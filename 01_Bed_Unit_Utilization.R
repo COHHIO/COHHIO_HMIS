@@ -111,18 +111,25 @@ utilizers_clients <- Utilizers %>%
 # function for adding bed nights per ee
 
 bed_nights_per_ee <- function(table, interval) {
+  # if the ee date range and a given interval (in my reporting, a month) overlap,
   if_else(int_overlaps(table$StayWindow, interval),
+          # then return the difference between
           as.numeric(difftime(
+            # if the exit date precedes the end of the interval, then the exit 
+            # date, otherwise the end of the interval 
             if_else(
               ymd(table$ExitAdjust) <=  int_end(interval),
               as.POSIXct(table$ExitAdjust),
               int_end(interval) + days(1)
             ),
+            # if the entry date is after the start of the interval, then the 
+            # entry date, otherwise the beginning of the interval
             if_else(
               ymd(table$EntryAdjust) >= int_start(interval),
               as.POSIXct(table$EntryAdjust),
               int_start(interval)
             ),
+            # give it to me in days
             units = "days"
           )), NULL
   )
