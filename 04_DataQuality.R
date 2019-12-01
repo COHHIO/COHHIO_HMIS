@@ -1950,6 +1950,8 @@ dq_plot_aps_referrals <-
   scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
   theme_void()
 
+
+
 rm(aps_with_referrals, co_APs)
   
 # AP entering project stays -----------------------------------------------
@@ -2356,30 +2358,23 @@ user_help <- dq_main %>%
       Issue == "Disabilities: missing Long Duration in subassessment" ~
         "Any Disability subassessment the user answers \"Yes\" to should also
       have the \"If yes, is the disability of long duration...\" answered.",
-      Issue %in% c(
-        "Health Insurance Missing at Entry",
-        "Health Insurance Missing at Exit",
-        "Income Missing at Entry",
-        "Income Missing at Exit",
-        "Non-cash Benefits Missing at Entry"
-      ) ~
-        "Please enter the data for this item into the client's HMIS record. If
-      the error says the data is missing \"at Entry\", be sure you click into
-      the Entry pencil to make the correction. If the error says the data is
-      missing \"at Exit\", be sure you click into the Exit pencil to make the
-      correction.",
       Issue == "Incorrect Date of Birth or Entry Date" ~
         "The HMIS data is indicating the client entered the project PRIOR to
-      being born, which is not technically possible.",
+      being born, which is not technically possible. Correct either the Date of
+      Birth or the Entry Date, whichever is incorrect.",
       Issue == "Incorrect Entry Exit Type" ~
-        "The user select the wrong Entry Exit Type. This can be corrected by
+        "The user selected the wrong Entry Exit Type. This can be corrected by
       clicking the Entry pencil, then Save & Continue, then at the top of the
       screen, the Entry Exit Type can be changed. It is important that you then
       click \"Submit\" before this change will take effect.",
       Issue == "Invalid SSN" ~
         "The Social Security Number does not conform with standards set by the
-      Social Security Administration.",
-      Issue == "Missing Connection with SOAR at Exit" ~
+      Social Security Administration. Correct by navigating to the client's 
+      record, then clicking the Client Profile tab, then click into the Client 
+      Record pencil to correct the data.",
+      Issue %in% c("Missing Connection with SOAR at Exit",
+                   "Health Insurance Missing at Exit",
+                   "Income Missing at Exit") ~
         "Please enter the data for this item by clicking into the Exit pencil on
       the given Client ID on the appropriate program stay.",
       Issue %in% c(
@@ -2402,13 +2397,16 @@ user_help <- dq_main %>%
         "Missing Percent AMI",
         "Missing War(s)",
         "Missing Year Entered Service",
-        "Missing HP Screening or Threshold Score"
+        "Missing HP Screening or Threshold Score",
+        "Health Insurance Missing at Entry",
+        "Income Missing at Entry",
+        "Non-cash Benefits Missing at Entry"
       ) ~
         "This data element is required to be collected at project Entry. Please
       click into the client's Entry pencil to save this data to HMIS.",
       Issue == "Missing County Served" ~
         "County Served must be collected at Entry for all clients. County is
-      VERY important so that the client is prioritized into the correct service
+      very important so that the client is prioritized into the correct service
       areas for various housing solutions. This can be corrected through the
       Entry pencil.",
       Issue %in% c(
@@ -2432,18 +2430,17 @@ user_help <- dq_main %>%
       them says Self (head of household).",
       Issue == "Referral on a non Head of Household" ~
         "Users should not checkbox all the household members when creating a
-      Referral. Only the Head of Household needs the Referral. Unless you are an 
-      SSVF project, corrections are not needed. SSVF projects should be sure any 
-      extraneous Service Transactions are deleted.",
+      Referral. Only the Head of Household needs the Referral. It is recommended
+      that users delete any referrals on non-HoHs so that the receiving agency
+      does not have to deal with them and they stop showing in reporting.",
       Issue %in% c(
         "Service Transaction on a non Head of Household (SSVF)",
         "Service Transaction on a non Head of Household"
       ) ~
         "Users should not checkbox all the household members when creating a
       Service Transaction. Only the Head of Household needs a Service
-      Transaction. Unless you are an SSVF project, corrections are not needed. 
-      SSVF projects should be sure any extraneous Service Transactions are 
-      deleted.",
+      Transaction. SSVF projects must delete the extraneous Service Transactions.
+      For non-SSVF projects, corrections are not needed.",
       Issue == "Duplicate Entry Exits" ~
         "Users sometimes create this error when they forget to click into a
       program stay by using the Entry pencil, and instead they click \"Add
@@ -2451,22 +2448,21 @@ user_help <- dq_main %>%
       belongs to, navigate to the Entry/Exit tab and delete the program stay
       that was accidentally added.",
       Issue == "Check Eligibility" ~
-        "This household does not appear to be eligible for this Project Type, so
-      either the user entered the household into the incorrect project or some
-      of the relevant data is missing or the household was actually ineligible.
+        "Households here do not appear to be eligible for this Project Type. 
+      Either the user entered the household into the incorrect project, or some
+      of the relevant data is missing, or the household was actually ineligible.
       Please check with the CoC team if you have questions about eligibility
       requirements for your project type.",
       Issue == "Check Veteran Status for Accuracy" ~
         "You have indicated the household exited to a destination that only
-      veterans are eligible for, but no one in the household appears to be a
+      veterans are eligible for, but the head of household appears to be not a
       veteran. Either the Veteran Status is incorrect or the Destination is
       incorrect.",
       Issue == "Client with No Disability Receiving SSI/SSDI (could be ok)" ~
         "If a client is receiving SSI or SSDI for THEIR disability, that
       disability should be indicated in the Disabilities data elements. If
       an adult is receiving SSI or SSDI benefits on behalf of someone else,
-      then there is nothing to correct. Please note this is just a data warning
-      and it is ok for there to be clients listed as having warnings.",
+      then there is no action needed.",
       Issue %in% c(
         "DKR Ethnicity",
         "DKR or Approx. Date of Birth",
@@ -2491,7 +2487,7 @@ user_help <- dq_main %>%
       housing. Once a Referral is made, the receiving agency should be saving
       the \"Referral Outcome\" once it is known. If you have Referrals that are
       legitimately still open after two weeks because there is a lot of follow
-      up going on, there is no action needed since the HMIS data is accurate.",
+      up going on, no action is needed since the HMIS data is accurate.",
       Issue == "Missing Destination" ~
         "It is widely understood that not every client will complete an exit
       interview, especially for high-volume emergency shelters. A few warnings
@@ -2515,7 +2511,7 @@ user_help <- dq_main %>%
       they can be prioritized for Permanent Housing (RRH or PSH).",
       Issue == "Missing Disability Subs" ~
         "The HMIS data indicates the client has a disability, but there is no
-      corresponding Disability to match to it.",
+      corresponding Disability to match it.",
       Issue == "Future Entry Date" ~
         "Users should not be entering a client into a project on a date in the
       future. There is no action needed, but going forward, please be sure that
@@ -2529,6 +2525,8 @@ dq_project_summary <- dq_main %>%
   count() %>%
   select(ProjectName, "Clients" = n, Type, Issue, Guidance) %>%
   ungroup() %>%
+  left_join(Project[,c("ProjectName", "RegionName", "OrganizationName")], 
+            by = "ProjectName") %>%
   arrange(ProjectName, Type, desc(Clients))
 
 # Controls what is shown in the CoC-wide DQ tab ---------------------------
