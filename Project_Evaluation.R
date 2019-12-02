@@ -300,6 +300,123 @@ length_of_stay_summary <- co_hohs_movein_leavers %>%
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
+x <- co_adults_all_entered %>%
+  select(
+    PersonalID,
+    ProjectName,
+    ProjectType,
+    EntryDate,
+    DateToStreetESSH,
+    TimesHomelessPastThreeYears,
+    MonthsHomelessPastThreeYears
+  ) %>%
+  mutate(
+    DaysHomelessAtEntry = if_else(
+      ymd(EntryDate) >= ymd(DateToStreetESSH),
+      difftime(EntryDate,
+               DateToStreetESSH,
+               units = "days"),
+      NULL
+    ),
+    HHI = case_when(
+      DaysHomelessAtEntry > 364 |
+        (
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            TimesHomelessPastThreeYears == 4
+        )  ~ 7,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            TimesHomelessPastThreeYears %in% c(1, 2, 3)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              TimesHomelessPastThreeYears == 4
+          )
+        ) ~ 6,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            (
+              TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                is.na(TimesHomelessPastThreeYears)
+            )
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              TimesHomelessPastThreeYears %in% c(1, 2, 3)
+          )
+        ) ~ 5,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
+            TimesHomelessPastThreeYears %in% c(2, 3, 4)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              (
+                TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 4,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
+            TimesHomelessPastThreeYears == 4
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
+              (
+                TimesHomelessPastThreeYears %in% c(8, 9, 99, 1) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 3,
+      DaysHomelessAtEntry <= 364 &
+        (((
+          is.na(TimesHomelessPastThreeYears) |
+            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+        ) &
+          TimesHomelessPastThreeYears == 4
+        ) |
+          (
+            MonthsHomelessPastThreeYears == 101 &
+              TimesHomelessPastThreeYears %in% c(2, 3, 4)
+          )
+        ) ~ 2,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears == 101 &
+            (
+              is.na(TimesHomelessPastThreeYears) |
+                TimesHomelessPastThreeYears %in% c(1, 8, 9, 99)
+            )
+        ) |
+          ((
+            is.na(MonthsHomelessPastThreeYears) |
+              MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+          ) &
+            TimesHomelessPastThreeYears %in% c(1, 2, 3)
+          )
+        ) ~ 1,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          is.na(MonthsHomelessPastThreeYears) |
+            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+        ) &
+          (
+            TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+              is.na(TimesHomelessPastThreeYears)
+          )
+        ) ~ 0
+    )
+  )
+
+# troubleshooting null HHIs
+
+y <- x %>% filter(is.na(HHI))
+
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
 
