@@ -21,7 +21,7 @@ load("images/COHHIOHMIS.RData")
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
 # Staging -----------------------------------------------------------------
-reporting_year <- 2018
+reporting_year <- 2019
 
 ReportStart <- paste0("0101", reporting_year)
 ReportEnd <- paste0("1231", reporting_year)
@@ -57,6 +57,7 @@ vars_we_want <- c(
   "MoveInDateAdjust",
   "ExitDate",
   "Destination",
+  "EntryAdjust",
   "ExitAdjust"
 )
 
@@ -101,7 +102,7 @@ co_client_movein_leavers <-  Enrollment %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-# exits to PH
+# exits to PH, but with an added filter of only mover-inners
 # Heads of Household who were served during date range
 
 co_hohs_all <-  Enrollment %>%
@@ -129,6 +130,7 @@ co_hohs_movein_leavers <-  Enrollment %>%
 # PSH (includes stayers tho), TH, SH, RRH
 
 exits_to_ph <- co_hohs_all %>%
+  filter(stayed_between(., ReportStart, ReportEnd)) %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -273,7 +275,6 @@ increase_income <- co_adults_movein_all %>%
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
-
 
 TotalLeavers <- co_hohs_movein_leavers %>%
   group_by(ProjectName) %>%
