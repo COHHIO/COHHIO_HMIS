@@ -16,9 +16,9 @@
 # data has been refreshed.
 
 # Each script here creates an image file which is sym linked to both
-# R minor and R minor elevated. Running this after updating the data files should
-# be all that's necessary in order to be sure the apps are getting the most
-# recent data and code.
+# R minor and R minor elevated. Running this after updating the data files 
+# should be all that's necessary in order to be sure the apps are getting the 
+# most recent data and code.
 
 # there's some date-checking in this script, so we need the lubridate package.
 library(lubridate)
@@ -31,7 +31,8 @@ stop <- 0
 
 if(length(list.files("./data", pattern = "(report_)")) > 0){
   stop <- 1
-  "There is an unnamed ReportWriter download in the data/ folder. Please either name it properly or delete it."
+  "There is an unnamed ReportWriter download in the data/ folder. Please either 
+  name it properly or delete it."
 } else {
   "No errant ReportWriter files floating around in the data/ folder, yay."}
 
@@ -103,7 +104,8 @@ if(ymd(FileActualStart) > mdy(FileStart)){
   "Check that you ran your HUD CSV Export on the correct dates."
 } else{"Your HUD CSV Export was run on the correct dates."}
 
-# if the data folder passes all the tests above, let's run the rest of the scripts 
+# if the data folder passes all the tests above, let's run the rest of the 
+# scripts 
 if (stop == 0) {
   rm(list = ls())
   
