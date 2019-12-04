@@ -2538,6 +2538,13 @@ dq_past_year <- dq_main %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
   left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
 
+ReportStart <- "01012019"
+ReportEnd <- "12312019"
+
+dq_2019 <- dq_main %>%
+  filter(served_between(., ReportStart, ReportEnd)) %>%
+  left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
+
 rm(ReportStart, ReportEnd)
 
 projects_current_hmis <- projects_current_hmis %>%
