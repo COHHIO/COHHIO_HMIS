@@ -91,6 +91,7 @@ rm(FileStart, FileEnd, FilePeriod, DV)
 vars_we_want <- c("HouseholdID", 
                   "PersonalID", 
                   "ProjectName", 
+                  "ProjectType",
                   "Issue", 
                   "Type", 
                   "EntryDate",
@@ -825,7 +826,7 @@ smallProject <- Project %>% select(ProjectID,
 path_missing_los_res_prior <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
-         LengthOfStay, EEType) %>%
+         LengthOfStay, EEType, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
          AgeAtEntry > 17 &
@@ -842,7 +843,7 @@ path_missing_los_res_prior <- served_in_date_range %>%
 path_no_status_at_exit <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
-         DateOfPATHStatus, ReasonNotEnrolled, EEType) %>%
+         DateOfPATHStatus, ReasonNotEnrolled, EEType, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            !is.na(ExitDate) &
@@ -861,7 +862,7 @@ path_no_status_at_exit <- served_in_date_range %>%
 path_status_determination <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
-         DateOfPATHStatus, EEType) %>%
+         DateOfPATHStatus, EEType, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
@@ -877,7 +878,8 @@ path_status_determination <- served_in_date_range %>%
 
 path_enrolled_missing <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
-         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType) %>%
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
+         ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
@@ -895,7 +897,7 @@ path_enrolled_missing <- served_in_date_range %>%
 path_reason_missing <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
-         ReasonNotEnrolled) %>%
+         ReasonNotEnrolled, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
@@ -920,6 +922,7 @@ path_SOAR_missing_at_exit <- served_in_date_range %>%
     EnrollmentID,
     HouseholdID,
     ProjectID,
+    ProjectType,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1852,6 +1855,7 @@ referrals_on_hh_members <- served_in_date_range %>%
     PersonalID,
     EnrollmentID,
     ProjectName,
+    ProjectType,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1974,12 +1978,15 @@ old_outstanding_referrals <- Referrals %>%
   filter(is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
   select(PersonalID, ReferralDate, ProviderCreating) %>%
-  left_join(served_in_date_range, by = c("ProviderCreating" = "ProjectName",
-                                      "PersonalID")) %>%
-  mutate(ProjectName = ProviderCreating,
-         Issue = "Old Outstanding Referral",
-         Type = "Warning",
-         ProjectID = NULL) %>%
+  left_join(served_in_date_range,
+            by = c("ProviderCreating" = "ProjectName",
+                   "PersonalID")) %>%
+  mutate(
+    ProjectName = ProviderCreating,
+    Issue = "Old Outstanding Referral",
+    Type = "Warning",
+    ProjectID = NULL
+  ) %>%
   select(vars_we_want)
 
 staging_outstanding_referrals <- old_outstanding_referrals %>%
