@@ -102,7 +102,7 @@ co_client_movein_leavers <-  Enrollment %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-# exits to PH, but with an added filter of only mover-inners
+# exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
 
 co_hohs_all <-  Enrollment %>%
@@ -129,8 +129,7 @@ co_hohs_movein_leavers <-  Enrollment %>%
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
-exits_to_ph <- co_hohs_all %>%
-  filter(stayed_between(., ReportStart, ReportEnd)) %>%
+exits_to_ph <- co_adults_movein_all %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -292,6 +291,23 @@ length_of_stay_summary <- co_hohs_movein_leavers %>%
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)
 
+# setting the FilePeriod to the date range of the Project Evaluation
+FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+# rerunning the Utilization script with that new date interval
+source("01_Bed_Unit_Utilization.R")
+# getting what we need from the Utilization script
+utilization_unit_2019 <- utilization_unit %>%
+  ungroup() %>%
+  select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
+
+utilization_bed_2019 <- utilization_bed %>%
+  ungroup() %>%
+  select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
+# setting the FilePeriod back to what it was before
+FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
+# re-re-running the script so the image file is like it was
+source("01_Bed_Unit_Utilization.R")
+
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
 
@@ -301,7 +317,7 @@ length_of_stay_summary <- co_hohs_movein_leavers %>%
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
-x <- co_adults_all_entered %>%
+hhi_detail <- co_adults_all_entered %>%
   select(
     PersonalID,
     ProjectName,
@@ -384,6 +400,13 @@ x <- co_adults_all_entered %>%
           (
             MonthsHomelessPastThreeYears == 101 &
               TimesHomelessPastThreeYears %in% c(2, 3, 4)
+          ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
+              (
+                TimesHomelessPastThreeYears %in% c(1, 2, 3, 8, 9, 99) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
           )
         ) ~ 2,
       DaysHomelessAtEntry <= 364 &
@@ -410,13 +433,14 @@ x <- co_adults_all_entered %>%
             TimesHomelessPastThreeYears %in% c(8, 9, 99) |
               is.na(TimesHomelessPastThreeYears)
           )
-        ) ~ 0
+        ) ~ 0,
+      TRUE ~ 0
     )
   )
 
-# troubleshooting null HHIs
-
-y <- x %>% filter(is.na(HHI))
+hhi_summary <- hhi_detail %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(AverageHHI = mean(HHI))
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
@@ -424,5 +448,6 @@ y <- x %>% filter(is.na(HHI))
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
 
+load("images/Data_Quality.RData")
 
-
+dq_points <- dq_2019
