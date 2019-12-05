@@ -450,4 +450,7 @@ hhi_summary <- hhi_detail %>%
 
 load("images/Data_Quality.RData")
 
-dq_points <- dq_2019
+dq_items_being_checked <- dq_2019 %>%
+  filter(Type == "Error" & ProjectType %in% c(2, 3, 13, 8)) %>% 
+  select(Issue) %>% 
+  unique() 
