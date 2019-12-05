@@ -1893,7 +1893,7 @@ referrals_on_hh_members_ssvf <- served_in_date_range %>%
   filter(RelationshipToHoH != 1 &
            GrantType == "SSVF") %>%
   semi_join(Referrals, by = c("PersonalID")) %>%
-  mutate(Issue = "Referral on a non Head of Household",
+  mutate(Issue = "Referral on a non Head of Household (SSVF)",
          Type = "Error") %>%
   select(vars_we_want)
 
