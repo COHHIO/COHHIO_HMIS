@@ -339,3 +339,10 @@ y <- y %>%
   ))
 
 write_csv(y, "HIC_outliers.csv")
+
+non_participating <- Project %>%
+  filter(HMISParticipatingProject == 0 &
+           ProjectType %in% c(1, 2, 3, 8) &
+           operating_between(., "10012018", FileEnd))
+
+write_csv(non_participating, "non_participating.csv")

@@ -423,6 +423,17 @@ Enrollment <- y %>%
 rm(small_project, y, HoHsEntry)
 
 
+# Getting Client Location into Enrollment ---------------------------------
+
+y <- EnrollmentCoC %>%
+  filter(DataCollectionStage == 1) %>%
+  select(EnrollmentID, "ClientLocation" = CoCCode) 
+
+Enrollment <- Enrollment %>%
+  left_join(y, by = "EnrollmentID")
+
+rm(y)
+
 # Services ----------------------------------------------------------------
 
 # this comes from two ReportWriter reports: An Export: Services and 

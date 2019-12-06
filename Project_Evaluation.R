@@ -21,7 +21,7 @@ load("images/COHHIOHMIS.RData")
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
 # Staging -----------------------------------------------------------------
-reporting_year <- 2018
+reporting_year <- 2019
 
 ReportStart <- paste0("0101", reporting_year)
 ReportEnd <- paste0("1231", reporting_year)
@@ -57,6 +57,7 @@ vars_we_want <- c(
   "MoveInDateAdjust",
   "ExitDate",
   "Destination",
+  "EntryAdjust",
   "ExitAdjust"
 )
 
@@ -101,7 +102,7 @@ co_client_movein_leavers <-  Enrollment %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-# exits to PH
+# exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
 
 co_hohs_all <-  Enrollment %>%
@@ -128,7 +129,7 @@ co_hohs_movein_leavers <-  Enrollment %>%
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
-exits_to_ph <- co_hohs_all %>%
+exits_to_ph <- co_adults_movein_all %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -274,7 +275,6 @@ increase_income <- co_adults_movein_all %>%
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
 
-
 TotalLeavers <- co_hohs_movein_leavers %>%
   group_by(ProjectName) %>%
   summarise(Leavers = n())
@@ -291,6 +291,23 @@ length_of_stay_summary <- co_hohs_movein_leavers %>%
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)
 
+# setting the FilePeriod to the date range of the Project Evaluation
+FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+# rerunning the Utilization script with that new date interval
+source("01_Bed_Unit_Utilization.R")
+# getting what we need from the Utilization script
+utilization_unit_2019 <- utilization_unit %>%
+  ungroup() %>%
+  select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
+
+utilization_bed_2019 <- utilization_bed %>%
+  ungroup() %>%
+  select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
+# setting the FilePeriod back to what it was before
+FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
+# re-re-running the script so the image file is like it was
+source("01_Bed_Unit_Utilization.R")
+
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
 
@@ -300,11 +317,140 @@ length_of_stay_summary <- co_hohs_movein_leavers %>%
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
+hhi_detail <- co_adults_all_entered %>%
+  select(
+    PersonalID,
+    ProjectName,
+    ProjectType,
+    EntryDate,
+    DateToStreetESSH,
+    TimesHomelessPastThreeYears,
+    MonthsHomelessPastThreeYears
+  ) %>%
+  mutate(
+    DaysHomelessAtEntry = if_else(
+      ymd(EntryDate) >= ymd(DateToStreetESSH),
+      difftime(EntryDate,
+               DateToStreetESSH,
+               units = "days"),
+      NULL
+    ),
+    HHI = case_when(
+      DaysHomelessAtEntry > 364 |
+        (
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            TimesHomelessPastThreeYears == 4
+        )  ~ 7,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            TimesHomelessPastThreeYears %in% c(1, 2, 3)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              TimesHomelessPastThreeYears == 4
+          )
+        ) ~ 6,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            (
+              TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                is.na(TimesHomelessPastThreeYears)
+            )
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              TimesHomelessPastThreeYears %in% c(1, 2, 3)
+          )
+        ) ~ 5,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
+            TimesHomelessPastThreeYears %in% c(2, 3, 4)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              (
+                TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 4,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
+            TimesHomelessPastThreeYears == 4
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
+              (
+                TimesHomelessPastThreeYears %in% c(8, 9, 99, 1) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 3,
+      DaysHomelessAtEntry <= 364 &
+        (((
+          is.na(TimesHomelessPastThreeYears) |
+            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+        ) &
+          TimesHomelessPastThreeYears == 4
+        ) |
+          (
+            MonthsHomelessPastThreeYears == 101 &
+              TimesHomelessPastThreeYears %in% c(2, 3, 4)
+          ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
+              (
+                TimesHomelessPastThreeYears %in% c(1, 2, 3, 8, 9, 99) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 2,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          MonthsHomelessPastThreeYears == 101 &
+            (
+              is.na(TimesHomelessPastThreeYears) |
+                TimesHomelessPastThreeYears %in% c(1, 8, 9, 99)
+            )
+        ) |
+          ((
+            is.na(MonthsHomelessPastThreeYears) |
+              MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+          ) &
+            TimesHomelessPastThreeYears %in% c(1, 2, 3)
+          )
+        ) ~ 1,
+      DaysHomelessAtEntry <= 364 &
+        ((
+          is.na(MonthsHomelessPastThreeYears) |
+            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+        ) &
+          (
+            TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+              is.na(TimesHomelessPastThreeYears)
+          )
+        ) ~ 0,
+      TRUE ~ 0
+    )
+  )
+
+hhi_summary <- hhi_detail %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(AverageHHI = mean(HHI))
+
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
 
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
 
+load("images/Data_Quality.RData")
 
-
+dq_items_being_checked <- dq_2019 %>%
+  filter(Type == "Error" & ProjectType %in% c(2, 3, 13, 8)) %>% 
+  select(Issue) %>% 
+  unique() 

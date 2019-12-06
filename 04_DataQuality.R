@@ -74,7 +74,7 @@ served_in_date_range <- Enrollment %>%
          MoveInDate, MoveInDateAdjust, EEType, CountyServed, CountyPrior, 
          ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, 
          UserCreating, ClientEnrolledInPATH, LengthOfStay, DateOfPATHStatus, 
-         ReasonNotEnrolled) %>%
+         ReasonNotEnrolled, ClientLocation) %>%
   inner_join(projects_current_hmis, by = "ProjectID")
 
 DV <- HealthAndDV %>%
@@ -91,6 +91,7 @@ rm(FileStart, FileEnd, FilePeriod, DV)
 vars_we_want <- c("HouseholdID", 
                   "PersonalID", 
                   "ProjectName", 
+                  "ProjectType",
                   "Issue", 
                   "Type", 
                   "EntryDate",
@@ -151,6 +152,18 @@ missing_udes <- served_in_date_range %>%
     )
   ) %>%
   filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+# Missing Client Location -------------------------------------------------
+# only pulls in Data Collection Stage 1 CoCCode bc none of our
+# reporting looks at this at multiple data collection stages
+
+# also this is not included in the final bc I'm waiting on a WS ticket
+missing_client_location <- served_in_date_range %>%
+  filter(is.na(ClientLocation),
+         RelationshipToHoH == 1) %>%
+  mutate(Type = "Error",
+         Issue = "Missing Client Location") %>%
   select(vars_we_want)
 
 # Household Issues --------------------------------------------------------
@@ -825,7 +838,7 @@ smallProject <- Project %>% select(ProjectID,
 path_missing_los_res_prior <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
-         LengthOfStay, EEType) %>%
+         LengthOfStay, EEType, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
          AgeAtEntry > 17 &
@@ -842,7 +855,7 @@ path_missing_los_res_prior <- served_in_date_range %>%
 path_no_status_at_exit <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
-         DateOfPATHStatus, ReasonNotEnrolled, EEType) %>%
+         DateOfPATHStatus, ReasonNotEnrolled, EEType, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            !is.na(ExitDate) &
@@ -861,7 +874,7 @@ path_no_status_at_exit <- served_in_date_range %>%
 path_status_determination <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, 
-         DateOfPATHStatus, EEType) %>%
+         DateOfPATHStatus, EEType, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
@@ -877,7 +890,8 @@ path_status_determination <- served_in_date_range %>%
 
 path_enrolled_missing <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
-         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType) %>%
+         ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
+         ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
@@ -895,7 +909,7 @@ path_enrolled_missing <- served_in_date_range %>%
 path_reason_missing <- served_in_date_range %>%
   select(PersonalID, HouseholdID, ProjectID, EntryDate, MoveInDateAdjust,
          ExitDate, UserCreating, AgeAtEntry, ClientEnrolledInPATH, EEType,
-         ReasonNotEnrolled) %>%
+         ReasonNotEnrolled, ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
@@ -920,6 +934,7 @@ path_SOAR_missing_at_exit <- served_in_date_range %>%
     EnrollmentID,
     HouseholdID,
     ProjectID,
+    ProjectType,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1852,6 +1867,7 @@ referrals_on_hh_members <- served_in_date_range %>%
     PersonalID,
     EnrollmentID,
     ProjectName,
+    ProjectType,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1889,7 +1905,7 @@ referrals_on_hh_members_ssvf <- served_in_date_range %>%
   filter(RelationshipToHoH != 1 &
            GrantType == "SSVF") %>%
   semi_join(Referrals, by = c("PersonalID")) %>%
-  mutate(Issue = "Referral on a non Head of Household",
+  mutate(Issue = "Referral on a non Head of Household (SSVF)",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1950,6 +1966,8 @@ dq_plot_aps_referrals <-
   scale_fill_manual(values = c("#00952e", "#a11207"), guide = FALSE) +
   theme_void()
 
+
+
 rm(aps_with_referrals, co_APs)
   
 # AP entering project stays -----------------------------------------------
@@ -1972,12 +1990,15 @@ old_outstanding_referrals <- Referrals %>%
   filter(is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
   select(PersonalID, ReferralDate, ProviderCreating) %>%
-  left_join(served_in_date_range, by = c("ProviderCreating" = "ProjectName",
-                                      "PersonalID")) %>%
-  mutate(ProjectName = ProviderCreating,
-         Issue = "Old Outstanding Referral",
-         Type = "Warning",
-         ProjectID = NULL) %>%
+  left_join(served_in_date_range,
+            by = c("ProviderCreating" = "ProjectName",
+                   "PersonalID")) %>%
+  mutate(
+    ProjectName = ProviderCreating,
+    Issue = "Old Outstanding Referral",
+    Type = "Warning",
+    ProjectID = NULL
+  ) %>%
   select(vars_we_want)
 
 staging_outstanding_referrals <- old_outstanding_referrals %>%
@@ -2305,12 +2326,241 @@ dq_main <- dq_main %>%
   )
 
 
+# add in Issue explanations -----------------------------------------------
+
+user_help <- dq_main %>%
+  select(Type, Issue) %>%
+  unique() %>%
+  arrange(Type, Issue) %>%
+  mutate(
+    Guidance = case_when(
+      Issue == "Access Point with Entry Exits" ~
+        "Access Points should not be entering households into the Access Point
+    provider. If a user has done this, the Entry Exity should be deleted.",
+      Issue == "Children Only Household" ~
+        "Unless your project serves youth younger than 18 exclusively, every
+    household should have at least one adult in it. If you are not sure how
+    to correct this, please contact the HMIS team for help.",
+      Issue == "Conflicting Disability yes/no" ~
+        "If the user answered \"Yes\" to the \"Does the client have a disabling
+    condition?\", then there should be a disability subassessment where it
+    indicates the disability determination is Yes and the \"If yes,... long
+    duration\" question is also Yes. Similarly if the user answered \"No\", the
+      client has that type of disability",
+      Issue %in% c(
+        "Conflicting Health Insurance yes/no at Entry",
+        "Conflicting Health Insurance yes/no at Exit"
+      ) ~
+        "If the user answered \"Yes\" to \"Covered by Health Insurance?\", then
+    there should be a Health Insurance subassessment where it indicates which
+    type of health insurance the client is receiving. Similarly if the user
+    answered \"No\", there should not be any Health Insurance records that say
+      the client is receiving that type of Health Insurance.",
+      Issue %in% c(
+        "Conflicting Income yes/no at Entry",
+        "Conflicting Income yes/no at Exit"
+      ) ~
+        "If the user answered \"Yes\" to \"Income from any source\", then
+    there should be an income subassessment where it indicates which
+    type of income the client is receiving. Similarly if the user answered
+    \"No\", there should not be any income records that say the client is
+      receiving that type of income.",
+      Issue %in% c(
+        "Conflicting Non-cash Benefits yes/no at Entry",
+        "Conflicting Non-cash Benefits yes/no at Exit"
+      ) ~
+        "If the user answered \"Yes\" to \"Non-cash benefits from any source\",
+    then there should be a Non-cash benefits subassessment where it indicates 
+    which type of income the client is receiving. Similarly if the user answered
+    \"No\", then there should not be any non-cash records that say the client is
+      receiving that type of benefit",
+      Issue == "Disabilities: missing Long Duration in subassessment" ~
+        "Any Disability subassessment the user answers \"Yes\" to should also
+      have the \"If yes, is the disability of long duration...\" answered.",
+      Issue == "Incorrect Date of Birth or Entry Date" ~
+        "The HMIS data is indicating the client entered the project PRIOR to
+      being born, which is not technically possible. Correct either the Date of
+      Birth or the Entry Date, whichever is incorrect.",
+      Issue == "Incorrect Entry Exit Type" ~
+        "The user selected the wrong Entry Exit Type. This can be corrected by
+      clicking the Entry pencil, then Save & Continue, then at the top of the
+      screen, the Entry Exit Type can be changed. It is important that you then
+      click \"Submit\" before this change will take effect.",
+      Issue == "Invalid SSN" ~
+        "The Social Security Number does not conform with standards set by the
+      Social Security Administration. Correct by navigating to the client's 
+      record, then clicking the Client Profile tab, then click into the Client 
+      Record pencil to correct the data.",
+      Issue %in% c("Missing Connection with SOAR at Exit",
+                   "Health Insurance Missing at Exit",
+                   "Income Missing at Exit") ~
+        "Please enter the data for this item by clicking into the Exit pencil on
+      the given Client ID on the appropriate program stay.",
+      Issue %in% c(
+        "Missing County Prior",
+        "Missing Disabling Condition",
+        "Missing Ethnicity",
+        "Missing Gender",
+        "Missing Months or Times Homeless",
+        "Missing Previously From Street, ES, or SH",
+        "Missing Race",
+        "Missing Residence Prior",
+        "Non-cash Benefits Missing at Entry",
+        "Missing PATH Enrollment",
+        "PATH Status at Exit Missing or Incomplete",
+        "Missing Some or All of Last Permanent Address",
+        "Missing Year Separated",
+        "Missing VAMC Station Number",
+        "Missing Residence Prior Length of Stay (PATH)",
+        "Missing Reason Not PATH Enrolled",
+        "Missing Percent AMI",
+        "Missing War(s)",
+        "Missing Year Entered Service",
+        "Missing HP Screening or Threshold Score",
+        "Health Insurance Missing at Entry",
+        "Income Missing at Entry",
+        "Non-cash Benefits Missing at Entry"
+      ) ~
+        "This data element is required to be collected at project Entry. Please
+      click into the client's Entry pencil to save this data to HMIS.",
+      Issue == "Missing County Served" ~
+        "County Served must be collected at Entry for all clients. County is
+      very important so that the client is prioritized into the correct service
+      areas for various housing solutions. This can be corrected through the
+      Entry pencil.",
+      Issue %in% c(
+        "Missing Date of Birth Data Quality",
+        "Missing Name Data Quality",
+        "Missing SSN",
+        "Missing Veteran Status"
+      ) ~
+        "Please correct by navigating to the client's record, then clicking the
+      Client Profile tab, then click into the Client Record pencil to save the
+      missing data.",
+      Issue == "No Head of Household" ~
+        "Please be sure all members of the household are included in the program
+      stay, and that each household member's birthdate is correct. If those things
+      are both true, check inside the Entry pencil to be sure each household
+      member has \"Relationship to Head of Household\" answered and that one of
+      them says Self (head of household).",
+      Issue == "Too Many Heads of Household" ~
+        "Check inside the Entry pencil to be sure each household member has
+      \"Relationship to Head of Household\" answered and that only one of
+      them says Self (head of household).",
+      Issue == "Referral on a non Head of Household" ~
+        "Users should not checkbox all the household members when creating a
+      Referral. Only the Head of Household needs the Referral. It is recommended
+      that users delete any referrals on non-HoHs so that the receiving agency
+      does not have to deal with them and they stop showing in reporting.",
+      Issue %in% c(
+        "Service Transaction on a non Head of Household (SSVF)",
+        "Service Transaction on a non Head of Household"
+      ) ~
+        "Users should not checkbox all the household members when creating a
+      Service Transaction. Only the Head of Household needs a Service
+      Transaction. SSVF projects must delete the extraneous Service Transactions.
+      For non-SSVF projects, corrections are not needed.",
+      Issue == "Duplicate Entry Exits" ~
+        "Users sometimes create this error when they forget to click into a
+      program stay by using the Entry pencil, and instead they click \"Add
+      Entry/Exit\" each time. To correct, EDA to the project the Entry/Exit
+      belongs to, navigate to the Entry/Exit tab and delete the program stay
+      that was accidentally added.",
+      Issue == "Check Eligibility" ~
+        "Households here do not appear to be eligible for this Project Type. 
+      Either the user entered the household into the incorrect project, or some
+      of the relevant data is missing, or the household was actually ineligible.
+      Please check with the CoC team if you have questions about eligibility
+      requirements for your project type.",
+      Issue == "Check Veteran Status for Accuracy" ~
+        "You have indicated the household exited to a destination that only
+      veterans are eligible for, but the head of household appears to be not a
+      veteran. Either the Veteran Status is incorrect or the Destination is
+      incorrect.",
+      Issue == "Client with No Disability Receiving SSI/SSDI (could be ok)" ~
+        "If a client is receiving SSI or SSDI for THEIR disability, that
+      disability should be indicated in the Disabilities data elements. If
+      an adult is receiving SSI or SSDI benefits on behalf of someone else,
+      then there is no action needed.",
+      Issue %in% c(
+        "DKR Ethnicity",
+        "DKR or Approx. Date of Birth",
+        "DKR Race",
+        "DKR Veteran Status",
+        "Don't Know/Refused Destination",
+        "Don't Know/Refused Months or Times Homeless",
+        "Don't Know/Refused Residence Prior",
+        "Don't Know/Refused SSN",
+        "Don't Know/Refused War(s)",
+        "Incomplete or DKR Name"
+      ) ~
+        "It is widely understood that not every client will be able to or consent
+      to answer every question in every assessment. If you do have any of this
+      data, but it is just not entered into HMIS yet, please enter it. If you
+      can reasonably attempt again to collect this data from the client (like
+      if they are still in your project), then please do so. Otherwise, there is
+      no action needed.",
+      Issue == "Old Outstanding Referral" ~
+        "Referrals should be closed in about 2 weeks. Please be sure you are
+      following up with any referrals and helping the client to find permanent
+      housing. Once a Referral is made, the receiving agency should be saving
+      the \"Referral Outcome\" once it is known. If you have Referrals that are
+      legitimately still open after two weeks because there is a lot of follow
+      up going on, no action is needed since the HMIS data is accurate.",
+      Issue == "Missing Destination" ~
+        "It is widely understood that not every client will complete an exit
+      interview, especially for high-volume emergency shelters. A few warnings
+      for Missing Destination is no cause for concern, but if there is a large
+      number, please contact the CoC team to work out a way to improve client
+      engagement.",
+      Issue == "SPDAT Created on a Non-Head-of-Household" ~
+        "If you save a SPDAT score on any household member other than the Head
+      of Household, that score may not pull into any reporting. It is very
+      important to be sure that your VI-SPDAT score goes on the Head of
+      Household. To correct this, you would need to completely re-enter the
+      score on the correct client's record and then delete the one on the
+      non-Head of Household.",
+      Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT" ~
+        "Every household (besides those fleeing domestic violence and veteran
+      households) must have a VI-SPDAT score to aid with prioritization into
+      the Permanent Housing (RRH or PSH) project.",
+      Issue == "HoHs in shelter or Transitional Housing for 8+ days without SPDAT" ~
+        "Any household who has been in shelter, Transitional Housing, or a
+      Safe Haven for over 8 days should be assessed with the VI-SPDAT so that
+      they can be prioritized for Permanent Housing (RRH or PSH).",
+      Issue == "Missing Disability Subs" ~
+        "The HMIS data indicates the client has a disability, but there is no
+      corresponding Disability to match it.",
+      Issue == "Future Entry Date" ~
+        "Users should not be entering a client into a project on a date in the
+      future. There is no action needed, but going forward, please be sure that
+      your data entry workflow is correct according to your project type."
+    )
+  )
+
+dq_project_summary <- dq_main %>%
+  left_join(user_help, by = c("Issue", "Type")) %>%
+  group_by(ProjectName, Type, Issue, Guidance) %>%
+  count() %>%
+  select(ProjectName, "Clients" = n, Type, Issue, Guidance) %>%
+  ungroup() %>%
+  left_join(Project[,c("ProjectName", "RegionName", "OrganizationName")], 
+            by = "ProjectName") %>%
+  arrange(ProjectName, Type, desc(Clients))
+
 # Controls what is shown in the CoC-wide DQ tab ---------------------------
 
 ReportStart <- "10012018"
 ReportEnd <- format.Date(today(), "%m-%d-%Y")
 
 dq_past_year <- dq_main %>%
+  filter(served_between(., ReportStart, ReportEnd)) %>%
+  left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
+
+ReportStart <- "01012019"
+ReportEnd <- "12312019"
+
+dq_2019 <- dq_main %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
   left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
 
@@ -2394,6 +2644,7 @@ rm(
   unsh_incorrect_cmprovider,
   unsheltered_long_not_referred,
   update_date,
+  user_help,
   vars_we_want
 )
 
