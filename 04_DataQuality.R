@@ -74,7 +74,7 @@ served_in_date_range <- Enrollment %>%
          MoveInDate, MoveInDateAdjust, EEType, CountyServed, CountyPrior, 
          ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, 
          UserCreating, ClientEnrolledInPATH, LengthOfStay, DateOfPATHStatus, 
-         ReasonNotEnrolled) %>%
+         ReasonNotEnrolled, ClientLocation) %>%
   inner_join(projects_current_hmis, by = "ProjectID")
 
 DV <- HealthAndDV %>%
@@ -152,6 +152,16 @@ missing_udes <- served_in_date_range %>%
     )
   ) %>%
   filter(!is.na(Issue)) %>%
+  select(vars_we_want)
+
+# Missing Client Location -------------------------------------------------
+# only pulls in Data Collection Stage 1 CoCCode bc none of our
+# reporting looks at this at multiple data collection stages
+missing_client_location <- served_in_date_range %>%
+  filter(is.na(ClientLocation),
+         RelationshipToHoH == 1) %>%
+  mutate(Type = "Error",
+         Issue = "Missing Client Location") %>%
   select(vars_we_want)
 
 # Household Issues --------------------------------------------------------
