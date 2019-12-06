@@ -157,6 +157,8 @@ missing_udes <- served_in_date_range %>%
 # Missing Client Location -------------------------------------------------
 # only pulls in Data Collection Stage 1 CoCCode bc none of our
 # reporting looks at this at multiple data collection stages
+
+# also this is not included in the final bc I'm waiting on a WS ticket
 missing_client_location <- served_in_date_range %>%
   filter(is.na(ClientLocation),
          RelationshipToHoH == 1) %>%
