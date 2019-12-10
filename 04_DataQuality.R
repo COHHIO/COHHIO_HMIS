@@ -884,7 +884,7 @@ path_status_determination <- served_in_date_range %>%
          Type = "Error") %>%
   select(vars_we_want)
 
-#* PATH Enrolled at Entry/Exit
+#* PATH Enrolled at Exit
 ### adult and:
 ### PATH Enrolled null or DNC -> error -OR-
 
@@ -894,10 +894,11 @@ path_enrolled_missing <- served_in_date_range %>%
          ProjectType) %>%
   left_join(smallProject, by = "ProjectID") %>%
   filter(EEType == "PATH" &
+           !is.na(ExitDate) &
            AgeAtEntry > 17 &
            (ClientEnrolledInPATH == 99 |
               is.na(ClientEnrolledInPATH))) %>% 
-  mutate(Issue = "Missing PATH Enrollment",
+  mutate(Issue = "Missing PATH Enrollment at Exit",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -2392,6 +2393,8 @@ user_help <- dq_main %>%
       record, then clicking the Client Profile tab, then click into the Client 
       Record pencil to correct the data.",
       Issue %in% c("Missing Connection with SOAR at Exit",
+                   "Missing PATH Enrollment at Exit",
+                   "PATH Status at Exit Missing or Incomplete",
                    "Health Insurance Missing at Exit",
                    "Income Missing at Exit") ~
         "Please enter the data for this item by clicking into the Exit pencil on
@@ -2406,13 +2409,10 @@ user_help <- dq_main %>%
         "Missing Race",
         "Missing Residence Prior",
         "Non-cash Benefits Missing at Entry",
-        "Missing PATH Enrollment",
-        "PATH Status at Exit Missing or Incomplete",
         "Missing Some or All of Last Permanent Address",
         "Missing Year Separated",
         "Missing VAMC Station Number",
         "Missing Residence Prior Length of Stay (PATH)",
-        "Missing Reason Not PATH Enrolled",
         "Missing Percent AMI",
         "Missing War(s)",
         "Missing Year Entered Service",
@@ -2423,6 +2423,9 @@ user_help <- dq_main %>%
       ) ~
         "This data element is required to be collected at project Entry. Please
       click into the client's Entry pencil to save this data to HMIS.",
+      Issue == "Missing Reason Not PATH Enrolled" ~
+        "The user has indicated the household was not enrolled into PATH, but 
+      no reason was selected.",
       Issue == "Missing County Served" ~
         "County Served must be collected at Entry for all clients. County is
       very important so that the client is prioritized into the correct service
