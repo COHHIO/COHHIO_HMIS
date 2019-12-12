@@ -22,7 +22,6 @@
 
 # there's some date-checking in this script, so we need the lubridate package.
 library(lubridate)
-start <- now()
 
 # clearing the environment prior to running all the scripts
 rm(list = ls())
@@ -140,5 +139,4 @@ if (stop == 0) {
   print("Check your data folder for errors")
 }
 
-end <- now()
-end - start
+
