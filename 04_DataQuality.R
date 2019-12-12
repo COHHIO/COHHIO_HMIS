@@ -97,7 +97,8 @@ vars_we_want <- c("HouseholdID",
                   "EntryDate",
                   "MoveInDateAdjust", 
                   "ExitDate",
-                  "UserCreating")
+                  "UserCreating",
+                  "Region")
 
 # Missing UDEs ------------------------------------------------------------
 
@@ -162,7 +163,7 @@ missing_udes <- served_in_date_range %>%
 missing_client_location <- served_in_date_range %>%
   filter(is.na(ClientLocation),
          RelationshipToHoH == 1) %>%
-  mutate(Type = "Error",
+  mutate(Type = "High Priority",
          Issue = "Missing Client Location") %>%
   select(vars_we_want)
 
@@ -180,7 +181,7 @@ hh_children_only <- served_in_date_range %>%
   ungroup() %>%
   left_join(served_in_date_range, by = c("PersonalID", "HouseholdID")) %>%
   mutate(Issue = "Children Only Household",
-         Type = "Error") %>%
+         Type = "High Priority") %>%
   select(vars_we_want)
 
 hh_no_hoh <- served_in_date_range %>%
@@ -195,7 +196,7 @@ hh_no_hoh <- served_in_date_range %>%
   ungroup() %>%
   left_join(served_in_date_range, by = c("PersonalID", "HouseholdID")) %>%
   mutate(Issue = "No Head of Household",
-         Type = "Error") %>%
+         Type = "High Priority") %>%
   select(vars_we_want)
 
 hh_too_many_hohs <- served_in_date_range %>%
@@ -207,7 +208,7 @@ hh_too_many_hohs <- served_in_date_range %>%
   ungroup() %>%
   left_join(served_in_date_range, by = c("PersonalID", "HouseholdID")) %>%
   mutate(Issue = "Too Many Heads of Household",
-         Type = "Error") %>%
+         Type = "High Priority") %>%
   select(vars_we_want)
 
 hh_issues <- rbind(hh_too_many_hohs, hh_no_hoh, hh_children_only)
@@ -229,6 +230,7 @@ missing_approx_date_homeless <- served_in_date_range %>%
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
+    Region,
     AgeAtEntry,
     RelationshipToHoH,
     LOSUnderThreshold,
@@ -252,6 +254,7 @@ missing_previous_street_ESSH <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -266,7 +269,9 @@ missing_previous_street_ESSH <- served_in_date_range %>%
            ymd(EntryDate) >= mdy("10012016") &
            is.na(PreviousStreetESSH) &
            LOSUnderThreshold == 1) %>% 
-  mutate(Issue = "Missing Previously From Street, ES, or SH (Length of Time Homeless questions)", Type = "Error") %>%
+  mutate(Issue = "Missing Previously From Street, ES, or SH (Length of Time 
+         Homeless questions)", 
+         Type = "Error") %>%
   select(vars_we_want)
 
 missing_residence_prior <- served_in_date_range %>%
@@ -277,6 +282,7 @@ missing_residence_prior <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -299,6 +305,7 @@ dkr_residence_prior <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -321,6 +328,7 @@ missing_LoS <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -343,6 +351,7 @@ dkr_LoS <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -365,6 +374,7 @@ missing_months_times_homeless <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -392,6 +402,7 @@ dkr_months_times_homeless <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -418,6 +429,7 @@ detail_missing_living_situation <- served_in_date_range %>%
     ProjectID,
     ProjectType,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -544,6 +556,7 @@ detail_conflicting_disabilities <- served_in_date_range %>%
     EnrollmentID,
     AgeAtEntry,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -560,6 +573,7 @@ detail_conflicting_disabilities <- served_in_date_range %>%
     EnrollmentID,
     AgeAtEntry,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -958,6 +972,7 @@ rm(smallIncomeSOAR)
 
 # Missing PATH Contacts
 ## client is adult/hoh and has no contact record in the EE -> error
+## this is a high priority data quality issue
 
 # Incorrect PATH Contact Date
 ## client is adult/hoh, has a contact record, and the first record in the EE 
@@ -970,7 +985,7 @@ rm(smallIncomeSOAR)
 # Duplicate EEs -----------------------------------------------------------
 # this could be more nuanced
 duplicate_ees <- get_dupes(served_in_date_range, PersonalID, ProjectID, EntryDate) %>%
-  mutate(Issue = "Duplicate Entry Exits", Type = "Error") %>%
+  mutate(Issue = "Duplicate Entry Exits", Type = "High Priority") %>%
   select(vars_we_want)
 
 
@@ -1017,7 +1032,7 @@ incorrect_ee_type <- served_in_date_range %>%
       (ProjectID == 1695 & EEType != "Standard")
   ) %>% 
   mutate(Issue = "Incorrect Entry Exit Type",
-         Type = "Error") %>%
+         Type = "High Priority") %>%
   select(vars_we_want)
 
 # HoHs Entering PH without SPDATs -----------------------------------------
@@ -1150,6 +1165,7 @@ income_subs <- served_in_date_range[c("PersonalID",
                                 "HouseholdID",
                                 "AgeAtEntry",
                                 "ProjectName",
+                                "Region",
                                 "EntryDate",
                                 "MoveInDateAdjust",
                                 "ExitDate",
@@ -1336,7 +1352,7 @@ staging_overlaps <- served_in_date_range %>%
       interval(EntryAdjust, ExitAdjust)
     ),
     Issue = "Overlapping Project Stays",
-    Type = "Error"
+    Type = "High Priority"
   ) %>%
   filter(!is.na(LiterallyInProject) &
          int_length(LiterallyInProject) > 0) %>%
@@ -1384,7 +1400,7 @@ same_day_overlaps <- served_in_date_range %>%
       ProjectType %in% c(1, 2, 4, 8, 12) ~ interval(EntryAdjust, ExitAdjust)
     ),
     Issue = "Overlapping Project Stays",
-    Type = "Error"
+    Type = "High Priority"
   ) %>%
   filter((!is.na(LiterallyInProject) & ProjectType != 13) | 
            ProjectType == 13) %>%
@@ -1421,7 +1437,7 @@ rrh_overlaps <- served_in_date_range %>%
     # bc a client can exit&enter same day
     InProject = interval(EntryDate, ExitAdjust),
     Issue = "Overlapping Project Stays",
-    Type = "Error"
+    Type = "High Priority"
   ) %>%
   filter(ProjectType == 13) %>%
   get_dupes(., PersonalID) %>%
@@ -1462,7 +1478,7 @@ psh_overlaps <- served_in_date_range %>%
     # bc a client can exit&enter same day
     InProject = interval(EntryDate, ExitAdjust),
     Issue = "Overlapping Project Stays",
-    Type = "Error"
+    Type = "High Priority"
   ) %>%
   filter(ProjectType == 3) %>%
   get_dupes(., PersonalID) %>%
@@ -1510,7 +1526,7 @@ unsh_overlaps <- dq_overlaps %>%
 
 missing_health_insurance_entry <- served_in_date_range %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, 
+  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, Region,
          EntryDate, MoveInDateAdjust, ExitDate, ProjectType, DataCollectionStage, 
          InsuranceFromAnySource, UserCreating) %>%
   filter(DataCollectionStage == 1 & 
@@ -1522,7 +1538,7 @@ missing_health_insurance_entry <- served_in_date_range %>%
 
 missing_health_insurance_exit <- served_in_date_range %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, 
+  select(PersonalID, EnrollmentID, HouseholdID, AgeAtEntry, ProjectName, Region,
          EntryDate, MoveInDateAdjust, ExitDate, ProjectType, DataCollectionStage, 
          InsuranceFromAnySource, UserCreating) %>%
   filter(DataCollectionStage == 3 & 
@@ -1540,6 +1556,7 @@ health_insurance_subs <- served_in_date_range %>%
     HouseholdID,
     AgeAtEntry,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1651,6 +1668,7 @@ missing_ncbs_entry <- served_in_date_range %>%
     HouseholdID,
     AgeAtEntry,
     ProjectName,
+    Region,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1830,7 +1848,7 @@ services_on_hh_members <- served_in_date_range %>%
       (GrantType != "SSVF" | is.na(GrantType))
   ) %>%
   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
-  mutate(Issue = "Service Transaction on a non Head of Household",
+  mutate(Issue = "Service Transaction on a Non Head of Household",
          Type = "Warning") %>%
   select(vars_we_want)
 
@@ -1856,7 +1874,7 @@ services_on_hh_members_ssvf <- served_in_date_range %>%
       GrantType == "SSVF"
   ) %>%
   semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
-  mutate(Issue = "Service Transaction on a non Head of Household (SSVF)",
+  mutate(Issue = "Service Transaction on a Non Head of Household (SSVF)",
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1976,7 +1994,7 @@ rm(aps_with_referrals, co_APs)
 aps_with_ees <- served_in_date_range %>%
   filter(ProjectType == 14) %>%
   mutate(Issue = "Access Point with Entry Exits",
-         Type = "Error") %>%
+         Type = "High Priority") %>%
   select(vars_we_want)
 
 # Side Door ---------------------------------------------------------------
@@ -2034,7 +2052,7 @@ unsheltered_enrollments <- served_in_date_range %>%
 
 unsheltered_not_unsheltered <- unsheltered_enrollments %>%
   filter(LivingSituation != 16) %>%
-  mutate(Type = "Error",
+  mutate(Type = "High Priority",
          Issue = "Wrong Provider (Not Unsheltered)") %>%
   select(vars_we_want)
 
@@ -2101,7 +2119,7 @@ ssvf_served_in_date_range <- Enrollment %>%
   right_join(
     served_in_date_range %>%
       filter(GrantType == "SSVF") %>%
-      select(PersonalID, EnrollmentID, HouseholdID),
+      select(PersonalID, EnrollmentID, HouseholdID, Region),
     by = c("PersonalID", "EnrollmentID", "HouseholdID")
   ) %>%
   left_join(
@@ -2467,8 +2485,8 @@ user_help <- dq_main %>%
       and they stop showing in reporting."
       ,
       Issue %in% c(
-        "Service Transaction on a non Head of Household (SSVF)",
-        "Service Transaction on a non Head of Household") ~
+        "Service Transaction on a Non Head of Household (SSVF)",
+        "Service Transaction on a Non Head of Household") ~
         "Users should not checkbox all the household members when creating a
       Service Transaction. Only the Head of Household needs a Service
       Transaction. Delete any extraneous Service Transactions related to this 
@@ -2480,11 +2498,11 @@ user_help <- dq_main %>%
       belongs to, navigate to the Entry/Exit tab and delete the program stay
       that was accidentally added for each household member.",
       Issue == "Check Eligibility" ~
-        "Households here do not appear to be eligible for this Project Type. 
-      Either the user entered the household into the incorrect project, or some
-      of the relevant data is missing, or the household was actually ineligible.
-      Please check with the CoC team if you have questions about eligibility
-      requirements for your project type.",
+        "Your Residence Prior data suggests that this project is either serving 
+      ineligible households, the household was entered into the wrong project, 
+      or the Residence Prior data at Entry is incorrect. Please check the terms 
+      of your grant or speak with the CoC team at COHHIO if you are unsure of 
+      eligibility criteria for your project type.",
       Issue == "Check Veteran Status for Accuracy" ~
         "You have indicated the household exited to a destination that only
       veterans are eligible for, but the head of household appears to be not a
@@ -2553,15 +2571,8 @@ user_help <- dq_main %>%
     )
   )
 
-dq_project_summary <- dq_main %>%
-  left_join(user_help, by = c("Issue", "Type")) %>%
-  group_by(ProjectName, Type, Issue, Guidance) %>%
-  count() %>%
-  select(ProjectName, "Clients" = n, Type, Issue, Guidance) %>%
-  ungroup() %>%
-  left_join(Project[,c("ProjectName", "RegionName", "OrganizationName")], 
-            by = "ProjectName") %>%
-  arrange(ProjectName, Type, desc(Clients))
+dq_main <- dq_main %>%
+  left_join(user_help, by = c("Type", "Issue"))
 
 # Controls what is shown in the CoC-wide DQ tab ---------------------------
 
@@ -2664,7 +2675,7 @@ rm(
 )
 
 dq_data_errors_plot <- dq_past_year %>%
-  filter(Type == "Error" &
+  filter(Type %in% c("Error", "High Priority") &
            !Issue %in% c("No Head of Household",
                         "Too Many Heads of Household",
                         "Children Only Household")) %>%
@@ -2719,7 +2730,7 @@ dq_plot_projects_warnings <-
   theme_minimal(base_size = 18)
 
 dq_data_error_types <- dq_past_year %>%
-  filter(Type == "Error") %>%
+  filter(Type %in% c("Error", "High Priority")) %>%
   group_by(Issue) %>%
   summarise(Errors = n()) %>%
   ungroup() %>%
@@ -2761,7 +2772,7 @@ dq_plot_warnings <-
   theme_minimal(base_size = 18)
 
 dq_data_hh_issues_plot <- dq_past_year %>%
-  filter(Type == "Error" &
+  filter(Type %in% c("Error", "High Priority") &
            Issue %in% c("No Head of Household",
                         "Too Many Heads of Household",
                         "Children Only Household")) %>%
@@ -2790,7 +2801,7 @@ dq_plot_hh_errors <-
   theme_minimal(base_size = 18)
 
 dq_data_outstanding_referrals_plot <- dq_past_year %>%
-  filter(Issue== "Old Outstanding Referral") %>%
+  filter(Issue == "Old Outstanding Referral") %>%
   select(PersonalID, ProjectID, ProjectName) %>%
   unique() %>%
   group_by(ProjectName, ProjectID) %>%
