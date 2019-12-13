@@ -2571,11 +2571,7 @@ dq_unsheltered <- rbind(
 ) %>%
   filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
-  select(-UserID, -UserName) 
-
-rm(Users)
-
-dq_unsheltered <- dq_unsheltered %>%
+  select(-UserID, -UserName) %>%
   filter(
     !Issue %in% c(
       "Conflicting Disability yes/no",
@@ -2599,9 +2595,7 @@ dq_unsheltered <- dq_unsheltered %>%
       "Non-cash Benefits Missing at Entry",
       "Non-cash Benefits Missing at Exit"
     )
-  )
-
-dq_unsheltered <- dq_unsheltered %>%
+  ) %>%
   left_join(user_help, by = c("Type", "Issue")) %>%
   mutate(Guidance = if_else(
     is.na(Guidance),
@@ -2632,7 +2626,10 @@ dq_unsheltered <- dq_unsheltered %>%
           <a href=\"https://youtu.be/qdmrqOHXoN0?t=721\" target=\"_blank\">here</a>."
     ),
     Guidance
-  ))
+  ),
+  Type = if_else(Issue == "Missing County Served", "High Priority", Type))
+
+rm(Users)
 
 # Controls what is shown in the CoC-wide DQ tab ---------------------------
 
