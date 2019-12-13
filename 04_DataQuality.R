@@ -2281,38 +2281,7 @@ dq_main <- rbind(
   select(-UserID, -UserName)
   
 
-dq_unsheltered <- rbind(
-  check_disability_ssi,
-  dkr_destination,
-  dkr_months_times_homeless,
-  dkr_residence_prior,
-  dkr_LoS,  
-  duplicate_ees,
-  future_ees,
-  hh_issues,
-  incorrect_ee_type,
-  lh_without_spdat,
-  missing_approx_date_homeless,
-  missing_destination,
-  missing_county_served,
-  # missingLivingSituationData, 
-  missing_LoS,
-  missing_months_times_homeless,
-  missing_residence_prior,
-  missing_udes,
-  old_outstanding_referrals,
-  referrals_on_hh_members,
-  spdat_on_non_hoh,
-  unsheltered_not_unsheltered,
-  unsh_incorrect_cmprovider,
-  unsh_missing_cm,
-  unsheltered_long_not_referred
-) %>%
-  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
-  left_join(Users, by = "UserCreating") %>%
-  select(-UserID, -UserName) 
 
-rm(Users)
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
 
@@ -2329,9 +2298,7 @@ dq_main <- dq_main %>%
       "Conflicting Non-cash Benefits yes/no at Exit",
       "Missing Disability Subs",
       "Incomplete Living Situation Data",
-      # "Missing Approximate Date Homeless",
       "Missing Months or Times Homeless",
-      # "Check Eligibility",
       "Don't Know/Refused Residence Prior",
       "Don't Know/Refused Months or Times Homeless",
       "Health Insurance Missing at Entry",
@@ -2551,8 +2518,7 @@ user_help <- dq_main %>%
       was a Head of Household in a past program stay, and in that situation, 
       this should not be corrected unless the Head of Household of your program 
       stay is missing their score. To correct this, you would need to completely 
-      re-enter the score on the correct client's record."
-      ,
+      re-enter the score on the correct client's record.",
       Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT" ~
         "Every household (besides those fleeing domestic violence and veteran
       households) must have a VI-SPDAT score to aid with prioritization into
@@ -2573,6 +2539,100 @@ user_help <- dq_main %>%
 
 dq_main <- dq_main %>%
   left_join(user_help, by = c("Type", "Issue"))
+
+
+# Unsheltered DQ ----------------------------------------------------------
+
+dq_unsheltered <- rbind(
+  check_disability_ssi,
+  dkr_destination,
+  dkr_months_times_homeless,
+  dkr_residence_prior,
+  dkr_LoS,  
+  duplicate_ees,
+  future_ees,
+  hh_issues,
+  incorrect_ee_type,
+  lh_without_spdat,
+  missing_approx_date_homeless,
+  missing_destination,
+  missing_county_served,
+  missing_LoS,
+  missing_months_times_homeless,
+  missing_residence_prior,
+  missing_udes,
+  old_outstanding_referrals,
+  referrals_on_hh_members,
+  spdat_on_non_hoh,
+  unsheltered_not_unsheltered,
+  unsh_incorrect_cmprovider,
+  unsh_missing_cm,
+  unsheltered_long_not_referred
+) %>%
+  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
+  left_join(Users, by = "UserCreating") %>%
+  select(-UserID, -UserName) 
+
+rm(Users)
+
+dq_unsheltered <- dq_unsheltered %>%
+  filter(
+    !Issue %in% c(
+      "Conflicting Disability yes/no",
+      # "Conflicting Disability yes/no at Exit",
+      "Conflicting Health Insurance yes/no at Entry",
+      "Conflicting Health Insurance yes/no at Exit",
+      "Conflicting Income yes/no at Entry",
+      "Conflicting Income yes/no at Exit",
+      "Conflicting Non-cash Benefits yes/no at Entry",
+      "Conflicting Non-cash Benefits yes/no at Exit",
+      "Missing Disability Subs",
+      "Incomplete Living Situation Data",
+      "Missing Months or Times Homeless",
+      "Don't Know/Refused Residence Prior",
+      "Don't Know/Refused Months or Times Homeless",
+      "Health Insurance Missing at Entry",
+      "Health Insurance Missing at Exit",
+      "Income Missing at Entry",
+      "Income Missing at Exit",
+      "Missing Residence Prior",
+      "Non-cash Benefits Missing at Entry",
+      "Non-cash Benefits Missing at Exit"
+    )
+  )
+
+dq_unsheltered <- dq_unsheltered %>%
+  left_join(user_help, by = c("Type", "Issue")) %>%
+  mutate(Guidance = if_else(
+    is.na(Guidance),
+    case_when(
+      Issue == "Wrong Provider (Not Unsheltered)" ~
+        "Clients who were incorrectly entered into the Unsheltered
+          provider should be exited. Otherwise, correct the data. Please review
+          the <a href=\"https://www.youtube.com/watch?v=qdmrqOHXoN0&t=174s\"
+          target=\"_blank\">data entry portion of the Unsheltered video training</a>
+          for more info.",
+      Issue == "Incorrect Provider in Case Manager record" ~
+        "When you save a Case Manager record, select the Access Point provider
+          that diverted the household in the provider picklist. See Step 4
+          in the <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
+          target=\"_blank\">Diversion workflow</a> for more info.",
+      Issue == "Missing Case Manager record" ~
+        "Each client entered into the Diversion Provider should have a Case
+          Manager record. See Step 4 in the
+          <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
+          target=\"_blank\">Diversion workflow</a> for more info.",
+      Issue == "Unsheltered 30+ Days with no Referral" ~
+        "Ideally households are being referred for housing from the Unsheltered
+          provider within a short period of time. These particular households are
+          currently unsheltered and without a referral. If the household has been
+          referred but that has not been captured in HMIS, please enter the referral.
+          To learn more about when to exit a household from the Unsheltered
+          Provider, click
+          <a href=\"https://youtu.be/qdmrqOHXoN0?t=721\" target=\"_blank\">here</a>."
+    ),
+    Guidance
+  ))
 
 # Controls what is shown in the CoC-wide DQ tab ---------------------------
 
