@@ -528,11 +528,7 @@ Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
 # Users ------------------- ----------------------------------------------
 Users <- read_xlsx("data/RMisc.xlsx",
                    sheet = 3,
-                   range = cell_cols("A:G"))
-
-# scrub the ProviderID off the end of the DefaultProvider
-
-Users <- Users %>%
+                   range = cell_cols("A:G")) %>%
   mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)"))
 
 users_region <- Users %>%
@@ -555,9 +551,6 @@ users_region <- Users %>%
 #   select(DefaultProvider) %>%
 #   unique() %>%
 #   view()
-
-# keeping this one instead of the one in the export because it has
-# "Default Provider" (which means no ditching ART in the near future)
 
 # Services ----------------------------------------------------------------
 
