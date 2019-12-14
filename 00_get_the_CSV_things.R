@@ -181,7 +181,7 @@ Project <- Project %>%
   left_join(provider_extras, by = "ProjectID") %>%
   left_join(coc_scoring, by = "ProjectID") %>%
   mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0),
-         ProviderRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
+         ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
                                   str_remove(ProviderRegion, "0"),
                                   ProviderRegion)) %>% 
   select(-UsesSP)
@@ -534,6 +534,8 @@ Users <- read_xlsx("data/RMisc.xlsx",
          ProjectCounty,
          ProviderRegion)
 
+rm(provider_extras)
+
 # some users don't have a County bc their Default Provider doesn't have an 
 # address. 
 
@@ -625,12 +627,14 @@ if(file.exists("data/referrals.zip")) {
 }
 
 Referrals <- read_csv("data/referrals.csv",
-                      col_types = "nnn?ccccccccc")
+                      col_types = "nnn?cccccccccc")
 
 Referrals <- Referrals %>%
   mutate(ReferralDate = mdy(ReferralDate),
          ReferralHHID = HouseholdID,
-         HouseholdID = NULL)
+         HouseholdID = NULL,
+         UserCreatingReferral = UserCreating,
+         UserCreating = NULL)
 
 # Age Function ------------------------------------------------------------
 
