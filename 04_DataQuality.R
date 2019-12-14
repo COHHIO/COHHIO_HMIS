@@ -2316,10 +2316,7 @@ dq_unsheltered <- rbind(
   ),
   Type = if_else(Issue == "Missing County Served", "High Priority", Type))
 
-# three problems with this:
-# the ProjectRegion column has 0's in it
-# Old Outstanding Referrals is not pulling in Project data
-# some default providers don't have a region saved to their record
+# need to add logic back that finds Unsheltered and AP old oustanding referrals
 
 rm(Users)
 
