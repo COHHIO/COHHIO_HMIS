@@ -54,7 +54,7 @@ projects_current_hmis <- Project %>%
     ProjectAKA,
     OrganizationName,
     ProjectCounty,
-    ProviderRegion
+    ProjectRegion
   ) %>% unique()
 
 rm(Inventory, Organization)
@@ -96,7 +96,7 @@ vars_prep <- c("HouseholdID",
                "MoveInDateAdjust", 
                "ExitDate",
                "UserCreating",
-               "ProviderRegion")
+               "ProjectRegion")
 
 vars_we_want <- c(vars_prep,
                   "Issue", 
@@ -464,7 +464,7 @@ detail_conflicting_disabilities <- served_in_date_range %>%
     PersonalID,
     AgeAtEntry,
     ProjectName,
-    ProviderRegion,
+    ProjectRegion,
     EntryDate,
     MoveInDateAdjust,
     ExitDate,
@@ -1671,22 +1671,27 @@ aps_with_ees <- served_in_date_range %>%
 # CW says ProviderCreating should work instead of Referred-From Provider
 # Using ProviderCreating instead. Either way, I feel this should go in the 
 # Provider Dashboard, not the Data Quality report.
-old_outstanding_referrals <- Referrals %>%
+
+internal_old_outstanding_referrals <- served_in_date_range %>%
+  semi_join(Referrals,
+            by = c("PersonalID")) %>%
+  left_join(Referrals,
+             by = c("PersonalID")) %>%
+  filter(ProviderCreating == ProjectName,
+         ProjectID != 1695) %>%
+  select(vars_prep, ProviderCreating, ReferralDate, ReferralOutcome, EnrollmentID) %>%
   filter(is.na(ReferralOutcome) &
            ReferralDate < today() - days(14)) %>%
-  select(PersonalID, ReferralDate, ProviderCreating) %>%
-  left_join(served_in_date_range,
-            by = c("ProviderCreating" = "ProjectName",
-                   "PersonalID")) %>%
   mutate(
     ProjectName = ProviderCreating,
     Issue = "Old Outstanding Referral",
-    Type = "Warning",
-    ProjectID = NULL
+    Type = "Warning"
   ) %>%
   select(vars_we_want)
 
-staging_outstanding_referrals <- old_outstanding_referrals %>%
+# ^^this is pulling in neither the Unsheltered NOR referrals from APs
+
+staging_outstanding_referrals <- internal_old_outstanding_referrals %>%
   left_join(Project[c("ProjectName", "ProjectID")], by = "ProjectName") %>%
   select(ProjectName, ProjectID, PersonalID) %>%
   group_by(ProjectName, ProjectID) %>%
@@ -1800,7 +1805,7 @@ ssvf_served_in_date_range <- Enrollment %>%
   right_join(
     served_in_date_range %>%
       filter(GrantType == "SSVF") %>%
-      select(PersonalID, EnrollmentID, HouseholdID, ProviderRegion),
+      select(PersonalID, EnrollmentID, HouseholdID, ProjectRegion),
     by = c("PersonalID", "EnrollmentID", "HouseholdID")
   ) %>%
   left_join(
@@ -1939,7 +1944,7 @@ dq_main <- rbind(
   missing_previous_street_ESSH,
   missing_residence_prior,
   missing_udes,
-  old_outstanding_referrals,
+  internal_old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_no_status_at_exit,
@@ -2242,7 +2247,7 @@ dq_unsheltered <- rbind(
   missing_months_times_homeless,
   missing_residence_prior,
   missing_udes,
-  old_outstanding_referrals,
+  internal_old_outstanding_referrals,
   referrals_on_hh_members,
   spdat_on_non_hoh,
   unsheltered_not_unsheltered,
@@ -2250,7 +2255,7 @@ dq_unsheltered <- rbind(
   unsh_missing_cm,
   unsheltered_long_not_referred
 ) %>%
-  select(-ProviderRegion) %>%
+  select(-ProjectRegion) %>%
   filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
   left_join(Users, by = "UserCreating") %>%
   select(-UserID, -UserName) %>%
@@ -2310,6 +2315,11 @@ dq_unsheltered <- rbind(
     Guidance
   ),
   Type = if_else(Issue == "Missing County Served", "High Priority", Type))
+
+# three problems with this:
+# the ProjectRegion column has 0's in it
+# Old Outstanding Referrals is not pulling in Project data
+# some default providers don't have a region saved to their record
 
 rm(Users)
 
@@ -2385,7 +2395,7 @@ rm(
   missing_ncbs_exit,
   missing_residence_prior,
   missing_udes,
-  old_outstanding_referrals,
+  internal_old_outstanding_referrals,
   path_enrolled_missing,
   path_missing_los_res_prior,
   path_no_status_at_exit,
