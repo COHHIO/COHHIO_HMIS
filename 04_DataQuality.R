@@ -453,11 +453,12 @@ rm(Disabilities)
 detail_conflicting_disabilities <- served_in_date_range %>%
   select(
     vars_prep,
+    EnrollmentID,
     AgeAtEntry,
     RelationshipToHoH,
     DisablingCondition
   ) %>%
-  left_join(smallDisabilities, by = "PersonalID") %>%
+  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(DisablingCondition %in% c(0, 1)) %>%
   group_by(
     PersonalID,
@@ -492,10 +493,11 @@ rm(detail_conflicting_disabilities)
 # INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
 missing_disability_subs <- served_in_date_range %>%
   select(vars_prep,
+         EnrollmentID,
          RelationshipToHoH,
          ProjectType,
          DisablingCondition) %>%
-  left_join(smallDisabilities, by = "PersonalID") %>%
+  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(DisablingCondition == 1 & is.na(DisabilitiesID)) %>%
   mutate(Issue = "Missing Disability Subs", Type = "Error") %>%
   select(vars_we_want)
@@ -503,9 +505,10 @@ missing_disability_subs <- served_in_date_range %>%
 ## NOT SURE IF THIS EVEN MATTERS ANYMORE?
 missing_long_duration <- served_in_date_range %>%
   select(vars_prep,
+         EnrollmentID,
          RelationshipToHoH,
          DisablingCondition) %>%
-  left_join(smallDisabilities, by = c("PersonalID")) %>%
+  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
   filter(IndefiniteAndImpairs == 99) %>%
   mutate(Issue = "Disabilities: missing Long Duration in subassessment",
          Type = "Error") %>%
@@ -800,12 +803,13 @@ smallIncomeSOAR <- IncomeBenefits %>%
 path_SOAR_missing_at_exit <- served_in_date_range %>%
   select(
     vars_prep,
+    EnrollmentID,
     AgeAtEntry,
     ClientEnrolledInPATH,
     EEType
   ) %>%
   left_join(smallProject, by = "ProjectName") %>%
-  left_join(smallIncomeSOAR, by = "PersonalID") %>%
+  left_join(smallIncomeSOAR, by = c("PersonalID", "EnrollmentID")) %>%
   filter(EEType == "PATH" &
            AgeAtEntry > 17 &
            DataCollectionStage == 3 &
@@ -1297,8 +1301,7 @@ unsh_overlaps <- dq_overlaps %>%
 
 missing_health_insurance_entry <- served_in_date_range %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_prep, AgeAtEntry, DataCollectionStage, InsuranceFromAnySource, 
-         UserCreating) %>%
+  select(vars_prep, AgeAtEntry, DataCollectionStage, InsuranceFromAnySource) %>%
   filter(DataCollectionStage == 1 & 
            (InsuranceFromAnySource == 99 | 
               is.na(InsuranceFromAnySource))) %>%
@@ -1308,7 +1311,7 @@ missing_health_insurance_entry <- served_in_date_range %>%
 
 missing_health_insurance_exit <- served_in_date_range %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_prep, DataCollectionStage, InsuranceFromAnySource, UserCreating) %>%
+  select(vars_prep, DataCollectionStage, InsuranceFromAnySource) %>%
   filter(DataCollectionStage == 3 & 
            (InsuranceFromAnySource == 99 | 
               is.na(InsuranceFromAnySource))) %>%
