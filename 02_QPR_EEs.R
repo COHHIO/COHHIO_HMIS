@@ -47,11 +47,11 @@ smallProject <- Project %>%
          ProjectType,
          HMISParticipatingProject,
          GrantType,
-         County,
-         Region) %>%
+         ProjectCounty,
+         ProjectRegion) %>%
   filter(HMISParticipatingProject == 1 &
            operating_between(., FileStart, FileEnd) &
-           !is.na(Region)) %>%
+           !is.na(ProjectRegion)) %>%
   mutate(
     FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA))
 
@@ -76,9 +76,20 @@ smallEnrollment <- Enrollment %>%
 
 validation <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
-  select(ProjectID, ProjectName, ProjectType, EnrollmentID, PersonalID, 
-         HouseholdID, RelationshipToHoH, EntryDate, MoveInDate, 
-         MoveInDateAdjust, ExitDate, Destination) %>%
+  select(
+    ProjectID,
+    ProjectName,
+    ProjectType,
+    EnrollmentID,
+    PersonalID,
+    HouseholdID,
+    RelationshipToHoH,
+    EntryDate,
+    MoveInDate,
+    MoveInDateAdjust,
+    ExitDate,
+    Destination
+  ) %>%
   filter(!is.na(EntryDate))
 
 smallEnrollment <- smallEnrollment %>%
@@ -102,7 +113,7 @@ qpr_leavers <- smallProject %>%
       Destination %in% c(8, 9, 17, 24, 30, 37, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
-    Region = paste("Homeless Planning Region", Region),
+    ProjectRegion = paste("Homeless Planning Region", ProjectRegion),
     DaysinProject = difftime(ExitAdjust, EntryDate, units = "days")
   ) %>% 
   filter(stayed_between(., FileStart, FileEnd))
@@ -114,7 +125,7 @@ qpr_rrh_enterers <- smallProject %>%
            RelationshipToHoH == 1) %>%
   mutate(
     DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days"),
-    Region = paste("Homeless Planning Region", Region),
+    Region = paste("Homeless Planning Region", ProjectRegion),
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
   )
 
@@ -134,7 +145,7 @@ qpr_benefits <- smallProject %>%
   select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
          EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
          InsuranceFromAnySource, BenefitsFromAnySource, DataCollectionStage, 
-         InformationDate, Region, County, ProjectType) %>%
+         InformationDate, ProjectRegion, ProjectCounty, ProjectType) %>%
   mutate(ProjectType = case_when(
     ProjectType == 1 ~ "Emergency Shelters", 
     ProjectType == 2 ~ "Transitional Housing", 
@@ -175,7 +186,7 @@ qpr_income <- smallProject %>%
   left_join(smallIncomeDiff, by = "EnrollmentID") %>%
   select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
          EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
-         EntryIncome, RecentIncome, Region, County, ProjectType) %>%
+         EntryIncome, RecentIncome, ProjectRegion, ProjectCounty, ProjectType) %>%
   mutate(
     Difference = RecentIncome - EntryIncome,
     ProjectType = case_when(
@@ -200,7 +211,7 @@ qpr_spending <- Services %>%
     PersonalID,
     OrganizationName,
     ProjectName,
-    Region,
+    ProjectRegion,
     ProjectType,
     Amount,
     Description,
