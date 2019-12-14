@@ -419,13 +419,6 @@ ProjectCoC <-
   read_csv("data/ProjectCoC.csv",
            col_types = "nncnccccnnTTcTn")
 
-
-# Users -------------------------------------------------------------------
-# User <- 
-#   read_csv("data/User.csv",
-#            col_types = "nccnncTTTn") <- useless bc only contains active
-# users and doesn't include Default Provider, which we need
-
 # Case Manager Records ----------------------------------------------------
 
 if(file.exists("data/casemanagers.zip")) {
@@ -529,9 +522,7 @@ Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
 Users <- read_xlsx("data/RMisc.xlsx",
                    sheet = 3,
                    range = cell_cols("A:G")) %>%
-  mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)"))
-
-users_region <- Users %>%
+  mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)")) %>%
   left_join(provider_extras, by = c("DefaultProvider" = "ProjectName")) %>%
   select(UserCreating,
          UserID,
@@ -544,13 +535,7 @@ users_region <- Users %>%
          ProviderRegion)
 
 # some users don't have a County bc their Default Provider doesn't have an 
-# address. Run this code to find which projects need addresses:
-
-# users_region %>%
-#   filter(is.na(ProjectCounty)) %>%
-#   select(DefaultProvider) %>%
-#   unique() %>%
-#   view()
+# address. 
 
 # Services ----------------------------------------------------------------
 
