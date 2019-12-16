@@ -2614,7 +2614,8 @@ rm(list = ls(pattern = "dq_data_"))
 rm(stray_services,
    staging_outstanding_referrals, 
    HealthAndDV,
-   missing_previous_street_ESSH)
+   missing_previous_street_ESSH,
+   a, b, c)
 
 save.image("images/Data_Quality.RData")
 
