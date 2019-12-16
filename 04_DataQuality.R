@@ -253,8 +253,7 @@ missing_previous_street_ESSH <- served_in_date_range %>%
            ymd(EntryDate) >= mdy("10012016") &
            is.na(PreviousStreetESSH) &
            LOSUnderThreshold == 1) %>% 
-  mutate(Issue = "Missing Previously From Street, ES, or SH (Length of Time 
-         Homeless questions)", 
+  mutate(Issue = "Missing Previously From Street, ES, or SH (Length of Time Homeless questions)", 
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1962,12 +1961,7 @@ dq_main <- rbind(
   filter(!ProjectName %in% c(
     "Diversion from Homeless System",
     "Unsheltered Clients - OUTREACH"
-  )) %>%
-  left_join(Users, by = "UserCreating") %>%
-  select(-UserID, -UserName)
-  
-
-
+  )) 
 
 # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
 
@@ -1997,12 +1991,70 @@ dq_main <- dq_main %>%
     )
   )
 
+# Unsheltered DQ ----------------------------------------------------------
 
+dq_unsheltered <- rbind(
+  check_disability_ssi,
+  dkr_destination,
+  dkr_months_times_homeless,
+  dkr_residence_prior,
+  dkr_LoS,  
+  duplicate_ees,
+  future_ees,
+  hh_issues,
+  incorrect_ee_type,
+  lh_without_spdat,
+  missing_approx_date_homeless,
+  missing_destination,
+  missing_county_served,
+  missing_LoS,
+  missing_months_times_homeless,
+  missing_residence_prior,
+  missing_udes,
+  internal_old_outstanding_referrals,
+  referrals_on_hh_members,
+  spdat_on_non_hoh,
+  unsheltered_not_unsheltered,
+  unsh_incorrect_cmprovider,
+  unsh_missing_cm,
+  unsheltered_long_not_referred
+) %>%
+  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
+  left_join(Users, by = "UserCreating") %>%
+  select(-UserID, -UserName, -ProjectRegion) %>%
+  filter(UserCounty != "Franklin" &
+           !Issue %in% c(
+             "Conflicting Disability yes/no",
+             # "Conflicting Disability yes/no at Exit",
+             "Conflicting Health Insurance yes/no at Entry",
+             "Conflicting Health Insurance yes/no at Exit",
+             "Conflicting Income yes/no at Entry",
+             "Conflicting Income yes/no at Exit",
+             "Conflicting Non-cash Benefits yes/no at Entry",
+             "Conflicting Non-cash Benefits yes/no at Exit",
+             "Missing Disability Subs",
+             "Incomplete Living Situation Data",
+             "Missing Months or Times Homeless",
+             "Don't Know/Refused Residence Prior",
+             "Don't Know/Refused Months or Times Homeless",
+             "Health Insurance Missing at Entry",
+             "Health Insurance Missing at Exit",
+             "Income Missing at Entry",
+             "Income Missing at Exit",
+             "Missing Residence Prior",
+             "Non-cash Benefits Missing at Entry",
+             "Non-cash Benefits Missing at Exit"
+           )
+  )
 # add in Issue explanations -----------------------------------------------
 
-user_help <- dq_main %>%
-  select(Type, Issue) %>%
-  unique() %>%
+a <- dq_main %>%
+  select(Type, Issue)
+b <- dq_unsheltered %>%
+  select(Type, Issue)
+c <- rbind(a, b) %>% unique()
+
+user_help <- c %>%
   arrange(Type, Issue) %>%
   mutate(
     Guidance = case_when(
@@ -2083,8 +2135,7 @@ user_help <- dq_main %>%
         "Missing Ethnicity",
         "Missing Gender",
         "Missing Months or Times Homeless",
-        "Missing Previously From Street, ES, or SH (Length of Time Homeless 
-        questions)",
+        "Missing Previously From Street, ES, or SH (Length of Time Homeless questions)",
         "Missing Race",
         "Missing Residence Prior",
         "Non-cash Benefits Missing at Entry",
@@ -2219,74 +2270,7 @@ user_help <- dq_main %>%
       Issue == "Future Entry Date" ~
         "Users should not be entering a client into a project on a date in the
       future. There is no action needed, but going forward, please be sure that
-      your data entry workflow is correct according to your project type."
-    )
-  )
-
-dq_main <- dq_main %>%
-  left_join(user_help, by = c("Type", "Issue"))
-
-
-# Unsheltered DQ ----------------------------------------------------------
-
-dq_unsheltered <- rbind(
-  check_disability_ssi,
-  dkr_destination,
-  dkr_months_times_homeless,
-  dkr_residence_prior,
-  dkr_LoS,  
-  duplicate_ees,
-  future_ees,
-  hh_issues,
-  incorrect_ee_type,
-  lh_without_spdat,
-  missing_approx_date_homeless,
-  missing_destination,
-  missing_county_served,
-  missing_LoS,
-  missing_months_times_homeless,
-  missing_residence_prior,
-  missing_udes,
-  internal_old_outstanding_referrals,
-  referrals_on_hh_members,
-  spdat_on_non_hoh,
-  unsheltered_not_unsheltered,
-  unsh_incorrect_cmprovider,
-  unsh_missing_cm,
-  unsheltered_long_not_referred
-) %>%
-  select(-ProjectRegion) %>%
-  filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
-  left_join(Users, by = "UserCreating") %>%
-  select(-UserID, -UserName) %>%
-  filter(
-    !Issue %in% c(
-      "Conflicting Disability yes/no",
-      # "Conflicting Disability yes/no at Exit",
-      "Conflicting Health Insurance yes/no at Entry",
-      "Conflicting Health Insurance yes/no at Exit",
-      "Conflicting Income yes/no at Entry",
-      "Conflicting Income yes/no at Exit",
-      "Conflicting Non-cash Benefits yes/no at Entry",
-      "Conflicting Non-cash Benefits yes/no at Exit",
-      "Missing Disability Subs",
-      "Incomplete Living Situation Data",
-      "Missing Months or Times Homeless",
-      "Don't Know/Refused Residence Prior",
-      "Don't Know/Refused Months or Times Homeless",
-      "Health Insurance Missing at Entry",
-      "Health Insurance Missing at Exit",
-      "Income Missing at Entry",
-      "Income Missing at Exit",
-      "Missing Residence Prior",
-      "Non-cash Benefits Missing at Entry",
-      "Non-cash Benefits Missing at Exit"
-    )
-  ) %>%
-  left_join(user_help, by = c("Type", "Issue")) %>%
-  mutate(Guidance = if_else(
-    is.na(Guidance),
-    case_when(
+      your data entry workflow is correct according to your project type.",
       Issue == "Wrong Provider (Not Unsheltered)" ~
         "Clients who were incorrectly entered into the Unsheltered
           provider should be exited. Otherwise, correct the data. Please review
@@ -2311,12 +2295,17 @@ dq_unsheltered <- rbind(
           To learn more about when to exit a household from the Unsheltered
           Provider, click
           <a href=\"https://youtu.be/qdmrqOHXoN0?t=721\" target=\"_blank\">here</a>."
-    ),
-    Guidance
-  ),
-  Type = if_else(Issue == "Missing County Served", "High Priority", Type))
+    )
+  )
 
-# need to add logic back that finds Unsheltered and AP old oustanding referrals
+dq_main <- dq_main %>%
+  left_join(user_help, by = c("Type", "Issue"))
+
+# Unsheltered DQ ----------------------------------------------------------
+
+dq_unsheltered <- dq_unsheltered %>%
+  left_join(user_help, by = c("Type", "Issue")) %>%
+  mutate(Type = if_else(Issue == "Missing County Served", "High Priority", Type))
 
 rm(Users)
 
