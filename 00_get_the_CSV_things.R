@@ -145,20 +145,13 @@ Project <-
   read_csv("data/Project.csv",
            col_types = "nnccDDnnnnnnnnTTcTn") 
 
-# if(file.exists("data/providers.zip")) {
-#   unzip(zipfile = "./data/providers.zip", exdir = "./data")
-#   
-#   file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-#               "data/providers.csv")
-#   
-#   file.remove("data/providers.zip")
-# }
-# provider_extras <- read_csv("data/providers.csv",
-#                             col_types = "icccccc")
-
 provider_extras <- read_xlsx("data/RMisc.xlsx",
                                 sheet = 4,
-                                range = cell_cols("A:H"))
+                                range = cell_cols("A:H")) %>%
+  mutate(ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
+                                 str_remove(ProviderRegion, "0"),
+                                 ProviderRegion),
+         ProviderRegion = NULL)
 
 if(file.exists("data/cocscoring.zip")) {
   unzip(zipfile = "./data/cocscoring.zip", exdir = "./data")
@@ -180,10 +173,7 @@ Project <- Project %>%
   select(-ProjectName) %>%
   left_join(provider_extras, by = "ProjectID") %>%
   left_join(coc_scoring, by = "ProjectID") %>%
-  mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0),
-         ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
-                                  str_remove(ProviderRegion, "0"),
-                                  ProviderRegion)) %>% 
+  mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0)) %>% 
   select(-UsesSP)
 
 rm(coc_scoring)
@@ -524,15 +514,17 @@ Users <- read_xlsx("data/RMisc.xlsx",
                    range = cell_cols("A:G")) %>%
   mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)")) %>%
   left_join(provider_extras, by = c("DefaultProvider" = "ProjectName")) %>%
-  select(UserCreating,
-         UserID,
-         UserName,
-         UserTelephone,
-         UserEmail,
-         UserActive,
-         DefaultProvider,
-         ProjectCounty,
-         ProviderRegion)
+  select(
+    UserCreating,
+    UserID,
+    UserName,
+    UserTelephone,
+    UserEmail,
+    UserActive,
+    DefaultProvider,
+    "UserCounty" = ProjectCounty,
+    "UserRegion" = ProjectRegion
+  ) 
 
 rm(provider_extras)
 
