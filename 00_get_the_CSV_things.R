@@ -522,7 +522,7 @@ if(file.exists("data/referrals.zip")) {
 }
 
 Referrals <- read_csv("data/referrals.csv",
-                      col_types = "nnn?ccccccccc")
+                      col_types = "nnn?cccccccccc")
 
 Referrals <- Referrals %>%
   mutate(ReferralDate = mdy(ReferralDate),
