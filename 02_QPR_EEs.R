@@ -51,7 +51,8 @@ smallProject <- Project %>%
          ProjectRegion) %>%
   filter(HMISParticipatingProject == 1 &
            operating_between(., FileStart, FileEnd) &
-           !is.na(ProjectRegion)) %>%
+           !is.na(ProjectRegion) &
+           ProjectType %in% c(1:4, 8:9, 12:14)) %>%
   mutate(
     FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA))
 
@@ -113,7 +114,6 @@ qpr_leavers <- smallProject %>%
       Destination %in% c(8, 9, 17, 24, 30, 37, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
-    ProjectRegion = paste("Homeless Planning Region", ProjectRegion),
     DaysinProject = difftime(ExitAdjust, EntryDate, units = "days")
   ) %>% 
   filter(stayed_between(., FileStart, FileEnd))
@@ -125,7 +125,6 @@ qpr_rrh_enterers <- smallProject %>%
            RelationshipToHoH == 1) %>%
   mutate(
     DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days"),
-    Region = paste("Homeless Planning Region", ProjectRegion),
     DaysinProject = difftime(ExitAdjust, EntryAdjust, units = "days")
   )
 
