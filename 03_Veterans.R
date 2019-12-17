@@ -37,7 +37,7 @@ VeteranHHs <- Veterans %>%
 # adding in all the provider data 
 VeteranHHs <- Project %>%
   select(ProjectID, OrganizationName, OperatingStartDate, OperatingEndDate,
-         ProjectType, GrantType, ProjectName, ProjectAKA, RegionName, Region) %>%
+         ProjectType, GrantType, ProjectName, ProjectAKA, ProjectRegion) %>%
   right_join(VeteranHHs, by = "ProjectID")
 
 VeteranHHs <- VeteranHHs %>%
@@ -57,7 +57,7 @@ CurrentVeterans <- VeteranHHs %>%
 
 CurrentVeteranCounts <- CurrentVeterans %>%
   filter(ProjectType %in% c(1, 2, 4, 8)) %>%
-  group_by(ProjectName, RegionName) %>%
+  group_by(ProjectName, ProjectRegion) %>%
   summarise(Veterans = n()) %>%
   ungroup()
 
@@ -70,11 +70,11 @@ VeteranEngagement <- CurrentVeterans %>%
       (!is.na(PHTrack) & (ymd(ExpectedPHDate) < today() |
                             is.na(ExpectedPHDate))) ~ "No Current Housing Plan"
   )) %>%
-  select(ProjectName, ProjectType, RegionName, PersonalID, PHTrack, 
+  select(ProjectName, ProjectType, ProjectRegion, PersonalID, PHTrack, 
          ExpectedPHDate, EngagementStatus)
 
 veteran_current_in_project <- VeteranEngagement %>%
-  group_by(ProjectName, ProjectType, RegionName, EngagementStatus) %>%
+  group_by(ProjectName, ProjectType, ProjectRegion, EngagementStatus) %>%
   summarise(CurrentVeteranCount = n()) %>%
   spread(key = EngagementStatus, value = CurrentVeteranCount) %>%
   rename(HasCurrentHousingPlan = `Has Current Housing Plan`,
@@ -108,7 +108,7 @@ veteran_current_in_project <- veteran_current_in_project %>%
                 "of these veterans have current Housing Plans")
       )
   ) %>%
-  left_join(CurrentVeteranCounts, by = c("ProjectName", "RegionName")) %>%
+  left_join(CurrentVeteranCounts, by = c("ProjectName", "ProjectRegion")) %>%
   ungroup()
 
 rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 

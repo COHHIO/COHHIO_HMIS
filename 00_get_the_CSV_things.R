@@ -39,11 +39,13 @@ library(tidyverse)
 library(lubridate)
 library(readxl)
 
-# Pulling in the CSVs -----------------------------------------------------
+# Affiliation -------------------------------------------------------------
 
 Affiliation <- 
   read_csv("data/Affiliation.csv", 
-           col_types = "nnnTTnTn")
+           col_types = "nnnTTnTn") 
+
+# Client ------------------------------------------------------------------
 
 if(ncol(read_csv("data/Client.csv")) == 36) {
   Client <-
@@ -55,152 +57,101 @@ if(ncol(read_csv("data/Client.csv")) == 36) {
     read_csv("data/Client.csv",
              col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
 }
+
+# Masking PII in the Client file (but not DOB) 
+
+if(ncol(read_csv("data/Client.csv")) == 36)
+{Client <- Client %>%
+  mutate(
+    FirstName = case_when(
+      NameDataQuality %in% c(8, 9) ~ "DKR",
+      NameDataQuality == 2 ~ "Partial",
+      NameDataQuality == 99 |
+        is.na(NameDataQuality) |
+        FirstName == "Anonymous" ~ "Missing",!(
+          NameDataQuality %in% c(2, 8, 9, 99) |
+            is.na(NameDataQuality) |
+            FirstName == "Anonymous"
+        ) ~ "ok"
+    ),
+    LastName = NULL,
+    MiddleName = NULL,
+    NameSuffix = NULL,
+    SSN = case_when(
+      (is.na(SSN) & !SSNDataQuality %in% c(8, 9)) |
+        is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
+      SSNDataQuality %in% c(8, 9) ~ "DKR",
+      # substr(SSN, 1, 1) == 0 |
+      # substr(SSN, 1, 2) == "00" |
+      (nchar(SSN) != 9 & SSNDataQuality != 2) |
+        substr(SSN, 1, 3) %in% c("000", "666") |
+        substr(SSN, 1, 1) == 9 |
+        substr(SSN, 4, 5) == "00" |
+        substr(SSN, 6, 9) == "0000" |
+        SSNDataQuality == 2 |
+        SSN %in% c(
+          111111111,
+          222222222,
+          333333333,
+          444444444,
+          555555555,
+          666666666,
+          777777777,
+          888888888,
+          123456789
+        ) ~ "Invalid",
+      SSNDataQuality == 2 & nchar(SSN) != 9 ~ "Incomplete"
+    )
+  )
+
+Client <- Client %>%
+  mutate(SSN = case_when(
+    is.na(SSN) ~ "ok",
+    !is.na(SSN) ~ SSN
+  ))}
+
+# this overwrites the raw Client.csv file on your computer with the final Client
+# object as a security measure.
+
+if(ncol(Client) == 33)
+{write_csv(Client, "data/Client.csv", append = FALSE)}
+
 # CurrentLivingSituation <- 
 #   read_csv("data/CurrentLivingSituation.csv",
 #             col_types = "nnnTncnnnnncTTcTc") DON'T NEED YET
 
+# Disabilities ------------------------------------------------------------
+
 Disabilities <-
   read_csv("data/Disabilities.csv",
            col_types = "cnnDnnnnnnnnnnTTnTn")
+
+
+# EmploymentEducation -----------------------------------------------------
+
 EmploymentEducation <-
   read_csv("data/EmploymentEducation.csv",
            col_types = "cnnDnnnnnnTTnTn")
-Enrollment <-
-  read_csv("data/Enrollment.csv",
-           col_types =
-             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
-EnrollmentCoC <- 
-  read_csv("data/EnrollmentCoC.csv", 
-           col_types = "cncnnDcnTTnTn")
-# Event <- 
-#   read_csv("data/Event.csv",
-#            col_types = "nnnDnnncDTTcTc") <- no data
+
+# Exit --------------------------------------------------------------------
+
 Exit <-
   read_csv("data/Exit.csv",
            col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
-Export <- 
-  read_csv("data/Export.csv",
-           col_types = "nnnccccncTDDccnnn")
-Funder <- 
-  read_csv("data/Funder.csv",
-           col_types = "nnnccDDTTcTn")
-HealthAndDV <-
-  read_csv("data/HealthAndDV.csv",
-           col_types = "cnnDnnnnnnnDnTTnTn")
-IncomeBenefits <- 
-  read_csv("data/IncomeBenefits.csv",
-           col_types = 
-             "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
-Inventory <-
-  read_csv("data/Inventory.csv",
-           col_types = "nncnnnnnnnnnnnnDDTTcTn")
-Organization <- 
-  read_csv("data/Organization.csv",
-           col_types = "ncncTTnTn")
+
+# Project -----------------------------------------------------------------
+
 Project <- 
   read_csv("data/Project.csv",
            col_types = "nnccDDnnnnnnnnTTcTn") 
 
-ProjectCoC <- 
-  read_csv("data/ProjectCoC.csv",
-           col_types = "nncnccccnnTTcTn")
-# User <- 
-#   read_csv("data/User.csv",
-#            col_types = "nccnncTTTn") <- useless bc only contains active
-# users and doesn't include Default Provider, which we need
-
-# - All other data comes from either the RMisc ART report or ReportWriter #
-
-# Case Manager Records ----------------------------------------------------
-
-if(file.exists("data/casemanagers.zip")) {
-  unzip(zipfile = "./data/casemanagers.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/casemanagers.csv")
-  
-  file.remove("data/casemanagers.zip")
-}
-
-CaseManagers <- read_csv("data/casemanagers.csv",
-                             col_types = "dccccc")
-
-# from sheet 1, creating a Scores table -----------------------------------
-
-if(file.exists("data/scoresfam.zip")) {
-  unzip(zipfile = "./data/scoresfam.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/scores.csv")
-  
-  file.remove("data/scoresfam.zip")
-}
-
-if(file.exists("data/scoresind.zip")) {
-  unzip(zipfile = "./data/scoresind.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/scoresind.csv")
-  
-  file.remove("data/scoresind.zip")
-}
-
-if(file.exists("data/scorestay.zip")) {
-  unzip(zipfile = "./data/scorestay.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/scorestay.csv")
-  
-  file.remove("data/scorestay.zip")
-}
-
-file.append("data/scores.csv", "data/scoresind.csv")
-
-file.append("data/scores.csv", "data/scorestay.csv")
-
-if(file.exists("data/scoresind.csv")) {
-file.remove(c("data/scoresind.csv", "data/scorestay.csv"))
-}
-
-Scores <- read_csv("data/scores.csv",
-                   col_types = "ccc") %>%
-  filter(Score != "Score") %>%
-  mutate(
-    ScoreDate = mdy(ScoreDate),
-    PersonalID = as.double(PersonalID),
-    Score = as.double(Score)
-  )
-
-# from sheets 1 and 2, getting EE-related data, joining both to En --------
-# will eventually come from aa: ees in ReportWriter, waiting on WS
-counties_rel_to_hoh <- read_xlsx("data/RMisc.xlsx",
-                      sheet = 1,
-                      range = cell_cols("B:E"),
-                      col_types = c("numeric", "numeric", "text", "text"))
-
-bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
-                          sheet = 2,
-                          range = cell_cols("A:D"))
-
-
-Enrollment <- Enrollment %>% select(-RelationshipToHoH) %>%
-  left_join(., bowman_entry_exits, by = "EnrollmentID") %>%
-  left_join(., counties_rel_to_hoh, by = "EnrollmentID") 
-
-rm(bowman_entry_exits, counties_rel_to_hoh)
-
-
-# grabbing extra provider data from sheet 5 -------------------------------
-# overwriting HUD CSV columns bc of the 50 character limit
-
-if(file.exists("data/providers.zip")) {
-  unzip(zipfile = "./data/providers.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/providers.csv")
-  
-  file.remove("data/providers.zip")
-}
+provider_extras <- read_xlsx("data/RMisc.xlsx",
+                                sheet = 4,
+                                range = cell_cols("A:H")) %>%
+  mutate(ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
+                                 str_remove(ProviderRegion, "0"),
+                                 ProviderRegion),
+         ProviderRegion = NULL)
 
 if(file.exists("data/cocscoring.zip")) {
   unzip(zipfile = "./data/cocscoring.zip", exdir = "./data")
@@ -211,11 +162,8 @@ if(file.exists("data/cocscoring.zip")) {
   file.remove("data/cocscoring.zip")
 }
 
-provider_extras <- read_csv("data/providers.csv",
-                            col_types = "icccccc")
-
 coc_scoring <- read_csv("data/cocscoring.csv",
-                       col_types = "dccdi?iiii")
+                        col_types = "dccdi?iiii")
 
 coc_scoring <- coc_scoring %>%
   mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs)) %>%
@@ -223,14 +171,15 @@ coc_scoring <- coc_scoring %>%
 
 Project <- Project %>%
   select(-ProjectName) %>%
-  left_join(., provider_extras, by = "ProjectID") %>%
+  left_join(provider_extras, by = "ProjectID") %>%
   left_join(coc_scoring, by = "ProjectID") %>%
   mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0)) %>% 
   select(-UsesSP)
 
-rm(provider_extras, coc_scoring)
+rm(coc_scoring)
 
-# Region data -------------------------------------------------------------
+# Regions
+
 regions <- tribble(
   ~ County, ~ Region,
   "Defiance", 1,
@@ -315,67 +264,47 @@ regions <- tribble(
   "Vinton", 17
 ) %>%
   mutate(RegionName = paste("Homeless Planning Region", Region))
+# 
+# Project <- left_join(project_county, regions, by = "County")
 
-project_county <- Project %>%
-  mutate(
-    County = str_remove(ProjectName, "zz"),
-    County = if_else(word(County, 1) == "Van", "Van Wert",
-                     word(County, 1))
-  ) 
+# EnrollmentCoC -----------------------------------------------------------
 
-Project <- left_join(project_county, regions, by = "County")
+EnrollmentCoC <- 
+  read_csv("data/EnrollmentCoC.csv", 
+           col_types = "cncnnDcnTTnTn")
 
-rm(project_county)
-# Custom Veteran Data -----------------------------------------------------
+# Enrollment --------------------------------------------------------------
 
-if(file.exists("data/cevets.zip")) {
-  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/cevets.csv")
-  
-  file.remove("data/cevets.zip")
-}
+Enrollment <-
+  read_csv("data/Enrollment.csv",
+           col_types =
+             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 
-VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+# from sheets 1 and 2, getting EE-related data, joining both to En --------
+# will eventually come from aa: ees in ReportWriter, waiting on WS
+counties_rel_to_hoh <- read_xlsx("data/RMisc.xlsx",
+                                 sheet = 1,
+                                 range = cell_cols("B:E"),
+                                 col_types = c("numeric", "numeric", "text", "text"))
 
-VeteranCE <- 
-  mutate(
-    VeteranCE,
-    DateVeteranIdentified = mdy(DateVeteranIdentified),
-    ExpectedPHDate = mdy(ExpectedPHDate),
-    MostRecentOfferDate = mdy(MostRecentOfferDate)
-  )
+bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
+                                sheet = 2,
+                                range = cell_cols("A:D"))
 
-# Offers of Housing -------------------------------------------------------
 
-if(file.exists("data/offers.zip")) {
-  unzip(zipfile = "./data/offers.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/offers.csv")
-  
-  file.remove("data/offers.zip")
-}
+Enrollment <- Enrollment %>% select(-RelationshipToHoH) %>%
+  left_join(., bowman_entry_exits, by = "EnrollmentID") %>%
+  left_join(., counties_rel_to_hoh, by = "EnrollmentID") 
 
-Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
-  mutate(
-    OfferDate = mdy(OfferDate),
-    AcceptDeclineDate = mdy(AcceptDeclineDate)
-  )
+rm(bowman_entry_exits, counties_rel_to_hoh)
 
-# User Contact Info from ART ----------------------------------------------
-Users <- read_xlsx("data/RMisc.xlsx",
-                   sheet = 3,
-                   range = cell_cols("A:G"))
-# keeping this one instead of the one in the export because it has
-# "Default Provider" (which means no ditching ART in the near future)
+# Adding Exit Data to Enrollment because I'm not tryin to have one-to-one 
+# relationships in this!
 
-# Adding Exit Data to Enrollment because c'mon ----------------------------
 small_exit <- Exit %>% select(EnrollmentID, 
-                             ExitDate, 
-                             Destination, 
-                             OtherDestination)
+                              ExitDate, 
+                              Destination, 
+                              OtherDestination)
 
 Enrollment <- left_join(Enrollment, small_exit, by = "EnrollmentID") %>%
   mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
@@ -422,8 +351,7 @@ Enrollment <- y %>%
 
 rm(small_project, y, HoHsEntry)
 
-
-# Getting Client Location into Enrollment ---------------------------------
+# Client Location
 
 y <- EnrollmentCoC %>%
   filter(DataCollectionStage == 1) %>%
@@ -433,6 +361,175 @@ Enrollment <- Enrollment %>%
   left_join(y, by = "EnrollmentID")
 
 rm(y)
+
+# Event <- 
+#   read_csv("data/Event.csv",
+#            col_types = "nnnDnnncDTTcTc") <- no data
+
+# Export ------------------------------------------------------------------
+
+Export <- 
+  read_csv("data/Export.csv",
+           col_types = "nnnccccncTDDccnnn")
+
+# Funder ------------------------------------------------------------------
+
+Funder <- 
+  read_csv("data/Funder.csv",
+           col_types = "nnnccDDTTcTn")
+
+# HealthAndDV -------------------------------------------------------------
+
+HealthAndDV <-
+  read_csv("data/HealthAndDV.csv",
+           col_types = "cnnDnnnnnnnDnTTnTn")
+
+# IncomeBenefits ----------------------------------------------------------
+
+IncomeBenefits <- 
+  read_csv("data/IncomeBenefits.csv",
+           col_types = 
+             "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
+
+# Inventory ---------------------------------------------------------------
+
+Inventory <-
+  read_csv("data/Inventory.csv",
+           col_types = "nncnnnnnnnnnnnnDDTTcTn")
+
+# Organization ------------------------------------------------------------
+
+Organization <- 
+  read_csv("data/Organization.csv",
+           col_types = "ncncTTnTn")
+
+# ProjectCoC --------------------------------------------------------------
+
+ProjectCoC <- 
+  read_csv("data/ProjectCoC.csv",
+           col_types = "nncnccccnnTTcTn")
+
+# Case Manager Records ----------------------------------------------------
+
+if(file.exists("data/casemanagers.zip")) {
+  unzip(zipfile = "./data/casemanagers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/casemanagers.csv")
+  
+  file.remove("data/casemanagers.zip")
+}
+
+CaseManagers <- read_csv("data/casemanagers.csv",
+                             col_types = "dccccc")
+
+# Scores ------------------------------------------------------------------
+
+if(file.exists("data/scoresfam.zip")) {
+  unzip(zipfile = "./data/scoresfam.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scores.csv")
+  
+  file.remove("data/scoresfam.zip")
+}
+
+if(file.exists("data/scoresind.zip")) {
+  unzip(zipfile = "./data/scoresind.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scoresind.csv")
+  
+  file.remove("data/scoresind.zip")
+}
+
+if(file.exists("data/scorestay.zip")) {
+  unzip(zipfile = "./data/scorestay.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/scorestay.csv")
+  
+  file.remove("data/scorestay.zip")
+}
+
+file.append("data/scores.csv", "data/scoresind.csv")
+
+file.append("data/scores.csv", "data/scorestay.csv")
+
+if(file.exists("data/scoresind.csv")) {
+file.remove(c("data/scoresind.csv", "data/scorestay.csv"))
+}
+
+Scores <- read_csv("data/scores.csv",
+                   col_types = "ccc") %>%
+  filter(Score != "Score") %>%
+  mutate(
+    ScoreDate = mdy(ScoreDate),
+    PersonalID = as.double(PersonalID),
+    Score = as.double(Score)
+  )
+
+
+# VeteranCE --------------------------------------------------------------
+
+if(file.exists("data/cevets.zip")) {
+  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cevets.csv")
+  
+  file.remove("data/cevets.zip")
+}
+
+VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+
+VeteranCE <- 
+  mutate(
+    VeteranCE,
+    DateVeteranIdentified = mdy(DateVeteranIdentified),
+    ExpectedPHDate = mdy(ExpectedPHDate),
+    MostRecentOfferDate = mdy(MostRecentOfferDate)
+  )
+
+# Offers -----------------------------------------------------------------
+
+if(file.exists("data/offers.zip")) {
+  unzip(zipfile = "./data/offers.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/offers.csv")
+  
+  file.remove("data/offers.zip")
+}
+
+Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
+  mutate(
+    OfferDate = mdy(OfferDate),
+    AcceptDeclineDate = mdy(AcceptDeclineDate)
+  )
+
+# Users ------------------- ----------------------------------------------
+Users <- read_xlsx("data/RMisc.xlsx",
+                   sheet = 3,
+                   range = cell_cols("A:G")) %>%
+  mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)")) %>%
+  left_join(provider_extras, by = c("DefaultProvider" = "ProjectName")) %>%
+  select(
+    UserCreating,
+    UserID,
+    UserName,
+    UserTelephone,
+    UserEmail,
+    UserActive,
+    DefaultProvider,
+    "UserCounty" = ProjectCounty,
+    "UserRegion" = ProjectRegion
+  ) 
+
+rm(provider_extras)
+
+# some users don't have a County bc their Default Provider doesn't have an 
+# address. 
 
 # Services ----------------------------------------------------------------
 
@@ -527,7 +624,9 @@ Referrals <- read_csv("data/referrals.csv",
 Referrals <- Referrals %>%
   mutate(ReferralDate = mdy(ReferralDate),
          ReferralHHID = HouseholdID,
-         HouseholdID = NULL)
+         HouseholdID = NULL,
+         UserCreatingReferral = UserCreating,
+         UserCreating = NULL)
 
 # Age Function ------------------------------------------------------------
 
@@ -656,63 +755,7 @@ FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 
-# Masking PII in the Client file (but not DOB) ----------------------------
 
-if(ncol(read_csv("data/Client.csv")) == 36)
-{Client <- Client %>%
-  mutate(
-    FirstName = case_when(
-      NameDataQuality %in% c(8, 9) ~ "DKR",
-      NameDataQuality == 2 ~ "Partial",
-      NameDataQuality == 99 |
-        is.na(NameDataQuality) |
-        FirstName == "Anonymous" ~ "Missing",!(
-          NameDataQuality %in% c(2, 8, 9, 99) |
-            is.na(NameDataQuality) |
-            FirstName == "Anonymous"
-        ) ~ "ok"
-    ),
-    LastName = NULL,
-    MiddleName = NULL,
-    NameSuffix = NULL,
-    SSN = case_when(
-      (is.na(SSN) & !SSNDataQuality %in% c(8, 9)) |
-        is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
-      SSNDataQuality %in% c(8, 9) ~ "DKR",
-      # substr(SSN, 1, 1) == 0 |
-        # substr(SSN, 1, 2) == "00" |
-        (nchar(SSN) != 9 & SSNDataQuality != 2) |
-        substr(SSN, 1, 3) %in% c("000", "666") |
-        substr(SSN, 1, 1) == 9 |
-        substr(SSN, 4, 5) == "00" |
-        substr(SSN, 6, 9) == "0000" |
-        SSNDataQuality == 2 |
-        SSN %in% c(
-          111111111,
-          222222222,
-          333333333,
-          444444444,
-          555555555,
-          666666666,
-          777777777,
-          888888888,
-          123456789
-        ) ~ "Invalid",
-      SSNDataQuality == 2 & nchar(SSN) != 9 ~ "Incomplete"
-    )
-  )
-
-Client <- Client %>%
-  mutate(SSN = case_when(
-    is.na(SSN) ~ "ok",
-    !is.na(SSN) ~ SSN
-  ))}
-
-# this overwrites the raw Client.csv file on your computer with the final Client
-# object as a security measure.
-
-if(ncol(Client) == 33)
-{write_csv(Client, "data/Client.csv", append = FALSE)}
 
 # Update Date -------------------------------------------------------------
 
