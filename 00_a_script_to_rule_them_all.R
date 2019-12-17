@@ -78,11 +78,6 @@ if(length(list.files("./data", pattern = "(cevets)")) == 0){
   "The cevets.zip file is missing or named incorrectly."
 } else{"Your cevets file is all good."}
 
-if(length(list.files("./data", pattern = "(providers)")) == 0){
-  stop <- 1
-  "The providers.zip file is missing or named incorrectly."
-} else{"Your providers file could not be better."}
-
 if((!file.exists("./data/scoresind.zip") |
    !file.exists("./data/scoresfam.zip") |
    !file.exists("./data/scorestay.zip")) &
