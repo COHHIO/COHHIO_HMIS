@@ -2308,10 +2308,12 @@ dq_main <- dq_main %>%
 
 dq_unsheltered <- dq_unsheltered %>%
   left_join(user_help, by = c("Type", "Issue")) %>%
-  mutate(Type = if_else(Issue == "Missing County Served", "High Priority", Type),
-         Type = factor(Type, levels = c("High Priority", 
-                                        "Error", 
-                                        "Warning")))
+  mutate(
+    Type = if_else(Issue == "Missing County Served", "High Priority", Type),
+    Type = factor(Type, levels = c("High Priority",
+                                   "Error",
+                                   "Warning"))
+  )
 
 rm(Users)
 
