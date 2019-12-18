@@ -38,6 +38,7 @@ coc_funded <- Funder %>%
 vars_we_want <- c(
   "PersonalID",
   "ProjectType",
+  "ProjectID",
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
