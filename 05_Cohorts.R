@@ -17,13 +17,14 @@ library(lubridate)
 
 load("images/COHHIOHMIS.RData")
 
-ReportStart <- "01012018"
-ReportEnd <- "12312018"
+ReportStart <- "01012019"
+ReportEnd <- "12312019"
 
 vars_we_want <- c(
   "PersonalID",
   "EnrollmentID",
   "ProjectName",
+  "ProjectID",
   "ProjectType",
   "HouseholdID",
   "RelationshipToHoH",
@@ -109,7 +110,7 @@ summary_adults_entered <- co_adults_entered %>%
   summarise(adults_who_entered = n())
 
 #	Leavers and Stayers	who	Entered During Reporting Period	HoHs
-co_hoh_enterers <-  Enrollment %>%
+co_hoh_enterers <- Enrollment %>%
   filter(
     entered_between(., ReportStart, ReportEnd) &
       RelationshipToHoH == 1
@@ -122,16 +123,16 @@ summary_hoh_enterers <- co_hoh_enterers %>%
   summarise(hoh_enterers = n())
 
 #	Leavers and Stayers	who were Served During Reporting Period (and Moved In)	All
-co_moved_in_served <-  Enrollment %>%
+co_moved_in_all <-  Enrollment %>%
   filter(
     stayed_between(., ReportStart, ReportEnd)
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)
 
-summary_moved_in_served <- co_moved_in_served %>%
+summary_moved_in_all <- co_moved_in_all %>%
   group_by(ProjectName) %>%
-  summarise(moved_in_served = n())
+  summarise(moved_in_all = n())
 
 #	Leavers and Stayers	who were Served During Reporting Period (and Moved In)	Adults
 co_adults_moved_in <-  Enrollment %>%
@@ -144,7 +145,7 @@ summary_adults_moved_in <- co_adults_moved_in %>%
   group_by(ProjectName) %>%
   summarise(adults_moved_in = n())
 
-#	Leavers	who were	Served During Reporting Period (and Moved In)	All
+#	Leavers	who were Served During Reporting Period (and Moved In)	All
 co_client_moved_in_leavers <-  Enrollment %>%
   filter(exited_between(., ReportStart, ReportEnd) &
            stayed_between(., ReportStart, ReportEnd)) %>%
@@ -154,6 +155,18 @@ co_client_moved_in_leavers <-  Enrollment %>%
 summary_client_moved_in_leavers <- co_client_moved_in_leavers %>%
   group_by(ProjectName) %>%
   summarise(client_moved_in_leavers = n())
+
+#	Leaver hohs	who were Served During Reporting Period (and Moved In)	HoHs
+co_hoh_moved_in_leavers <-  Enrollment %>%
+  filter(stayed_between(., ReportStart, ReportEnd) &
+           exited_between(., ReportStart, ReportEnd) &
+           RelationshipToHoH == 1) %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(vars_we_want)	
+
+summary_hoh_moved_in_leavers <- co_hoh_moved_in_leavers %>%
+  group_by(ProjectName) %>%
+  summarise(hoh_moved_in_leavers = n())
 
 #	Leavers	who were	Served During Reporting Period (and Moved In)	Adults
 co_adults_moved_in_leavers <-  Enrollment %>%
@@ -168,7 +181,8 @@ summary_adults_moved_in_leavers <- co_adults_moved_in_leavers %>%
   summarise(adults_moved_in_leavers = n())
 
 summary <- summary_all_served %>%
-  full_join(summary_moved_in_served, by = "ProjectName") %>%
+  full_join(summary_moved_in_all, by = "ProjectName") %>%
+  full_join(summary_hoh_moved_in_leavers, by = "ProjectName") %>%
   full_join(summary_adults_served, by = "ProjectName") %>%
   full_join(summary_adults_moved_in, by = "ProjectName") %>%
   full_join(summary_client_moved_in_leavers, by = "ProjectName") %>%
