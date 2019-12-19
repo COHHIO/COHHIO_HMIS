@@ -62,14 +62,16 @@ vars_we_want <- c(
   "ExitAdjust"
 )
 
+load("images/cohorts.RData")
+
 # several measures will use this
 # Adults who entered during date range
 
-co_adults_all_entered <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(entered_between(., ReportStart, ReportEnd) &
-         AgeAtEntry > 17) %>%
+pe_adults_entered <-  co_adults_entered %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)
 
 # for ncb logic
