@@ -38,32 +38,31 @@ vars_we_want <- c(
 )
 
 # Leaver and Stayer HoHs who were served during the reporting period
-co_hoh_served <-  Enrollment %>%
+co_hohs_served <-  Enrollment %>%
   filter(served_between(., ReportStart, ReportEnd) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-summary_hoh_served <- co_hoh_served %>%
+summary_hohs_served <- co_hohs_served %>%
   group_by(ProjectName) %>%
-  summarise(hoh_served = n())
+  summarise(hohs_served = n())
 
-# Leaver HoHs who were served and moved in during the reporting period
-co_hoh_served_leavers <-  Enrollment %>%
+# Leaver HoHs served during the reporting period
+coc_hohs_served_leavers <-  Enrollment %>%
   filter(
-    stayed_between(., ReportStart, ReportEnd) &
       exited_between(., ReportStart, ReportEnd) &
       RelationshipToHoH == 1
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-summary_hoh_served_leavers <- co_hoh_served_leavers %>%
+summary_hohs_served_leavers <- coc_hohs_served_leavers %>%
   group_by(ProjectName) %>%
-  summarise(hoh_served_leavers = n())
+  summarise(hohs_served_leavers = n())
 
 #	Leavers	who were Served During Reporting Period	Deaths
-co_hoh_leavers_died <- Enrollment %>%
+co_hohs_leavers_died <- Enrollment %>%
   filter(
       exited_between(., ReportStart, ReportEnd) &
       RelationshipToHoH == 1,
@@ -72,9 +71,9 @@ co_hoh_leavers_died <- Enrollment %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-summary_hoh_leavers_died  <- co_hoh_leavers_died  %>%
+summary_hohs_leavers_died  <- co_hohs_leavers_died  %>%
   group_by(ProjectName) %>%
-  summarise(hoh_leavers_died = n())
+  summarise(hohs_leavers_died = n())
 
 #	Leavers and Stayers	who were Served During Reporting Period	All
 co_all_served <-  Enrollment %>%
@@ -110,7 +109,7 @@ summary_adults_entered <- co_adults_entered %>%
   summarise(adults_who_entered = n())
 
 #	Leavers and Stayers	who	Entered During Reporting Period	HoHs
-co_hoh_enterers <- Enrollment %>%
+co_hohs_enterers <- Enrollment %>%
   filter(
     entered_between(., ReportStart, ReportEnd) &
       RelationshipToHoH == 1
@@ -118,9 +117,9 @@ co_hoh_enterers <- Enrollment %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-summary_hoh_enterers <- co_hoh_enterers %>%
+summary_hohs_enterers <- co_hohs_enterers %>%
   group_by(ProjectName) %>%
-  summarise(hoh_enterers = n())
+  summarise(hohs_enterers = n())
 
 #	Leavers and Stayers	who were Served During Reporting Period (and Moved In)	All
 co_moved_in_all <-  Enrollment %>%
@@ -156,19 +155,19 @@ summary_client_moved_in_leavers <- co_client_moved_in_leavers %>%
   group_by(ProjectName) %>%
   summarise(client_moved_in_leavers = n())
 
-#	Leaver hohs	who were Served During Reporting Period (and Moved In)	HoHs
-co_hoh_moved_in_leavers <-  Enrollment %>%
+#	Leaver hohs	who were Served (and Moved In) During Reporting Period	HoHs
+co_hohs_moved_in_leavers <-  Enrollment %>%
   filter(stayed_between(., ReportStart, ReportEnd) &
            exited_between(., ReportStart, ReportEnd) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(vars_we_want)	
 
-summary_hoh_moved_in_leavers <- co_hoh_moved_in_leavers %>%
+summary_hohs_moved_in_leavers <- co_hohs_moved_in_leavers %>%
   group_by(ProjectName) %>%
-  summarise(hoh_moved_in_leavers = n())
+  summarise(hohs_moved_in_leavers = n())
 
-#	Leavers	who were	Served During Reporting Period (and Moved In)	Adults
+#	Leavers	who were Served During Reporting Period (and Moved In)	Adults
 co_adults_moved_in_leavers <-  Enrollment %>%
   filter(exited_between(., ReportStart, ReportEnd) &
            stayed_between(., ReportStart, ReportEnd) &
@@ -182,16 +181,16 @@ summary_adults_moved_in_leavers <- co_adults_moved_in_leavers %>%
 
 summary <- summary_all_served %>%
   full_join(summary_moved_in_all, by = "ProjectName") %>%
-  full_join(summary_hoh_moved_in_leavers, by = "ProjectName") %>%
+  full_join(summary_hohs_moved_in_leavers, by = "ProjectName") %>%
   full_join(summary_adults_served, by = "ProjectName") %>%
   full_join(summary_adults_moved_in, by = "ProjectName") %>%
   full_join(summary_client_moved_in_leavers, by = "ProjectName") %>%
   full_join(summary_adults_moved_in_leavers, by = "ProjectName") %>%
-  full_join(summary_hoh_served, by = "ProjectName") %>%
-  full_join(summary_hoh_enterers, by = "ProjectName") %>%
-  full_join(summary_hoh_served_leavers, by= "ProjectName") %>%
+  full_join(summary_hohs_served, by = "ProjectName") %>%
+  full_join(summary_hohs_enterers, by = "ProjectName") %>%
+  full_join(summary_hohs_served_leavers, by= "ProjectName") %>%
   full_join(summary_adults_entered, by = "ProjectName") %>%
-  full_join(summary_hoh_leavers_died, by = "ProjectName")
+  full_join(summary_hohs_leavers_died, by = "ProjectName")
   
 rm(
   Affiliation,
