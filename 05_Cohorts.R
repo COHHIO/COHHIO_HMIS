@@ -33,8 +33,8 @@ library(lubridate)
 
 load("images/COHHIOHMIS.RData")
 
-ReportStart <- "01012019"
-ReportEnd <- "12312019"
+ReportStart <- FileStart
+ReportEnd <- FileEnd
 
 vars_we_want <- c(
   "PersonalID",
