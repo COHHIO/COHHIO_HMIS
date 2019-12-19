@@ -77,62 +77,58 @@ pe_adults_entered <-  co_adults_entered %>%
 # for ncb logic
 # Adults who moved in and exited during date range
 
-co_adults_movein_leavers <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(exited_between(., ReportStart, ReportEnd) &
-           stayed_between(., ReportStart, ReportEnd) &
-         AgeAtEntry > 17) %>%
+pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # increase income
 #Adults who moved in and were served during date range
 
-co_adults_movein_all <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
-         AgeAtEntry > 17) %>%
+pe_adults_moved_in <-  co_adults_moved_in %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # health insurance
 # Clients who moved in and exited during date range
 
-co_client_movein_leavers <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(exited_between(., ReportStart, ReportEnd) &
-           stayed_between(., ReportStart, ReportEnd)) %>%
+pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
 
-co_hohs_all <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(served_between(., ReportStart, ReportEnd) &
-         RelationshipToHoH == 1) %>%
+pe_hohs_served <-  co_hohs_served %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
 
-co_hohs_movein_leavers <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(
-    stayed_between(., ReportStart, ReportEnd) &
-      exited_between(., ReportStart, ReportEnd) &
-      RelationshipToHoH == 1
-  ) %>% 
+pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  select(vars_we_want)
 
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
-exits_to_ph <- co_adults_movein_all %>%
+pe_exits_to_ph <- pe_hohs_served %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -160,7 +156,7 @@ exits_to_ph <- co_adults_movein_all %>%
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
 
-own_housing <- co_hohs_movein_leavers %>%
+pe_own_housing <- pe_hohs_moved_in_leavers %>%
   mutate(MeetsObjective = case_when(
     Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
     !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
@@ -175,9 +171,21 @@ own_housing <- co_hohs_movein_leavers %>%
 # Accessing Mainstream Resources: NCBs ------------------------------------
 # PSH, TH, SH, RRH
 
-non_cash_at_exit <- co_adults_movein_leavers %>%
+pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_we_want, BenefitsFromAnySource, DataCollectionStage) %>%
+  select(PersonalID,
+         ProjectName,
+         EnrollmentID,
+         ProjectType,
+         HouseholdID,
+         RelationshipToHoH,
+         VeteranStatus,
+         EntryDate,
+         MoveInDateAdjust,
+         ExitDate,
+         ExitAdjust,
+         BenefitsFromAnySource,
+         DataCollectionStage) %>%
   group_by(PersonalID,
            ProjectType,
            VeteranStatus,
@@ -186,19 +194,7 @@ non_cash_at_exit <- co_adults_movein_leavers %>%
            EntryDate,
            HouseholdID,
            RelationshipToHoH,
-           LivingSituation,
-           LengthOfStay,
-           LOSUnderThreshold,
-           PreviousStreetESSH,
-           DateToStreetESSH,
-           TimesHomelessPastThreeYears,
-           AgeAtEntry,
-           MonthsHomelessPastThreeYears,
-           DisablingCondition,
-           MoveInDate,
-           MoveInDateAdjust,
            ExitDate,
-           Destination,
            ExitAdjust) %>%
   summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
   mutate(MeetsObjective =
@@ -209,9 +205,20 @@ non_cash_at_exit <- co_adults_movein_leavers %>%
 # Accessing Mainstream Resources: Health Insurance ------------------------
 # PSH, TH, SH, RRH
 
-health_ins_at_exit <- co_client_movein_leavers %>%
+pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_we_want, InsuranceFromAnySource, DataCollectionStage) %>%
+  select(PersonalID,
+         ProjectType,
+         VeteranStatus,
+         EnrollmentID,
+         ProjectName,
+         EntryDate,
+         HouseholdID,
+         RelationshipToHoH,
+         ExitDate,
+         ExitAdjust,
+         InsuranceFromAnySource, 
+         DataCollectionStage) %>%
   group_by(PersonalID,
            ProjectType,
            VeteranStatus,
@@ -220,50 +227,68 @@ health_ins_at_exit <- co_client_movein_leavers %>%
            EntryDate,
            HouseholdID,
            RelationshipToHoH,
-           LivingSituation,
-           LengthOfStay,
-           LOSUnderThreshold,
-           PreviousStreetESSH,
-           DateToStreetESSH,
-           TimesHomelessPastThreeYears,
-           AgeAtEntry,
-           MonthsHomelessPastThreeYears,
-           DisablingCondition,
-           MoveInDate,
-           MoveInDateAdjust,
            ExitDate,
-           Destination,
            ExitAdjust) %>%
   summarise(MostRecentHI = InsuranceFromAnySource[max(DataCollectionStage)]) %>%
-  mutate(MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
-                                    MostRecentHI != 1 | is.na(MostRecentHI) ~ 0))
+  mutate(
+    MostRecentHI = if_else(is.na(MostRecentHI) | MostRecentHI == 0, 0, 1),
+    MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
+                                    MostRecentHI != 1 ~ 0))
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
 
 # tried to use spread() for this but no dice. :(
 income_staging <- IncomeBenefits %>%
-  select(EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
+  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
   mutate(
-    IncomeAtEntry = if_else(DataCollectionStage == 1, TotalMonthlyIncome, NULL),
-    IncomeAtExit = if_else(DataCollectionStage == 3, TotalMonthlyIncome, NULL),
-    IncomeAtUpdate = if_else(DataCollectionStage == 2, TotalMonthlyIncome, NULL),
-    IncomeAtAnnual = if_else(DataCollectionStage == 5, TotalMonthlyIncome, NULL)
+    IncomeAtEntry = if_else(DataCollectionStage == 1, TotalMonthlyIncome, 0),
+    IncomeAtExit = if_else(DataCollectionStage == 3, TotalMonthlyIncome, 0),
+    IncomeAtUpdate = if_else(DataCollectionStage == 2, TotalMonthlyIncome, 0),
+    IncomeAtAnnual = if_else(DataCollectionStage == 5, TotalMonthlyIncome, 0)
   ) %>%
   select(-TotalMonthlyIncome, -DataCollectionStage) %>%
-  group_by(EnrollmentID) %>%
-  summarise(IncomeAtEntry = max(IncomeAtEntry, na.rm = TRUE), 
+  group_by(PersonalID, EnrollmentID) %>%
+  summarise(IncomeAtEntry = max(IncomeAtEntry, na.rm = FALSE), 
+            IncomeAtUpdate = max(IncomeAtUpdate, na.rm = FALSE),
             IncomeAtExit = max(IncomeAtExit, na.rm = TRUE),
-            IncomeAtUpdate = max(IncomeAtUpdate, na.rm = TRUE),
             IncomeAtAnnual = max(IncomeAtAnnual, na.rm = TRUE))
 
+# two problems really: one is that the export does not have a record if, say,
+# the income at Entry
+
+income_staging2 <- IncomeBenefits %>%
+  select(PersonalID,
+         EnrollmentID,
+         TotalMonthlyIncome,
+         InformationDate,
+         DataCollectionStage) %>%
+  mutate(
+    DataCollectionStage = case_when(
+      DataCollectionStage == 1 ~ "Entry",
+      DataCollectionStage == 2 ~ "Update",
+      DataCollectionStage == 3 ~ "Exit",
+      DataCollectionStage == 5 ~ "Annual"
+    )
+  ) %>%
+  pivot_wider(
+    id_cols = c(
+      "PersonalID",
+      "EnrollmentID",
+      "DataCollectionStage",
+      "InformationDate"
+    ),
+    names_from = DataCollectionStage,
+    values_from = TotalMonthlyIncome
+  )
+
   
-increase_income <- co_adults_movein_all %>%
-  left_join(income_staging, by = "EnrollmentID") %>%
+increase_income <- co_adults_moved_in %>%
+  left_join(income_staging, by = c("PersonalID", "EnrollmentID")) %>%
   select(vars_we_want, 
          IncomeAtEntry, 
-         IncomeAtExit, 
          IncomeAtUpdate, 
+         IncomeAtExit, 
          IncomeAtAnnual) %>%
   mutate(
     MeetsObjective = if_else(
