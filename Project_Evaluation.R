@@ -254,8 +254,9 @@ income_staging <- IncomeBenefits %>%
             IncomeAtExit = max(IncomeAtExit, na.rm = TRUE),
             IncomeAtAnnual = max(IncomeAtAnnual, na.rm = TRUE))
 
-# two problems really: one is that the export does not have a record if, say,
-# the income at Entry
+# one problem is there can be multiple updates and annuals, and I need to tell
+# which one to pull in. will need to use the InformationDate for this, and
+# then somehow tie all that into a pivot_wider thing.
 
 income_staging2 <- IncomeBenefits %>%
   select(PersonalID,
