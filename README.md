@@ -40,7 +40,7 @@ The workflow I'm currently using (which I expect to become less tedious eventual
 2. Run and save the RMisc report in .xlsx format to the **data** directory of this project.
 3. Download any other necessary data.
 3. Run 00_a_script_to_rule_them_all.R, which will run all the other scripts that begin with a number. 
-4. Doing 3. will create a .RData image file for each script that runs. Each image file have an extension of .RData and will be dropped into the **images** folder.
+4. Doing 4. will create a .RData image file for each script that runs. Each image file has an extension of .RData and will be dropped into the **images** folder.
 5. Your other projects (like R minor or R minor elevated) each have **data** folders with symbolic links in them, each pointing to the relevant .RData files.
 
 This will one day be written as a package, hopefully.
