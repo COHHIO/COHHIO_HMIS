@@ -260,36 +260,39 @@ income_staging2 <-  pe_adults_moved_in %>%
   )
   
 income_staging_fixed <- income_staging2 %>% 
-  filter(DataCollectionStage %in% c("Entry", "Exit")) 
+  filter(DataCollectionStage == "Entry") 
 
 income_staging_variable <- income_staging2 %>%
-  filter(is.na(ExitDate) &
-           DataCollectionStage %in% c("Update", "Annual")) %>%
+  filter(DataCollectionStage %in% c("Update", "Annual", "Exit")) %>%
   group_by(EnrollmentID) %>%
   mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
-  filter(ymd_hms(MaxUpdate) == ymd_hms(DateCreated)) %>%
+  filter(MaxUpdate == DateCreated) %>%
   select(-MaxUpdate) %>%
   distinct() %>%
   ungroup() 
 
-income_staging <- rbind(income_staging_fixed, income_staging_variable)
-  
-increase_income <- co_adults_moved_in %>%
-  left_join(income_staging, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_we_want, 
-         IncomeAtEntry, 
-         IncomeAtUpdate, 
-         IncomeAtExit, 
-         IncomeAtAnnual) %>%
+income_staging <- rbind(income_staging_fixed, income_staging_variable) %>%
+  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) 
+
+increase_income <- income_staging %>%
+  pivot_wider(names_from = DataCollectionStage,
+              values_from = TotalMonthlyIncome) %>%
   mutate(
-    MeetsObjective = if_else(
-      IncomeAtEntry < IncomeAtExit |
-        IncomeAtEntry < IncomeAtUpdate |
-        IncomeAtEntry < IncomeAtAnnual, 
-      1,
-      0
-    )
+    MostRecentIncome = case_when(
+      !is.na(Exit) ~ Exit,
+      !is.na(Update) ~ Update,
+      !is.na(Annual) ~ Annual
+    ),
+    Exit = NULL,
+    Update = NULL,
+    Annual = NULL,
+    Entry = if_else(is.na(Entry), 0, Entry),
+    MostRecentIncome = if_else(is.na(MostRecentIncome), Entry, MostRecentIncome),
+    MeetsObjective = case_when(MostRecentIncome > Entry ~ 1,
+                               MostRecentIncome <= Entry ~ 0)
   )
+
+rm(list = ls(pattern = "income_staging"))
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
