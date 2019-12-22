@@ -238,31 +238,17 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
 
-# tried to use spread() for this but no dice. :(
-income_staging <- IncomeBenefits %>%
-  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
-  mutate(
-    IncomeAtEntry = if_else(DataCollectionStage == 1, TotalMonthlyIncome, 0),
-    IncomeAtExit = if_else(DataCollectionStage == 3, TotalMonthlyIncome, 0),
-    IncomeAtUpdate = if_else(DataCollectionStage == 2, TotalMonthlyIncome, 0),
-    IncomeAtAnnual = if_else(DataCollectionStage == 5, TotalMonthlyIncome, 0)
-  ) %>%
-  select(-TotalMonthlyIncome, -DataCollectionStage) %>%
-  group_by(PersonalID, EnrollmentID) %>%
-  summarise(IncomeAtEntry = max(IncomeAtEntry, na.rm = FALSE), 
-            IncomeAtUpdate = max(IncomeAtUpdate, na.rm = FALSE),
-            IncomeAtExit = max(IncomeAtExit, na.rm = TRUE),
-            IncomeAtAnnual = max(IncomeAtAnnual, na.rm = TRUE))
+# one problem is there can be multiple updates and annuals, trying to figure
+# out the best way to get the most recent income
 
-# one problem is there can be multiple updates and annuals, and I need to tell
-# which one to pull in. will need to use the InformationDate for this, and
-# then somehow tie all that into a pivot_wider thing.
-
-income_staging2 <- IncomeBenefits %>%
+income_staging2 <-  pe_adults_moved_in %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID,
          EnrollmentID,
+         EntryDate,
+         ExitDate,
          TotalMonthlyIncome,
-         InformationDate,
+         DateCreated,
          DataCollectionStage) %>%
   mutate(
     DataCollectionStage = case_when(
@@ -271,18 +257,22 @@ income_staging2 <- IncomeBenefits %>%
       DataCollectionStage == 3 ~ "Exit",
       DataCollectionStage == 5 ~ "Annual"
     )
-  ) %>%
-  pivot_wider(
-    id_cols = c(
-      "PersonalID",
-      "EnrollmentID",
-      "DataCollectionStage",
-      "InformationDate"
-    ),
-    names_from = DataCollectionStage,
-    values_from = TotalMonthlyIncome
   )
+  
+income_staging_fixed <- income_staging2 %>% 
+  filter(DataCollectionStage %in% c("Entry", "Exit")) 
 
+income_staging_variable <- income_staging2 %>%
+  filter(is.na(ExitDate) &
+           DataCollectionStage %in% c("Update", "Annual")) %>%
+  group_by(EnrollmentID) %>%
+  mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
+  filter(ymd_hms(MaxUpdate) == ymd_hms(DateCreated)) %>%
+  select(-MaxUpdate) %>%
+  distinct() %>%
+  ungroup() 
+
+income_staging <- rbind(income_staging_fixed, income_staging_variable)
   
 increase_income <- co_adults_moved_in %>%
   left_join(income_staging, by = c("PersonalID", "EnrollmentID")) %>%
