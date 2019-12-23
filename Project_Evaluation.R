@@ -398,12 +398,18 @@ source("01_Bed_Unit_Utilization.R")
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
-hhi_detail <- co_adults_all_entered %>%
+pe_homeless_history_index <- pe_adults_entered %>%
   select(
-    PersonalID,
-    ProjectName,
     ProjectType,
+    ProjectName,
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    VeteranStatus,
     EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
     DateToStreetESSH,
     TimesHomelessPastThreeYears,
     MonthsHomelessPastThreeYears
@@ -519,9 +525,10 @@ hhi_detail <- co_adults_all_entered %>%
     )
   )
 
-hhi_summary <- hhi_detail %>%
-  group_by(ProjectType, ProjectName) %>%
-  summarise(AverageHHI = mean(HHI))
+# THIS MUST MOVE TO THE APPS SINCE WE'LL NEED TO FILTER BY DATES
+# hhi_summary <- hhi_detail %>%
+#   group_by(ProjectType, ProjectName) %>%
+#   summarise(AverageHHI = mean(HHI))
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
