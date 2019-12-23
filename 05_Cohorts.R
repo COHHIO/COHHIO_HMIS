@@ -43,6 +43,7 @@ vars_we_want <- c(
   "ProjectID",
   "ProjectType",
   "HouseholdID",
+  "AgeAtEntry",
   "RelationshipToHoH",
   "VeteranStatus",
   "EntryDate",
