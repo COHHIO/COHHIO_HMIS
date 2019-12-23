@@ -78,6 +78,15 @@ vars_to_the_apps <- c(
 
 load("images/cohorts.RData")
 
+# for data quality checking
+# clients served during date range
+
+pe_clients_served <-  co_clients_served %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
+  left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  select(vars_we_want)
 
 # several measures will use this
 # Adults who entered during date range
@@ -543,4 +552,33 @@ dq_items_being_checked <- dq_2019 %>%
            ProjectType %in% c(2, 3, 13, 8)) %>% 
   select(Issue) %>% 
   unique() 
+
+dq_staging <- dq_2019 %>%
+  filter(Type %in% c("Error", "High Priority") & 
+           ProjectType %in% c(2, 3, 13, 8)) %>% 
+  group_by(ProjectName) %>%
+  summarise(Issues = n()) %>%
+  ungroup()
+
+pe_dq_by_provider <- pe_clients_served %>%
+  select(ProjectName) %>%
+  unique() %>%
+  left_join(summary, by = "ProjectName") %>%
+  select(ProjectName, clients_served) %>%
+  left_join(dq_staging, by = "ProjectName")
+
+pe_dq_by_provider[is.na(pe_dq_by_provider)] <- 0
+
+pe_dq_by_provider <- pe_dq_by_provider %>%
+  mutate(Percent = Issues / clients_served,
+         Points = case_when(
+           Issues == 0 ~ 5,
+           Percent > 0 & Percent <= .02 ~ 4,
+           Percent > .02 & Percent <= .05 ~ 3,
+           Percent > .05 & Percent <= .08 ~ 2,
+           Percent > .08 & Percent <= .1 ~ 1,
+           Percent > .1 ~ 0
+           ),
+         ) %>%
+  select(ProjectName, "ClientsServed" = clients_served, Issues, Percent, Points)
 
