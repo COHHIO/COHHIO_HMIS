@@ -48,32 +48,32 @@ if(format.Date(file.info("data/RMisc.xlsx")$mtime, "%F") != today()){
   overwrite the current RMisc.xlsx with the new one."
 } else{"RMisc.xlsx looks good."}
 
-if(length(list.files("./data", pattern = "(casemanagers)")) == 0){
+if(length(list.files("./data", pattern = "(casemanagers.zip)")) == 0){
   stop <- 1
   "The casemanagers.zip file is missing or named incorrectly."
 } else{"Your casemanagers file looks good."}
 
-if(length(list.files("./data", pattern = "(referrals)")) == 0){
+if(length(list.files("./data", pattern = "(referrals.zip)")) == 0){
   stop <- 1
   "The referrals.zip file is missing or named incorrectly."
 } else{"Your referrals file is ok."}
 
-if(length(list.files("./data", pattern = "(services1)")) == 0){
+if(length(list.files("./data", pattern = "(services1.zip)")) == 0){
   stop <- 1
   "The services1.zip file is missing or named incorrectly."
 } else{"Your services1 file is fabulous!"}
 
-if(length(list.files("./data", pattern = "(services2)")) == 0){
+if(length(list.files("./data", pattern = "(services2.zip)")) == 0){
   stop <- 1
   "The services2.zip file is missing or named incorrectly."
 } else{"Your services2 file is perfect!"}
 
-if(length(list.files("./data", pattern = "(offers)")) == 0){
+if(length(list.files("./data", pattern = "(offers.zip)")) == 0){
   stop <- 1
   "The offers.zip file is missing or named incorrectly."
 } else{"Your offers file is fine!"}
 
-if(length(list.files("./data", pattern = "(cevets)")) == 0){
+if(length(list.files("./data", pattern = "(cevets.zip)")) == 0){
   stop <- 1
   "The cevets.zip file is missing or named incorrectly."
 } else{"Your cevets file is all good."}

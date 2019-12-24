@@ -21,23 +21,29 @@ load("images/COHHIOHMIS.RData")
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
 # Staging -----------------------------------------------------------------
-reporting_year <- 2019
-
-ReportStart <- paste0("0101", reporting_year)
-ReportEnd <- paste0("1231", reporting_year)
 
 # filter to only CoC-funded projects
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
-           ymd(StartDate) <= mdy(ReportEnd) &
+           ymd(StartDate) <= mdy(FileEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(ReportStart))) %>%
+              ymd(EndDate) >= mdy(FileStart))) %>%
   select(ProjectID, Funder)
+
+pe_coc_funded <- Funder %>%
+  filter(Funder %in% c(1:7, 43) &
+           ymd(StartDate) <= mdy(FileEnd) &
+           (is.na(EndDate) |
+              ymd(EndDate) >= mdy(FileStart))) %>%
+  select(ProjectID, Funder, StartDate, EndDate) %>%
+  left_join(Project[c("ProjectID", "ProjectName", "ProjectType")], by = "ProjectID") %>%
+  select(ProjectType, ProjectName, Funder, StartDate, EndDate)
 
 vars_we_want <- c(
   "PersonalID",
   "ProjectType",
+  "ProjectID",
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
@@ -61,75 +67,113 @@ vars_we_want <- c(
   "ExitAdjust"
 )
 
+vars_to_the_apps <- c(
+  "ProjectType",
+  "ProjectName",
+  "PersonalID",
+  "EnrollmentID",
+  "HouseholdID",
+  "AgeAtEntry",
+  "VeteranStatus",
+  "EntryDate",
+  "MoveInDateAdjust",
+  "ExitDate",
+  "MeetsObjective"
+)
+
+load("images/cohorts.RData")
+
+# for data quality checking
+# clients served during date range
+
+pe_clients_served <-  co_clients_served %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
+  left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  select(vars_we_want)
+
 # several measures will use this
 # Adults who entered during date range
 
-co_adults_all_entered <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(entered_between(., ReportStart, ReportEnd) &
-         AgeAtEntry > 17) %>%
+pe_adults_entered <-  co_adults_entered %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)
 
 # for ncb logic
 # Adults who moved in and exited during date range
 
-co_adults_movein_leavers <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(exited_between(., ReportStart, ReportEnd) &
-           stayed_between(., ReportStart, ReportEnd) &
-         AgeAtEntry > 17) %>%
+pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # increase income
 #Adults who moved in and were served during date range
 
-co_adults_movein_all <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
-         AgeAtEntry > 17) %>%
+pe_adults_moved_in <-  co_adults_moved_in %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # health insurance
 # Clients who moved in and exited during date range
 
-co_client_movein_leavers <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(exited_between(., ReportStart, ReportEnd) &
-           stayed_between(., ReportStart, ReportEnd)) %>%
+pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
 
-co_hohs_all <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(served_between(., ReportStart, ReportEnd) &
-         RelationshipToHoH == 1) %>%
+pe_hohs_served <-  co_hohs_served %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
 
-co_hohs_movein_leavers <-  Enrollment %>%
-  right_join(coc_funded, by = "ProjectID")  %>%
-  filter(
-    stayed_between(., ReportStart, ReportEnd) &
-      exited_between(., ReportStart, ReportEnd) &
-      RelationshipToHoH == 1
-  ) %>% 
+pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  select(vars_we_want)
 
+
+# CoC Scoring -------------------------------------------------------------
+
+pe_scoring <- pe_coc_funded %>%
+  left_join(Project, by = c("ProjectType", "ProjectName")) %>%
+  select(
+    ProjectType,
+    ProjectName,
+    CostPerExit,
+    CostPerExitScore,
+    DateReceivedPPDocs,
+    HousingFirstScore,
+    ChronicPrioritizationScore,
+    OnTrackSpendingScoring,
+    UnspentFundsScoring
+  )
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
-exits_to_ph <- co_adults_movein_all %>%
+pe_exits_to_ph <- pe_hohs_served %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -151,17 +195,25 @@ exits_to_ph <- co_adults_movein_all %>%
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(ProjectType, ProjectName, PersonalID, EntryDate, MoveInDate, ExitDate, Destination,
-         DestinationGroup, MeetsObjective)
+  select(vars_to_the_apps, Destination, DestinationGroup)
 
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
 
-own_housing <- co_hohs_movein_leavers %>%
+pe_own_housing <- pe_hohs_moved_in_leavers %>%
   mutate(MeetsObjective = case_when(
     Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
     !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
-  ))
+  ),
+  DestinationGroup = case_when(
+    Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
+    Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "Household's Own Housing",
+    Destination %in% c(21:22) ~ "Shared Housing",
+    Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
+    Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+    is.na(Destination) ~ "Still in Program"
+  )) %>%
+  select(vars_to_the_apps, Destination, DestinationGroup)
 
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
@@ -172,157 +224,256 @@ own_housing <- co_hohs_movein_leavers %>%
 # Accessing Mainstream Resources: NCBs ------------------------------------
 # PSH, TH, SH, RRH
 
-non_cash_at_exit <- co_adults_movein_leavers %>%
+pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_we_want, BenefitsFromAnySource, DataCollectionStage) %>%
+  select(PersonalID,
+         ProjectName,
+         EnrollmentID,
+         ProjectType,
+         HouseholdID,
+         RelationshipToHoH,
+         VeteranStatus,
+         EntryDate,
+         MoveInDateAdjust,
+         AgeAtEntry,
+         ExitDate,
+         ExitAdjust,
+         BenefitsFromAnySource,
+         DataCollectionStage) %>%
   group_by(PersonalID,
            ProjectType,
            VeteranStatus,
            EnrollmentID,
            ProjectName,
            EntryDate,
+           MoveInDateAdjust,
+           AgeAtEntry,
            HouseholdID,
            RelationshipToHoH,
-           LivingSituation,
-           LengthOfStay,
-           LOSUnderThreshold,
-           PreviousStreetESSH,
-           DateToStreetESSH,
-           TimesHomelessPastThreeYears,
-           AgeAtEntry,
-           MonthsHomelessPastThreeYears,
-           DisablingCondition,
-           MoveInDate,
-           MoveInDateAdjust,
            ExitDate,
-           Destination,
            ExitAdjust) %>%
   summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
   mutate(MeetsObjective =
            case_when(MostRecentNCB == 1 ~ 1,
                      MostRecentNCB != 1 |
-                       is.na(MostRecentNCB) ~ 0))
+                       is.na(MostRecentNCB) ~ 0)) %>%
+  ungroup() %>%
+  select(vars_to_the_apps, MostRecentNCB)
 
 # Accessing Mainstream Resources: Health Insurance ------------------------
 # PSH, TH, SH, RRH
 
-health_ins_at_exit <- co_client_movein_leavers %>%
+pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(vars_we_want, InsuranceFromAnySource, DataCollectionStage) %>%
-  group_by(PersonalID,
-           ProjectType,
-           VeteranStatus,
-           EnrollmentID,
-           ProjectName,
-           EntryDate,
-           HouseholdID,
-           RelationshipToHoH,
-           LivingSituation,
-           LengthOfStay,
-           LOSUnderThreshold,
-           PreviousStreetESSH,
-           DateToStreetESSH,
-           TimesHomelessPastThreeYears,
-           AgeAtEntry,
-           MonthsHomelessPastThreeYears,
-           DisablingCondition,
-           MoveInDate,
-           MoveInDateAdjust,
-           ExitDate,
-           Destination,
-           ExitAdjust) %>%
+  select(
+    PersonalID,
+    ProjectType,
+    VeteranStatus,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    AgeAtEntry,
+    HouseholdID,
+    RelationshipToHoH,
+    ExitDate,
+    ExitAdjust,
+    InsuranceFromAnySource,
+    DataCollectionStage
+  ) %>%
+  group_by(
+    PersonalID,
+    ProjectType,
+    VeteranStatus,
+    EnrollmentID,
+    MoveInDateAdjust,
+    AgeAtEntry,    
+    ProjectName,
+    EntryDate,
+    HouseholdID,
+    RelationshipToHoH,
+    ExitDate,
+    ExitAdjust
+  ) %>%
   summarise(MostRecentHI = InsuranceFromAnySource[max(DataCollectionStage)]) %>%
-  mutate(MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
-                                    MostRecentHI != 1 | is.na(MostRecentHI) ~ 0))
+  mutate(
+    MostRecentHI = if_else(is.na(MostRecentHI) |
+                             MostRecentHI == 0, 0, 1),
+    MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
+                               MostRecentHI != 1 ~ 0)
+  ) %>%
+  ungroup() %>%
+  select(vars_to_the_apps, MostRecentHI)
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
 
-# tried to use spread() for this but no dice. :(
-income_staging <- IncomeBenefits %>%
-  select(EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
-  mutate(
-    IncomeAtEntry = if_else(DataCollectionStage == 1, TotalMonthlyIncome, NULL),
-    IncomeAtExit = if_else(DataCollectionStage == 3, TotalMonthlyIncome, NULL),
-    IncomeAtUpdate = if_else(DataCollectionStage == 2, TotalMonthlyIncome, NULL),
-    IncomeAtAnnual = if_else(DataCollectionStage == 5, TotalMonthlyIncome, NULL)
-  ) %>%
-  select(-TotalMonthlyIncome, -DataCollectionStage) %>%
-  group_by(EnrollmentID) %>%
-  summarise(IncomeAtEntry = max(IncomeAtEntry, na.rm = TRUE), 
-            IncomeAtExit = max(IncomeAtExit, na.rm = TRUE),
-            IncomeAtUpdate = max(IncomeAtUpdate, na.rm = TRUE),
-            IncomeAtAnnual = max(IncomeAtAnnual, na.rm = TRUE))
+# one problem is there can be multiple updates and annuals, trying to figure
+# out the best way to get the most recent income
 
-  
-increase_income <- co_adults_movein_all %>%
-  left_join(income_staging, by = "EnrollmentID") %>%
-  select(vars_we_want, 
-         IncomeAtEntry, 
-         IncomeAtExit, 
-         IncomeAtUpdate, 
-         IncomeAtAnnual) %>%
+income_staging2 <-  pe_adults_moved_in %>%
+  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+  select(PersonalID,
+         EnrollmentID,
+         EntryDate,
+         ExitDate,
+         TotalMonthlyIncome,
+         DateCreated,
+         DataCollectionStage) %>%
   mutate(
-    MeetsObjective = if_else(
-      IncomeAtEntry < IncomeAtExit |
-        IncomeAtEntry < IncomeAtUpdate |
-        IncomeAtEntry < IncomeAtAnnual, 
-      1,
-      0
+    DataCollectionStage = case_when(
+      DataCollectionStage == 1 ~ "Entry",
+      DataCollectionStage == 2 ~ "Update",
+      DataCollectionStage == 3 ~ "Exit",
+      DataCollectionStage == 5 ~ "Annual"
     )
   )
+  
+income_staging_fixed <- income_staging2 %>% 
+  filter(DataCollectionStage == "Entry") 
+
+income_staging_variable <- income_staging2 %>%
+  filter(DataCollectionStage %in% c("Update", "Annual", "Exit")) %>%
+  group_by(EnrollmentID) %>%
+  mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
+  filter(MaxUpdate == DateCreated) %>%
+  select(-MaxUpdate) %>%
+  distinct() %>%
+  ungroup() 
+
+income_staging <- rbind(income_staging_fixed, income_staging_variable) %>%
+  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) 
+
+pe_increase_income <- income_staging %>%
+  pivot_wider(names_from = DataCollectionStage,
+              values_from = TotalMonthlyIncome) %>%
+  mutate(
+    MostRecentIncome = case_when(
+      !is.na(Exit) ~ Exit,!is.na(Update) ~ Update,!is.na(Annual) ~ Annual
+    ),
+    Exit = NULL,
+    Update = NULL,
+    Annual = NULL,
+    Entry = if_else(is.na(Entry), 0, Entry),
+    MostRecentIncome = if_else(is.na(MostRecentIncome), Entry, MostRecentIncome),
+    MeetsObjective = case_when(MostRecentIncome > Entry ~ 1,
+                               MostRecentIncome <= Entry ~ 0)
+  ) %>%
+  left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
+  select(
+    vars_to_the_apps,
+    "IncomeAtEntry" = Entry,
+    "IncomeMostRecent" = MostRecentIncome
+  )
+
+rm(list = ls(pattern = "income_staging"))
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
 
-TotalLeavers <- co_hohs_movein_leavers %>%
-  group_by(ProjectName) %>%
-  summarise(Leavers = n())
+pe_length_of_stay <- co_hohs_moved_in_leavers %>%
+  select(ProjectType,
+         ProjectName,
+         PersonalID,
+         EnrollmentID,
+         HouseholdID,
+         AgeAtEntry,
+         VeteranStatus,
+         EntryDate,
+         MoveInDateAdjust,
+         ExitDate)
 
-length_of_stay_summary <- co_hohs_movein_leavers %>%
-  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
-  group_by(ProjectName, ProjectType) %>%
-  summarise(
-    AverageDays = as.numeric(mean(DaysInProject)),
-    MedianDays = as.numeric(median(DaysInProject))
-  ) %>%
-  left_join(TotalLeavers, by = "ProjectName") 
+# ALL OF THIS WILL NEED TO MOVE TO THE APPS SINCE WE NEED TO BE ABLE TO FILTER
+# ON DATES ---
+# TotalLeavers <- co_hohs_moved_in_leavers %>%
+#   group_by(ProjectName) %>%
+#   summarise(Leavers = n())
+# 
+# length_of_stay_summary <- co_hohs_moved_in_leavers %>%
+#   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
+#   group_by(ProjectName, ProjectType) %>%
+#   summarise(
+#     AverageDays = as.numeric(mean(DaysInProject)),
+#     MedianDays = as.numeric(median(DaysInProject))
+#   ) %>%
+#   left_join(TotalLeavers, by = "ProjectName") 
+# ---
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)
 
-# setting the FilePeriod to the date range of the Project Evaluation
-FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
-# rerunning the Utilization script with that new date interval
-source("01_Bed_Unit_Utilization.R")
-# getting what we need from the Utilization script
-utilization_unit_2019 <- utilization_unit %>%
-  ungroup() %>%
-  select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
-
-utilization_bed_2019 <- utilization_bed %>%
-  ungroup() %>%
-  select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
-# setting the FilePeriod back to what it was before
-FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-# re-re-running the script so the image file is like it was
-source("01_Bed_Unit_Utilization.R")
+# THIS WILL NEED TO BE DONE IN THE APPS IN ORDER TO FILTER ON DATES
+# # setting the FilePeriod to the date range of the Project Evaluation
+# FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+# # rerunning the Utilization script with that new date interval
+# source("01_Bed_Unit_Utilization.R")
+# # getting what we need from the Utilization script
+# utilization_unit_2019 <- utilization_unit %>%
+#   ungroup() %>%
+#   select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
+# 
+# utilization_bed_2019 <- utilization_bed %>%
+#   ungroup() %>%
+#   select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
+# # setting the FilePeriod back to what it was before
+# FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
+# # re-re-running the script so the image file is like it was
+# source("01_Bed_Unit_Utilization.R")
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
 
+pe_res_prior <- pe_adults_entered %>%
+  filter(ProjectType %in% c(2, 3, 13, 8)) %>%
+  mutate(MeetsObjective = if_else(
+    (ProjectType %in% c(2, 3, 13) &
+       LivingSituation %in% c(1, 16, 18)) |
+      (ProjectType == 8 &
+         LivingSituation == 16),
+    1, 
+    0
+  )) %>%
+  select(vars_to_the_apps, LivingSituation) %>%
+  filter(!is.na(PersonalID))
+
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
+
+pe_entries_no_income <- pe_adults_entered %>%
+  filter(ProjectType %in% c(2, 3, 13, 8)) %>%
+  select(EnrollmentID, HouseholdID) %>%
+  left_join(pe_increase_income, by = c("EnrollmentID", "HouseholdID")) %>%
+  select(
+    PersonalID,
+    ProjectType,
+    ProjectName,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    VeteranStatus,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    IncomeAtEntry
+  ) %>%
+  mutate(MeetsObjective = if_else(IncomeAtEntry == 0, 1, 0)) %>%
+  filter(!is.na(PersonalID))
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
-hhi_detail <- co_adults_all_entered %>%
+pe_homeless_history_index <- pe_adults_entered %>%
   select(
-    PersonalID,
-    ProjectName,
     ProjectType,
+    ProjectName,
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    VeteranStatus,
     EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
     DateToStreetESSH,
     TimesHomelessPastThreeYears,
     MonthsHomelessPastThreeYears
@@ -438,9 +589,10 @@ hhi_detail <- co_adults_all_entered %>%
     )
   )
 
-hhi_summary <- hhi_detail %>%
-  group_by(ProjectType, ProjectName) %>%
-  summarise(AverageHHI = mean(HHI))
+# THIS MUST MOVE TO THE APPS SINCE WE'LL NEED TO FILTER BY DATES
+# hhi_summary <- hhi_detail %>%
+#   group_by(ProjectType, ProjectName) %>%
+#   summarise(AverageHHI = mean(HHI))
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
@@ -451,6 +603,69 @@ hhi_summary <- hhi_detail %>%
 load("images/Data_Quality.RData")
 
 dq_items_being_checked <- dq_2019 %>%
-  filter(Type == "Error" & ProjectType %in% c(2, 3, 13, 8)) %>% 
+  filter(Type %in% c("Error", "High Priority") & 
+           ProjectType %in% c(2, 3, 13, 8)) %>% 
   select(Issue) %>% 
   unique() 
+
+dq_staging <- dq_2019 %>%
+  filter(Type %in% c("Error", "High Priority") & 
+           ProjectType %in% c(2, 3, 13, 8)) %>% 
+  group_by(ProjectName) %>%
+  summarise(Issues = n()) %>%
+  ungroup()
+
+pe_dq_by_provider <- pe_clients_served %>%
+  select(ProjectName) %>%
+  unique() %>%
+  left_join(summary, by = "ProjectName") %>%
+  select(ProjectName, clients_served) %>%
+  left_join(dq_staging, by = "ProjectName")
+
+pe_dq_by_provider[is.na(pe_dq_by_provider)] <- 0
+
+pe_dq_by_provider <- pe_dq_by_provider %>%
+  mutate(Percent = Issues / clients_served,
+         Points = case_when(
+           Issues == 0 ~ 5,
+           Percent > 0 & Percent <= .02 ~ 4,
+           Percent > .02 & Percent <= .05 ~ 3,
+           Percent > .05 & Percent <= .08 ~ 2,
+           Percent > .08 & Percent <= .1 ~ 1,
+           Percent > .1 ~ 0
+           ),
+         ) %>%
+  select(ProjectName, "ClientsServed" = clients_served, Issues, Percent, Points)
+
+rm(list = ls()[!(
+  ls() %in% c(
+    'pe_dq_by_provider',
+    'pe_entries_no_income',
+    'pe_exits_to_ph',
+    'pe_health_ins_at_exit',
+    'pe_homeless_history_index',
+    'pe_increase_income',
+    'pe_non_cash_at_exit',
+    'pe_own_housing',
+    'pe_res_prior',
+    'pe_coc_funded'
+  )
+)])
+
+# Points Data -------------------------------------------------------------
+
+score_structure_1 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .9, 1, 10,
+  .85, .9, 7.5,
+  .8, .85, 5,
+  0, .8, 0
+)
+
+# the idea here is to build out all the score structures that exist in the
+# Project Evaluation Scorecard so I can assign them later to the measures
+# and programmatically calculate the points in the apps
+
+save.image("images/ProjectEvaluation.RData")
+
+
