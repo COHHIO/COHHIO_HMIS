@@ -21,19 +21,24 @@ load("images/COHHIOHMIS.RData")
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
 # Staging -----------------------------------------------------------------
-reporting_year <- 2019
-
-ReportStart <- paste0("0101", reporting_year)
-ReportEnd <- paste0("1231", reporting_year)
 
 # filter to only CoC-funded projects
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
-           ymd(StartDate) <= mdy(ReportEnd) &
+           ymd(StartDate) <= mdy(FileEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(ReportStart))) %>%
+              ymd(EndDate) >= mdy(FileStart))) %>%
   select(ProjectID, Funder)
+
+pe_coc_funded <- Funder %>%
+  filter(Funder %in% c(1:7, 43) &
+           ymd(StartDate) <= mdy(FileEnd) &
+           (is.na(EndDate) |
+              ymd(EndDate) >= mdy(FileStart))) %>%
+  select(ProjectID, Funder, StartDate, EndDate) %>%
+  left_join(Project[c("ProjectID", "ProjectName", "ProjectType")], by = "ProjectID") %>%
+  select(ProjectType, ProjectName, Funder, StartDate, EndDate)
 
 vars_we_want <- c(
   "PersonalID",
@@ -401,8 +406,41 @@ source("01_Bed_Unit_Utilization.R")
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
 
+pe_res_prior <- pe_adults_entered %>%
+  filter(ProjectType %in% c(2, 3, 13, 8)) %>%
+  mutate(MeetsObjective = if_else(
+    (ProjectType %in% c(2, 3, 13) &
+       LivingSituation %in% c(1, 16, 18)) |
+      (ProjectType == 8 &
+         LivingSituation == 16),
+    1, 
+    0
+  )) %>%
+  select(vars_to_the_apps, LivingSituation) %>%
+  filter(!is.na(PersonalID))
+
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
+
+pe_entries_no_income <- pe_adults_entered %>%
+  filter(ProjectType %in% c(2, 3, 13, 8)) %>%
+  select(EnrollmentID, HouseholdID) %>%
+  left_join(pe_increase_income, by = c("EnrollmentID", "HouseholdID")) %>%
+  select(
+    PersonalID,
+    ProjectType,
+    ProjectName,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    VeteranStatus,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    IncomeAtEntry
+  ) %>%
+  mutate(MeetsObjective = if_else(IncomeAtEntry == 0, 1, 0)) %>%
+  filter(!is.na(PersonalID))
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
@@ -581,4 +619,20 @@ pe_dq_by_provider <- pe_dq_by_provider %>%
            ),
          ) %>%
   select(ProjectName, "ClientsServed" = clients_served, Issues, Percent, Points)
+
+rm(list = ls()[!(
+  ls() %in% c(
+    'pe_dq_by_provider',
+    'pe_entries_no_income',
+    'pe_exits_to_ph',
+    'pe_health_ins_at_exit',
+    'pe_homeless_history_index',
+    'pe_increase_income',
+    'pe_non_cash_at_exit',
+    'pe_own_housing',
+    'pe_res_prior',
+    'summary'
+  )
+)])
+
 
