@@ -154,6 +154,22 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
   select(vars_we_want)
 
 
+# CoC Scoring -------------------------------------------------------------
+
+pe_scoring <- pe_coc_funded %>%
+  left_join(Project, by = c("ProjectType", "ProjectName")) %>%
+  select(
+    ProjectType,
+    ProjectName,
+    CostPerExit,
+    CostPerExitScore,
+    DateReceivedPPDocs,
+    HousingFirstScore,
+    ChronicPrioritizationScore,
+    OnTrackSpendingScoring,
+    UnspentFundsScoring
+  )
+
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
 
@@ -635,6 +651,20 @@ rm(list = ls()[!(
     'pe_coc_funded'
   )
 )])
+
+# Points Data -------------------------------------------------------------
+
+score_structure_1 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .9, 1, 10,
+  .85, .9, 7.5,
+  .8, .85, 5,
+  0, .8, 0
+)
+
+# the idea here is to build out all the score structures that exist in the
+# Project Evaluation Scorecard so I can assign them later to the measures
+# and programmatically calculate the points in the apps
 
 save.image("images/ProjectEvaluation.RData")
 
