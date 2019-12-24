@@ -654,17 +654,220 @@ rm(list = ls()[!(
 
 # Points Data -------------------------------------------------------------
 
-score_structure_1 <- tribble(
+score_structure_80_90_10 <- tribble(
   ~GoalMin, ~GoalMax, ~Points,
   .9, 1, 10,
   .85, .9, 7.5,
   .8, .85, 5,
   0, .8, 0
-)
+) %>%
+  mutate(Structure = "80_90_10")
 
-# the idea here is to build out all the score structures that exist in the
-# Project Evaluation Scorecard so I can assign them later to the measures
-# and programmatically calculate the points in the apps
+score_structure_75_85_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .85, 1, 10,
+  .8, .85, 7.5,
+  .75, .8, 5,
+  0, .75, 0
+) %>%
+  mutate(Structure = "75_85_10")
+
+score_structure_20_90_5 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .9, 1, 5,
+  .75, .9, 4,
+  .5, .75, 3,
+  .3, .5, 2,
+  .2, .3, 1,
+  0, .2, 0
+) %>%
+  mutate(Structure = "20_90_5")
+
+score_structure_2_6_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, .02, 10,
+  .02, .04, 7.5,
+  .04, .06, 5,
+  .06, 1, 0
+) %>%
+  mutate(Structure = "2_6_10")
+
+score_structure_5_9_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, .05, 10,
+  .05, .08, 7.5,
+  .08, .09, 5,
+  .09, 1, 0
+) %>%
+  mutate(Structure = "5_9_10")
+
+score_structure_24_30_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .3, 1, 10,
+  .27, .3, 7.5,
+  .24, .27, 5,
+  0, .24, 0
+) %>%
+  mutate(Structure = "24_30_10")
+
+score_structure_34_40_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .4, 1, 10,
+  .37, .4, 7.5,
+  .34, .37, 5,
+  0, .34, 0
+) %>%
+  mutate(Structure = "34_40_10")
+
+score_structure_0_7_10_PSH <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  6, 7, 10,
+  5, 5, 9,
+  3, 4, 8,
+  2, 2, 5,
+  1, 1, 2, 
+  0, 0, 0
+) %>%
+  mutate(Structure = "0_7_10_PSH")
+
+score_structure_75_83_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .83, 1, 10,
+  .79, .83, 7.5,
+  .75, .79, 5,
+  0, .75, 0
+) %>%
+  mutate(Structure = "75_83_10")
+
+score_structure_72_80_5 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .8, 1, 5,
+  .76, .8, 3,
+  .72, .76, 2,
+  0, .72, 0
+) %>%
+  mutate(Structure = "72_80_5")
+
+score_structure_7_12_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, .07, 10,
+  .07, .09, 7.5,
+  .09, .12, 5,
+  .12, 1, 0
+) %>%
+  mutate(Structure = "7_12_10")
+
+score_structure_12_17_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, .12, 10,
+  .12, .14, 7.5,
+  .14, .17, 5,
+  .17, 1, 0
+) %>%
+  mutate(Structure = "12_17_10")
+
+score_structure_22_28_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .28, 1, 10,
+  .26, .28, 7.5,
+  .22, .26, 5,
+  0, .22, 0
+) %>%
+  mutate(Structure = "22_28_10")
+
+score_structure_200_280_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, 200, 10,
+  200, 240, 7.5,
+  240, 280, 5,
+  280, 9999, 0
+) %>%
+  mutate(Structure = "200_280_10")
+
+score_structure_67_75_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .75, 1, 10,
+  .71, .75, 7.5,
+  .67, .71, 5,
+  0, .67, 0
+) %>%
+  mutate(Structure = "67_75_10")
+
+score_structure_0_7_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  4, 7, 10,
+  3, 3, 8,
+  2, 2, 7,
+  1, 1, 5, 
+  0, 0, 0
+) %>%
+  mutate(Structure = "0_7_10")
+
+score_structure_15_19_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, .15, 10,
+  .15, .17, 7.5,
+  .17, .19, 5,
+  .19, 1, 0
+) %>%
+  mutate(Structure = "15_19_10")
+
+score_structure_20_24_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, .2, 10,
+  .2, .22, 7.5,
+  .22, .24, 5,
+  .24, 1, 0
+) %>%
+  mutate(Structure = "20_24_10")
+
+score_structure_16_20_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .2, 1, 10,
+  .18, .2, 7.5,
+  .16, .18, 5,
+  0, .16, 0
+) %>%
+  mutate(Structure = "16_20_10")
+
+score_structure_260_340_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, 260, 10,
+  260, 300, 7.5,
+  300, 340, 5,
+  340, 9999, 0
+) %>%
+  mutate(Structure = "260_340_10")
+
+score_structure_0_100_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  1, 1, 10,
+  0, 1, 0
+) %>%
+  mutate(Structure = "0_100_10")
+
+score_structure_14_18_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  .18, 1, 10,
+  .16, .18, 7.5,
+  .14, .16, 5,
+  0, .14, 0
+) %>%
+  mutate(Structure = "14_18_10")
+
+score_structure_150_210_10 <- tribble(
+  ~GoalMin, ~GoalMax, ~Points,
+  0, 150, 10,
+  150, 170, 7.5,
+  170, 210, 5,
+  210, 9999, 0
+) %>%
+  mutate(Structure = "150_210_10")
+
+pe_score_structure <- mget(ls(pattern="score_structure_")) %>%
+  bind_rows()
+
+rm(list = ls(pattern = "score_structure_"))
 
 save.image("images/ProjectEvaluation.RData")
 
