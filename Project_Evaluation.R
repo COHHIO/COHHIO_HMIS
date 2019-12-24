@@ -386,22 +386,23 @@ pe_length_of_stay <- co_hohs_moved_in_leavers %>%
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)
 
-# setting the FilePeriod to the date range of the Project Evaluation
-FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
-# rerunning the Utilization script with that new date interval
-source("01_Bed_Unit_Utilization.R")
-# getting what we need from the Utilization script
-utilization_unit_2019 <- utilization_unit %>%
-  ungroup() %>%
-  select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
-
-utilization_bed_2019 <- utilization_bed %>%
-  ungroup() %>%
-  select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
-# setting the FilePeriod back to what it was before
-FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-# re-re-running the script so the image file is like it was
-source("01_Bed_Unit_Utilization.R")
+# THIS WILL NEED TO BE DONE IN THE APPS IN ORDER TO FILTER ON DATES
+# # setting the FilePeriod to the date range of the Project Evaluation
+# FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
+# # rerunning the Utilization script with that new date interval
+# source("01_Bed_Unit_Utilization.R")
+# # getting what we need from the Utilization script
+# utilization_unit_2019 <- utilization_unit %>%
+#   ungroup() %>%
+#   select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
+# 
+# utilization_bed_2019 <- utilization_bed %>%
+#   ungroup() %>%
+#   select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
+# # setting the FilePeriod back to what it was before
+# FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
+# # re-re-running the script so the image file is like it was
+# source("01_Bed_Unit_Utilization.R")
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -631,8 +632,10 @@ rm(list = ls()[!(
     'pe_non_cash_at_exit',
     'pe_own_housing',
     'pe_res_prior',
-    'summary'
+    'pe_coc_funded'
   )
 )])
+
+save.image("images/ProjectEvaluation.RData")
 
 
