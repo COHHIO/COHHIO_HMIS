@@ -22,3 +22,4 @@ ggplot(metric_3) +
   ylab("Homeless Clients in HMIS") +
   theme_bw() 
 
+
