@@ -207,10 +207,10 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
   ),
   DestinationGroup = case_when(
     Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-    Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "Household's Own Housing",
-    Destination %in% c(21:22) ~ "Shared Housing",
+    Destination %in% c(3, 10:11, 19:21, 28, 31, 33, 34) ~ "Household's Own Housing",
+    Destination %in% c(22:23) ~ "Shared Housing",
     Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-    Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+    Destination %in% c(8, 9, 17, 24, 30, 99, 32) ~ "Other",
     is.na(Destination) ~ "Still in Program"
   )) %>%
   select(vars_to_the_apps, Destination, DestinationGroup)
