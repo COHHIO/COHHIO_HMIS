@@ -4,43 +4,52 @@ library(viridis)
 library(patchwork)
 library(hrbrthemes)
 library(circlize)
+library(networkD3)
 
-# A connection data frame is a list of flows with intensity for each flow
-links <- data.frame(
-  source = c("PSH", "PSH", "PSH", "PSH",
-             "RRH", "RRH", "RRH", 
-             "ES/SH/TH", "ES/SH/TH", "ES/SH/TH"), 
-  target = c("Permanent Exit",
-           "Remains in PSH", 
-           "Temporary Destination", 
-           "Other Destination",
-           "Permanent Exit",
-           "Temporary Destination", 
-           "Other Destination",
-           "Permanent Exit",
-           "Temporary Destination", 
-           "Other Destination"), 
-  value = c(2, # PSH to Perm
-            exits_ph$CurrentYear[2], # Remained in PSH
-            2, # PSH to Temp
-            3, # PSH to Other
-            1, # RRH to Perm
-            5, # RRH to Temp
-            7, # RRH to Other
-            5, # ESSHTH to Perm
-            2, # ESSHTH to Temp
-            3) # ESSHTH to Other
-)
+source("get_SPM_data.R")
+source("02_QPR_EEs.R")
+
+destinations <- validation %>%
+  filter(served_between(., format.Date(spm_current_start_date, "%m%d%Y"), 
+                        format.Date(spm_current_end_date, "%m%d%Y")) &
+           !is.na(ExitDate) &
+           ProjectType %in% c(1:4, 8:9, 12:13)) %>%
+  mutate(DestinationGroup = case_when(
+    Destination %in% c(1, 18) ~ "Emergency Shelter/ Safe Haven",
+    Destination == 16 ~ "Unsheltered",
+    Destination %in% c(2, 27) ~ "TH",
+    Destination == 3 ~ "PSH",
+    Destination == 31 ~ "RRH",
+    Destination %in% c(12:14, 32, 27) ~ "Other Temporary",
+    Destination %in% c(10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
+    Destination %in% c(22:23) ~ "Shared Housing",
+    Destination %in% c(4:7, 15, 25:26, 29) ~ "Institutional",
+    Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other"
+  ),
+  ProjectType = case_when(
+    ProjectType == 1 ~ "Emergency Shelter",
+    ProjectType == 2 ~ "Transitional Housing",
+    ProjectType %in% c(3, 9) ~ "Permanent Supportive Housing",
+    ProjectType == 4 ~ "Street Outreach",
+    ProjectType == 8 ~ "Safe Haven",
+    ProjectType == 13 ~ "Rapid Rehousing",
+    ProjectType == 12 ~ "Homelessness Prevention"
+  )) %>%
+  group_by(ProjectType, DestinationGroup) %>%
+  summarise(Clients = n()) %>%
+  select("source" = ProjectType,
+         "target" = DestinationGroup,
+         "value" = Clients)
 
 # From these flows we need to create a node data frame: it lists every entities 
 # involved in the flow
-nodes <- data.frame(name = c(as.character(links$source),
-                             as.character(links$target)) %>%
+nodes <- data.frame(name = c(as.character(destinations$source),
+                             as.character(destinations$target)) %>%
                       unique())
 
 # With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
-links$IDsource <- match(links$source, nodes$name) - 1
-links$IDtarget <- match(links$target, nodes$name) - 1
+destinations$IDsource <- match(destinations$source, nodes$name) - 1
+destinations$IDtarget <- match(destinations$target, nodes$name) - 1
 
 # prepare colour scale
 ColourScal = 'd3.scaleOrdinal() .range(["#FDE725FF",
@@ -56,7 +65,7 @@ ColourScal = 'd3.scaleOrdinal() .range(["#FDE725FF",
 
 # Make the Network
 sankeyNetwork(
-  Links = links,
+  Links = destinations,
   Nodes = nodes,
   Source = "IDsource",
   Target = "IDtarget",
