@@ -86,6 +86,7 @@ validation <- smallProject %>%
     HouseholdID,
     RelationshipToHoH,
     EntryDate,
+    EntryAdjust,
     MoveInDate,
     MoveInDateAdjust,
     ExitDate,
