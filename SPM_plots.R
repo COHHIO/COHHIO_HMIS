@@ -1,5 +1,6 @@
 library(ggplot2)
 library(lubridate)
+library(plotly)
 
 source("get_SPM_data.R")
 
@@ -12,16 +13,25 @@ rm(spm_4_1_empl_stayers,
    spm_5_1_first_timers_lh,
    spm_5_2_first_timers_all)
 
-metric_1a <- spm_1a_loth_ees[2,] #NOT DONE %>% # maybe split into metric_1a_med
-# and metric_1a_avg?
-  # pivot_longer(cols = c("Prior", "Current")) %>% 
-  # mutate(Year = case_when(
-  #   name == "Prior" ~ paste(format.Date(spm_prior_start_date, "%b %Y"), "to",
-  #                           format.Date(spm_prior_end_date - days(1), "%b %Y")),
-  #   name == "Current" ~ paste(format.Date(spm_current_start_date, "%b %Y"), "to",
-  #                             format.Date(spm_current_end_date - days(1), "%b %Y"))
-  # )) %>%
-  # select("Measure" = Type, "LiterallyHomeless" = value, Year)
+metric_1a_med <- spm_1a_loth_ees[2,] %>% 
+  select(Metric1a, "PriorMedian" = Prior_MedLoT, "CurrentMedian" = MedLoT) %>%
+   pivot_longer(cols = c("PriorMedian", "CurrentMedian")) %>% 
+  mutate(Year = case_when(
+    name == "PriorMedian" ~ paste(format.Date(spm_prior_start_date, "%b %Y"), "to",
+                            format.Date(spm_prior_end_date - days(1), "%b %Y")),
+    name == "CurrentMedian" ~ paste(format.Date(spm_current_start_date, "%b %Y"), "to",
+                              format.Date(spm_current_end_date - days(1), "%b %Y"))
+  )) 
+
+metric_1a_avg <- spm_1a_loth_ees[2,] %>% 
+  select(Metric1a, "PriorAverage" = Prior_AvgLoT, "CurrentAverage" = AvgLoT) %>%
+  pivot_longer(cols = c("PriorAverage", "CurrentAverage")) %>% 
+  mutate(Year = case_when(
+    name == "PriorAverage" ~ paste(format.Date(spm_prior_start_date, "%b %Y"), "to",
+                                  format.Date(spm_prior_end_date - days(1), "%b %Y")),
+    name == "CurrentAverage" ~ paste(format.Date(spm_current_start_date, "%b %Y"), "to",
+                                    format.Date(spm_current_end_date - days(1), "%b %Y"))
+  )) 
 
 metric_3 <- spm_3_homeless_count %>%
   filter(Type == "Unduplicated Total Sheltered Homeless Persons") %>%
