@@ -342,14 +342,16 @@ income_staging_variable <- income_staging2 %>%
   ungroup() 
 
 income_staging <- rbind(income_staging_fixed, income_staging_variable) %>%
-  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) 
+  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
+  unique()
 
 pe_increase_income <- income_staging %>%
   pivot_wider(names_from = DataCollectionStage,
               values_from = TotalMonthlyIncome) %>%
   mutate(
     MostRecentIncome = case_when(
-      !is.na(Exit) ~ Exit,!is.na(Update) ~ Update,!is.na(Annual) ~ Annual
+      !is.na(Exit) ~ Exit,!is.na(Update) ~ Update,
+      !is.na(Annual) ~ Annual
     ),
     Exit = NULL,
     Update = NULL,
