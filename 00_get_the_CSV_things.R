@@ -27,7 +27,6 @@
 # cevets.zip or .csv
 # cocscoring.zip or .csv (during CoC Competition only)
 # offers.zip or .csv
-# providers.zip or .csv
 # referrals.zip or .csv
 # scoresfam.zip or.csv
 # scoresind.zip or .csv

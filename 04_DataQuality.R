@@ -292,7 +292,7 @@ missing_LoS <- served_in_date_range %>%
   ) %>% 
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            (is.na(LengthOfStay) | LengthOfStay == 99)) %>% 
-  mutate(Issue = "Missing Residence Prior", 
+  mutate(Issue = "Missing Length of Stay", 
          Type = "Error") %>%
   select(vars_we_want)
 
@@ -1921,7 +1921,6 @@ dq_main <- rbind(
   future_ees,
   hh_issues,
   incorrect_ee_type,
-  # incorrectMoveInDate,
   lh_without_spdat,
   missing_approx_date_homeless,
   missing_client_veteran_info,
@@ -1934,7 +1933,6 @@ dq_main <- rbind(
   missing_health_insurance_exit,  
   missing_income_entry,
   missing_income_exit,
-  # missingLivingSituationData, #(waiting on WS ticket)
   missing_LoS,
   missing_long_duration,
   missing_months_times_homeless,
@@ -1969,25 +1967,24 @@ dq_main <- dq_main %>%
   filter(
     !Issue %in% c(
       "Conflicting Disability yes/no",
-      # "Conflicting Disability yes/no at Exit",
       "Conflicting Health Insurance yes/no at Entry",
       "Conflicting Health Insurance yes/no at Exit",
       "Conflicting Income yes/no at Entry",
       "Conflicting Income yes/no at Exit",
       "Conflicting Non-cash Benefits yes/no at Entry",
       "Conflicting Non-cash Benefits yes/no at Exit",
-      "Missing Disability Subs",
-      "Incomplete Living Situation Data",
-      "Missing Months or Times Homeless",
-      "Don't Know/Refused Residence Prior",
-      "Don't Know/Refused Months or Times Homeless",
+      "Non-cash Benefits Missing at Exit",
       "Health Insurance Missing at Entry",
       "Health Insurance Missing at Exit",
       "Income Missing at Entry",
       "Income Missing at Exit",
+      "Missing Disability Subs",
+      "Missing Length of Stay",
+      "Don't Know/Refused Residence Prior",
+      "Don't Know/Refused Months or Times Homeless",
       "Missing Residence Prior",
       "Non-cash Benefits Missing at Entry",
-      "Non-cash Benefits Missing at Exit"
+      "Missing Months or Times Homeless"
     )
   )
 

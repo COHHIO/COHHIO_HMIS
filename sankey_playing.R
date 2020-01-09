@@ -10,7 +10,7 @@ source("get_SPM_data.R")
 source("02_QPR_EEs.R")
 
 destinations <- validation %>%
-  filter(served_between(., format.Date(spm_current_start_date, "%m%d%Y"), 
+  filter(stayed_between(., format.Date(spm_current_start_date, "%m%d%Y"), 
                         format.Date(spm_current_end_date, "%m%d%Y")) &
            !is.na(ExitDate) &
            ProjectType %in% c(1:4, 8:9, 12:13)) %>%
