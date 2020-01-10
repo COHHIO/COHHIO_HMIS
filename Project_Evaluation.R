@@ -871,6 +871,30 @@ pe_score_structure <- mget(ls(pattern="score_structure_")) %>%
 
 rm(list = ls(pattern = "score_structure_"))
 
+pe_entries_no_income <- pe_entries_no_income %>%
+  mutate(Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10"))
+
+pe_exits_to_ph <- pe_exits_to_ph %>%
+  mutate(Structure = case_when(
+    ProjectType == 3 ~ "80_90_10",
+    ProjectType %in% c(2, 13) ~ "75_83_10",
+    ProjectType == 8 ~ "67_75_10"
+  ))
+
+pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
+  mutate(Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"))
+
+pe_homeless_history_index <- pe_homeless_history_index %>%
+  mutate(Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"))
+
+pe_increase_income <- pe_increase_income %>%
+  mutate(Structure = case_when(
+    ProjectType == 2 ~ "24_30_10",
+    ProjectType == 3 ~ "22_28_10",
+    ProjectType == 8 ~ "16_20_10",
+    ProjectType == 13 ~ "14_18_10"
+  ))
+
 save.image("images/ProjectEvaluation.RData")
 
 
