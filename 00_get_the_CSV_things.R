@@ -320,6 +320,10 @@ HoHsEntry <- Enrollment %>%
   select(HouseholdID, "HoHsEntry" = EntryDate) %>%
   unique()
 
+## ^^ this code causes a duplication for situations where a hh has two clients
+# marked as Head of Household AND the HoHs have different Entry Dates. RARE,
+# but possible. Not sure how to fix this, maybe it's just something to know.
+
 y <- Enrollment %>%
   left_join(HoHsEntry, by = "HouseholdID")
 
