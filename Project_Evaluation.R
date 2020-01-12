@@ -711,15 +711,6 @@ pe_dq_by_provider <- pe_dq_by_provider %>%
 
 # Points ------------------------------------------------------------------
 
-score_structure_80_90_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .9, 1, 10,
-  .85, .9, 7.5,
-  .8, .85, 5,
-  0, .8, 0
-) %>%
-  mutate(Structure = "80_90_10")
-
 score_structure_75_85_10 <- tribble(
   ~GoalMin, ~GoalMax, ~Points,
   .85, 1, 10,
@@ -757,24 +748,6 @@ score_structure_5_9_10 <- tribble(
   .09, 1, 0
 ) %>%
   mutate(Structure = "5_9_10")
-
-score_structure_24_30_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .3, 1, 10,
-  .27, .3, 7.5,
-  .24, .27, 5,
-  0, .24, 0
-) %>%
-  mutate(Structure = "24_30_10")
-
-score_structure_34_40_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .4, 1, 10,
-  .37, .4, 7.5,
-  .34, .37, 5,
-  0, .34, 0
-) %>%
-  mutate(Structure = "34_40_10")
 
 score_structure_0_7_10_PSH <- tribble(
   ~GoalMin, ~GoalMax, ~Points,
@@ -869,63 +842,62 @@ score_structure_15_19_10 <- tribble(
 ) %>%
   mutate(Structure = "15_19_10")
 
-score_structure_20_24_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, .2, 10,
-  .2, .22, 7.5,
-  .22, .24, 5,
-  .24, 1, 0
-) %>%
-  mutate(Structure = "20_24_10")
-
-score_structure_16_20_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .2, 1, 10,
-  .18, .2, 7.5,
-  .16, .18, 5,
-  0, .16, 0
-) %>%
-  mutate(Structure = "16_20_10")
-
-score_structure_260_340_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, 260, 10,
-  260, 300, 7.5,
-  300, 340, 5,
-  340, 9999, 0
-) %>%
-  mutate(Structure = "260_340_10")
-
-score_structure_0_100_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  1, 1, 10,
-  0, 1, 0
-) %>%
-  mutate(Structure = "0_100_10")
-
-score_structure_14_18_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .18, 1, 10,
-  .16, .18, 7.5,
-  .14, .16, 5,
-  0, .14, 0
-) %>%
-  mutate(Structure = "14_18_10")
-
-score_structure_150_210_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, 150, 10,
-  150, 170, 7.5,
-  170, 210, 5,
-  210, 9999, 0
-) %>%
-  mutate(Structure = "150_210_10")
-
-pe_score_structure <- mget(ls(pattern="score_structure_")) %>%
-  bind_rows()
-
 pe_score <- function(structure, value){
   case_when(
+    structure == "20_24_10" &
+      value <= .2 ~ 10,
+    structure == "20_24_10" &
+      value <= .22 &
+      value > .2 ~ 7.5,
+    structure == "20_24_10" &
+      value <= .24 &
+      value > .22 ~ 5,
+    structure == "20_24_10" &
+      value > .24 ~ 0,
+    structure == "16_20_10" &
+      value >= .2 ~ 10,
+    structure == "16_20_10" &
+      value < .2 &
+      value >= .18 ~ 7.5,
+    structure == "16_20_10" &
+      value < .18 &
+      value >= .16 ~ 5,
+    structure == "16_20_10" &
+      value < .16 ~ 0,
+    structure == "260_340_10" &
+      value <= 260 ~ 10,
+    structure == "260_340_10" &
+      value > 260 &
+      value <= 300 ~ 7.5,
+    structure == "260_340_10" &
+      value > 300 &
+      value <= 340 ~ 5,
+    structure == "260_340_10" &
+      value > 340 ~ 0,
+    structure == "0_100_10" &
+      value == 1 ~ 10, 
+    structure == "0_100_10" & 
+      value < 1 ~ 0,
+    structure == "14_18_0" &
+      value >=  .18 ~ 10,
+    structure == "14_18_0" &
+      value < .18 &
+      value >= .16 ~ 7.5,
+    structure == "14_18_0" &
+      value < .16 &
+      value >= .14 ~ 5,
+    structure == "14_18_0" &
+      value < .14 ~ 0,
+    structure == "150_210_10" &
+      value <= 150 ~ 10,
+    structure == "150_210_10" &
+      value <= 170 &
+      value > 150 ~ 7.5,
+    structure == "150_210_10" &
+      value <= 210 &
+      value > 170 ~ 5,
+    structure == "150_210_10" &
+      value > 210 ~ 0,
     structure == "80_90_10" &
       value >= .9 ~ 10,
     structure == "80_90_10" &
