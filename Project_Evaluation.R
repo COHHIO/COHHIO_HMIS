@@ -16,9 +16,14 @@ library(tidyverse)
 library(lubridate)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
 
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
+
+ReportYear <- "2019"
+ReportStart <- format.Date(mdy(paste0("0101", ReportYear)), "%m-%d-%Y")
+ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 
 # Staging -----------------------------------------------------------------
 
@@ -26,19 +31,19 @@ load("images/COHHIOHMIS.RData")
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
-           ymd(StartDate) <= mdy(FileEnd) &
+           ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(FileStart))) %>%
+              ymd(EndDate) >= mdy(ReportStart))) %>%
   select(ProjectID, Funder)
 
 pe_coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
-           ymd(StartDate) <= mdy(FileEnd) &
+           ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(FileStart))) %>%
+              ymd(EndDate) >= mdy(ReportStart))) %>%
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID", "ProjectName", "ProjectType")], by = "ProjectID") %>%
-  select(ProjectType, ProjectName, Funder, StartDate, EndDate)
+  select(ProjectType, ProjectName, ProjectID, Funder, StartDate, EndDate)
 
 vars_we_want <- c(
   "PersonalID",
@@ -81,82 +86,127 @@ vars_to_the_apps <- c(
   "MeetsObjective"
 )
 
-load("images/cohorts.RData")
-
 # for data quality checking
 # clients served during date range
 
 pe_clients_served <-  co_clients_served %>%
+  filter(served_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)
+
+summary_pe_clients_served <- pe_clients_served %>%
+  group_by(ProjectID) %>%
+  summarise(ClientsServed = n())
 
 # several measures will use this
 # Adults who entered during date range
 
 pe_adults_entered <-  co_adults_entered %>%
+  filter(entered_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)
+
+summary_pe_adults_entered <- pe_adults_entered %>%
+  group_by(ProjectID) %>%
+  summarise(AdultsEntered = n())
 
 # for ncb logic
 # Adults who moved in and exited during date range
 
 pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
+  filter(stayed_between(., ReportStart, ReportEnd) &
+           exited_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
+
+summary_pe_adults_moved_in_leavers <- pe_adults_moved_in_leavers %>%
+  group_by(ProjectID) %>%
+  summarise(AdultMovedInLeavers = n())
 
 # increase income
 #Adults who moved in and were served during date range
 
 pe_adults_moved_in <-  co_adults_moved_in %>%
+  filter(stayed_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
+
+summary_pe_adults_moved_in <- pe_adults_moved_in %>%
+  group_by(ProjectID) %>%
+  summarise(AdultsMovedIn = n())
 
 # health insurance
 # Clients who moved in and exited during date range
 
 pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
+  filter(stayed_between(., ReportStart, ReportEnd) &
+           exited_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
+
+summary_pe_clients_moved_in_leavers <- pe_clients_moved_in_leavers %>%
+  group_by(ProjectID) %>%
+  summarise(ClientsMovedInLeavers = n())
 
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
 
 pe_hohs_served <-  co_hohs_served %>%
+  filter(served_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
 
+summary_pe_hohs_served <- pe_hohs_served %>%
+  group_by(ProjectID) %>%
+  summarise(HoHsServed = n())
+
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
 
 pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
+  filter(stayed_between(., ReportStart, ReportEnd) &
+           exited_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)
 
+summary_pe_hohs_moved_in_leavers <- pe_hohs_moved_in_leavers %>%
+  group_by(ProjectID) %>%
+  summarise(HoHsMovedInLeavers = n())
+
+pe_validation_summary <- summary_pe_adults_entered %>%
+  full_join(summary_pe_adults_moved_in, by = "ProjectID") %>%
+  full_join(summary_pe_adults_moved_in_leavers, by = "ProjectID") %>%
+  full_join(summary_pe_clients_served, by = "ProjectID") %>%
+  full_join(summary_pe_hohs_moved_in_leavers, by = "ProjectID") %>%
+  full_join(summary_pe_hohs_served, by = "ProjectID") %>%
+  left_join(pe_coc_funded, by = "ProjectID") %>%
+  select(-Funder, -StartDate, -EndDate) %>%
+  select(8, 1, 9, 2:7)
 
 # CoC Scoring -------------------------------------------------------------
 
-pe_scoring <- pe_coc_funded %>%
+pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName")) %>%
   select(
     ProjectType,
@@ -201,6 +251,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
 # TH, SH, RRH
 
 pe_own_housing <- pe_hohs_moved_in_leavers %>%
+  filter(ProjectType != 3) %>%
   mutate(MeetsObjective = case_when(
     Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
     !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
@@ -226,32 +277,36 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
 
 pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID,
-         ProjectName,
-         EnrollmentID,
-         ProjectType,
-         HouseholdID,
-         RelationshipToHoH,
-         VeteranStatus,
-         EntryDate,
-         MoveInDateAdjust,
-         AgeAtEntry,
-         ExitDate,
-         ExitAdjust,
-         BenefitsFromAnySource,
-         DataCollectionStage) %>%
-  group_by(PersonalID,
-           ProjectType,
-           VeteranStatus,
-           EnrollmentID,
-           ProjectName,
-           EntryDate,
-           MoveInDateAdjust,
-           AgeAtEntry,
-           HouseholdID,
-           RelationshipToHoH,
-           ExitDate,
-           ExitAdjust) %>%
+  select(
+    PersonalID,
+    ProjectName,
+    EnrollmentID,
+    ProjectType,
+    HouseholdID,
+    RelationshipToHoH,
+    VeteranStatus,
+    EntryDate,
+    MoveInDateAdjust,
+    AgeAtEntry,
+    ExitDate,
+    ExitAdjust,
+    BenefitsFromAnySource,
+    DataCollectionStage
+  ) %>%
+  group_by(
+    PersonalID,
+    ProjectType,
+    VeteranStatus,
+    EnrollmentID,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    AgeAtEntry,
+    HouseholdID,
+    RelationshipToHoH,
+    ExitDate,
+    ExitAdjust
+  ) %>%
   summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
   mutate(MeetsObjective =
            case_when(MostRecentNCB == 1 ~ 1,
@@ -639,22 +694,22 @@ pe_dq_by_provider <- pe_dq_by_provider %>%
          ) %>%
   select(ProjectName, "ClientsServed" = clients_served, Issues, Percent, Points)
 
-rm(list = ls()[!(
-  ls() %in% c(
-    'pe_dq_by_provider',
-    'pe_entries_no_income',
-    'pe_exits_to_ph',
-    'pe_health_ins_at_exit',
-    'pe_homeless_history_index',
-    'pe_increase_income',
-    'pe_non_cash_at_exit',
-    'pe_own_housing',
-    'pe_res_prior',
-    'pe_coc_funded'
-  )
-)])
+# rm(list = ls()[!(
+#   ls() %in% c(
+#     'pe_dq_by_provider',
+#     'pe_entries_no_income',
+#     'pe_exits_to_ph',
+#     'pe_health_ins_at_exit',
+#     'pe_homeless_history_index',
+#     'pe_increase_income',
+#     'pe_non_cash_at_exit',
+#     'pe_own_housing',
+#     'pe_res_prior',
+#     'pe_coc_funded'
+#   )
+# )])
 
-# Points Data -------------------------------------------------------------
+# Points ------------------------------------------------------------------
 
 score_structure_80_90_10 <- tribble(
   ~GoalMin, ~GoalMax, ~Points,
@@ -869,17 +924,60 @@ score_structure_150_210_10 <- tribble(
 pe_score_structure <- mget(ls(pattern="score_structure_")) %>%
   bind_rows()
 
-rm(list = ls(pattern = "score_structure_"))
+pe_score <- function(structure, value){
+  case_when(
+    structure == "80_90_10" &
+      value >= .9 ~ 10,
+    structure == "80_90_10" &
+      value >= .85 &
+      value <.9 ~ 7.5,
+    structure == "80_90_10" &
+      value >= .8 &
+      value < .85 ~ 5,
+    structure == "80_90_10" &
+      value < .8 ~ 0,
+    structure == "34_40_10" &
+      value >= .4 ~ 10,
+    structure == "34_40_10" &
+      value >= .37 &
+      value < .4 ~ 7.5,
+    structure == "34_40_10" &
+      value >= .34 &
+      value < .37 ~ 5,
+    structure == "34_40_10" &
+      value < .34 ~ 0,
+    structure == "24_30_10" &
+      value >= .3 ~ 10,
+    structure == "24_30_10" &
+      value >= .27 &
+      value < .3 ~ 7.5,
+    structure == "24_30_10" &
+      value >= .24 &
+      value < .27 ~ 5,
+    structure == "24_30_10" &
+      value < .24 ~ 0
+  )
+}
 
-pe_entries_no_income <- pe_entries_no_income %>%
-  mutate(Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10"))
+# rm(list = ls(pattern = "score_structure_"))
+
+pe_entries_no_income_summary <- pe_entries_no_income %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(NoIncomeAtEntry = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  mutate(Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10")) %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
+         Points = pe_score(Structure, NoIncomeAtEntryPercent))
 
 pe_exits_to_ph <- pe_exits_to_ph %>%
-  mutate(Structure = case_when(
-    ProjectType == 3 ~ "80_90_10",
-    ProjectType %in% c(2, 13) ~ "75_83_10",
-    ProjectType == 8 ~ "67_75_10"
-  ))
+  mutate(
+    Structure = case_when(
+      ProjectType == 3 ~ "80_90_10",
+      ProjectType %in% c(2, 13) ~ "75_83_10",
+      ProjectType == 8 ~ "67_75_10"
+    )
+  )
 
 pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
   mutate(Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"))
@@ -888,13 +986,34 @@ pe_homeless_history_index <- pe_homeless_history_index %>%
   mutate(Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"))
 
 pe_increase_income <- pe_increase_income %>%
-  mutate(Structure = case_when(
-    ProjectType == 2 ~ "24_30_10",
-    ProjectType == 3 ~ "22_28_10",
-    ProjectType == 8 ~ "16_20_10",
-    ProjectType == 13 ~ "14_18_10"
-  ))
+  mutate(
+    Structure = case_when(
+      ProjectType == 2 ~ "24_30_10",
+      ProjectType == 3 ~ "22_28_10",
+      ProjectType == 8 ~ "16_20_10",
+      ProjectType == 13 ~ "14_18_10"
+    )
+  )
+
+pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
+  mutate(Structure = "undecided")
+
+pe_own_housing <- pe_own_housing %>%
+  mutate(Structure = if_else(ProjectType != 3, "72_80_5", "NA"))
+
+pe_res_prior_summary <- pe_res_prior %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(MetObjective = sum(MeetsObjective)) %>%
+  mutate(
+    Structure = case_when(
+      ProjectType %in% c(3, 13) ~ "75_85_10",
+      ProjectType == 2 ~ "67_75_10",
+      ProjectType == 8 ~ "0_100_10"
+    )
+  )
 
 save.image("images/ProjectEvaluation.RData")
+
+
 
 
