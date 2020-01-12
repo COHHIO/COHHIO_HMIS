@@ -47,6 +47,7 @@ vars_we_want <- c(
   "RelationshipToHoH",
   "VeteranStatus",
   "EntryDate",
+  "EntryAdjust",
   "MoveInDate",
   "MoveInDateAdjust",
   "ExitDate",
