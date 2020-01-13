@@ -86,7 +86,6 @@ vars_to_the_apps <- c(
   "MeetsObjective"
 )
 
-# for data quality checking
 # clients served during date range
 
 pe_clients_served <-  co_clients_served %>%
@@ -98,8 +97,10 @@ pe_clients_served <-  co_clients_served %>%
   select(vars_we_want)
 
 summary_pe_clients_served <- pe_clients_served %>%
+  right_join(pe_coc_funded, by = "ProjectID") %>%
   group_by(ProjectID) %>%
-  summarise(ClientsServed = n())
+  summarise(ClientsServed = n()) %>%
+  ungroup()
 
 # several measures will use this
 # Adults who entered during date range
@@ -114,14 +115,22 @@ pe_adults_entered <-  co_adults_entered %>%
 
 summary_pe_adults_entered <- pe_adults_entered %>%
   group_by(ProjectID) %>%
-  summarise(AdultsEntered = n())
+  summarise(AdultsEntered = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(AdultsEntered = if_else(is.na(AdultsEntered),
+                                 as.integer(0),
+                                 AdultsEntered))
+
 
 # for ncb logic
 # Adults who moved in and exited during date range
 
 pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
-           exited_between(., ReportStart, ReportEnd)) %>%
+  filter(
+    stayed_between(., ReportStart, ReportEnd) &
+      exited_between(., ReportStart, ReportEnd)
+  ) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -130,7 +139,11 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
 
 summary_pe_adults_moved_in_leavers <- pe_adults_moved_in_leavers %>%
   group_by(ProjectID) %>%
-  summarise(AdultMovedInLeavers = n())
+  summarise(AdultMovedInLeavers = n()) %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(AdultMovedInLeavers = if_else(is.na(AdultMovedInLeavers),
+                                 as.integer(0),
+                                 AdultMovedInLeavers))
 
 # increase income
 #Adults who moved in and were served during date range
@@ -145,7 +158,12 @@ pe_adults_moved_in <-  co_adults_moved_in %>%
 
 summary_pe_adults_moved_in <- pe_adults_moved_in %>%
   group_by(ProjectID) %>%
-  summarise(AdultsMovedIn = n())
+  summarise(AdultsMovedIn = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(AdultsMovedIn = if_else(is.na(AdultsMovedIn),
+                                 as.integer(0),
+                                 AdultsMovedIn))
 
 # health insurance
 # Clients who moved in and exited during date range
@@ -161,7 +179,12 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
 
 summary_pe_clients_moved_in_leavers <- pe_clients_moved_in_leavers %>%
   group_by(ProjectID) %>%
-  summarise(ClientsMovedInLeavers = n())
+  summarise(ClientsMovedInLeavers = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(ClientsMovedInLeavers = if_else(is.na(ClientsMovedInLeavers),
+                                 as.integer(0),
+                                 ClientsMovedInLeavers))
 
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
@@ -176,7 +199,12 @@ pe_hohs_served <-  co_hohs_served %>%
 
 summary_pe_hohs_served <- pe_hohs_served %>%
   group_by(ProjectID) %>%
-  summarise(HoHsServed = n())
+  summarise(HoHsServed = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(HoHsServed = if_else(is.na(HoHsServed),
+                              as.integer(0),
+                              HoHsServed))
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
@@ -192,7 +220,12 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
 
 summary_pe_hohs_moved_in_leavers <- pe_hohs_moved_in_leavers %>%
   group_by(ProjectID) %>%
-  summarise(HoHsMovedInLeavers = n())
+  summarise(HoHsMovedInLeavers = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(HoHsMovedInLeavers = if_else(is.na(HoHsMovedInLeavers),
+                                      as.integer(0),
+                                      HoHsMovedInLeavers))
 
 pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_adults_moved_in, by = "ProjectID") %>%
@@ -709,141 +742,158 @@ pe_dq_by_provider <- pe_dq_by_provider %>%
 #   )
 # )])
 
-# Points ------------------------------------------------------------------
+# Points function ---------------------------------------------------------
 
-score_structure_75_85_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .85, 1, 10,
-  .8, .85, 7.5,
-  .75, .8, 5,
-  0, .75, 0
-) %>%
-  mutate(Structure = "75_85_10")
-
-score_structure_20_90_5 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .9, 1, 5,
-  .75, .9, 4,
-  .5, .75, 3,
-  .3, .5, 2,
-  .2, .3, 1,
-  0, .2, 0
-) %>%
-  mutate(Structure = "20_90_5")
-
-score_structure_2_6_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, .02, 10,
-  .02, .04, 7.5,
-  .04, .06, 5,
-  .06, 1, 0
-) %>%
-  mutate(Structure = "2_6_10")
-
-score_structure_5_9_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, .05, 10,
-  .05, .08, 7.5,
-  .08, .09, 5,
-  .09, 1, 0
-) %>%
-  mutate(Structure = "5_9_10")
-
-score_structure_0_7_10_PSH <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  6, 7, 10,
-  5, 5, 9,
-  3, 4, 8,
-  2, 2, 5,
-  1, 1, 2, 
-  0, 0, 0
-) %>%
-  mutate(Structure = "0_7_10_PSH")
-
-score_structure_75_83_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .83, 1, 10,
-  .79, .83, 7.5,
-  .75, .79, 5,
-  0, .75, 0
-) %>%
-  mutate(Structure = "75_83_10")
-
-score_structure_72_80_5 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .8, 1, 5,
-  .76, .8, 3,
-  .72, .76, 2,
-  0, .72, 0
-) %>%
-  mutate(Structure = "72_80_5")
-
-score_structure_7_12_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, .07, 10,
-  .07, .09, 7.5,
-  .09, .12, 5,
-  .12, 1, 0
-) %>%
-  mutate(Structure = "7_12_10")
-
-score_structure_12_17_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, .12, 10,
-  .12, .14, 7.5,
-  .14, .17, 5,
-  .17, 1, 0
-) %>%
-  mutate(Structure = "12_17_10")
-
-score_structure_22_28_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .28, 1, 10,
-  .26, .28, 7.5,
-  .22, .26, 5,
-  0, .22, 0
-) %>%
-  mutate(Structure = "22_28_10")
-
-score_structure_200_280_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, 200, 10,
-  200, 240, 7.5,
-  240, 280, 5,
-  280, 9999, 0
-) %>%
-  mutate(Structure = "200_280_10")
-
-score_structure_67_75_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  .75, 1, 10,
-  .71, .75, 7.5,
-  .67, .71, 5,
-  0, .67, 0
-) %>%
-  mutate(Structure = "67_75_10")
-
-score_structure_0_7_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  4, 7, 10,
-  3, 3, 8,
-  2, 2, 7,
-  1, 1, 5, 
-  0, 0, 0
-) %>%
-  mutate(Structure = "0_7_10")
-
-score_structure_15_19_10 <- tribble(
-  ~GoalMin, ~GoalMax, ~Points,
-  0, .15, 10,
-  .15, .17, 7.5,
-  .17, .19, 5,
-  .19, 1, 0
-) %>%
-  mutate(Structure = "15_19_10")
-
-pe_score <- function(structure, value){
+pe_score <- function(structure, value) {
   case_when(
+    structure == "75_85_10" &
+      value >= .85 ~ 10,
+    structure == "75_85_10" &
+      value >= .8 &
+      value < .85 ~ 7.5,
+    structure == "75_85_10" &
+      value >= .75 &
+      value < .8 ~ 5,
+    structure == "75_85_10" &
+      value < .75 ~ 0,
+    structure == "20_90_5" &
+      value >= .9 ~ 5,
+    structure == "20_90_5" &
+      value >= .75 &
+      value < .9 ~ 4,
+    structure == "20_90_5" &
+      value >= .5 &
+      value < .75 ~ 3,
+    structure == "20_90_5" &
+      value >= .3 &
+      value < .5 ~ 2,
+    structure == "20_90_5" &
+      value >= .2 &
+      value < .3 ~ 1,
+    structure == "20_90_5" &
+      value < .2 ~ 0,
+    structure == "2_6_10" &
+      value <= .02 ~ 10,
+    structure == "2_6_10" &
+      value <= .04 &
+      value > .02 ~ 7.5,
+    structure == "2_6_10" &
+      value <= .06 &
+      value > .04 ~ 5,
+    structure == "2_6_10" &
+      value > .06 ~ 0,
+    structure == "5_9_10" &
+      value <= .05 ~ 10,
+    structure == "5_9_10" &
+      value <= .08 &
+      value > .05 ~ 7.5,
+    structure == "5_9_10" &
+      value <= .09 &
+      value > .08 ~ 5,
+    structure == "5_9_10" &
+      value > .09 ~ 0,
+    structure == "75_83_10" &
+      value >= .83 ~ 10,
+    structure == "75_83_10" &
+      value >= .79 &
+      value < .83 ~ 7.5,
+    structure == "75_83_10" &
+      value >= .75 &
+      value < .79 ~ 5,
+    structure == "75_83_10" &
+      value < .75 ~ 0,
+    structure == "72_80_5" &
+      value >= .8 ~ 5,
+    structure == "72_80_5" &
+      value >= .76 &
+      value < .8 ~ 3,
+    structure == "72_80_5" &
+      value >= .72 &
+      value < .76 ~ 2,
+    structure == "72_80_5" &
+      value < .72 ~ 0,
+    structure == "7_12_10" &
+      value <= .07 ~ 10,
+    structure == "7_12_10" &
+      value <= .09 &
+      value > .07 ~ 7.5,
+    structure == "7_12_10" &
+      value <= .12 &
+      value > .09 ~ 5,
+    structure == "7_12_10" &
+      value > .12 ~ 0,
+    structure == "12_17_10" &
+      value <= .12 ~ 10,
+    structure == "12_17_10" &
+      value > 12 &
+      value <= .14 ~ 7.5,
+    structure == "12_17_10" &
+      value > .14 &
+      value <= 17 ~ 5,
+    structure == "12_17_10" &
+      value > .17 ~ 0,
+    structure == "22_28_10" &
+      value >= .28 ~ 10,
+    structure == "22_28_10" &
+      value >= .26 &
+      value < .28 ~ 7.5,
+    structure == "22_28_10" &
+      value >= .22 &
+      value < .26 ~ 5,
+    structure == "22_28_10" &
+      value < .22 ~ 0,
+    structure == "0_7_10_PSH" &
+      between(value, 6, 7) ~ 10,
+    structure == "0_7_10_PSH" &
+      value == 5 ~ 9,
+    structure == "0_7_10_PSH" &
+      between(value, 3, 4) ~ 8,
+    structure == "0_7_10_PSH" &
+      value == 2 ~ 5,
+    structure == "0_7_10_PSH" &
+      value == 1 ~ 2,
+    structure == "0_7_10_PSH" &
+      value == 0 ~ 0,
+    structure == "200_280_10" &
+      value <= 200 ~ 10,
+    structure == "200_280_10" &
+      value <= 240 &
+      value > 200 ~ 7.5,
+    structure == "200_280_10" &
+      value <= 280 &
+      value > 240 ~ 5,
+    structure == "200_280_10" &
+      value > 280 ~ 0,
+    structure == "67_75_10" &
+      value >= .75 ~ 10,
+    structure == "67_75_10" &
+      value >= .71 &
+      value < .75 ~ 7.5,
+    structure == "67_75_10" &
+      value >= .67 &
+      value < .71 ~ 5,
+    structure == "67_75_10" &
+      value < .67 ~ 0,
+    structure == "0_7_10" &
+      between(value, 4, 7) ~ 10,
+    structure == "0_7_10" &
+      value == 3 ~ 8,
+    structure == "0_7_10" &
+      value == 2 ~ 7,
+    structure == "0_7_10" &
+      value == 1 ~ 5,
+    structure == "0_7_10" &
+      value == 0 ~ 0,
+    structure == "15_19_10" &
+      value <= .15 ~ 10,
+    structure == "15_19_10" &
+      value <= .17 &
+      value > .15 ~ 7.5,
+    structure == "15_19_10" &
+      value <= .19 &
+      value > .17 ~ 5,
+    structure == "15_19_10" &
+      value > .19 ~ 0,
     structure == "20_24_10" &
       value <= .2 ~ 10,
     structure == "20_24_10" &
@@ -875,8 +925,8 @@ pe_score <- function(structure, value){
     structure == "260_340_10" &
       value > 340 ~ 0,
     structure == "0_100_10" &
-      value == 1 ~ 10, 
-    structure == "0_100_10" & 
+      value == 1 ~ 10,
+    structure == "0_100_10" &
       value < 1 ~ 0,
     structure == "14_18_0" &
       value >=  .18 ~ 10,
@@ -902,7 +952,7 @@ pe_score <- function(structure, value){
       value >= .9 ~ 10,
     structure == "80_90_10" &
       value >= .85 &
-      value <.9 ~ 7.5,
+      value < .9 ~ 7.5,
     structure == "80_90_10" &
       value >= .8 &
       value < .85 ~ 5,
@@ -931,9 +981,7 @@ pe_score <- function(structure, value){
   )
 }
 
-# rm(list = ls(pattern = "score_structure_"))
-
-pe_entries_no_income_summary <- pe_entries_no_income %>%
+summary_pe_entries_no_income <- pe_entries_no_income %>%
   group_by(ProjectType, ProjectName) %>%
   summarise(NoIncomeAtEntry = sum(MeetsObjective)) %>%
   ungroup() %>%
@@ -942,13 +990,25 @@ pe_entries_no_income_summary <- pe_entries_no_income %>%
   mutate(NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
          Points = pe_score(Structure, NoIncomeAtEntryPercent))
 
-pe_exits_to_ph <- pe_exits_to_ph %>%
+summary_pe_exits_to_ph <- pe_exits_to_ph %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(ExitsToPH = sum(MeetsObjective)) %>%
+  ungroup() %>%  
   mutate(
     Structure = case_when(
       ProjectType == 3 ~ "80_90_10",
       ProjectType %in% c(2, 13) ~ "75_83_10",
       ProjectType == 8 ~ "67_75_10"
     )
+  ) %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    ExitsToPHPercent = if_else(
+      ProjectType == 3,
+      ExitsToPH / HoHsServed,
+      ExitsToPH / HoHsMovedInLeavers
+    ),
+    Points = pe_score(Structure, ExitsToPHPercent)
   )
 
 pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
