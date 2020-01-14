@@ -251,6 +251,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
     HoHsServed,
     AdultsMovedIn,
     AdultsEntered,
+    ClientsMovedInLeavers,
     AdultMovedInLeavers,
     HoHsMovedInLeavers
   )
@@ -425,21 +426,31 @@ summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
 
 # getting baseline data:
 
-a_sso <- summary_pe_non_cash_at_exit %>% 
-  filter(ProjectType == 6) %>% 
+a_th <- summary_pe_non_cash_at_exit %>% 
+  filter(ProjectType == 2,
+         NCBsAtExitPercent != "NaN") %>% 
   select(ProjectName, NCBsAtExitPercent)
 
 a_rrh <- summary_pe_non_cash_at_exit %>% 
-  filter(ProjectType == 13) %>% 
+  filter(ProjectType == 13,
+         NCBsAtExitPercent != "NaN") %>% 
   select(ProjectName, NCBsAtExitPercent)
 
 a_psh <- summary_pe_non_cash_at_exit %>% 
-  filter(ProjectType == 3) %>% 
+  filter(ProjectType == 3,
+         NCBsAtExitPercent != "NaN") %>% 
   select(ProjectName, NCBsAtExitPercent)
 
 a_sh <- summary_pe_non_cash_at_exit %>% 
-  filter(ProjectType == 8) %>% 
+  filter(ProjectType == 8,
+         NCBsAtExitPercent != "NaN") %>% 
   select(ProjectName, NCBsAtExitPercent)
+
+hist(a_rrh$NCBsAtExitPercent)
+
+hist(a_psh$NCBsAtExitPercent)
+
+hist(a_th$NCBsAtExitPercent)
 
 # Accessing Mainstream Resources: Health Insurance ------------------------
 # PSH, TH, SH, RRH
@@ -487,7 +498,16 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
   select(vars_to_the_apps, MostRecentHI)
 
 summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
-  mutate(Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"))
+  group_by(ProjectType, ProjectName) %>%
+  summarise(HIatExit = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    HIatExit = if_else(is.na(HIatExit), 0, HIatExit),
+    Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
+    HIatExitPercent = HIatExit / ClientsMovedInLeavers,
+    Points = pe_score(Structure, HIatExitPercent)
+  ) 
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
@@ -554,53 +574,65 @@ pe_increase_income <- income_staging %>%
 
 rm(list = ls(pattern = "income_staging"))
 
-pe_increase_income <- pe_increase_income %>%
+summary_pe_increase_income <- pe_increase_income %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(IncreasedIncome = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
+    IncreasedIncome = if_else(is.na(IncreasedIncome), 0, IncreasedIncome),
     Structure = case_when(
       ProjectType == 2 ~ "24_30_10",
       ProjectType == 3 ~ "22_28_10",
       ProjectType == 8 ~ "16_20_10",
       ProjectType == 13 ~ "14_18_10"
-    )
-  )
+    ),
+    IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
+    Points = pe_score(Structure, IncreasedIncomePercent)
+  ) 
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
 
 pe_length_of_stay <- pe_hohs_moved_in_leavers %>%
-  mutate(Days = days(ymd(ExitDate) - ymd(EntryAdjust))) %>%
+  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
   select(ProjectType,
          ProjectName,
          EntryDate,
          EntryAdjust,
          MoveInDateAdjust,
          ExitDate,
-         Days,
+         DaysInProject,
          PersonalID,
          EnrollmentID,
          HouseholdID,
          AgeAtEntry,
          VeteranStatus)
 
-# TotalLeavers <- co_hohs_moved_in_leavers %>%
-#   group_by(ProjectName) %>%
-#   summarise(Leavers = n())
-# 
-# length_of_stay_summary <- co_hohs_moved_in_leavers %>%
-#   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
-#   group_by(ProjectName, ProjectType) %>%
-#   summarise(
-#     AverageDays = as.numeric(mean(DaysInProject)),
-#     MedianDays = as.numeric(median(DaysInProject))
-#   ) %>%
-#   left_join(TotalLeavers, by = "ProjectName") 
+summary_pe_length_of_stay <- pe_length_of_stay %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(
+    AverageDays = as.numeric(mean(DaysInProject)),
+    MedianDays = as.numeric(median(DaysInProject))
+  ) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    Structure = case_when(
+      ProjectType == 2 ~ "200_280_10",
+      ProjectType == 8 ~ "260_340_10",
+      ProjectType == 13 ~ "150_210_10"
+    ),
+    AveragePoints = pe_score(Structure, AverageDays),
+    MedianPoints = pe_score(Structure, MedianDays)
+  ) 
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)
 
-# setting the FilePeriod to the date range of the Project Evaluation
-FilePeriod <- interval(mdy(ReportStart), mdy(ReportEnd))
-# rerunning the Utilization script with that new date interval
+# NEED TO FIGURE OUT A WAY TO RUN THE UTILIZATION SCRIPT ON THIS SET DATE RANGE
+# CURRENT METHOD IS CHANGE THE DATE RANGE IN THE UTILIZATION SCRIPT BEFORE
+# RUNNING THIS!!! WHICH IS TERRIBLE!
 source("01_Bed_Unit_Utilization.R")
 # getting what we need from the Utilization script
 utilization_unit_2019 <- utilization_unit %>%
@@ -610,10 +642,14 @@ utilization_unit_2019 <- utilization_unit %>%
 utilization_bed_2019 <- utilization_bed %>%
   ungroup() %>%
   select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
-# setting the FilePeriod back to what it was before
-FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-# re-re-running the script so the image file is like it was
-source("01_Bed_Unit_Utilization.R")
+
+summary_pe_utilization <- pe_coc_funded %>%
+  left_join(utilization_bed_2019, by = c("ProjectName", "ProjectType")) %>%
+  left_join(utilization_unit_2019, by = c("ProjectName", "ProjectType")) %>%
+  select(ProjectType, ProjectName, AvgBedUtilization, AvgUnitUtilization) %>%
+  mutate(Structure = "80_90_10",
+         BedPoints = pe_score(Structure, AvgBedUtilization),
+         UnitPoints = pe_score(Structure, AvgUnitUtilization))
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -631,16 +667,23 @@ pe_res_prior <- pe_adults_entered %>%
   select(vars_to_the_apps, LivingSituation) %>%
   filter(!is.na(PersonalID))
 
-pe_res_prior_summary <- pe_res_prior %>%
+summary_pe_res_prior <- pe_res_prior %>%
   group_by(ProjectType, ProjectName) %>%
-  summarise(MetObjective = sum(MeetsObjective)) %>%
+  summarise(LHResPrior = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
+    LHResPrior = if_else(is.na(LHResPrior),
+                         0,
+                         LHResPrior),
     Structure = case_when(
       ProjectType %in% c(3, 13) ~ "75_85_10",
       ProjectType == 2 ~ "67_75_10",
       ProjectType == 8 ~ "0_100_10"
-    )
-  )
+    ),
+    LHResPriorPercent = LHResPrior / AdultsEntered,
+    Points = pe_score(Structure, LHResPriorPercent)
+  ) 
 
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
@@ -811,8 +854,19 @@ pe_homeless_history_index <- pe_adults_entered %>%
     )
   )
 
-pe_homeless_history_index <- pe_homeless_history_index %>%
-  mutate(Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"))
+summary_pe_homeless_history_index <- pe_homeless_history_index %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(AvgHHI = mean(HHI),
+            MedHHI = median(HHI)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
+    AveragePoints = if_else(AdultsEntered == 0, 10,
+                            pe_score(Structure, AvgHHI)),
+    MedianPoints = if_else(AdultsEntered == 0, 10,
+                           pe_score(Structure, MedHHI))
+  ) 
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
