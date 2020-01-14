@@ -18,6 +18,8 @@ library(scales)
 
 load("images/COHHIOHMIS.RData")
 
+# FilePeriod <- interval(mdy("01012019"), mdy("12312019"))
+
 # Creating Beds table -----------------------------------------------------
 
 small_project <- Project %>%
