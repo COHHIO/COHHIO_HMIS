@@ -386,12 +386,6 @@ summary_pe_own_housing <- pe_own_housing %>%
 
 # TEST RESULTS: No percents over 100%, everyone who should has a score
 
-# Housing Stability: 6 mo Recurrence --------------------------------------
-# PSH, TH, SH, RRH
-
-# Housing Stability: 6-24 mo Recurrence -----------------------------------
-# PSH, TH, SH, RRH
-
 # Accessing Mainstream Resources: NCBs ------------------------------------
 # PSH, TH, SH, RRH
 
@@ -917,9 +911,6 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
 
 # TEST RESULTS: HHIs are as expected, everyone has points
 
-# Community Need: Long Term Homeless Households ---------------------------
-# PSH
-
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
 
@@ -947,7 +938,7 @@ pe_dq_by_provider <- pe_clients_served %>%
 
 pe_dq_by_provider[is.na(pe_dq_by_provider)] <- 0
 
-pe_dq_by_provider <- pe_dq_by_provider %>%
+summary_pe_dq_by_provider <- pe_dq_by_provider %>%
   mutate(Percent = Issues / ClientsServed,
          Points = case_when(
            Issues == 0 ~ 5,
@@ -959,6 +950,17 @@ pe_dq_by_provider <- pe_dq_by_provider %>%
            ),
          ) %>%
   select(ProjectName, ClientsServed, Issues, Percent, Points)
+
+# TEST RESULTS: no percents over 100%, everyone has points
+
+# Community Need: Long Term Homeless Households ---------------------------
+# PSH
+
+# Housing Stability: 6 mo Recurrence --------------------------------------
+# PSH, TH, SH, RRH
+
+# Housing Stability: 6-24 mo Recurrence -----------------------------------
+# PSH, TH, SH, RRH
 
 
 # rm(list = ls()[!(
