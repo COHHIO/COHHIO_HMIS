@@ -16,8 +16,12 @@ library(tidyverse)
 library(lubridate)
 
 load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
+   Export, HealthAndDV, Inventory, Offers, Organization, ProjectCoC, Referrals, 
+   regions, Scores, Services, stray_services, Users, VeteranCE)
 
+load("images/cohorts.RData")
+rm(FileActualStart, FileStart, FileEnd, stop, update_date, summary)
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
@@ -154,13 +158,16 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
 
-pe_hohs_served <-  co_hohs_served %>%
+pe_hohs_served <- co_hohs_served %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want)	
+
+pe_hohs_served_leavers <- pe_hohs_served %>%
+  filter(!is.na(ExitDate))
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
@@ -220,6 +227,15 @@ summary_pe_hohs_served <- pe_hohs_served %>%
                               as.integer(0),
                               HoHsServed))
 
+summary_pe_hohs_served_leavers <- pe_hohs_served %>%
+  group_by(ProjectID) %>%
+  summarise(HoHsServedLeavers = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(HoHsServedLeavers = if_else(is.na(HoHsServedLeavers),
+                              as.integer(0),
+                              HoHsServedLeavers))
+
 summary_pe_clients_served <- pe_clients_served %>%
   right_join(pe_coc_funded, by = "ProjectID") %>%
   group_by(ProjectID) %>%
@@ -237,6 +253,7 @@ summary_pe_adults_entered <- pe_adults_entered %>%
 
 pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_adults_moved_in, by = "ProjectID") %>%
+  full_join(summary_pe_hohs_served_leavers, by = "ProjectID") %>%
   full_join(summary_pe_adults_moved_in_leavers, by = "ProjectID") %>%
   full_join(summary_pe_clients_served, by = "ProjectID") %>%
   full_join(summary_pe_clients_moved_in_leavers, by = "ProjectID") %>%
@@ -249,6 +266,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
     ProjectName,
     ClientsServed,
     HoHsServed,
+    HoHsServedLeavers,
     AdultsMovedIn,
     AdultsEntered,
     ClientsMovedInLeavers,
@@ -257,7 +275,6 @@ pe_validation_summary <- summary_pe_adults_entered %>%
   )
 
 rm(list = ls(pattern = "summary_"))
-
 
 # CoC Scoring -------------------------------------------------------------
 
@@ -282,7 +299,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:23, 28, 31) ~ "Permanent",
+      Destination %in% c(3, 10:11, 19:23, 28, 31, 34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
@@ -317,16 +334,18 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     ExitsToPHPercent = if_else(
       ProjectType == 3,
       ExitsToPH / HoHsServed,
-      ExitsToPH / HoHsMovedInLeavers
+      ExitsToPH / HoHsServedLeavers
     ),
     Points = if_else((ProjectType == 3 &
                         HoHsServed == 0) |
                        (ProjectType != 3 &
-                          HoHsMovedInLeavers) == 0,
+                          HoHsServedLeavers) == 0,
                      10,
                      pe_score(Structure, ExitsToPHPercent)
     )
   )
+
+# TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
 
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
@@ -360,8 +379,12 @@ summary_pe_own_housing <- pe_own_housing %>%
     OwnHousingPercent = if_else(ProjectType != 3,
                                 OwnHousing / HoHsMovedInLeavers,
                                 NULL),
-    Points = pe_score(Structure, OwnHousingPercent)
+    Points = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
+                     10,
+                     pe_score(Structure, OwnHousingPercent))
   )
+
+# TEST RESULTS: No percents over 100%, everyone who should has a score
 
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
@@ -423,6 +446,9 @@ summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
     NCBsAtExitPercent = NCBsAtExit / AdultMovedInLeavers,
     Points = "undecided" # pe_score(Structure, NCBsAtExit)
   )
+
+# TEST RESULTS: No percents over 100%, no score structure assigned, waiting on 
+# committee
 
 # getting baseline data:
 
@@ -506,7 +532,9 @@ summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
     HIatExit = if_else(is.na(HIatExit), 0, HIatExit),
     Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
     HIatExitPercent = HIatExit / ClientsMovedInLeavers,
-    Points = pe_score(Structure, HIatExitPercent)
+    Points = if_else(ClientsMovedInLeavers == 0,
+                     10,
+                     pe_score(Structure, HIatExitPercent))
   ) 
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
@@ -588,8 +616,12 @@ summary_pe_increase_income <- pe_increase_income %>%
       ProjectType == 13 ~ "14_18_10"
     ),
     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
-    Points = pe_score(Structure, IncreasedIncomePercent)
+    Points = if_else(AdultsMovedIn == 0,
+                     10,
+                     pe_score(Structure, IncreasedIncomePercent))
   ) 
+
+#TEST RESULTS: Nothing over 100%, all projects have legit points
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
@@ -623,9 +655,15 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       ProjectType == 8 ~ "260_340_10",
       ProjectType == 13 ~ "150_210_10"
     ),
-    AveragePoints = pe_score(Structure, AverageDays),
-    MedianPoints = pe_score(Structure, MedianDays)
+    AveragePoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
+                            10,
+                            pe_score(Structure, AverageDays)),
+    MedianPoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
+                           10,
+                           pe_score(Structure, MedianDays))
   ) 
+
+# TEST RESULTS: Min and Max days look ok, everyone has points who should
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! not sure why)
@@ -650,6 +688,10 @@ summary_pe_utilization <- pe_coc_funded %>%
   mutate(Structure = "80_90_10",
          BedPoints = pe_score(Structure, AvgBedUtilization),
          UnitPoints = pe_score(Structure, AvgUnitUtilization))
+
+# TEST RESULTS: There are outliers that should be followed up with
+# TEST RESULTS: RRH might should have points, but the logic does not 
+# currently include them. Can write them in if that's the decision.
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -682,8 +724,12 @@ summary_pe_res_prior <- pe_res_prior %>%
       ProjectType == 8 ~ "0_100_10"
     ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
-    Points = pe_score(Structure, LHResPriorPercent)
+    Points = if_else(AdultsEntered == 0,
+                     10,
+                     pe_score(Structure, LHResPriorPercent))
   ) 
+
+# TEST RESULTS: Nothing over 100%, all projects have points that should
 
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
@@ -723,6 +769,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
                      pe_score(Structure, NoIncomeAtEntryPercent))
   )
 
+# TEST RESULTS: nothing over 100%, everyone has points who should
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
@@ -868,6 +915,8 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
                            pe_score(Structure, MedHHI))
   ) 
 
+# TEST RESULTS: HHIs are as expected, everyone has points
+
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
 
@@ -892,14 +941,14 @@ dq_staging <- dq_2019 %>%
 pe_dq_by_provider <- pe_clients_served %>%
   select(ProjectName) %>%
   unique() %>%
-  left_join(summary, by = "ProjectName") %>%
-  select(ProjectName, clients_served) %>%
+  left_join(pe_validation_summary, by = "ProjectName") %>%
+  select(ProjectName, ClientsServed) %>%
   left_join(dq_staging, by = "ProjectName")
 
 pe_dq_by_provider[is.na(pe_dq_by_provider)] <- 0
 
 pe_dq_by_provider <- pe_dq_by_provider %>%
-  mutate(Percent = Issues / clients_served,
+  mutate(Percent = Issues / ClientsServed,
          Points = case_when(
            Issues == 0 ~ 5,
            Percent > 0 & Percent <= .02 ~ 4,
@@ -909,7 +958,7 @@ pe_dq_by_provider <- pe_dq_by_provider %>%
            Percent > .1 ~ 0
            ),
          ) %>%
-  select(ProjectName, "ClientsServed" = clients_served, Issues, Percent, Points)
+  select(ProjectName, ClientsServed, Issues, Percent, Points)
 
 
 # rm(list = ls()[!(
