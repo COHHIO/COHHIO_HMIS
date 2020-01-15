@@ -955,6 +955,43 @@ summary_pe_dq_by_provider <- pe_dq_by_provider %>%
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
+# PLEASE NOTE THE SPECS SAY HOHS ENTERED BUT IN 2019 WE GOT PUSHBACK ON THIS
+# BECAUSE SOMETIMES THE HOH IS NOT THE ONE WITH THE HOMELESS HISTORY
+
+pe_long_term_homeless <- pe_adults_entered %>%
+  mutate(
+    CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
+                                       units = "days"),
+    MeetsObjective = if_else((
+      CurrentHomelessDuration >= 365 &
+        !is.na(CurrentHomelessDuration)
+    ) |
+      (
+        TimesHomelessPastThreeYears == 4 &
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+          !is.na(TimesHomelessPastThreeYears) &
+          !is.na(MonthsHomelessPastThreeYears)
+      ),
+    1,
+    0
+    )
+  )
+
+summary_pe_long_term_homeless <- pe_long_term_homeless %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(LongTermHomeless = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    LongTermHomeless = if_else(is.na(LongTermHomeless),
+                              0,
+                              LongTermHomeless),
+    Structure = if_else(ProjectType == 3, "20_90_5", NULL),
+    LongTermHomelessPercent = LongTermHomeless / AdultsEntered,
+    Points = if_else(AdultsEntered == 0, 5,
+                     pe_score(Structure, LongTermHomelessPercent))
+  )
+  
 
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
