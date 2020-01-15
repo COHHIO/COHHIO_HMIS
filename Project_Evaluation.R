@@ -992,9 +992,38 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
                      pe_score(Structure, LongTermHomelessPercent))
   )
   
+# TEST RESULTS: No percents over 100%, all PSH's are getting legit points
 
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
+
+library(funneljoin)
+
+leavers_psh_to_ph <- co_clients_served %>%
+  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+           ProjectType == 3)
+
+leavers_rrh_to_ph <- co_clients_served %>%
+  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+           ProjectType == 13)
+
+leavers_th_to_ph <- co_clients_served %>%
+  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+           ProjectType == 2)
+
+leavers_es_to_ph <- co_clients_served %>%
+  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+           ProjectType == 1)
+
+leavers_sso_to_ph <- co_clients_served %>%
+  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+           ProjectType == 6)
+
+leavers_sh_to_ph <- co_clients_served %>%
+  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+           ProjectType == 8)
+
+returners <- co_clients_served
 
 # Housing Stability: 6-24 mo Recurrence -----------------------------------
 # PSH, TH, SH, RRH
