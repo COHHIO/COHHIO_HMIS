@@ -837,6 +837,49 @@ pe_score <- function(structure, value) {
   )
 }
 
+living_situation <- function(OptionID) {
+  case_when(
+    OptionID == 16 ~ "Place not meant for habitation",
+    OptionID == 1 ~ "Emergency shelter/ h/motel paid for by a third party/Host Home shelter",
+    OptionID == 18 ~ "Safe Haven",
+    OptionID == 15 ~ "Foster care home of foster care group home",
+    OptionID == 6 ~ " Hospital or other residential non-psychiatric medical facility",
+    OptionID == 7 ~ "Jail/prison/juvenile detention",
+    OptionID == 25 ~ "Long-term care facility or nursing home",
+    OptionID == 4 ~ "Psychiatric hospital/ other psychiatric facility",
+    OptionID == 5 ~ "Substance abuse treatment facility or detox center",
+    OptionID == 29 ~ "Residential project or halfway house with no homeless criteria",
+    OptionID == 14 ~ "H/Motel paid for by household",
+    OptionID == 2 ~ "Transitional housing",
+    OptionID == 32 ~ "Host Home (non-crisis)",
+    OptionID == 13 ~ "Staying or living with friends, temporary tenure",
+    OptionID == 36 ~ "Staying or living in a friend's room, apartment or house",
+    OptionID == 12 ~ "Staying or living with family, temporary tenure",
+    OptionID == 22 ~ "Staying or living with family, permanent tenure",
+    OptionID == 35 ~ "Staying or living in a family member's room, apartment, or house",
+    OptionID == 23 ~ "Staying or living with friends, permanent tenure",
+    OptionID == 26 ~ "Moved from one HOPWA funded project to HOPWA PH",
+    OptionID == 27 ~ "Moved from HOPWA funded project to HOPWA TH",
+    OptionID == 28 ~ "Rental by client, with GPD TIP housing subsidy",
+    OptionID == 19 ~ "Rental by client, with VASH housing subsidy",
+    OptionID == 3 ~ "Permanent housing (other than RRH) for formerly homeless persons",
+    OptionID == 31 ~ "Rental by client, with RRH or equivalent subsidy",
+    OptionID == 33 ~ "Rental by client, with HCV voucher",
+    OptionID == 34 ~ "Rental by client in a public housing unit",
+    OptionID == 10 ~ "Rental by client, no ongoing housing subsidy",
+    OptionID == 20 ~ "Rental by client, with other ongoing housing subsidy",
+    OptionID == 21 ~ "Owned by client, with ongoing housing subsidy",
+    OptionID == 11 ~ "Owned by client, no ongoing housing subsidy",
+    OptionID == 30 ~ "No exit interview completed",
+    OptionID == 17 ~ "Other",
+    OptionID == 24 ~ "Deceased",
+    OptionID == 37 ~ "Worker unable to determine",
+    OptionID == 8 ~ "Client doesn't know",
+    OptionID == 9 ~ "Client refused",
+    OptionID == 99 ~ "Data not collected"
+  )
+}
+
 # # HMIS participating Between --------------------------------------------------
 # 
 # HMIS_participating_between <- function(table, start, end) {
