@@ -880,6 +880,20 @@ living_situation <- function(OptionID) {
   )
 }
 
+project_type <- function(ReferenceNo){
+  case_when(
+    ReferenceNo == 1 ~ "Emergency Shelter",
+    ReferenceNo == 2 ~ "Transitional Housing",
+    ReferenceNo == 3 ~ "Permanent Supportive Housing",
+    ReferenceNo == 4 ~ "Street Outreach",
+    ReferenceNo == 6 ~ "Services Only",
+    ReferenceNo == 8 ~ "Safe Haven",
+    ReferenceNo == 12 ~ "Prevention",
+    ReferenceNo == 13 ~ "Rapid Rehousing",
+    ReferenceNo == 14 ~ "Coordinated Entry"
+  )
+}
+
 # # HMIS participating Between --------------------------------------------------
 # 
 # HMIS_participating_between <- function(table, start, end) {
