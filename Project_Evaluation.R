@@ -1187,8 +1187,10 @@ colnames(ART_PSH) <- c("Project", col1, col2, col3, col4, col5, col6, col7,
 ART_PSH <- ART_PSH %>%
   filter(!is.na(Project))
 
-setdiff(colnames(ART_RRH), colnames(ART_PSH))
+ART_PSH_RRH <- rbind(ART_PSH, ART_RRH)
+ART_TH_SH <- rbind(ART_TH, ART_SH)
 
-setdiff(colnames(ART_TH), colnames(ART_SH))
+rm(ART_PSH, ART_RRH, ART_TH, ART_SH)
+rm(list = ls(pattern = "col"))
 
-setdiff(colnames(ART_TH), colnames(ART_PSH))
+
