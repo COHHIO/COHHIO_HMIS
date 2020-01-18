@@ -1072,7 +1072,123 @@ returners <- co_clients_served
 
 
 
+# Testing the Validation Dataset ------------------------------------------
 
+library(readxl)
 
+ART_RRH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                      sheet = 1,
+                      range = cell_cols("A:J"))
+col1 <- paste(colnames(ART_RRH[2]), ART_RRH[1,2], ART_RRH[2,2])
+col2 <- paste(colnames(ART_RRH[3]), ART_RRH[1, 3], ART_RRH[2, 3])
+col3 <- paste(colnames(ART_RRH[4]), ART_RRH[1, 4], ART_RRH[2, 4])
+col4 <- paste(colnames(ART_RRH[5]), ART_RRH[1, 5], ART_RRH[2, 5])
+col5 <- paste(colnames(ART_RRH[6]), ART_RRH[1, 6], ART_RRH[2, 6])
+col6 <- paste(colnames(ART_RRH[7]), ART_RRH[1, 7], ART_RRH[2, 7])
+col7 <- paste(colnames(ART_RRH[8]), ART_RRH[1, 8], ART_RRH[2, 8])
+col8 <- paste(colnames(ART_RRH[9]), ART_RRH[1, 9], ART_RRH[2, 9])
+col9 <- paste(colnames(ART_RRH[10]), ART_RRH[1, 10], ART_RRH[2, 10])
 
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+col8 <- str_remove(col8, "...9")
+col9 <- str_remove(col9, "...10")
 
+colnames(ART_RRH) <- c("Project", col1, col2, col3, col4, col5, col6, col7, 
+                       col8, col9)
+ART_RRH <- ART_RRH %>%
+  filter(!is.na(Project))
+
+ART_TH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                      sheet = 2,
+                      range = cell_cols("A:H"))
+col1 <- paste(colnames(ART_TH[2]), ART_TH[1,2], ART_TH[2,2])
+col2 <- paste(colnames(ART_TH[3]), ART_TH[1, 3], ART_TH[2, 3])
+col3 <- paste(colnames(ART_TH[4]), ART_TH[1, 4], ART_TH[2, 4])
+col4 <- paste(colnames(ART_TH[5]), ART_TH[1, 5], ART_TH[2, 5])
+col5 <- paste(colnames(ART_TH[6]), ART_TH[1, 6], ART_TH[2, 6])
+col6 <- paste(colnames(ART_TH[7]), ART_TH[1, 7], ART_TH[2, 7])
+col7 <- paste(colnames(ART_TH[8]), ART_TH[1, 8], ART_TH[2, 8])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+
+col2 <- str_replace(col2, "Stayers and Leavers", "Leavers and Stayers")
+col3 <- str_replace(col3, "Stayers and Leavers", "Leavers and Stayers")
+col6 <- str_replace(col6, "Stayers and Leavers", "Leavers and Stayers")
+col7 <- str_replace(col7, "Stayers and Leavers", "Leavers and Stayers")
+
+colnames(ART_TH) <- c("Project", col1, col2, col3, col4, col5, col6, col7)
+
+ART_TH <- ART_TH %>%
+  filter(!is.na(Project))
+
+ART_SH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                     sheet = 3,
+                     range = cell_cols("A:H"))
+col1 <- paste(colnames(ART_SH[2]), ART_SH[1,2], ART_SH[2,2])
+col2 <- paste(colnames(ART_SH[3]), ART_SH[1, 3], ART_SH[2, 3])
+col3 <- paste(colnames(ART_SH[4]), ART_SH[1, 4], ART_SH[2, 4])
+col4 <- paste(colnames(ART_SH[5]), ART_SH[1, 5], ART_SH[2, 5])
+col5 <- paste(colnames(ART_SH[6]), ART_SH[1, 6], ART_SH[2, 6])
+col6 <- paste(colnames(ART_SH[7]), ART_SH[1, 7], ART_SH[2, 7])
+col7 <- paste(colnames(ART_SH[8]), ART_SH[1, 8], ART_SH[2, 8])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+
+colnames(ART_SH) <- c("Project", col1, col2, col3, col4, col5, col6, col7)
+
+ART_SH <- ART_SH %>%
+  filter(!is.na(Project))
+
+ART_PSH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                      sheet = 4,
+                      range = cell_cols("A:J"))
+col1 <- paste(colnames(ART_PSH[2]), ART_PSH[1,2], ART_PSH[2,2])
+col2 <- paste(colnames(ART_PSH[3]), ART_PSH[1, 3], ART_PSH[2, 3])
+col3 <- paste(colnames(ART_PSH[4]), ART_PSH[1, 4], ART_PSH[2, 4])
+col4 <- paste(colnames(ART_PSH[5]), ART_PSH[1, 5], ART_PSH[2, 5])
+col5 <- paste(colnames(ART_PSH[6]), ART_PSH[1, 6], ART_PSH[2, 6])
+col6 <- paste(colnames(ART_PSH[7]), ART_PSH[1, 7], ART_PSH[2, 7])
+col7 <- paste(colnames(ART_PSH[8]), ART_PSH[1, 8], ART_PSH[2, 8])
+col8 <- paste(colnames(ART_PSH[9]), ART_PSH[1, 9], ART_PSH[2, 9])
+col9 <- paste(colnames(ART_PSH[10]), ART_PSH[1, 10], ART_PSH[2, 10])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+col8 <- str_remove(col8, "...9")
+col9 <- str_remove(col9, "...10")
+
+col3 <- str_replace(col3, "Adullts", "Adults")
+
+colnames(ART_PSH) <- c("Project", col1, col2, col3, col4, col5, col6, col7, 
+                       col8, col9)
+ART_PSH <- ART_PSH %>%
+  filter(!is.na(Project))
+
+setdiff(colnames(ART_RRH), colnames(ART_PSH))
+
+setdiff(colnames(ART_TH), colnames(ART_SH))
+
+setdiff(colnames(ART_TH), colnames(ART_PSH))
