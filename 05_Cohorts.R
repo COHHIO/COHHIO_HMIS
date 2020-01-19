@@ -60,7 +60,7 @@ co_hohs_served <-  Enrollment %>%
   filter(served_between(., ReportStart, ReportEnd) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(vars_we_want)
 
 summary_hohs_served <- co_hohs_served %>%
   group_by(ProjectName) %>%
