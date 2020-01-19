@@ -103,7 +103,10 @@ pe_clients_served <-  co_clients_served %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+
 
 # several measures will use this
 # Adults who entered during date range
@@ -114,7 +117,9 @@ pe_adults_entered <-  co_adults_entered %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # for ncb logic
 # Adults who moved in and exited during date range
@@ -128,7 +133,9 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)	
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # increase income
 #Adults who moved in and were served during date range
@@ -139,7 +146,9 @@ pe_adults_moved_in <-  co_adults_moved_in %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)	
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 # health insurance
 # Clients who moved in and exited during date range
@@ -151,7 +160,9 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)	
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
@@ -162,7 +173,9 @@ pe_hohs_served <- co_hohs_served %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)	
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 pe_hohs_served_leavers <- pe_hohs_served %>%
   filter(!is.na(ExitDate))
@@ -177,7 +190,9 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want)
+  select(vars_we_want) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # Create Validation Summary -----------------------------------------------
 
@@ -995,39 +1010,39 @@ summary_pe_final_scoring <- pe_coc_funded[c("ProjectType", "ProjectName")] %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "ProjectName"))
 
 # Clean the House ---------------------------------------------------------
-
-rm(list = ls()[!(ls() %in% c(
-  'pe_coc_funded',
-  'pe_coc_scoring',
-  'pe_dq_by_provider',
-  'pe_entries_no_income',
-  'pe_exits_to_ph',
-  'pe_health_ins_at_exit',
-  'pe_homeless_history_index',
-  'pe_increase_income',
-  'pe_length_of_stay',
-  'pe_long_term_homeless',
-  'pe_non_cash_at_exit',
-  'pe_own_housing',
-  'pe_res_prior',
-  'pe_validation_summary',
-  'summary_pe_dq_by_provider',
-  'summary_pe_entries_no_income',
-  'summary_pe_exits_to_ph',
-  'summary_pe_health_ins_at_exit',
-  'summary_pe_homeless_history_index',
-  'summary_pe_increase_income',
-  'summary_pe_length_of_stay',
-  'summary_pe_long_term_homeless',
-  'summary_pe_non_cash_at_exit',
-  'summary_pe_own_housing',
-  'summary_pe_res_prior',
-  'summary_pe_utilization',
-  'summary_pe_final_scoring',
-  'ReportStart', 
-  'ReportEnd',
-  'living_situation'
-))])
+# 
+# rm(list = ls()[!(ls() %in% c(
+#   'pe_coc_funded',
+#   'pe_coc_scoring',
+#   'pe_dq_by_provider',
+#   'pe_entries_no_income',
+#   'pe_exits_to_ph',
+#   'pe_health_ins_at_exit',
+#   'pe_homeless_history_index',
+#   'pe_increase_income',
+#   'pe_length_of_stay',
+#   'pe_long_term_homeless',
+#   'pe_non_cash_at_exit',
+#   'pe_own_housing',
+#   'pe_res_prior',
+#   'pe_validation_summary',
+#   'summary_pe_dq_by_provider',
+#   'summary_pe_entries_no_income',
+#   'summary_pe_exits_to_ph',
+#   'summary_pe_health_ins_at_exit',
+#   'summary_pe_homeless_history_index',
+#   'summary_pe_increase_income',
+#   'summary_pe_length_of_stay',
+#   'summary_pe_long_term_homeless',
+#   'summary_pe_non_cash_at_exit',
+#   'summary_pe_own_housing',
+#   'summary_pe_res_prior',
+#   'summary_pe_utilization',
+#   'summary_pe_final_scoring',
+#   'ReportStart', 
+#   'ReportEnd',
+#   'living_situation'
+# ))])
 
 save.image("images/ProjectEvaluation.RData")
 
@@ -1068,216 +1083,6 @@ returners <- co_clients_served
 
 # Housing Stability: 6-24 mo Recurrence -----------------------------------
 # PSH, TH, SH, RRH
-
-
-
-
-# Testing the Validation Dataset ------------------------------------------
-
-library(readxl)
-
-ART_RRH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
-                      sheet = 1,
-                      range = cell_cols("A:J"))
-col1 <- paste(colnames(ART_RRH[2]), ART_RRH[1,2], ART_RRH[2,2])
-col2 <- paste(colnames(ART_RRH[3]), ART_RRH[1, 3], ART_RRH[2, 3])
-col3 <- paste(colnames(ART_RRH[4]), ART_RRH[1, 4], ART_RRH[2, 4])
-col4 <- paste(colnames(ART_RRH[5]), ART_RRH[1, 5], ART_RRH[2, 5])
-col5 <- paste(colnames(ART_RRH[6]), ART_RRH[1, 6], ART_RRH[2, 6])
-col6 <- paste(colnames(ART_RRH[7]), ART_RRH[1, 7], ART_RRH[2, 7])
-col7 <- paste(colnames(ART_RRH[8]), ART_RRH[1, 8], ART_RRH[2, 8])
-col8 <- paste(colnames(ART_RRH[9]), ART_RRH[1, 9], ART_RRH[2, 9])
-col9 <- paste(colnames(ART_RRH[10]), ART_RRH[1, 10], ART_RRH[2, 10])
-
-col1 <- str_remove(col1, "...2")
-col2 <- str_remove(col2, "...3")
-col3 <- str_remove(col3, "...4")
-col4 <- str_remove(col4, "...5")
-col5 <- str_remove(col5, "...6")
-col6 <- str_remove(col6, "...7")
-col7 <- str_remove(col7, "...8")
-col8 <- str_remove(col8, "...9")
-col9 <- str_remove(col9, "...10")
-
-colnames(ART_RRH) <- c("Project", col1, col2, col3, col4, col5, col6, col7, 
-                       col8, col9)
-ART_RRH <- ART_RRH %>%
-  filter(!is.na(Project))
-
-ART_TH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
-                      sheet = 2,
-                      range = cell_cols("A:H"))
-col1 <- paste(colnames(ART_TH[2]), ART_TH[1,2], ART_TH[2,2])
-col2 <- paste(colnames(ART_TH[3]), ART_TH[1, 3], ART_TH[2, 3])
-col3 <- paste(colnames(ART_TH[4]), ART_TH[1, 4], ART_TH[2, 4])
-col4 <- paste(colnames(ART_TH[5]), ART_TH[1, 5], ART_TH[2, 5])
-col5 <- paste(colnames(ART_TH[6]), ART_TH[1, 6], ART_TH[2, 6])
-col6 <- paste(colnames(ART_TH[7]), ART_TH[1, 7], ART_TH[2, 7])
-col7 <- paste(colnames(ART_TH[8]), ART_TH[1, 8], ART_TH[2, 8])
-
-col1 <- str_remove(col1, "...2")
-col2 <- str_remove(col2, "...3")
-col3 <- str_remove(col3, "...4")
-col4 <- str_remove(col4, "...5")
-col5 <- str_remove(col5, "...6")
-col6 <- str_remove(col6, "...7")
-col7 <- str_remove(col7, "...8")
-
-col2 <- str_replace(col2, "Stayers and Leavers", "Leavers and Stayers")
-col3 <- str_replace(col3, "Stayers and Leavers", "Leavers and Stayers")
-col6 <- str_replace(col6, "Stayers and Leavers", "Leavers and Stayers")
-col7 <- str_replace(col7, "Stayers and Leavers", "Leavers and Stayers")
-
-colnames(ART_TH) <- c("Project", col1, col2, col3, col4, col5, col6, col7)
-
-ART_TH <- ART_TH %>%
-  filter(!is.na(Project))
-
-ART_SH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
-                     sheet = 3,
-                     range = cell_cols("A:H"))
-col1 <- paste(colnames(ART_SH[2]), ART_SH[1,2], ART_SH[2,2])
-col2 <- paste(colnames(ART_SH[3]), ART_SH[1, 3], ART_SH[2, 3])
-col3 <- paste(colnames(ART_SH[4]), ART_SH[1, 4], ART_SH[2, 4])
-col4 <- paste(colnames(ART_SH[5]), ART_SH[1, 5], ART_SH[2, 5])
-col5 <- paste(colnames(ART_SH[6]), ART_SH[1, 6], ART_SH[2, 6])
-col6 <- paste(colnames(ART_SH[7]), ART_SH[1, 7], ART_SH[2, 7])
-col7 <- paste(colnames(ART_SH[8]), ART_SH[1, 8], ART_SH[2, 8])
-
-col1 <- str_remove(col1, "...2")
-col2 <- str_remove(col2, "...3")
-col3 <- str_remove(col3, "...4")
-col4 <- str_remove(col4, "...5")
-col5 <- str_remove(col5, "...6")
-col6 <- str_remove(col6, "...7")
-col7 <- str_remove(col7, "...8")
-
-colnames(ART_SH) <- c("Project", col1, col2, col3, col4, col5, col6, col7)
-
-ART_SH <- ART_SH %>%
-  filter(!is.na(Project))
-
-ART_PSH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
-                      sheet = 4,
-                      range = cell_cols("A:J"))
-col1 <- paste(colnames(ART_PSH[2]), ART_PSH[1,2], ART_PSH[2,2])
-col2 <- paste(colnames(ART_PSH[3]), ART_PSH[1, 3], ART_PSH[2, 3])
-col3 <- paste(colnames(ART_PSH[4]), ART_PSH[1, 4], ART_PSH[2, 4])
-col4 <- paste(colnames(ART_PSH[5]), ART_PSH[1, 5], ART_PSH[2, 5])
-col5 <- paste(colnames(ART_PSH[6]), ART_PSH[1, 6], ART_PSH[2, 6])
-col6 <- paste(colnames(ART_PSH[7]), ART_PSH[1, 7], ART_PSH[2, 7])
-col7 <- paste(colnames(ART_PSH[8]), ART_PSH[1, 8], ART_PSH[2, 8])
-col8 <- paste(colnames(ART_PSH[9]), ART_PSH[1, 9], ART_PSH[2, 9])
-col9 <- paste(colnames(ART_PSH[10]), ART_PSH[1, 10], ART_PSH[2, 10])
-
-col1 <- str_remove(col1, "...2")
-col2 <- str_remove(col2, "...3")
-col3 <- str_remove(col3, "...4")
-col4 <- str_remove(col4, "...5")
-col5 <- str_remove(col5, "...6")
-col6 <- str_remove(col6, "...7")
-col7 <- str_remove(col7, "...8")
-col8 <- str_remove(col8, "...9")
-col9 <- str_remove(col9, "...10")
-
-col3 <- str_replace(col3, "Adullts", "Adults")
-
-colnames(ART_PSH) <- c("Project", col1, col2, col3, col4, col5, col6, col7, 
-                       col8, col9)
-ART_PSH <- ART_PSH %>%
-  filter(!is.na(Project))
-
-ART_PSH_RRH <- rbind(ART_PSH, ART_RRH)
-ART_TH_SH <- rbind(ART_TH, ART_SH)
-
-rm(ART_PSH, ART_RRH, ART_TH, ART_SH)
-rm(list = ls(pattern = "col"))
-
-ART_PSH_RRH <- ART_PSH_RRH %>%
-  mutate(Project = str_remove(Project, "\\(.*\\)"))
-
-ART_TH_SH <- ART_TH_SH %>%
-  mutate(Project = str_remove(Project, "\\(.*\\)"))
-
-ART_PSH_RRH <- ART_PSH_RRH %>%
-  select(1, 
-         "ART_ClientsServed" = 3,
-         "ART_AdultsEntered" = 5, 
-         "ART_AdultsMovedIn" = 8, 
-         "ART_ClientsMovedInLeavers" = 9, 
-         "ART_AdultMovedInLeavers" = 10)
-
-ART_TH_SH <- ART_TH_SH %>%
-  select(1,
-         "ART_ClientsServed" = 3,
-         "ART_AdultsMovedIn" = 4,
-         "ART_ClientsMovedInLeavers" = 5,
-         "ART_AdultMovedInLeavers" = 6,
-         "ART_AdultsEntered" = 8)
-
-x <- pe_validation_summary %>%
-  left_join(ART_PSH_RRH, by = c("ProjectName" = "Project"))
-
-x[is.na(x)] <- 0
-
-x <- x %>%
-  mutate(
-    ART_ClientsServed = as.integer(ART_ClientsServed),
-    DifferenceClientsServed = if_else(
-      ClientsServed - ART_ClientsServed != 0,
-      paste(
-        "R shows",
-        ClientsServed,
-        "clients served but ART shows",
-        ART_ClientsServed
-      ),
-      "all good!"
-    ), 
-    ART_AdultMovedInLeavers = as.integer(ART_AdultMovedInLeavers),
-    DifferenceAdultMovedInLeavers = if_else(
-      AdultMovedInLeavers - ART_AdultMovedInLeavers != 0,
-      paste(
-        "R shows",
-        AdultMovedInLeavers,
-        "clients served but ART shows",
-        ART_AdultMovedInLeavers
-      ),
-      "all good!"
-    ), 
-    ART_AdultsEntered = as.integer(ART_AdultsEntered),
-    DifferenceAdultsentered = if_else(
-      AdultsEntered - ART_AdultsEntered != 0,
-      paste(
-        "R shows",
-        AdultsEntered,
-        "clients served but ART shows",
-        ART_AdultsEntered
-      ),
-      "all good!"
-    ), 
-    ART_AdultsMovedIn = as.integer(ART_AdultsMovedIn),
-    DifferenceAdultsMovedIn = if_else(
-      AdultsMovedIn - ART_AdultsMovedIn != 0,
-      paste(
-        "R shows",
-        AdultsMovedIn,
-        "clients served but ART shows",
-        ART_AdultsMovedIn
-      ),
-      "all good!"
-    ), 
-    ART_ClientsMovedInLeavers = as.integer(ART_ClientsMovedInLeavers),
-    DifferenceClientsMovedInLeavers = if_else(
-      ClientsMovedInLeavers - ART_ClientsMovedInLeavers != 0,
-      paste(
-        "R shows",
-        ClientsMovedInLeavers,
-        "clients served but ART shows",
-        ART_ClientsMovedInLeavers
-      ),
-      "all good!"
-    )
-  )
 
 
 
