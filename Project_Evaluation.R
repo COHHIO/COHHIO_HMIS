@@ -1193,4 +1193,92 @@ ART_TH_SH <- rbind(ART_TH, ART_SH)
 rm(ART_PSH, ART_RRH, ART_TH, ART_SH)
 rm(list = ls(pattern = "col"))
 
+ART_PSH_RRH <- ART_PSH_RRH %>%
+  mutate(Project = str_remove(Project, "\\(.*\\)"))
+
+ART_TH_SH <- ART_TH_SH %>%
+  mutate(Project = str_remove(Project, "\\(.*\\)"))
+
+ART_PSH_RRH <- ART_PSH_RRH %>%
+  select(1, 
+         "ART_ClientsServed" = 3,
+         "ART_AdultsEntered" = 5, 
+         "ART_AdultsMovedIn" = 8, 
+         "ART_ClientsMovedInLeavers" = 9, 
+         "ART_AdultMovedInLeavers" = 10)
+
+ART_TH_SH <- ART_TH_SH %>%
+  select(1,
+         "ART_ClientsServed" = 3,
+         "ART_AdultsMovedIn" = 4,
+         "ART_ClientsMovedInLeavers" = 5,
+         "ART_AdultMovedInLeavers" = 6,
+         "ART_AdultsEntered" = 8)
+
+x <- pe_validation_summary %>%
+  left_join(ART_PSH_RRH, by = c("ProjectName" = "Project"))
+
+x[is.na(x)] <- 0
+
+x <- x %>%
+  mutate(
+    ART_ClientsServed = as.integer(ART_ClientsServed),
+    DifferenceClientsServed = if_else(
+      ClientsServed - ART_ClientsServed != 0,
+      paste(
+        "R shows",
+        ClientsServed,
+        "clients served but ART shows",
+        ART_ClientsServed
+      ),
+      "all good!"
+    ), 
+    ART_AdultMovedInLeavers = as.integer(ART_AdultMovedInLeavers),
+    DifferenceAdultMovedInLeavers = if_else(
+      AdultMovedInLeavers - ART_AdultMovedInLeavers != 0,
+      paste(
+        "R shows",
+        AdultMovedInLeavers,
+        "clients served but ART shows",
+        ART_AdultMovedInLeavers
+      ),
+      "all good!"
+    ), 
+    ART_AdultsEntered = as.integer(ART_AdultsEntered),
+    DifferenceAdultsentered = if_else(
+      AdultsEntered - ART_AdultsEntered != 0,
+      paste(
+        "R shows",
+        AdultsEntered,
+        "clients served but ART shows",
+        ART_AdultsEntered
+      ),
+      "all good!"
+    ), 
+    ART_AdultsMovedIn = as.integer(ART_AdultsMovedIn),
+    DifferenceAdultsMovedIn = if_else(
+      AdultsMovedIn - ART_AdultsMovedIn != 0,
+      paste(
+        "R shows",
+        AdultsMovedIn,
+        "clients served but ART shows",
+        ART_AdultsMovedIn
+      ),
+      "all good!"
+    ), 
+    ART_ClientsMovedInLeavers = as.integer(ART_ClientsMovedInLeavers),
+    DifferenceClientsMovedInLeavers = if_else(
+      ClientsMovedInLeavers - ART_ClientsMovedInLeavers != 0,
+      paste(
+        "R shows",
+        ClientsMovedInLeavers,
+        "clients served but ART shows",
+        ART_ClientsMovedInLeavers
+      ),
+      "all good!"
+    )
+  )
+
+
+
 
