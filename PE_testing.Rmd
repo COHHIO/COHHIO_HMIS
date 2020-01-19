@@ -235,6 +235,8 @@ x <- x %>%
 
 This assumes you did not run the "Clean the House" section of the Project_Evaluation.R script.
 
+## Testing ClientsServed
+
 One of the projects that shows in the DifferencesClientsServed column is Lorain - Lorain County Board of Mental Health - Lorain Shelter Plus Care - PSH, who has 89 clients served in R and 90 in ART.
 
 I ran a CoC-APR on this project for dates 1/1/2019 to 12/31/2019 and downloaded all the Client IDs in the validation table there (so this isn't even the ART report, but just the APR). I'm starting with creating a vector with all those client IDs, then I compare that against which Clients are in pe_clients_served.
@@ -434,9 +436,7 @@ setdiff(pe_clients_served %>% filter(ProjectName == "Hocking - Hocking MHA  - Ho
 
 ```
 
-Here it's returning two Client IDs that are different, but the vectors are only off by 1. Using the janitor package, I figured out there's a client with two EEs in this project during the reporting period. The Client ID is 197646 and they had a few months where they were not in the PSH, they were in a shelter, so everything is correct in HMIS, I just need to be sure this is being handled correctly in this reporting. Really both of these stays should not be counted here.
-
-The other two clients exited on the Report Start Date. 
+These two clients exited on the Report Start Date. This one also previously had a duplicate that was making a difference but that has since been fixed. GD 1/19/2020
 
 Next up: Defiance - Northwestern Ohio CAC - PSH
 
@@ -507,7 +507,36 @@ get_dupes(b, PersonalID)
 
 ```
 
-Client 125580 is duplicated in the R count. :(
+Client 125580 is duplicated in the R count. :( - FIXED GD 1/19/2020
+
+### Summary of Clients Served Testing
+
+The only two problems I found were:
+
+1. The weirdness around the way HUD is counting clients in the date range, where those who exit on the Report Start are being counted as if they slept in the project during the date range. I have not changed anything in my code around this because I put in an AAQ and am awaiting a response.
+2. When clients are served in a project two or more distinct times during the reporting period. I fixed this in my code- not in the cohorts script (because I may want to dedupe in different ways for different applications) but in the Project Evaluation script.
+3. Also the two datasets are pulling different providers. I have not checked into this yet.
+
+## Testing AdultMovedInLeavers
+
+I want to test Portage - Coleman Professional Services - PSH first since R is showing 8 and ART is showing less than that, so it can't be the Exit = Report Start problem. It also can't be a duplicate since that's already fixed.
+
+```{r CPS_PSH}
+
+a <- c(191643, 15048, 215507, 225, 63625, 216700, 137152, 227165)
+b <- pe_adults_moved_in_leavers %>%
+  filter(ProjectName == "Portage - Coleman Professional Services - PSH") %>%
+  pull(PersonalID)
+
+setdiff(b, a)
+
+```
+
+I do not know why Client 244 is not pulling into the ART report. It should be. Will need to look more closely at the ART logic at the office.
+
+
+
+
 
 
 
