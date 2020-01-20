@@ -922,9 +922,6 @@ FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
-
-
-
 # Update Date -------------------------------------------------------------
 
 update_date <- file.info("data/Enrollment.csv")$mtime
