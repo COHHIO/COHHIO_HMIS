@@ -631,6 +631,12 @@ Referrals <- Referrals %>%
          UserCreatingReferral = UserCreating,
          UserCreating = NULL)
 
+
+# HUD CSV Specs -----------------------------------------------------------
+
+HUD_specs <- read_csv("HUD/HUDSpecs.csv",
+                      col_types = "ccnc")
+
 # Age Function ------------------------------------------------------------
 
 age_years <- function(earlier, later)
