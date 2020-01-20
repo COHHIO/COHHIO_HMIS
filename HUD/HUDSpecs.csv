@@ -55,47 +55,47 @@ DataElementID,DataElement,ReferenceNo,Description
 2.02.6,ProjectType,14,Coordinated Entry
 2.02.C,TrackingMethod,0,Entry/Exit Date
 2.02.C,TrackingMethod,3,Night-by-Night
-2.06.1,FundingSource,1,HUD: CoC – Homelessness Prevention (High Performing Comm. Only)
-2.06.1,FundingSource,2,HUD: CoC – Permanent Supportive Housing
-2.06.1,FundingSource,3,HUD: CoC – Rapid Re-Housing
-2.06.1,FundingSource,4,HUD: CoC – Supportive Services Only
-2.06.1,FundingSource,5,HUD: CoC – Transitional Housing
-2.06.1,FundingSource,6,HUD: CoC – Safe Haven
-2.06.1,FundingSource,7,HUD: CoC – Single Room Occupancy (SRO)
-2.06.1,FundingSource,8,HUD: ESG – Emergency Shelter (operating and/or essential services)
-2.06.1,FundingSource,9,HUD: ESG – Homelessness Prevention
-2.06.1,FundingSource,10,HUD: ESG – Rapid Rehousing
-2.06.1,FundingSource,11,HUD: ESG – Street Outreach
+2.06.1,FundingSource,1,HUD: CoC -  Homelessness Prevention (High Performing Comm. Only)
+2.06.1,FundingSource,2,HUD: CoC -  Permanent Supportive Housing
+2.06.1,FundingSource,3,HUD: CoC -  Rapid Re-Housing
+2.06.1,FundingSource,4,HUD: CoC -  Supportive Services Only
+2.06.1,FundingSource,5,HUD: CoC -  Transitional Housing
+2.06.1,FundingSource,6,HUD: CoC -  Safe Haven
+2.06.1,FundingSource,7,HUD: CoC -  Single Room Occupancy (SRO)
+2.06.1,FundingSource,8,HUD: ESG - Emergency Shelter (operating and/or essential services)
+2.06.1,FundingSource,9,HUD: ESG - Homelessness Prevention
+2.06.1,FundingSource,10,HUD: ESG - Rapid Rehousing
+2.06.1,FundingSource,11,HUD: ESG - Street Outreach
 2.06.1,FundingSource,12,HUD: Rural Housing Stability Assistance Program
-2.06.1,FundingSource,13,HUD: HOPWA – Hotel/Motel Vouchers
-2.06.1,FundingSource,14,HUD: HOPWA – Housing Information
-2.06.1,FundingSource,15,HUD: HOPWA – Permanent Housing (facility based or TBRA)
-2.06.1,FundingSource,16,HUD: HOPWA – Permanent Housing Placement
-2.06.1,FundingSource,17,"HUD: HOPWA – Short-Term Rent, Mortgage, Utility assistance"
-2.06.1,FundingSource,18,HUD: HOPWA – Short-Term Supportive Facility
-2.06.1,FundingSource,19,HUD: HOPWA – Transitional Housing (facility based or TBRA)
+2.06.1,FundingSource,13,HUD: HOPWA - Hotel/Motel Vouchers
+2.06.1,FundingSource,14,HUD: HOPWA - Housing Information
+2.06.1,FundingSource,15,HUD: HOPWA - Permanent Housing (facility based or TBRA)
+2.06.1,FundingSource,16,HUD: HOPWA - Permanent Housing Placement
+2.06.1,FundingSource,17,"HUD: HOPWA - Short-Term Rent, Mortgage, Utility assistance"
+2.06.1,FundingSource,18,HUD: HOPWA - Short-Term Supportive Facility
+2.06.1,FundingSource,19,HUD: HOPWA - Transitional Housing (facility based or TBRA)
 2.06.1,FundingSource,20,HUD: HUD/VASH
-2.06.1,FundingSource,21,HHS: PATH – Street Outreach & Supportive Services Only
-2.06.1,FundingSource,22,HHS: RHY – Basic Center Program (prevention and shelter)
-2.06.1,FundingSource,23,HHS: RHY – Maternity Group Home for Pregnant and Parenting Youth
-2.06.1,FundingSource,24,HHS: RHY – Transitional Living Program
-2.06.1,FundingSource,25,HHS: RHY – Street Outreach Project
-2.06.1,FundingSource,26,HHS: RHY – Demonstration Project
+2.06.1,FundingSource,21,HHS: PATH - Street Outreach & Supportive Services Only
+2.06.1,FundingSource,22,HHS: RHY - Basic Center Program (prevention and shelter)
+2.06.1,FundingSource,23,HHS: RHY - Maternity Group Home for Pregnant and Parenting Youth
+2.06.1,FundingSource,24,HHS: RHY - Transitional Living Program
+2.06.1,FundingSource,25,HHS: RHY - Street Outreach Project
+2.06.1,FundingSource,26,HHS: RHY - Demonstration Project
 2.06.1,FundingSource,27,VA: CRS Contract Residential Services
 2.06.1,FundingSource,30,VA: Community Contract Safe Haven Program
 2.06.1,FundingSource,33,VA: Supportive Services for Veteran Families
 2.06.1,FundingSource,34,N/A
 2.06.1,FundingSource,35,HUD: Pay for Success
 2.06.1,FundingSource,36,HUD: Public and Indian Housing (PIH) Programs
-2.06.1,FundingSource,37,VA: Grant Per Diem – Bridge Housing
-2.06.1,FundingSource,38,VA: Grant Per Diem – Low Demand
-2.06.1,FundingSource,39,VA: Grant Per Diem – Hospital to Housing
-2.06.1,FundingSource,40,VA: Grant Per Diem – Clinical Treatment
-2.06.1,FundingSource,41,VA: Grant Per Diem – Service Intensive Transitional Housing
-2.06.1,FundingSource,42,VA: Grant Per Diem – Transition in Place
-2.06.1,FundingSource,43,HUD: CoC – Youth Homeless Demonstration Program (YHDP)
-2.06.1,FundingSource,44,HUD: CoC – Joint Component TH/RRH
-2.06.1,FundingSource,45,VA: Grant Per Diem – Case Management/Housing Retention
+2.06.1,FundingSource,37,VA: Grant Per Diem - Bridge Housing
+2.06.1,FundingSource,38,VA: Grant Per Diem - Low Demand
+2.06.1,FundingSource,39,VA: Grant Per Diem - Hospital to Housing
+2.06.1,FundingSource,40,VA: Grant Per Diem - Clinical Treatment
+2.06.1,FundingSource,41,VA: Grant Per Diem - Service Intensive Transitional Housing
+2.06.1,FundingSource,42,VA: Grant Per Diem - Transition in Place
+2.06.1,FundingSource,43,HUD: CoC -  Youth Homeless Demonstration Program (YHDP)
+2.06.1,FundingSource,44,HUD: CoC -  Joint Component TH/RRH
+2.06.1,FundingSource,45,VA: Grant Per Diem - Case Management/Housing Retention
 2.06.1,FundingSource,46,Local or Other Funding Source (Please Specify)
 2.07.4,HouseholdType,1,Households without children
 2.07.4,HouseholdType,3,Households with at least one adults and one child
@@ -115,22 +115,22 @@ DataElementID,DataElement,ReferenceNo,Description
 2.03.4,GeographyType,99,Unknown / data not collected
 3.01.5,NameDataQuality,1,Full name reported
 3.01.5,NameDataQuality,2,"Partial, street name, or code name reported"
-3.01.5,NameDataQuality,8,Client doesn’t know
+3.01.5,NameDataQuality,8,Client doesn't know
 3.01.5,NameDataQuality,9,Client refused
 3.01.5,NameDataQuality,99,Data not collected
 3.02.2,SSNDataQuality,1,Full SSN reported
 3.02.2,SSNDataQuality,2,Approximate or partial SSN reported
-3.02.2,SSNDataQuality,8,Client doesn’t know
+3.02.2,SSNDataQuality,8,Client doesn't know
 3.02.2,SSNDataQuality,9,Client refused
 3.02.2,SSNDataQuality,99,Data not collected
 3.03.2,DOBDataQuality,1,Full DOB reported
 3.03.2,DOBDataQuality,2,Approximate or partial DOB reported
-3.03.2,DOBDataQuality,8,Client doesn’t know
+3.03.2,DOBDataQuality,8,Client doesn't know
 3.03.2,DOBDataQuality,9,Client refused
 3.03.2,DOBDataQuality,99,Data not collected
 3.05.1,Ethnicity,0,Non-Hispanic/Non-Latino
 3.05.1,Ethnicity,1,Hispanic/Latino
-3.05.1,Ethnicity,8,Client doesn’t know
+3.05.1,Ethnicity,8,Client doesn't know
 3.05.1,Ethnicity,9,Client refused
 3.05.1,Ethnicity,99,Data not collected
 3.06.1,Gender,0,Female
@@ -138,7 +138,7 @@ DataElementID,DataElement,ReferenceNo,Description
 3.06.1,Gender,2,Trans Female (MTF or Male to Female)
 3.06.1,Gender,3,Trans Male (FTM or Female to Male)
 3.06.1,Gender,4,Gender non-conforming (i.e. not exclusively male or female)
-3.06.1,Gender,8,Client doesn’t know
+3.06.1,Gender,8,Client doesn't know
 3.06.1,Gender,9,Client refused
 3.06.1,Gender,99,Data not collected
 3.12.1,LivingSituation,16,"Place not meant for habitation (e.g., a vehicle, an abandoned building, bus/train/subway station/airport or anywhere outside)"
@@ -155,10 +155,10 @@ DataElementID,DataElement,ReferenceNo,Description
 3.12.1,LivingSituation,2,Transitional housing for homeless persons (including homeless youth)
 3.12.1,LivingSituation,32,Host Home (non-crisis)
 3.12.1,LivingSituation,13,"Staying or living with friends, temporary tenure (e.g. room apartment or house)"
-3.12.1,LivingSituation,36,"Staying or living in a friend’s room, apartment or house"
+3.12.1,LivingSituation,36,"Staying or living in a friend's room, apartment or house"
 3.12.1,LivingSituation,12,"Staying or living with family, temporary tenure (e.g. room, apartment or house)"
 3.12.1,LivingSituation,22,"Staying or living with family, permanent tenure"
-3.12.1,LivingSituation,35,"Staying or living in a family member’s room, apartment or house"
+3.12.1,LivingSituation,35,"Staying or living in a family member's room, apartment or house"
 3.12.1,LivingSituation,23,"Staying or living with friends, permanent tenure"
 3.12.1,LivingSituation,26,Moved from one HOPWA funded project to HOPWA PH
 3.12.1,LivingSituation,27,Moved from one HOPWA funded project to HOPWA TH
@@ -176,7 +176,7 @@ DataElementID,DataElement,ReferenceNo,Description
 3.12.1,LivingSituation,17,Other
 3.12.1,LivingSituation,24,Deceased
 3.12.1,LivingSituation,37,Worker unable to determine
-3.12.1,LivingSituation,8,Client doesn’t know
+3.12.1,LivingSituation,8,Client doesn't know
 3.12.1,LivingSituation,9,Client refused
 3.12.1,LivingSituation,99,Data not collected
 3.15.1,RelationshipToHoH,1,Self (head of household)
@@ -189,7 +189,7 @@ DataElementID,DataElement,ReferenceNo,Description
 3.917.2,LengthOfStay,3,"One month or more, but less than 90 days"
 3.917.2,LengthOfStay,4,90 days or more but less than one year
 3.917.2,LengthOfStay,5,One year or longer
-3.917.2,LengthOfStay,8,Client doesn’t know
+3.917.2,LengthOfStay,8,Client doesn't know
 3.917.2,LengthOfStay,9,Client refused
 3.917.2,LengthOfStay,10,One night or less
 3.917.2,LengthOfStay,11,Two to six nights
@@ -198,10 +198,10 @@ DataElementID,DataElement,ReferenceNo,Description
 3.917.4,TimesHomelessPastThreeYears,2,Two times
 3.917.4,TimesHomelessPastThreeYears,3,Three times
 3.917.4,TimesHomelessPastThreeYears,4,Four or more times
-3.917.4,TimesHomelessPastThreeYears,8,Client doesn’t know
+3.917.4,TimesHomelessPastThreeYears,8,Client doesn't know
 3.917.4,TimesHomelessPastThreeYears,9,Client refused
 3.917.4,TimesHomelessPastThreeYears,99,Data not collected
-3.917.5,MonthsHomelessPastThreeYears,8,Client doesn’t know
+3.917.5,MonthsHomelessPastThreeYears,8,Client doesn't know
 3.917.5,MonthsHomelessPastThreeYears,9,Client refused
 3.917.5,MonthsHomelessPastThreeYears,99,Data not collected
 3.917.5,MonthsHomelessPastThreeYears,101,1
@@ -221,21 +221,21 @@ DataElementID,DataElement,ReferenceNo,Description
 4.04.A,ReasonNotInsured,2,Applied; client not eligible
 4.04.A,ReasonNotInsured,3,Client did not apply
 4.04.A,ReasonNotInsured,4,Insurance type n/a for this client
-4.04.A,ReasonNotInsured,8,Client doesn’t know
+4.04.A,ReasonNotInsured,8,Client doesn't know
 4.04.A,ReasonNotInsured,9,Client refused
 4.04.A,ReasonNotInsured,99,Data not collected
 4.10.2,DisabilityResponse,0,No
 4.10.2,DisabilityResponse,1,Alcohol abuse
 4.10.2,DisabilityResponse,2,Drug abuse
 4.10.2,DisabilityResponse,3,Both alcohol and drug abuse
-4.10.2,DisabilityResponse,8,Client doesn’t know
+4.10.2,DisabilityResponse,8,Client doesn't know
 4.10.2,DisabilityResponse,9,Client refused
 4.10.2,DisabilityResponse,99,Data not collected
 4.11.A,WhenDVOccurred,1,Within the past three months
 4.11.A,WhenDVOccurred,2,Three to six months ago (excluding six months exactly)
 4.11.A,WhenDVOccurred,3,Six months to one year ago (excluding one year exactly)
 4.11.A,WhenDVOccurred,4,One year or more
-4.11.A,WhenDVOccurred,8,Client doesn’t know
+4.11.A,WhenDVOccurred,8,Client doesn't know
 4.11.A,WhenDVOccurred,9,Client refused
 4.11.A,WhenDVOccurred,99,Data not collected
 4.14,BedNight,200,BedNight
@@ -310,7 +310,7 @@ R1.1,ReferralSource,35,Law Enforcement/ Police
 R1.1,ReferralSource,37,Mental Hospital
 R1.1,ReferralSource,38,School
 R1.1,ReferralSource,39,Other Organization
-R1.1,ReferralSource,8,Client doesn’t know
+R1.1,ReferralSource,8,Client doesn't know
 R1.1,ReferralSource,9,Client refused
 R1.1,ReferralSource,99,Data not collected
 R2.A,ReasonNoServices,1,Out of age range
@@ -323,7 +323,7 @@ R3.1,SexualOrientation,3,Lesbian
 R3.1,SexualOrientation,4,Bisexual
 R3.1,SexualOrientation,5,Questioning / unsure
 R3.1,SexualOrientation,6,Other
-R3.1,SexualOrientation,8,Client doesn’t know
+R3.1,SexualOrientation,8,Client doesn't know
 R3.1,SexualOrientation,9,Client refused
 R3.1,SexualOrientation,99,Data not collected
 R4.1,LastGradeCompleted,1,Less than grade 5
@@ -333,11 +333,11 @@ R4.1,LastGradeCompleted,4,Grades 9-11
 R4.1,LastGradeCompleted,5,Grade 12
 R4.1,LastGradeCompleted,6,School program does not have grade levels
 R4.1,LastGradeCompleted,7,GED
-R4.1,LastGradeCompleted,8,Client doesn’t know
+R4.1,LastGradeCompleted,8,Client doesn't know
 R4.1,LastGradeCompleted,9,Client refused
 R4.1,LastGradeCompleted,10,Some college
-R4.1,LastGradeCompleted,11,Associate’s degree
-R4.1,LastGradeCompleted,12,Bachelor’s degree
+R4.1,LastGradeCompleted,11,Associate's degree
+R4.1,LastGradeCompleted,12,Bachelor's degree
 R4.1,LastGradeCompleted,13,Graduate degree
 R4.1,LastGradeCompleted,14,Vocational certification
 R4.1,LastGradeCompleted,99,Data not collected
@@ -348,7 +348,7 @@ R5.1,SchoolStatus,4,Obtained GED
 R5.1,SchoolStatus,5,Dropped out
 R5.1,SchoolStatus,6,Suspended
 R5.1,SchoolStatus,7,Expelled
-R5.1,SchoolStatus,8,Client doesn’t know
+R5.1,SchoolStatus,8,Client doesn't know
 R5.1,SchoolStatus,9,Client refused
 R5.1,SchoolStatus,99,Data not collected
 R6.A,EmploymentType,1,Full-time
@@ -364,7 +364,7 @@ R7.1,HealthStatus,2,Very good
 R7.1,HealthStatus,3,Good
 R7.1,HealthStatus,4,Fair
 R7.1,HealthStatus,5,Poor
-R7.1,HealthStatus,8,Client doesn’t know
+R7.1,HealthStatus,8,Client doesn't know
 R7.1,HealthStatus,9,Client refused
 R7.1,HealthStatus,99,Data not collected
 R11.A,RHYNumberofYears,1,Less than one year
@@ -390,7 +390,7 @@ R15.B,CountExchangeForSex,1,43833
 R15.B,CountExchangeForSex,2,43928
 R15.B,CountExchangeForSex,3,44054
 R15.B,CountExchangeForSex,4,12 or more
-R15.B,CountExchangeForSex,8,Client doesn’t know
+R15.B,CountExchangeForSex,8,Client doesn't know
 R15.B,CountExchangeForSex,9,Client refused
 R15.B,CountExchangeForSex,99,Data not collected
 R17.1,ProjectCompletionStatus,1,Completed project
@@ -413,7 +413,7 @@ V1.11,MilitaryBranch,2,Air Force
 V1.11,MilitaryBranch,3,Navy
 V1.11,MilitaryBranch,4,Marines
 V1.11,MilitaryBranch,6,Coast Guard
-V1.11,MilitaryBranch,8,Client doesn’t know
+V1.11,MilitaryBranch,8,Client doesn't know
 V1.11,MilitaryBranch,9,Client refused
 V1.11,MilitaryBranch,99,Data not collected
 V1.12,DischargeStatus,1,Honorable
@@ -422,7 +422,7 @@ V1.12,DischargeStatus,4,Bad conduct
 V1.12,DischargeStatus,5,Dishonorable
 V1.12,DischargeStatus,6,Under other than honorable conditions (OTH)
 V1.12,DischargeStatus,7,Uncharacterized
-V1.12,DischargeStatus,8,Client doesn’t know
+V1.12,DischargeStatus,8,Client doesn't know
 V1.12,DischargeStatus,9,Client refused
 V1.12,DischargeStatus,99,Data not collected
 V2.2,SSVFServices,1,Outreach services
@@ -447,7 +447,7 @@ V2.4,SSVFSubType4,6,Fiduciary and representative payee services
 V2.4,SSVFSubType4,7,Legal services - child support
 V2.4,SSVFSubType4,8,Legal services - eviction prevention
 V2.4,SSVFSubType4,9,Legal services - outstanding fines and penalties
-V2.4,SSVFSubType4,10,Legal services - restore / acquire driver’s license
+V2.4,SSVFSubType4,10,Legal services - restore / acquire driver's license
 V2.4,SSVFSubType4,11,Legal services - other
 V2.4,SSVFSubType4,12,Child care
 V2.4,SSVFSubType4,13,Housing counseling
@@ -458,7 +458,7 @@ V2.5,SSVFSubType5,4,Fiduciary and representative payee services
 V2.5,SSVFSubType5,5,Legal services - child support
 V2.5,SSVFSubType5,6,Legal services - eviction prevention
 V2.5,SSVFSubType5,7,Legal services - outstanding fines and penalties
-V2.5,SSVFSubType5,8,Legal services - restore / acquire driver’s license
+V2.5,SSVFSubType5,8,Legal services - restore / acquire driver's license
 V2.5,SSVFSubType5,9,Legal services - other
 V2.5,SSVFSubType5,10,Child care
 V2.5,SSVFSubType5,11,Housing counseling
@@ -473,14 +473,14 @@ V3.3,SSVFFinancialAssistance,10,Child care
 V3.3,SSVFFinancialAssistance,11,General housing stability assistance - emergency supplies
 V3.3,SSVFFinancialAssistance,12,General housing stability assistance - other
 V3.3,SSVFFinancialAssistance,14,Emergency housing assistance
-V3.3,SSVFFinancialAssistance,15,Extended Shallow Subsidy – Rental Assistance
+V3.3,SSVFFinancialAssistance,15,Extended Shallow Subsidy - Rental Assistance
 V4.1,PercentAMI,1,Less than 30%
 V4.2,PercentAMI,2,30% to 50%
 V4.3,PercentAMI,3,Greater than 50%
 V4.4,PercentAMI,99,Data not collected
 V5.5,AddressDataQuality,1,Full address
 V5.5,AddressDataQuality,2,Incomplete or estimated address
-V5.5,AddressDataQuality,8,Client doesn’t know
+V5.5,AddressDataQuality,8,Client doesn't know
 V5.5,AddressDataQuality,9,Client refused
 V5.5,AddressDataQuality,99,Data not collected
 V6.1,VAMCStationNumber,402,"(402) Togus, ME"
@@ -652,13 +652,13 @@ V8.1,VoucherTracking,1,Referral package forwarded to PHA
 V8.1,VoucherTracking,2,Voucher denied by PHA
 V8.1,VoucherTracking,3,Voucher issued by PHA
 V8.1,VoucherTracking,4,Voucher revoked or expired
-V8.1,VoucherTracking,5,Voucher in use – veteran moved into housing
+V8.1,VoucherTracking,5,Voucher in use - veteran moved into housing
 V8.1,VoucherTracking,6,Voucher was ported locally
 V8.1,VoucherTracking,7,Voucher was administratively absorbed by new PHA
 V8.1,VoucherTracking,8,Voucher was converted to Housing Choice Voucher
-V8.1,VoucherTracking,9,Veteran exited – voucher was returned
-V8.1,VoucherTracking,10,Veteran exited – family maintained the voucher
-V8.1,VoucherTracking,11,Veteran exited – prior to ever receiving a voucher
+V8.1,VoucherTracking,9,Veteran exited - voucher was returned
+V8.1,VoucherTracking,10,Veteran exited - family maintained the voucher
+V8.1,VoucherTracking,11,Veteran exited - prior to ever receiving a voucher
 V8.1,VoucherTracking,12,Other
 V9.1,CMExitReason,1,Accomplished goals and/or obtained services and no longer needs CM
 V9.1,CMExitReason,2,Transferred to another HUD/VASH program site
@@ -696,13 +696,13 @@ W3,NoAssistanceReason,1,Applied; decision pending
 W3,NoAssistanceReason,2,Applied; client not eligible
 W3,NoAssistanceReason,3,Client did not apply
 W3,NoAssistanceReason,4,Insurance type not applicable for this client
-W3,NoAssistanceReason,8,Client doesn’t know
+W3,NoAssistanceReason,8,Client doesn't know
 W3,NoAssistanceReason,9,Client refused
 W3,NoAssistanceReason,99,Data not collected
 W4.3,ViralLoadAvailable,0,Not available
 W4.3,ViralLoadAvailable,1,Available
 W4.3,ViralLoadAvailable,2,Undetectable
-W4.3,ViralLoadAvailable,8,Client doesn’t know
+W4.3,ViralLoadAvailable,8,Client doesn't know
 W4.3,ViralLoadAvailable,9,Client refused
 W4.3,ViralLoadAvailable,99,Data not collected
 W4.B,TCellSource / ViralLoadSource,1,Medical Report
@@ -713,9 +713,9 @@ W5.1,HousingAssessmentAtExit,2,Moved to new housing unit
 W5.1,HousingAssessmentAtExit,3,Moved in with family/friends on a temporary basis
 W5.1,HousingAssessmentAtExit,4,Moved in with family/friends on a permanent basis
 W5.1,HousingAssessmentAtExit,5,Moved to a transitional or temporary housing facility or program
-W5.1,HousingAssessmentAtExit,6,Client became homeless – moving to a shelter or other place unfit for human habitation
+W5.1,HousingAssessmentAtExit,6,Client became homeless - moving to a shelter or other place unfit for human habitation
 W5.1,HousingAssessmentAtExit,7,Client went to jail/prison
-W5.1,HousingAssessmentAtExit,8,Client doesn’t know
+W5.1,HousingAssessmentAtExit,8,Client doesn't know
 W5.1,HousingAssessmentAtExit,9,Client refused
 W5.1,HousingAssessmentAtExit,10,Client died
 W5.1,HousingAssessmentAtExit,99,Data not collected
@@ -725,6 +725,3 @@ W5.A,SubsidyInformation,3,With an on-going subsidy acquired since project entry
 W5.A,SubsidyInformation,4,But only with other financial assistance
 W5.A,SubsidyInformation,11,With on-going subsidy
 W5.A,SubsidyInformation,12,Without an on-going subsidy
-,,,
-,,,
-,,,
