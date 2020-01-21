@@ -1,7 +1,7 @@
 ---
 title: "Literally Homeless Children Served in the Ohio Balance of State CoC"
 author: "Coalition on Homelessness and Housing in Ohio (COHHIO)"
-date: "August 13, 2019"
+date: "January 21, 2020"
 output: html_document
 ---
 
@@ -403,7 +403,7 @@ schoolplot <- school_age %>%
 
 ```
 
-## Households in Emergency Shelter or Transitional Housing with Children
+## Households with Children 
 
 ```{r hhsplot, echo=FALSE}
 hhs <-
@@ -489,7 +489,11 @@ hhplot <- hhs %>%
   ) %>%
   gather(key = "year", value = "households", -HouseholdID) %>%
   filter(households == 1) %>%
-  mutate(year = str_extract(year, "[0-9]+")) %>%
+  mutate(year = case_when(
+    year == "childYear1" ~ year1,
+    year == "childYear2" ~ year2,
+    year == "childYear3" ~ year3
+  )) %>%
   group_by(year) %>%
   summarise(households = sum(households))
 
@@ -527,13 +531,17 @@ ph_hhplot <- ph_hhs %>%
   ) %>%
   gather(key = "year", value = "households", -HouseholdID) %>%
   filter(households == 1) %>%
-  mutate(year = str_extract(year, "[0-9]+")) %>%
+  mutate(year = case_when(
+    year == "childYear1" ~ year1,
+    year == "childYear2" ~ year2,
+    year == "childYear3" ~ year3
+  )) %>%  
   group_by(year) %>%
   summarise(households = sum(households))
 
 plot_ly(
   hhplot,
-  x = ~ hhplot$year,
+  x = ~ as.factor(hhplot$year),
   y = ~ hhplot$households,
   name = "Served in Any Project",
   type = "scatter",
@@ -545,7 +553,7 @@ plot_ly(
 ) %>%
   add_trace(ph_hhplot,
             name = "Housed in RRH or PSH",
-            x = ~ ph_hhplot$year,
+            x = ~ as.factor(ph_hhplot$year),
             y = ~ ph_hhplot$households,
             mode = "lines",
             fill = "tozeroy",
