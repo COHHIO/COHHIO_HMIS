@@ -23,13 +23,13 @@ library(gt)
 
 ```{r basicdatasets, echo=FALSE}
 Enrollment <- read_csv(here("threeyearsdata/Enrollment.csv"),
-                       col_types =                        "nnnDcnnnlnDnnnDDDnnnncccnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+                       col_types =                        "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 Exit <- read_csv(here("threeyearsdata/Exit.csv"),
-                 col_types = "nnnDncncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
+                 col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 Project <- read_csv(here("threeyearsdata/Project.csv"),
-                    col_types = "nnccDDnnnnnnnnTTnTn")
+                    col_types = "nnccDDnnnnnnnnTTcTn")
 Client <- read_csv(here("threeyearsdata/Client.csv"),
-                   col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+                   col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
 
 smallEnrollment <- Enrollment %>%
   select(EnrollmentID, PersonalID, HouseholdID, EntryDate, ProjectID)
