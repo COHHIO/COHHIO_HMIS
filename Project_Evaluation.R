@@ -118,8 +118,7 @@ pe_adults_entered <-  co_adults_entered %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(vars_we_want) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+  arrange(PersonalID, ProjectID, desc(EntryDate))
 
 # for ncb logic
 # Adults who moved in and exited during date range
