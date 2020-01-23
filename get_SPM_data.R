@@ -964,4 +964,5 @@ spm_7b2_exits_ph <- exits_to_ph_prior[-c(1:14), ] %>%
 
 rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
+save.image("images/SPM_data.RData")
 

@@ -8,9 +8,9 @@
 # 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at 
-#<https://www.gnu.org/licenses/>.
+# <https://www.gnu.org/licenses/>.
 
 # PLEASE NOTE THIS SCRIPT OVERWRITES THE CLIENT.CSV FILE ON YOUR HARD DRIVE!
 # IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
@@ -320,6 +320,10 @@ HoHsEntry <- Enrollment %>%
   select(HouseholdID, "HoHsEntry" = EntryDate) %>%
   unique()
 
+## ^^ this code causes a duplication for situations where a hh has two clients
+# marked as Head of Household AND the HoHs have different Entry Dates. RARE,
+# but possible. Not sure how to fix this, maybe it's just something to know.
+
 y <- Enrollment %>%
   left_join(HoHsEntry, by = "HouseholdID")
 
@@ -627,6 +631,12 @@ Referrals <- Referrals %>%
          UserCreatingReferral = UserCreating,
          UserCreating = NULL)
 
+
+# HUD CSV Specs -----------------------------------------------------------
+
+HUD_specs <- read_csv("HUD/HUDSpecs.csv",
+                      col_types = "ccnc")
+
 # Age Function ------------------------------------------------------------
 
 age_years <- function(earlier, later)
@@ -731,6 +741,165 @@ beds_available_between <- function(table, start, end) {
   available
 }
 
+# Points function ---------------------------------------------------------
+
+pe_score <- function(structure, value) {
+  case_when(
+    structure == "75_85_10" & value >= .85 ~ 10,
+    structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5,
+    structure == "75_85_10" & value >= .75 & value < .8 ~ 5,
+    structure == "75_85_10" & value < .75 ~ 0,
+    structure == "20_90_5" & value >= .9 ~ 5,
+    structure == "20_90_5" & value >= .75 & value < .9 ~ 4,
+    structure == "20_90_5" & value >= .5 & value < .75 ~ 3,
+    structure == "20_90_5" & value >= .3 & value < .5 ~ 2,
+    structure == "20_90_5" & value >= .2 & value < .3 ~ 1,
+    structure == "20_90_5" & value < .2 ~ 0,
+    structure == "2_6_10" & value <= .02 ~ 10,
+    structure == "2_6_10" & value <= .04 & value > .02 ~ 7.5,
+    structure == "2_6_10" & value <= .06 & value > .04 ~ 5,
+    structure == "2_6_10" & value > .06 ~ 0,
+    structure == "5_9_10" & value <= .05 ~ 10,
+    structure == "5_9_10" & value <= .08 & value > .05 ~ 7.5,
+    structure == "5_9_10" & value <= .09 & value > .08 ~ 5,
+    structure == "5_9_10" & value > .09 ~ 0,
+    structure == "75_83_10" & value >= .83 ~ 10,
+    structure == "75_83_10" & value >= .79 & value < .83 ~ 7.5,
+    structure == "75_83_10" & value >= .75 & value < .79 ~ 5,
+    structure == "75_83_10" & value < .75 ~ 0,
+    structure == "72_80_5" & value >= .8 ~ 5,
+    structure == "72_80_5" & value >= .76 & value < .8 ~ 3,
+    structure == "72_80_5" & value >= .72 & value < .76 ~ 2,
+    structure == "72_80_5" & value < .72 ~ 0,
+    structure == "7_12_10" & value <= .07 ~ 10,
+    structure == "7_12_10" & value <= .09 & value > .07 ~ 7.5,
+    structure == "7_12_10" & value <= .12 & value > .09 ~ 5,
+    structure == "7_12_10" & value > .12 ~ 0,
+    structure == "12_17_10" & value <= .12 ~ 10,
+    structure == "12_17_10" & value > 12 & value <= .14 ~ 7.5,
+    structure == "12_17_10" & value > .14 & value <= 17 ~ 5,
+    structure == "12_17_10" & value > .17 ~ 0,
+    structure == "22_28_10" & value >= .28 ~ 10,
+    structure == "22_28_10" & value >= .26 & value < .28 ~ 7.5,
+    structure == "22_28_10" & value >= .22 & value < .26 ~ 5,
+    structure == "22_28_10" & value < .22 ~ 0,
+    structure == "0_7_10_PSH" & value >= 6 & value <= 7 ~ 10,
+    structure == "0_7_10_PSH" & value >= 5 & value < 6 ~ 9,
+    structure == "0_7_10_PSH" & value >= 3 & value < 5 ~ 8,
+    structure == "0_7_10_PSH" & value >= 2 & value < 3 ~ 5,
+    structure == "0_7_10_PSH" & value >= 1 & value < 2 ~ 2,
+    structure == "0_7_10_PSH" & value < 1 ~ 0,
+    structure == "200_280_10" & value <= 200 ~ 10,
+    structure == "200_280_10" & value <= 240 & value > 200 ~ 7.5,
+    structure == "200_280_10" & value <= 280 & value > 240 ~ 5,
+    structure == "200_280_10" & value > 280 ~ 0,
+    structure == "67_75_10" & value >= .75 ~ 10,
+    structure == "67_75_10" & value >= .71 & value < .75 ~ 7.5,
+    structure == "67_75_10" & value >= .67 & value < .71 ~ 5,
+    structure == "67_75_10" & value < .67 ~ 0,
+    structure == "0_7_10" & value >= 4 & value <= 7 ~ 10,
+    structure == "0_7_10" & value >= 3 & value < 4 ~ 8,
+    structure == "0_7_10" & value >= 2 & value < 3 ~ 7,
+    structure == "0_7_10" & value >= 1 & value < 2 ~ 5,
+    structure == "0_7_10" & value < 1 ~ 0,
+    structure == "15_19_10" & value <= .15 ~ 10,
+    structure == "15_19_10" & value <= .17 & value > .15 ~ 7.5,
+    structure == "15_19_10" & value <= .19 & value > .17 ~ 5,
+    structure == "15_19_10" & value > .19 ~ 0,
+    structure == "20_24_10" & value <= .2 ~ 10,
+    structure == "20_24_10" & value <= .22 & value > .2 ~ 7.5,
+    structure == "20_24_10" & value <= .24 & value > .22 ~ 5,
+    structure == "20_24_10" & value > .24 ~ 0,
+    structure == "16_20_10" & value >= .2 ~ 10,
+    structure == "16_20_10" & value < .2 & value >= .18 ~ 7.5,
+    structure == "16_20_10" & value < .18 & value >= .16 ~ 5,
+    structure == "16_20_10" & value < .16 ~ 0,
+    structure == "260_340_10" & value <= 260 ~ 10,
+    structure == "260_340_10" & value > 260 & value <= 300 ~ 7.5,
+    structure == "260_340_10" & value > 300 & value <= 340 ~ 5,
+    structure == "260_340_10" & value > 340 ~ 0,
+    structure == "0_100_10" & value == 1 ~ 10,
+    structure == "0_100_10" & value < 1 ~ 0,
+    structure == "14_18_10" & value >=  .18 ~ 10,
+    structure == "14_18_10" & value < .18 & value >= .16 ~ 7.5,
+    structure == "14_18_10" & value < .16 & value >= .14 ~ 5,
+    structure == "14_18_10" & value < .14 ~ 0,
+    structure == "150_210_10" & value <= 150 ~ 10,
+    structure == "150_210_10" & value <= 170 & value > 150 ~ 7.5,
+    structure == "150_210_10" & value <= 210 & value > 170 ~ 5,
+    structure == "150_210_10" & value > 210 ~ 0,
+    structure == "80_90_10" & value >= .9 ~ 10,
+    structure == "80_90_10" & value >= .85 & value < .9 ~ 7.5,
+    structure == "80_90_10" & value >= .8 & value < .85 ~ 5,
+    structure == "80_90_10" & value < .8 ~ 0,
+    structure == "34_40_10" & value >= .4 ~ 10,
+    structure == "34_40_10" & value >= .37 & value < .4 ~ 7.5,
+    structure == "34_40_10" & value >= .34 & value < .37 ~ 5,
+    structure == "34_40_10" & value < .34 ~ 0,
+    structure == "24_30_10" & value >= .3 ~ 10,
+    structure == "24_30_10" & value >= .27 & value < .3 ~ 7.5,
+    structure == "24_30_10" & value >= .24 & value < .27 ~ 5,
+    structure == "24_30_10" & value < .24 ~ 0
+  )
+}
+
+living_situation <- function(ReferenceNo) {
+  case_when(
+    ReferenceNo == 16 ~ "Place not meant for habitation",
+    ReferenceNo == 1 ~ "Emergency shelter/ h/motel paid for by a third party/Host Home shelter",
+    ReferenceNo == 18 ~ "Safe Haven",
+    ReferenceNo == 15 ~ "Foster care home of foster care group home",
+    ReferenceNo == 6 ~ " Hospital or other residential non-psychiatric medical facility",
+    ReferenceNo == 7 ~ "Jail/prison/juvenile detention",
+    ReferenceNo == 25 ~ "Long-term care facility or nursing home",
+    ReferenceNo == 4 ~ "Psychiatric hospital/ other psychiatric facility",
+    ReferenceNo == 5 ~ "Substance abuse treatment facility or detox center",
+    ReferenceNo == 29 ~ "Residential project or halfway house with no homeless criteria",
+    ReferenceNo == 14 ~ "H/Motel paid for by household",
+    ReferenceNo == 2 ~ "Transitional housing",
+    ReferenceNo == 32 ~ "Host Home (non-crisis)",
+    ReferenceNo == 13 ~ "Staying or living with friends, temporary tenure",
+    ReferenceNo == 36 ~ "Staying or living in a friend's room, apartment or house",
+    ReferenceNo == 12 ~ "Staying or living with family, temporary tenure",
+    ReferenceNo == 22 ~ "Staying or living with family, permanent tenure",
+    ReferenceNo == 35 ~ "Staying or living in a family member's room, apartment, or house",
+    ReferenceNo == 23 ~ "Staying or living with friends, permanent tenure",
+    ReferenceNo == 26 ~ "Moved from one HOPWA funded project to HOPWA PH",
+    ReferenceNo == 27 ~ "Moved from HOPWA funded project to HOPWA TH",
+    ReferenceNo == 28 ~ "Rental by client, with GPD TIP housing subsidy",
+    ReferenceNo == 19 ~ "Rental by client, with VASH housing subsidy",
+    ReferenceNo == 3 ~ "Permanent housing (other than RRH) for formerly homeless persons",
+    ReferenceNo == 31 ~ "Rental by client, with RRH or equivalent subsidy",
+    ReferenceNo == 33 ~ "Rental by client, with HCV voucher",
+    ReferenceNo == 34 ~ "Rental by client in a public housing unit",
+    ReferenceNo == 10 ~ "Rental by client, no ongoing housing subsidy",
+    ReferenceNo == 20 ~ "Rental by client, with other ongoing housing subsidy",
+    ReferenceNo == 21 ~ "Owned by client, with ongoing housing subsidy",
+    ReferenceNo == 11 ~ "Owned by client, no ongoing housing subsidy",
+    ReferenceNo == 30 ~ "No exit interview completed",
+    ReferenceNo == 17 ~ "Other",
+    ReferenceNo == 24 ~ "Deceased",
+    ReferenceNo == 37 ~ "Worker unable to determine",
+    ReferenceNo == 8 ~ "Client doesn't know",
+    ReferenceNo == 9 ~ "Client refused",
+    ReferenceNo == 99 ~ "Data not collected"
+  )
+}
+
+project_type <- function(ReferenceNo){
+  case_when(
+    ReferenceNo == 1 ~ "Emergency Shelter",
+    ReferenceNo == 2 ~ "Transitional Housing",
+    ReferenceNo == 3 ~ "Permanent Supportive Housing",
+    ReferenceNo == 4 ~ "Street Outreach",
+    ReferenceNo == 6 ~ "Services Only",
+    ReferenceNo == 8 ~ "Safe Haven",
+    ReferenceNo == 12 ~ "Prevention",
+    ReferenceNo == 13 ~ "Rapid Rehousing",
+    ReferenceNo == 14 ~ "Coordinated Entry"
+  )
+}
+
 # # HMIS participating Between --------------------------------------------------
 # 
 # HMIS_participating_between <- function(table, start, end) {
@@ -752,9 +921,6 @@ FileEnd <- format.Date(file.info("data/Enrollment.csv")$mtime, "%m-%d-%Y")
 FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
-
-
-
 
 # Update Date -------------------------------------------------------------
 

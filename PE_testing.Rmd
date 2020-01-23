@@ -1,0 +1,543 @@
+---
+title: "Testing the PE Report"
+author: "Genelle Denzin"
+date: "1/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(janitor)
+
+source("Project_Evaluation.R")
+
+```
+
+## Project Evaluation Report
+
+The Project Evaluation Report is meant to assign points to projects for the annual CoC Competition. Testing for this report is very important. This documents the process I'm taking to test this report against the ART report.
+
+All discrepancies will be accounted for.
+
+```{r test}
+
+# Testing the Validation Dataset ------------------------------------------
+
+ART_RRH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                      sheet = 1,
+                      range = cell_cols("A:J"))
+col1 <- paste(colnames(ART_RRH[2]), ART_RRH[1,2], ART_RRH[2,2])
+col2 <- paste(colnames(ART_RRH[3]), ART_RRH[1, 3], ART_RRH[2, 3])
+col3 <- paste(colnames(ART_RRH[4]), ART_RRH[1, 4], ART_RRH[2, 4])
+col4 <- paste(colnames(ART_RRH[5]), ART_RRH[1, 5], ART_RRH[2, 5])
+col5 <- paste(colnames(ART_RRH[6]), ART_RRH[1, 6], ART_RRH[2, 6])
+col6 <- paste(colnames(ART_RRH[7]), ART_RRH[1, 7], ART_RRH[2, 7])
+col7 <- paste(colnames(ART_RRH[8]), ART_RRH[1, 8], ART_RRH[2, 8])
+col8 <- paste(colnames(ART_RRH[9]), ART_RRH[1, 9], ART_RRH[2, 9])
+col9 <- paste(colnames(ART_RRH[10]), ART_RRH[1, 10], ART_RRH[2, 10])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+col8 <- str_remove(col8, "...9")
+col9 <- str_remove(col9, "...10")
+
+colnames(ART_RRH) <- c("Project", col1, col2, col3, col4, col5, col6, col7, 
+                       col8, col9)
+ART_RRH <- ART_RRH %>%
+  filter(!is.na(Project))
+
+ART_TH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                      sheet = 2,
+                      range = cell_cols("A:H"))
+col1 <- paste(colnames(ART_TH[2]), ART_TH[1,2], ART_TH[2,2])
+col2 <- paste(colnames(ART_TH[3]), ART_TH[1, 3], ART_TH[2, 3])
+col3 <- paste(colnames(ART_TH[4]), ART_TH[1, 4], ART_TH[2, 4])
+col4 <- paste(colnames(ART_TH[5]), ART_TH[1, 5], ART_TH[2, 5])
+col5 <- paste(colnames(ART_TH[6]), ART_TH[1, 6], ART_TH[2, 6])
+col6 <- paste(colnames(ART_TH[7]), ART_TH[1, 7], ART_TH[2, 7])
+col7 <- paste(colnames(ART_TH[8]), ART_TH[1, 8], ART_TH[2, 8])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+
+col2 <- str_replace(col2, "Stayers and Leavers", "Leavers and Stayers")
+col3 <- str_replace(col3, "Stayers and Leavers", "Leavers and Stayers")
+col6 <- str_replace(col6, "Stayers and Leavers", "Leavers and Stayers")
+col7 <- str_replace(col7, "Stayers and Leavers", "Leavers and Stayers")
+
+colnames(ART_TH) <- c("Project", col1, col2, col3, col4, col5, col6, col7)
+
+ART_TH <- ART_TH %>%
+  filter(!is.na(Project))
+
+ART_SH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                     sheet = 3,
+                     range = cell_cols("A:H"))
+col1 <- paste(colnames(ART_SH[2]), ART_SH[1,2], ART_SH[2,2])
+col2 <- paste(colnames(ART_SH[3]), ART_SH[1, 3], ART_SH[2, 3])
+col3 <- paste(colnames(ART_SH[4]), ART_SH[1, 4], ART_SH[2, 4])
+col4 <- paste(colnames(ART_SH[5]), ART_SH[1, 5], ART_SH[2, 5])
+col5 <- paste(colnames(ART_SH[6]), ART_SH[1, 6], ART_SH[2, 6])
+col6 <- paste(colnames(ART_SH[7]), ART_SH[1, 7], ART_SH[2, 7])
+col7 <- paste(colnames(ART_SH[8]), ART_SH[1, 8], ART_SH[2, 8])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+
+colnames(ART_SH) <- c("Project", col1, col2, col3, col4, col5, col6, col7)
+
+ART_SH <- ART_SH %>%
+  filter(!is.na(Project))
+
+ART_PSH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
+                      sheet = 4,
+                      range = cell_cols("A:J"))
+col1 <- paste(colnames(ART_PSH[2]), ART_PSH[1,2], ART_PSH[2,2])
+col2 <- paste(colnames(ART_PSH[3]), ART_PSH[1, 3], ART_PSH[2, 3])
+col3 <- paste(colnames(ART_PSH[4]), ART_PSH[1, 4], ART_PSH[2, 4])
+col4 <- paste(colnames(ART_PSH[5]), ART_PSH[1, 5], ART_PSH[2, 5])
+col5 <- paste(colnames(ART_PSH[6]), ART_PSH[1, 6], ART_PSH[2, 6])
+col6 <- paste(colnames(ART_PSH[7]), ART_PSH[1, 7], ART_PSH[2, 7])
+col7 <- paste(colnames(ART_PSH[8]), ART_PSH[1, 8], ART_PSH[2, 8])
+col8 <- paste(colnames(ART_PSH[9]), ART_PSH[1, 9], ART_PSH[2, 9])
+col9 <- paste(colnames(ART_PSH[10]), ART_PSH[1, 10], ART_PSH[2, 10])
+
+col1 <- str_remove(col1, "...2")
+col2 <- str_remove(col2, "...3")
+col3 <- str_remove(col3, "...4")
+col4 <- str_remove(col4, "...5")
+col5 <- str_remove(col5, "...6")
+col6 <- str_remove(col6, "...7")
+col7 <- str_remove(col7, "...8")
+col8 <- str_remove(col8, "...9")
+col9 <- str_remove(col9, "...10")
+
+col3 <- str_replace(col3, "Adullts", "Adults")
+
+colnames(ART_PSH) <- c("Project", col1, col2, col3, col4, col5, col6, col7, 
+                       col8, col9)
+ART_PSH <- ART_PSH %>%
+  filter(!is.na(Project))
+
+ART_PSH_RRH <- rbind(ART_PSH, ART_RRH)
+ART_TH_SH <- rbind(ART_TH, ART_SH)
+
+rm(ART_PSH, ART_RRH, ART_TH, ART_SH)
+rm(list = ls(pattern = "col"))
+
+ART_PSH_RRH <- ART_PSH_RRH %>%
+  mutate(Project = str_remove(Project, "\\(.*\\)"))
+
+ART_TH_SH <- ART_TH_SH %>%
+  mutate(Project = str_remove(Project, "\\(.*\\)"))
+
+ART_PSH_RRH <- ART_PSH_RRH %>%
+  select(1, 
+         "ART_ClientsServed" = 3,
+         "ART_AdultsEntered" = 5, 
+         "ART_AdultsMovedIn" = 8, 
+         "ART_ClientsMovedInLeavers" = 9, 
+         "ART_AdultMovedInLeavers" = 10)
+
+ART_TH_SH <- ART_TH_SH %>%
+  select(1,
+         "ART_ClientsServed" = 3,
+         "ART_AdultsMovedIn" = 4,
+         "ART_ClientsMovedInLeavers" = 5,
+         "ART_AdultMovedInLeavers" = 6,
+         "ART_AdultsEntered" = 8)
+
+x <- pe_validation_summary %>%
+  left_join(ART_PSH_RRH, by = c("ProjectName" = "Project"))
+
+x[is.na(x)] <- 0
+
+x <- x %>%
+  mutate(
+    ART_ClientsServed = as.integer(ART_ClientsServed),
+    DifferenceClientsServed = if_else(
+      ClientsServed - ART_ClientsServed != 0,
+      paste(
+        "R shows",
+        ClientsServed,
+        "clients served but ART shows",
+        ART_ClientsServed
+      ),
+      "all good!"
+    ), 
+    ART_AdultMovedInLeavers = as.integer(ART_AdultMovedInLeavers),
+    DifferenceAdultMovedInLeavers = if_else(
+      AdultMovedInLeavers - ART_AdultMovedInLeavers != 0,
+      paste(
+        "R shows",
+        AdultMovedInLeavers,
+        "clients served but ART shows",
+        ART_AdultMovedInLeavers
+      ),
+      "all good!"
+    ), 
+    ART_AdultsEntered = as.integer(ART_AdultsEntered),
+    DifferenceAdultsentered = if_else(
+      AdultsEntered - ART_AdultsEntered != 0,
+      paste(
+        "R shows",
+        AdultsEntered,
+        "clients served but ART shows",
+        ART_AdultsEntered
+      ),
+      "all good!"
+    ), 
+    ART_AdultsMovedIn = as.integer(ART_AdultsMovedIn),
+    DifferenceAdultsMovedIn = if_else(
+      AdultsMovedIn - ART_AdultsMovedIn != 0,
+      paste(
+        "R shows",
+        AdultsMovedIn,
+        "clients served but ART shows",
+        ART_AdultsMovedIn
+      ),
+      "all good!"
+    ), 
+    ART_ClientsMovedInLeavers = as.integer(ART_ClientsMovedInLeavers),
+    DifferenceClientsMovedInLeavers = if_else(
+      ClientsMovedInLeavers - ART_ClientsMovedInLeavers != 0,
+      paste(
+        "R shows",
+        ClientsMovedInLeavers,
+        "clients served but ART shows",
+        ART_ClientsMovedInLeavers
+      ),
+      "all good!"
+    )
+  )
+
+```
+
+
+This assumes you did not run the "Clean the House" section of the Project_Evaluation.R script.
+
+## Testing ClientsServed
+
+One of the projects that shows in the DifferencesClientsServed column is Lorain - Lorain County Board of Mental Health - Lorain Shelter Plus Care - PSH, who has 89 clients served in R and 90 in ART.
+
+I ran a CoC-APR on this project for dates 1/1/2019 to 12/31/2019 and downloaded all the Client IDs in the validation table there (so this isn't even the ART report, but just the APR). I'm starting with creating a vector with all those client IDs, then I compare that against which Clients are in pe_clients_served.
+
+```{r LorainSPC}
+a <- c(159647, 207053, 120416, 189596, 189600, 64959, 189597, 189599, 165706, 32191, 65209, 136693, 184621, 148968, 39822, 3724, 96371, 11495, 156779, 68641, 124969, 14234, 26543, 209617, 135214, 93878, 131018, 202034, 136805, 27932, 177623, 211132, 211133, 211134, 131260, 80535, 149156, 208743, 59947, 3726, 209618, 191490, 21607, 107029, 209418, 60119, 3613, 30409, 26583, 212093, 145763, 170262, 191089, 144745, 179613, 11911, 170883, 59198, 224595, 168673, 12147, 91027, 181298, 149764, 2939, 182135, 162754, 167313, 2554, 64833, 64830,  64832, 18965, 60171, 180318, 26620, 63976, 93381, 64834, 108665, 206291, 2932, 150328, 26696, 201198, 7982, 58126, 174102, 180352, 2484)
+
+setdiff(a, pe_clients_served$PersonalID)
+```
+
+The result here is Client 206291, who has an Exit Date of 1/1/2019. I thought it was an APR error but then I looked up the specs and it is not a vendor error but it nonetheless makes no sense. I put in an AAQ about the specs saying the Exit Date can = the Report Start Date.
+
+The next one we're going to check out is Sandusky - GLCAP - Permanent Supportive Housing - PSH - DV.
+
+
+```{r Sandusky_GLCAP_PSH_DV}
+
+a <- c(164116,
+164117,
+222063,
+189662,
+221977,
+229990,
+229991,
+238424,
+221721,
+221720,
+221718,
+221719,
+133870,
+220299,
+222174,
+81061,
+214825,
+212172,
+195453,
+195452,
+205147,
+210987,
+210988,
+210985,
+221063,
+203720,
+203716,
+211531,
+133869,
+189452,
+177288,
+217110,
+217109,
+212898,
+220209,
+223884,
+223883,
+223885,
+211817,
+212176,
+229989,
+172888,
+190439,
+129167,
+129166,
+189659,
+189661,
+189660,
+211865,
+229993,
+229992,
+219071,
+218908,
+219072,
+172890,
+139651,
+221081,
+221079,
+221080,
+203719,
+139441,
+139443,
+139442,
+139438,
+201352,
+232098,
+235773,
+235774,
+203923,
+129165,
+225180,
+237776,
+237777,
+180424,
+221078,
+203718,
+172889,
+209183,
+95189,
+212895,
+212897,
+216807,
+212177
+)
+
+setdiff(a, pe_clients_served %>% filter(ProjectName == "Sandusky - GLCAP - Permanent Supportive Housing - PSH - DV") %>% pull(PersonalID))
+```
+
+The Client IDs shown here are 81061 and 177288. Both of these have Exit Dates of 1/1/2019 as well. 
+
+The next one we're going to check is Hocking - Hocking MHA  - Hocking Shelter Plus Care - PSH
+
+```{r HockingSPC}
+a <- c(
+  228460,
+232082,
+228461,
+167419,
+233758,
+208701,
+208419,
+235802,
+228459,
+230549,
+69937,
+229416,
+225677,
+209300,
+227475,
+233574,
+94621,
+17942,
+231745,
+197646,
+214054,
+214055,
+214053,
+197934,
+186428,
+211658,
+234907,
+233688,
+211780,
+211782,
+225696,
+195000,
+208459,
+206979,
+225678,
+220107,
+213724,
+36947,
+228397,
+228396,
+233759,
+135920,
+142156,
+234906,
+205300,
+211779,
+61876,
+222878,
+211236,
+213723,
+190837,
+190832,
+190833,
+190831,
+190835,
+190836,
+190838,
+172267,
+212620,
+172026,
+205301,
+210191,
+231534,
+210997,
+148118,
+215548,
+197677,
+197676,
+210595,
+190801,
+190802,
+190800,
+230045,
+235796,
+196167,
+212650,
+148511,
+211781,
+127526,
+188948
+)
+
+setdiff(a, pe_clients_served %>% filter(ProjectName == "Hocking - Hocking MHA  - Hocking Shelter Plus Care - PSH") %>% pull(PersonalID))
+
+setdiff(pe_clients_served %>% filter(ProjectName == "Hocking - Hocking MHA  - Hocking Shelter Plus Care - PSH") %>% pull(PersonalID), a)
+
+```
+
+These two clients exited on the Report Start Date. This one also previously had a duplicate that was making a difference but that has since been fixed. GD 1/19/2020
+
+Next up: Defiance - Northwestern Ohio CAC - PSH
+
+```{r NOCAC_PSH}
+
+a <- c(
+  10036,
+72622,
+86808,
+102788,
+116458,
+125580,
+125580,
+128001,
+129006,
+140632,
+142846,
+146483,
+152106,
+152162,
+160696,
+166642,
+166643,
+166645,
+166646,
+166647,
+177246,
+179206,
+179748,
+179749,
+180118,
+181359,
+183433,
+193026,
+193725,
+196499,
+202616,
+205830,
+206428,
+206429,
+207181,
+207208,
+213353,
+215578,
+217472,
+217669,
+219275,
+219664,
+220824,
+220825,
+222356,
+222979,
+224645,
+224816,
+225040
+)
+
+setdiff(a, pe_clients_served %>% filter(ProjectName == "Defiance - Northwestern Ohio CAC - PSH") %>% pull(PersonalID))
+
+```
+
+This shows no difference bc setdiff doesn't care about dupes. 
+
+```{r dupes_NOCAC}
+
+b <- pe_clients_served %>% filter(ProjectName == "Defiance - Northwestern Ohio CAC - PSH") %>% select(PersonalID)
+get_dupes(b, PersonalID)
+
+```
+
+Client 125580 is duplicated in the R count. :( - FIXED GD 1/19/2020
+
+### Summary of Clients Served Testing
+
+The only two problems I found were:
+
+1. The weirdness around the way HUD is counting clients in the date range, where those who exit on the Report Start are being counted as if they slept in the project during the date range. I have not changed anything in my code around this because I put in an AAQ and am awaiting a response.
+2. When clients are served in a project two or more distinct times during the reporting period. I fixed this in my code- not in the cohorts script (because I may want to dedupe in different ways for different applications) but in the Project Evaluation script.
+3. Also the two datasets are pulling different providers. I have not checked into this yet.
+
+## Testing AdultMovedInLeavers
+
+I want to test Portage - Coleman Professional Services - PSH first since R is showing 8 and ART is showing less than that, so it can't be the Exit = Report Start problem. It also can't be a duplicate since that's already fixed.
+
+```{r CPS_PSH}
+
+a <- c(191643, 15048, 215507, 225, 63625, 216700, 137152, 227165)
+b <- pe_adults_moved_in_leavers %>%
+  filter(ProjectName == "Portage - Coleman Professional Services - PSH") %>%
+  pull(PersonalID)
+
+setdiff(b, a)
+
+```
+
+I do not know why Client 244 is not pulling into the ART report. It should be. Will need to look more closely at the ART logic at the office.
+
+
+
+
+
+
+
+

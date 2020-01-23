@@ -8,15 +8,17 @@
 # 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at 
-#<https://www.gnu.org/licenses/>.
+# <https://www.gnu.org/licenses/>.
 
 library(tidyverse)
 library(lubridate)
 library(scales)
 
 load("images/COHHIOHMIS.RData")
+
+# FilePeriod <- interval(mdy("01012019"), mdy("12312019"))
 
 # Creating Beds table -----------------------------------------------------
 
