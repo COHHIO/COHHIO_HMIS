@@ -693,7 +693,7 @@ rm(small_client)
 
 served_between <- function(table, start, end){
   served <- ymd(table$EntryDate) <= mdy(end) &
-    (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
+    (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
   served
 }
 
