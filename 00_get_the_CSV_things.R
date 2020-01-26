@@ -257,8 +257,11 @@ small_project <- Project %>%
   select(ProjectID, ProjectType, ProjectName) 
 
 # getting HoH's Entry Dates bc WS is using that to overwrite MoveIn Dates
+# only doing this for RRH and PSHs since Move In Date doesn't matter for ES, etc.
 HoHsEntry <- Enrollment %>%
-  filter(RelationshipToHoH == 1) %>%
+  left_join(small_project, by = "ProjectID") %>%
+  filter(RelationshipToHoH == 1 &
+           ProjectType %in% c(3, 9, 13)) %>%
   select(HouseholdID, "HoHsEntry" = EntryDate) %>%
   unique()
 
@@ -266,11 +269,9 @@ HoHsEntry <- Enrollment %>%
 # marked as Head of Household AND the HoHs have different Entry Dates. RARE,
 # but possible. Not sure how to fix this, maybe it's just something to know.
 
-y <- Enrollment %>%
-  left_join(HoHsEntry, by = "HouseholdID")
-
-Enrollment <- y %>%
+Enrollment <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
+  left_join(HoHsEntry, by = "HouseholdID") %>%
   mutate(
     MoveInDateAdjust = case_when(
       EntryDate < mdy("10012017") &
@@ -294,7 +295,7 @@ Enrollment <- y %>%
     )
   )
 
-rm(small_project, y, HoHsEntry)
+rm(small_project, HoHsEntry)
 
 # Client Location
 
