@@ -74,7 +74,7 @@ served_in_date_range <- Enrollment %>%
          MoveInDate, MoveInDateAdjust, EEType, CountyServed, CountyPrior, 
          ExitDate, Destination, ExitAdjust, DateCreated = DateCreated.x, 
          UserCreating, ClientEnrolledInPATH, LengthOfStay, DateOfPATHStatus, 
-         ReasonNotEnrolled, ClientLocation) %>%
+         ReasonNotEnrolled, ClientLocation, PHTrack, ExpectedPHDate) %>%
   inner_join(projects_current_hmis, by = "ProjectID")
 
 DV <- HealthAndDV %>%
@@ -934,8 +934,10 @@ entered_ph_without_spdat <-
 # HoHs in Shelter without a SPDAT -----------------------------------------
 # this is a little different than the ART report; it only flags stayers
 # since users can't do anything about leavers
-lh_without_spdat <- 
-  anti_join(served_in_date_range, ees_with_spdats, by = "EnrollmentID") %>%
+lh_without_spdat <- served_in_date_range %>%
+  filter(is.na(PHTrack) | PHTrack != "Self Resolve" |
+                             ymd(ExpectedPHDate) < today()) %>%
+  anti_join(ees_with_spdats, by = "EnrollmentID") %>%
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
       VeteranStatus != 1 &
