@@ -222,6 +222,20 @@ utilizers_clients <- utilizers_clients %>%
 
 utilizers_clients <- as.data.frame(utilizers_clients)
 
+PE_utilizers_clients <- PE_utilizers_clients %>%
+  mutate(PE_Date_Range = bed_nights_per_ee(PE_utilizers_clients, PE_FilePeriod)) %>%
+  select(
+    ProjectName,
+    ProjectID,
+    ProjectType,
+    PersonalID,
+    EnrollmentID,
+    EntryDate,
+    MoveInDate,
+    ExitDate,
+    PE_Date_Range
+  )
+
 # making granularity by provider instead of by enrollment id
 BedNights <- utilizers_clients %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -252,6 +266,11 @@ BedNights <- utilizers_clients %>%
     BN23 = sum(Month23, na.rm = TRUE),
     BN24 = sum(Month24, na.rm = TRUE)
   )
+
+PE_BedNights <- PE_utilizers_clients %>%
+  group_by(ProjectName, ProjectID, ProjectType) %>%
+  summarise(
+    BNPE = sum(PE_Date_Range, na.rm = TRUE))
 
 # Bed Capacity ------------------------------------------------------------
 
@@ -389,7 +408,8 @@ utilization_bed <-
     Month23 = BN23 / BC23, accuracy = .1,
     Month24= BN24 / BC24, accuracy = .1
   ) %>% 
-  select(ProjectID, ProjectName, ProjectType, FilePeriod, starts_with("Month"))
+  select(ProjectID, ProjectName, ProjectType, FilePeriod, starts_with("Month")) %>%
+  ungroup()
 
 rm(BedCapacity, BedNights) #leaving this in as it's too aggregated for R minor 
 # elevated
