@@ -312,6 +312,7 @@ bed_capacity <- function(interval) {
 
 BedCapacity <- BedCapacity %>%
   mutate(
+    PE_DateRange = bed_capacity(PE_FilePeriod),
     FilePeriod = bed_capacity(FilePeriod),
     Month1 = bed_capacity(FirstMonth),
     Month2 = bed_capacity(SecondMonth),
@@ -349,6 +350,7 @@ BedCapacity <- BedCapacity %>%
 BedCapacity <- BedCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
   summarise(
+    BCPE = sum(PE_DateRange, na.rm = TRUE),
     BCY = sum(FilePeriod, na.rm = TRUE),
     BC1 = sum(Month1, na.rm = TRUE),
     BC2 = sum(Month2, na.rm = TRUE),
@@ -406,13 +408,23 @@ utilization_bed <-
     Month21 = BN21 / BC21, accuracy = .1,
     Month22 = BN22 / BC22, accuracy = .1,
     Month23 = BN23 / BC23, accuracy = .1,
-    Month24= BN24 / BC24, accuracy = .1
+    Month24 = BN24 / BC24, accuracy = .1
   ) %>% 
   select(ProjectID, ProjectName, ProjectType, FilePeriod, starts_with("Month")) %>%
   ungroup()
 
-rm(BedCapacity, BedNights) #leaving this in as it's too aggregated for R minor 
-# elevated
+PE_utilization_bed <- left_join(
+  BedCapacity %>% select(ProjectID,
+                         ProjectName,
+                         ProjectType,
+                         BCPE),
+  PE_BedNights,
+  by = c("ProjectID", "ProjectName", "ProjectType")
+) %>%
+  mutate(PE_DateRange = BNPE / BCPE)
+
+rm(BedCapacity, BedNights, PE_BedNights) #leaving this in as it's too aggregated 
+# for R minor elevated
 
 names(utilization_bed) <-
   c(
@@ -457,17 +469,18 @@ HHUtilizers <- Utilizers %>%
       ProjectType %in% c(1, 2, 8) ~ EntryDate,
       ProjectType %in% c(3, 9) ~ MoveInDate
     ),
-    ExitAdjust = if_else(is.na(ExitDate) & ymd(EntryAdjust) <= mdy(FileEnd), 
-                         mdy(FileEnd), 
-                         ymd(ExitDate)),
-    ExitDate = NULL,
+    ExitAdjust = if_else(
+      is.na(ExitDate) & ymd(EntryAdjust) <= mdy(FileEnd),
+      mdy(FileEnd),
+      ymd(ExitDate)
+    ),
     StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))
-  ) %>% 
+  ) %>%
   filter(
     str_detect(HouseholdID, fixed("s_")) |
-       (str_detect(HouseholdID, fixed("h_")) &
-       RelationshipToHoH == 1) &
-    int_overlaps(StayWindow, FilePeriod) &
+      (str_detect(HouseholdID, fixed("h_")) &
+         RelationshipToHoH == 1) &
+      int_overlaps(StayWindow, FilePeriod) &
       (
         (
           ProjectType %in% c(3, 9) &
@@ -477,8 +490,12 @@ HHUtilizers <- Utilizers %>%
         ) |
           ProjectType %in% c(1, 2, 8)
       ) &
-      !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)) %>%
-  select(-EntryDate, -MoveInDate, -HouseholdID, -RelationshipToHoH)
+      !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)
+  ) %>%
+  select(-EntryDate,-MoveInDate,-HouseholdID,-RelationshipToHoH)
+
+PE_HHUtilizers <- HHUtilizers %>%
+  filter(stayed_between(., PE_ReportStart, PE_ReportEnd))
 
 HHUtilizers <- HHUtilizers %>%
   mutate(
@@ -509,6 +526,11 @@ HHUtilizers <- HHUtilizers %>%
     Month24 = bed_nights_per_ee(HHUtilizers, TwentyfourthMonth)
     )
 HHUtilizers <- as.data.frame(HHUtilizers)
+
+PE_HHUtilizers <- PE_HHUtilizers %>%
+  mutate(PE_DateRange = bed_nights_per_ee(PE_HHUtilizers, PE_FilePeriod)) %>%
+  as.data.frame()
+
 # making granularity by provider instead of by enrollment id
 HHNights <- HHUtilizers %>%
   group_by(ProjectName, ProjectID, ProjectType) %>%
@@ -539,8 +561,17 @@ HHNights <- HHUtilizers %>%
     HN23 = sum(Month23, na.rm = TRUE),
     HN24 = sum(Month24, na.rm = TRUE)
   )
-rm(HHUtilizers) # leaving this one because the client-level detail should be
-# good enough for R minor elevated
+
+PE_HHNights <- PE_HHUtilizers %>%
+  group_by(ProjectName, ProjectID, ProjectType) %>%
+  summarise(
+    HNPE = sum(PE_DateRange, na.rm = TRUE))
+    
+# leaving this one ^^ because the client-level 
+# detail should be good enough for R minor elevated
+
+rm(HHUtilizers, PE_HHUtilizers) 
+
 
 # Unit Capacity -----------------------------------------------------------
 
@@ -590,6 +621,7 @@ unit_capacity <- function(interval) {
 
 UnitCapacity <- UnitCapacity %>%
   mutate(
+    PE_Date_Range = unit_capacity(PE_FilePeriod),
     FilePeriod = unit_capacity(FilePeriod),
     Month1 = unit_capacity(FirstMonth),
     Month2 = unit_capacity(SecondMonth),
@@ -619,6 +651,7 @@ UnitCapacity <- UnitCapacity %>%
 UnitCapacity <- UnitCapacity %>%
   group_by(ProjectID, ProjectName, ProjectType) %>%
   summarise(
+    UCPE = sum(PE_Date_Range, na.rm = TRUE),
     UCY = sum(FilePeriod, na.rm = TRUE),
     UC1 = sum(Month1, na.rm = TRUE),
     UC2 = sum(Month2, na.rm = TRUE),
@@ -649,36 +682,75 @@ UnitCapacity <- UnitCapacity %>%
 # Unit Utilization --------------------------------------------------------
 
 utilization_unit <- left_join(UnitCapacity,
-                            HHNights,
-                            by = c("ProjectID", "ProjectName", "ProjectType")) %>%
+                              HHNights,
+                              by = c("ProjectID", "ProjectName", "ProjectType")) %>%
   mutate(
-    FilePeriod = HNY / UCY, accuracy = .1,
-    Month1 = HN1 / UC1, accuracy = .1,
-    Month2 = HN2 / UC2, accuracy = .1,
-    Month3 = HN3 / UC3, accuracy = .1,
-    Month4 = HN4 / UC4, accuracy = .1,
-    Month5 = HN5 / UC5, accuracy = .1,
-    Month6 = HN6 / UC6, accuracy = .1,
-    Month7 = HN7 / UC7, accuracy = .1,
-    Month8 = HN8 / UC8, accuracy = .1,
-    Month9 = HN9 / UC9, accuracy = .1,
-    Month10 = HN10 / UC10, accuracy = .1,
-    Month11 = HN11 / UC11, accuracy = .1,
-    Month12 = HN12 / UC12, accuracy = .1,
-    Month13 = HN13 / UC13, accuracy = .1,
-    Month14 = HN14 / UC14, accuracy = .1,
-    Month15 = HN15 / UC15, accuracy = .1,
-    Month16 = HN16 / UC16, accuracy = .1,
-    Month17 = HN17 / UC17, accuracy = .1,
-    Month18 = HN18 / UC18, accuracy = .1,
-    Month19 = HN19 / UC19, accuracy = .1,
-    Month20 = HN20 / UC20, accuracy = .1,
-    Month21 = HN21 / UC21, accuracy = .1,
-    Month22 = HN22 / UC22, accuracy = .1,
-    Month23 = HN23 / UC23, accuracy = .1,
-    Month24 = HN24 / UC24, accuracy = .1
+    FilePeriod = HNY / UCY,
+    accuracy = .1,
+    Month1 = HN1 / UC1,
+    accuracy = .1,
+    Month2 = HN2 / UC2,
+    accuracy = .1,
+    Month3 = HN3 / UC3,
+    accuracy = .1,
+    Month4 = HN4 / UC4,
+    accuracy = .1,
+    Month5 = HN5 / UC5,
+    accuracy = .1,
+    Month6 = HN6 / UC6,
+    accuracy = .1,
+    Month7 = HN7 / UC7,
+    accuracy = .1,
+    Month8 = HN8 / UC8,
+    accuracy = .1,
+    Month9 = HN9 / UC9,
+    accuracy = .1,
+    Month10 = HN10 / UC10,
+    accuracy = .1,
+    Month11 = HN11 / UC11,
+    accuracy = .1,
+    Month12 = HN12 / UC12,
+    accuracy = .1,
+    Month13 = HN13 / UC13,
+    accuracy = .1,
+    Month14 = HN14 / UC14,
+    accuracy = .1,
+    Month15 = HN15 / UC15,
+    accuracy = .1,
+    Month16 = HN16 / UC16,
+    accuracy = .1,
+    Month17 = HN17 / UC17,
+    accuracy = .1,
+    Month18 = HN18 / UC18,
+    accuracy = .1,
+    Month19 = HN19 / UC19,
+    accuracy = .1,
+    Month20 = HN20 / UC20,
+    accuracy = .1,
+    Month21 = HN21 / UC21,
+    accuracy = .1,
+    Month22 = HN22 / UC22,
+    accuracy = .1,
+    Month23 = HN23 / UC23,
+    accuracy = .1,
+    Month24 = HN24 / UC24,
+    accuracy = .1
   ) %>%
-  select(ProjectID, ProjectName, ProjectType, FilePeriod, starts_with("Month"))
+  select(ProjectID,
+         ProjectName,
+         ProjectType,
+         FilePeriod,
+         starts_with("Month"))
+
+PE_utilization_unit <- left_join(UnitCapacity,
+                                 PE_HHNights,
+                                 by = c("ProjectID", "ProjectName", "ProjectType")) %>%
+  mutate(PE_UnitUtilization = HNPE / UCPE) %>%
+  select(ProjectID,
+         ProjectName,
+         ProjectType,
+         PE_UnitUtilization)
+
 rm(UnitCapacity, HHNights, Beds, Utilizers)
 
 names(utilization_unit) <- 
