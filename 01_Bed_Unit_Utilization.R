@@ -18,7 +18,9 @@ library(scales)
 
 load("images/COHHIOHMIS.RData")
 
-# FilePeriod <- interval(mdy("01012019"), mdy("12312019"))
+PE_ReportStart <- format.Date(mdy("01012019"), "%m-%d-%Y")
+PE_ReportEnd <- format.Date(mdy("12312019"),"%m-%d-%Y")
+PE_FilePeriod <- interval(PE_ReportStart, PE_ReportEnd)
 
 # Creating Beds table -----------------------------------------------------
 
@@ -51,6 +53,7 @@ small_inventory <- Inventory %>%
     Inventory$CoCCode == "OH-507")
 
 Beds <- inner_join(small_project, small_inventory, by = "ProjectID")
+
 # Creating Utilizers table ------------------------------------------------
 
 small_enrollment <- Enrollment %>% 
@@ -84,6 +87,9 @@ Utilizers <- left_join(Utilizers, small_project, by = "ProjectID") %>%
     ExitDate,
     ExitAdjust
   )
+
+PE_Utilizers <- Utilizers %>%
+  filter(stayed_between(., PE_ReportStart, PE_ReportEnd))
 # Cleaning up the house ---------------------------------------------------
 
 rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
@@ -109,6 +115,21 @@ utilizers_clients <- Utilizers %>%
       ProjectType %in% c(1, 2, 8)
   ) &
     !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317))
+
+PE_utilizers_clients <- PE_Utilizers %>%
+  mutate(StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))) %>%
+  filter(
+    int_overlaps(StayWindow, FilePeriod) &
+      (
+        (
+          ProjectType %in% c(3, 9) &
+            !is.na(EntryAdjust) &
+            ymd(MoveInDate) >= ymd(EntryDate) &
+            ymd(MoveInDate) < ymd(ExitAdjust)
+        ) |
+          ProjectType %in% c(1, 2, 8)
+      ) &
+      !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317))  
 
 # function for adding bed nights per ee
 
