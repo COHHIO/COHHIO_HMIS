@@ -20,7 +20,7 @@ load("images/COHHIOHMIS.RData")
 
 PE_ReportStart <- format.Date(mdy("01012019"), "%m-%d-%Y")
 PE_ReportEnd <- format.Date(mdy("12312019"),"%m-%d-%Y")
-PE_FilePeriod <- interval(PE_ReportStart, PE_ReportEnd)
+PE_FilePeriod <- interval(mdy(PE_ReportStart), mdy(PE_ReportEnd))
 
 # Creating Beds table -----------------------------------------------------
 
@@ -95,7 +95,7 @@ PE_Utilizers <- Utilizers %>%
 rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
    Export, Funder, HealthAndDV, IncomeBenefits, Organization, 
    ProjectCoC, Scores, Services, small_enrollment, small_inventory, small_project, 
-   Users, Offers, VeteranCE, CaseManagers, Referrals,
+   Users, Offers, VeteranCE, CaseManagers, Referrals, HUD_specs,
    stray_services)
 # Client Utilization of Beds ----------------------------------------------
 
@@ -421,7 +421,7 @@ PE_utilization_bed <- left_join(
   PE_BedNights,
   by = c("ProjectID", "ProjectName", "ProjectType")
 ) %>%
-  mutate(PE_DateRange = BNPE / BCPE)
+  mutate(AvgBedUtilization = BNPE / BCPE)
 
 rm(BedCapacity, BedNights, PE_BedNights) #leaving this in as it's too aggregated 
 # for R minor elevated
@@ -745,13 +745,13 @@ utilization_unit <- left_join(UnitCapacity,
 PE_utilization_unit <- left_join(UnitCapacity,
                                  PE_HHNights,
                                  by = c("ProjectID", "ProjectName", "ProjectType")) %>%
-  mutate(PE_UnitUtilization = HNPE / UCPE) %>%
+  mutate(AvgUnitUtilization = HNPE / UCPE) %>%
   select(ProjectID,
          ProjectName,
          ProjectType,
-         PE_UnitUtilization)
+         AvgUnitUtilization)
 
-rm(UnitCapacity, HHNights, Beds, Utilizers)
+rm(UnitCapacity, HHNights, Beds, Utilizers, PE_HHNights, PE_Utilizers)
 
 names(utilization_unit) <- 
   c("ProjectID", "ProjectName", "ProjectType", "FilePeriod",
