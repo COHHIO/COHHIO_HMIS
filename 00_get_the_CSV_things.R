@@ -272,6 +272,27 @@ EnrollmentCoC <-
   read_csv("data/EnrollmentCoC.csv", 
            col_types = "cncnnDcnTTnTn")
 
+# VeteranCE --------------------------------------------------------------
+
+if(file.exists("data/cevets.zip")) {
+  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cevets.csv")
+  
+  file.remove("data/cevets.zip")
+}
+
+VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+
+VeteranCE <- 
+  mutate(
+    VeteranCE,
+    DateVeteranIdentified = mdy(DateVeteranIdentified),
+    ExpectedPHDate = mdy(ExpectedPHDate),
+    MostRecentOfferDate = mdy(MostRecentOfferDate)
+  )
+
 # Enrollment --------------------------------------------------------------
 
 Enrollment <-
@@ -292,8 +313,10 @@ bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
 
 
 Enrollment <- Enrollment %>% select(-RelationshipToHoH) %>%
-  left_join(., bowman_entry_exits, by = "EnrollmentID") %>%
-  left_join(., counties_rel_to_hoh, by = "EnrollmentID") 
+  left_join(bowman_entry_exits, by = "EnrollmentID") %>%
+  left_join(counties_rel_to_hoh, by = "EnrollmentID") %>%
+  left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
+            by = "EnrollmentID")
 
 rm(bowman_entry_exits, counties_rel_to_hoh)
 
@@ -470,28 +493,6 @@ Scores <- read_csv("data/scores.csv",
     ScoreDate = mdy(ScoreDate),
     PersonalID = as.double(PersonalID),
     Score = as.double(Score)
-  )
-
-
-# VeteranCE --------------------------------------------------------------
-
-if(file.exists("data/cevets.zip")) {
-  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/cevets.csv")
-  
-  file.remove("data/cevets.zip")
-}
-
-VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
-
-VeteranCE <- 
-  mutate(
-    VeteranCE,
-    DateVeteranIdentified = mdy(DateVeteranIdentified),
-    ExpectedPHDate = mdy(ExpectedPHDate),
-    MostRecentOfferDate = mdy(MostRecentOfferDate)
   )
 
 # Offers -----------------------------------------------------------------
