@@ -654,20 +654,17 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
-# PSH, TH, SH, RRH (it's true! not sure why)
+# PSH, TH, SH, RRH (it's true! requesting that it be removed from scoring)
 
-# NEED TO FIGURE OUT A WAY TO RUN THE UTILIZATION SCRIPT ON THIS SET DATE RANGE
-# CURRENT METHOD IS CHANGE THE DATE RANGE IN THE UTILIZATION SCRIPT BEFORE
-# RUNNING THIS!!! WHICH IS TERRIBLE!
 source("01_Bed_Unit_Utilization.R")
 # getting what we need from the Utilization script
-utilization_unit_2019 <- utilization_unit %>%
+utilization_unit_2019 <- PE_utilization_unit %>%
   ungroup() %>%
-  select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
+  select(ProjectType, ProjectName, AvgUnitUtilization)
 
-utilization_bed_2019 <- utilization_bed %>%
+utilization_bed_2019 <- PE_utilization_bed %>%
   ungroup() %>%
-  select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
+  select(ProjectType, ProjectName, AvgBedUtilization)
 
 summary_pe_utilization <- pe_coc_funded %>%
   left_join(utilization_bed_2019, by = c("ProjectName", "ProjectType")) %>%
