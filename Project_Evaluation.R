@@ -612,7 +612,7 @@ summary_pe_increase_income <- pe_increase_income %>%
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
 
-pe_length_of_stay <- pe_hohs_moved_in_leavers %>%
+pe_length_of_stay <- pe_clients_moved_in_leavers %>%
   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
   select(ProjectType,
          ProjectName,
