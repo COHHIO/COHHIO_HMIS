@@ -19,13 +19,21 @@ library(janitor)
 load("images/cohorts.RData")
 load("images/COHHIOHMIS.RData")
 
+# clients currently homeless in our system
+
 co_currently_homeless <- co_clients_served %>%
   filter(ProjectType %in% c(1, 2, 4, 8),
          is.na(ExitDate)) %>%
   select(PersonalID, ProjectName, ProjectType, HouseholdID, RelationshipToHoH,
          VeteranStatus, EntryDate, AgeAtEntry)
 
+
+
+# correcting for bad hh data (while also flagging it) ---------------------
+
 ALL_HHIDs <- co_currently_homeless %>% select(HouseholdID) %>% unique()
+
+# marking who is a hoh
 
 clean_hh_data <- co_currently_homeless %>%
   mutate(
@@ -37,11 +45,16 @@ clean_hh_data <- co_currently_homeless %>%
 HHIDs_in_current_logic <- clean_hh_data %>% filter(hoh == 1) %>%
   select(HouseholdID) %>% unique()
 
-HHIDs_with_bad_dq <- anti_join(ALL_HHIDs, HHIDs_in_current_logic,
-                                        by = "HouseholdID") %>%
+# marking which hhs are not represented in the hohs marked (bc of bad hh data)
+
+HHIDs_with_bad_dq <-
+  anti_join(ALL_HHIDs, HHIDs_in_current_logic,
+            by = "HouseholdID") %>%
   left_join(clean_hh_data, by = "HouseholdID")
 
 rm(ALL_HHIDs, HHIDs_in_current_logic)
+
+# assigning hoh status to the oldest person in the hh
 
 Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   group_by(HouseholdID) %>%
@@ -50,6 +63,8 @@ Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   mutate(correctedhoh = 1) %>%
   select(HouseholdID, PersonalID, correctedhoh) %>%
   ungroup()
+
+# merging the "corrected" hohs back into the main dataset with a flag
 
 Active_List <- clean_hh_data %>%
   left_join(Adjusted_HoHs,
