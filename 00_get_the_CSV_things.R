@@ -556,7 +556,8 @@ Referrals <- Referrals %>%
 # HUD CSV Specs -----------------------------------------------------------
 
 HUD_specs <- read_csv("HUD/HUDSpecs.csv",
-                      col_types = "ccnc")
+                      col_types = "ccnc") %>%
+  as.data.frame()
 
 # Age Function ------------------------------------------------------------
 
@@ -820,6 +821,28 @@ project_type <- function(ReferenceNo){
     ReferenceNo == 14 ~ "Coordinated Entry"
   )
 }
+
+# HUD_value_to_description <-
+#   function(table, element_name, element_column) {
+#     element_name <- sym(element_name)
+#     element_column <- enquo(element_column)
+#     
+#     a <- HUD_specs %>%
+#       filter(DataElement == element_name) %>%
+#       select("ReferenceNo", "Description")
+#     
+#     table$element_column <- with(a,
+#                                  Description[match(table$element_column,
+#                                                    HUD_specs$ReferenceNo)])
+#   }
+# 
+# a <- subset(HUD_specs,
+#             DataElement == "HouseholdType",
+#             select = c("ReferenceNo", "Description"))
+# Inventory$HouseholdType <- with(a,
+#                                 Description[match(Inventory$HouseholdType,
+#                                                   ReferenceNo)])
+
 
 # # HMIS participating Between --------------------------------------------------
 # 
