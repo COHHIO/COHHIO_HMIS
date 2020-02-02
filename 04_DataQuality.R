@@ -603,53 +603,20 @@ check_eligibility <- served_in_date_range %>%
               !LivingSituation == 16))) # unsheltered only
 
 detail_eligibility <- check_eligibility %>%
-  select(PersonalID, ProjectName, ProjectType, LivingSituation, EntryDate,
-         ExitDate, LengthOfStay, LOSUnderThreshold, PreviousStreetESSH) %>%
+  select(
+    PersonalID,
+    ProjectName,
+    ProjectType,
+    LivingSituation,
+    EntryDate,
+    ExitDate,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH
+  ) %>%
   mutate(
-    ResidencePrior = case_when(
-      LivingSituation == 1 ~ "Emergency shelter, incl hotel or motel paid for with
-    emergency shelter voucher or RHY Host Home",
-      LivingSituation == 2 ~ "Transitional housing for homeless persons",
-      LivingSituation == 3 ~ "Permanent housing (other than RRH) for formerly
-    homeless persons",
-      LivingSituation == 4 ~ "Psychiatric hospital or other psychiatric facility",
-      LivingSituation == 5 ~ "Substance abuse treatment facility or detox center",
-      LivingSituation == 6 ~ "Hospital or other residential non-psychiatric medical
-    facility",
-      LivingSituation == 7 ~ "Jail, prison or juvenile detention facility",
-      LivingSituation == 8 ~ "Client doesn't know",
-      LivingSituation == 9 ~ "Client refused",
-      LivingSituation == 10 ~ "Rental by client, no ongoing housing subsidy",
-      LivingSituation == 11 ~ "Owned by client, no ongoing housing subsidy",
-      LivingSituation == 12 ~ "Staying or living with family, temporary tenure",
-      LivingSituation == 13 ~ "Staying or living with friends, temporary tenure",
-      LivingSituation == 14 ~ "Hotel or motel paid for without emergency shelter
-    voucher",
-      LivingSituation == 15 ~ "Foster care home or foster care group home",
-      LivingSituation == 16 ~ "Place not meant for habitation",
-      LivingSituation == 17 ~ "Other",
-      LivingSituation == 18 ~ "Safe Haven",
-      LivingSituation == 19 ~ "Rental by client, with VASH subsidy",
-      LivingSituation == 20 ~ "Rental by client, with other housing subsidy (incl
-    RRH)",
-      LivingSituation == 21 ~ "Owned by client, with ongoing housing subsidy",
-      LivingSituation == 22 ~ "Staying or living with family, permanent tenure",
-      LivingSituation == 23 ~ "Staying or living with friends, permanent tenure",
-      LivingSituation == 25 ~ "Long-term care facility or nursing home",
-      LivingSituation == 27 ~ "Retired- please correct",
-      LivingSituation == 28 ~ "Rental by client, with GPD TIP subsidy",
-      LivingSituation == 29 ~ "Residential project or halfway house with no
-    homeless criteria",
-      LivingSituation == 31 ~ "Rental by client, with RRH",
-      LivingSituation == 32 ~ "Host Home (non-crisis)",
-      LivingSituation == 33 ~ "Rental by client, with HCV voucher",
-      LivingSituation == 34 ~ "Rental by client in a public housing unit",
-      LivingSituation == 35 ~ "Staying or living in a family member's room,
-    apartment, or house",
-      LivingSituation == 36 ~ "Staying or living in a friend's room, apartment or
-    house",
-      LivingSituation == 99 ~ "Data not collected"
-    ),
+    ResidencePrior =
+      living_situation(LivingSituation),
     LengthOfStay = case_when(
       LengthOfStay == 2 ~ "One week or more but less than one month",
       LengthOfStay == 3 ~ "One month or more but less than 90 days",
@@ -666,7 +633,6 @@ detail_eligibility <- check_eligibility %>%
 check_eligibility <- check_eligibility %>%
   mutate(Issue = "Check Eligibility", Type = "Warning") %>%
   select(vars_we_want)
-
 
 # Missing Destination
 missing_destination <- served_in_date_range %>%
