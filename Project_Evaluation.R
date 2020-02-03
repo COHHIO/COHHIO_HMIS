@@ -1049,28 +1049,30 @@ save.image("images/ProjectEvaluation.RData")
 
 library(funneljoin)
 
+perm_destinations <- c(3, 10:11, 19:23, 26, 28, 31, 33:34)
+
 leavers_psh_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+  filter(Destination %in% perm_destinations &
            ProjectType == 3)
 
 leavers_rrh_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+  filter(Destination %in% perm_destinations &
            ProjectType == 13)
 
 leavers_th_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+  filter(Destination %in% perm_destinations &
            ProjectType == 2)
 
 leavers_es_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+  filter(Destination %in% perm_destinations &
            ProjectType == 1)
 
 leavers_sso_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+  filter(Destination %in% perm_destinations &
            ProjectType == 6)
 
 leavers_sh_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
+  filter(Destination %in% perm_destinations &
            ProjectType == 8)
 
 returners <- co_clients_served
