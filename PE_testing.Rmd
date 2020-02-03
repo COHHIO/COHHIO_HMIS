@@ -520,6 +520,18 @@ get_dupes(b, PersonalID)
 
 Client 125580 is duplicated in the R count. :( - FIXED GD 1/19/2020
 
+The next one we'll cover is Butler - Butler County SPC for Homeless Individuals & Families - PSH.
+
+R is showing they served 101 people, ART is saying there's only 49
+
+```{r ButlerSPC}
+
+
+
+```
+
+The CoC APR has 101 clients served! Yikes, what is wrong with the ART report?
+
 ### Summary of Clients Served Testing
 
 The only two problems I found were:
