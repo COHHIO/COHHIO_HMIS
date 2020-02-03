@@ -1006,39 +1006,39 @@ summary_pe_final_scoring <- pe_coc_funded[c("ProjectType", "ProjectName")] %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "ProjectName"))
 
 # Clean the House ---------------------------------------------------------
-# 
-# rm(list = ls()[!(ls() %in% c(
-#   'pe_coc_funded',
-#   'pe_coc_scoring',
-#   'pe_dq_by_provider',
-#   'pe_entries_no_income',
-#   'pe_exits_to_ph',
-#   'pe_health_ins_at_exit',
-#   'pe_homeless_history_index',
-#   'pe_increase_income',
-#   'pe_length_of_stay',
-#   'pe_long_term_homeless',
-#   'pe_non_cash_at_exit',
-#   'pe_own_housing',
-#   'pe_res_prior',
-#   'pe_validation_summary',
-#   'summary_pe_dq_by_provider',
-#   'summary_pe_entries_no_income',
-#   'summary_pe_exits_to_ph',
-#   'summary_pe_health_ins_at_exit',
-#   'summary_pe_homeless_history_index',
-#   'summary_pe_increase_income',
-#   'summary_pe_length_of_stay',
-#   'summary_pe_long_term_homeless',
-#   'summary_pe_non_cash_at_exit',
-#   'summary_pe_own_housing',
-#   'summary_pe_res_prior',
-#   'summary_pe_utilization',
-#   'summary_pe_final_scoring',
-#   'ReportStart', 
-#   'ReportEnd',
-#   'living_situation'
-# ))])
+
+rm(list = ls()[!(ls() %in% c(
+  'pe_coc_funded',
+  'pe_coc_scoring',
+  'pe_dq_by_provider',
+  'pe_entries_no_income',
+  'pe_exits_to_ph',
+  'pe_health_ins_at_exit',
+  'pe_homeless_history_index',
+  'pe_increase_income',
+  'pe_length_of_stay',
+  'pe_long_term_homeless',
+  'pe_non_cash_at_exit',
+  'pe_own_housing',
+  'pe_res_prior',
+  'pe_validation_summary',
+  'summary_pe_dq_by_provider',
+  'summary_pe_entries_no_income',
+  'summary_pe_exits_to_ph',
+  'summary_pe_health_ins_at_exit',
+  'summary_pe_homeless_history_index',
+  'summary_pe_increase_income',
+  'summary_pe_length_of_stay',
+  'summary_pe_long_term_homeless',
+  'summary_pe_non_cash_at_exit',
+  'summary_pe_own_housing',
+  'summary_pe_res_prior',
+  'summary_pe_utilization',
+  'summary_pe_final_scoring',
+  'ReportStart',
+  'ReportEnd',
+  'living_situation'
+))])
 
 save.image("images/ProjectEvaluation.RData")
 
