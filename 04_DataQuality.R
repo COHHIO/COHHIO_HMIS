@@ -596,11 +596,11 @@ check_eligibility <- served_in_date_range %>%
                        is.na(PreviousStreetESSH)
                    ) 
                )
-           )|
+           ))|
            (ProjectType == 12 &
               !LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36)) |
            (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
-              !LivingSituation == 16))) # unsheltered only
+              !LivingSituation == 16)) # unsheltered only
 
 detail_eligibility <- check_eligibility %>%
   select(
