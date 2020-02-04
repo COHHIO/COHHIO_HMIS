@@ -119,6 +119,7 @@ if(file.exists(paste0("SPM_data/Prior/",
               "SPM_data/Prior/0706.xls")
 }
 
+# OPEN ALL YOUR EXCEL FILES AND PRESS ENABLE EDITING BEFORE PROCEEDING
 # Checking that the 0700a was run correctly -CURRENT-----------------------
 
 check_loth_a <- read_xls("SPM_data/Current/0700a.xls",
