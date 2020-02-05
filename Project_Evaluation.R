@@ -579,7 +579,7 @@ pe_increase_income <- income_staging %>%
   ) %>%
   left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
   select(
-    vars_to_the_apps,
+    all_of(vars_to_the_apps),
     "IncomeAtEntry" = Entry,
     "IncomeMostRecent" = MostRecentIncome
   )
@@ -1008,6 +1008,9 @@ summary_pe_final_scoring <- pe_coc_funded[c("ProjectType", "ProjectName")] %>%
 # Clean the House ---------------------------------------------------------
 
 rm(list = ls()[!(ls() %in% c(
+  'pe_adults_entered',
+  'pe_adults_moved_in_leavers',
+  'pe_clients_served',
   'pe_coc_funded',
   'pe_coc_scoring',
   'pe_dq_by_provider',
@@ -1047,36 +1050,36 @@ save.image("images/ProjectEvaluation.RData")
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
 
-library(funneljoin)
-
-perm_destinations <- c(3, 10:11, 19:23, 26, 28, 31, 33:34)
-
-leavers_psh_to_ph <- co_clients_served %>%
-  filter(Destination %in% perm_destinations &
-           ProjectType == 3)
-
-leavers_rrh_to_ph <- co_clients_served %>%
-  filter(Destination %in% perm_destinations &
-           ProjectType == 13)
-
-leavers_th_to_ph <- co_clients_served %>%
-  filter(Destination %in% perm_destinations &
-           ProjectType == 2)
-
-leavers_es_to_ph <- co_clients_served %>%
-  filter(Destination %in% perm_destinations &
-           ProjectType == 1)
-
-leavers_sso_to_ph <- co_clients_served %>%
-  filter(Destination %in% perm_destinations &
-           ProjectType == 6)
-
-leavers_sh_to_ph <- co_clients_served %>%
-  filter(Destination %in% perm_destinations &
-           ProjectType == 8)
-
-returners <- co_clients_served
-
+# library(funneljoin)
+# 
+# perm_destinations <- c(3, 10:11, 19:23, 26, 28, 31, 33:34)
+# 
+# leavers_psh_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 3)
+# 
+# leavers_rrh_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 13)
+# 
+# leavers_th_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 2)
+# 
+# leavers_es_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 1)
+# 
+# leavers_sso_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 6)
+# 
+# leavers_sh_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 8)
+# 
+# returners <- co_clients_served
+# 
 
 
 # Housing Stability: 6-24 mo Recurrence -----------------------------------
