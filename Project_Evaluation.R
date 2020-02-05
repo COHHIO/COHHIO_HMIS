@@ -103,7 +103,7 @@ pe_clients_served <-  co_clients_served %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -117,7 +117,7 @@ pe_adults_entered <-  co_adults_entered %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate))
 
 # for ncb logic
@@ -132,7 +132,7 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -145,7 +145,7 @@ pe_adults_moved_in <-  co_adults_moved_in %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
@@ -159,7 +159,7 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -172,7 +172,7 @@ pe_hohs_served <- co_hohs_served %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
@@ -189,7 +189,7 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -331,7 +331,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(vars_to_the_apps, Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
   group_by(ProjectType, ProjectName) %>%
@@ -381,7 +381,7 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       is.na(Destination) ~ "Still in Program"
     )
   ) %>% 
-  select(vars_to_the_apps, Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_own_housing <- pe_own_housing %>%
   group_by(ProjectType, ProjectName) %>%
@@ -443,7 +443,7 @@ pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
                      MostRecentNCB != 1 |
                        is.na(MostRecentNCB) ~ 0)) %>%
   ungroup() %>%
-  select(vars_to_the_apps, MostRecentNCB)
+  select(all_of(vars_to_the_apps), MostRecentNCB)
 
 summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
@@ -504,7 +504,7 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
                                MostRecentHI != 1 ~ 0)
   ) %>%
   ungroup() %>%
-  select(vars_to_the_apps, MostRecentHI)
+  select(all_of(vars_to_the_apps), MostRecentHI)
 
 summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
@@ -693,7 +693,7 @@ pe_res_prior <- pe_adults_entered %>%
     1, 
     0
   )) %>%
-  select(vars_to_the_apps, LivingSituation) %>%
+  select(all_of(vars_to_the_apps), LivingSituation) %>%
   filter(!is.na(PersonalID))
 
 summary_pe_res_prior <- pe_res_prior %>%
@@ -965,7 +965,7 @@ pe_long_term_homeless <- pe_adults_entered %>%
     0
     )
   ) %>%
-  select(vars_to_the_apps, DateToStreetESSH, CurrentHomelessDuration,
+  select(all_of(vars_to_the_apps), DateToStreetESSH, CurrentHomelessDuration,
          MonthsHomelessPastThreeYears, TimesHomelessPastThreeYears)
 
 summary_pe_long_term_homeless <- pe_long_term_homeless %>%
