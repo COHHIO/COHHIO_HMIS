@@ -60,7 +60,7 @@ co_hohs_served <-  Enrollment %>%
   filter(served_between(., ReportStart, ReportEnd) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)
+  select(all_of(vars_we_want))
 
 summary_hohs_served <- co_hohs_served %>%
   group_by(ProjectName) %>%
@@ -73,7 +73,7 @@ co_hohs_served_leavers <-  Enrollment %>%
       RelationshipToHoH == 1
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(all_of(vars_we_want))	
 
 summary_hohs_served_leavers <- co_hohs_served_leavers %>%
   group_by(ProjectName) %>%
@@ -87,7 +87,7 @@ co_hohs_served_leavers_died <- Enrollment %>%
       Destination == 24
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(all_of(vars_we_want))	
 
 summary_hohs_served_leavers_died  <- co_hohs_served_leavers_died  %>%
   group_by(ProjectName) %>%
@@ -97,7 +97,7 @@ summary_hohs_served_leavers_died  <- co_hohs_served_leavers_died  %>%
 co_clients_served <-  Enrollment %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)
+  select(all_of(vars_we_want))
 
 summary_clients_served <- co_clients_served %>%
   group_by(ProjectName) %>%
@@ -108,7 +108,7 @@ co_adults_served <-  Enrollment %>%
   filter(served_between(., ReportStart, ReportEnd) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)
+  select(all_of(vars_we_want))
 
 summary_adults_served <- co_adults_served %>%
   group_by(ProjectName) %>%
@@ -120,7 +120,7 @@ co_adults_entered <-  Enrollment %>%
   filter(entered_between(., ReportStart, ReportEnd) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)
+  select(all_of(vars_we_want))
 
 summary_adults_entered <- co_adults_entered %>%
   group_by(ProjectName) %>%
@@ -133,7 +133,7 @@ co_hohs_entered <- Enrollment %>%
       RelationshipToHoH == 1
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(all_of(vars_we_want))	
 
 summary_hohs_entered <- co_hohs_entered %>%
   group_by(ProjectName) %>%
@@ -145,7 +145,7 @@ co_clients_moved_in <-  Enrollment %>%
     stayed_between(., ReportStart, ReportEnd)
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)
+  select(all_of(vars_we_want))
 
 summary_clients_moved_in <- co_clients_moved_in %>%
   group_by(ProjectName) %>%
@@ -156,7 +156,7 @@ co_adults_moved_in <-  Enrollment %>%
   filter(stayed_between(., ReportStart, ReportEnd) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(all_of(vars_we_want))	
 
 summary_adults_moved_in <- co_adults_moved_in %>%
   group_by(ProjectName) %>%
@@ -167,7 +167,7 @@ co_clients_moved_in_leavers <-  Enrollment %>%
   filter(exited_between(., ReportStart, ReportEnd) &
            stayed_between(., ReportStart, ReportEnd)) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(all_of(vars_we_want))	
 
 summary_clients_moved_in_leavers <- co_clients_moved_in_leavers %>%
   group_by(ProjectName) %>%
@@ -179,7 +179,7 @@ co_hohs_moved_in_leavers <-  Enrollment %>%
            exited_between(., ReportStart, ReportEnd) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want)	
+  select(all_of(vars_we_want))	
 
 summary_hohs_moved_in_leavers <- co_hohs_moved_in_leavers %>%
   group_by(ProjectName) %>%
@@ -191,7 +191,7 @@ co_adults_moved_in_leavers <-  Enrollment %>%
            stayed_between(., ReportStart, ReportEnd) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
-  select(vars_we_want) 
+  select(all_of(vars_we_want)) 
 
 summary_adults_moved_in_leavers <- co_adults_moved_in_leavers %>%
   group_by(ProjectName) %>%
