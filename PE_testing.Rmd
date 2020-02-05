@@ -520,18 +520,6 @@ get_dupes(b, PersonalID)
 
 Client 125580 is duplicated in the R count. :( - FIXED GD 1/19/2020
 
-The next one we'll cover is Butler - Butler County SPC for Homeless Individuals & Families - PSH.
-
-R is showing they served 101 people, ART is saying there's only 49
-
-```{r ButlerSPC}
-
-
-
-```
-
-The CoC APR has 101 clients served! Yikes, what is wrong with the ART report?
-
 ### Summary of Clients Served Testing
 
 The only two problems I found were:
@@ -558,8 +546,9 @@ setdiff(b, a)
 
 ```
 
-I do not know why Client 244 is not pulling into the ART report. It should be. Will need to look more closely at the ART logic at the office.
+Client 244 is not pulling into the ART report. It should be. It isn't pulling in because the ART report is erroneously pulling in an old Move-In Date. R is correct.
 
+This tells me there is a bug in ART that is not pulling in correct Move-In Dates. Which worries me in regards to the SPMs!?!
 
 ## Testing AdultEnterers
 
@@ -609,7 +598,7 @@ setdiff(a, b)
 
 ```
 
-Client 180763 has two entries into the project, and both are showing in the ART report, whereas only one is showing in the R logic. Really ART seems right, as we want to capture every entry in these kinds of measures. Corrected logic in R.
+Client 180763 had two entries into the project (now confirmed fixed), and both were showing in the ART report, whereas only one was showing in the R logic. ART was right, as we want to capture every entry in these kinds of measures. Corrected logic in R.
 
 
 
