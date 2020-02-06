@@ -289,7 +289,7 @@ missing_approx_date_homeless <- served_in_date_range %>%
 
 missing_previous_street_ESSH <- served_in_date_range %>%
   select(
-    vars_prep,
+    all_of(vars_prep),
     AgeAtEntry,
     RelationshipToHoH,
     DateToStreetESSH,
@@ -306,7 +306,7 @@ missing_previous_street_ESSH <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 missing_residence_prior <- served_in_date_range %>%
-  select(vars_prep,
+  select(all_of(vars_prep),
          AgeAtEntry,
          RelationshipToHoH,
          LivingSituation) %>%
@@ -317,7 +317,7 @@ missing_residence_prior <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 dkr_residence_prior <- served_in_date_range %>%
-  select(vars_prep,
+  select(all_of(vars_prep),
          AgeAtEntry,
          RelationshipToHoH,
          LivingSituation) %>%
@@ -328,7 +328,7 @@ dkr_residence_prior <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 missing_LoS <- served_in_date_range %>%
-  select(vars_prep,
+  select(all_of(vars_prep),
          AgeAtEntry,
          RelationshipToHoH,
          LengthOfStay) %>%
@@ -339,7 +339,7 @@ missing_LoS <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 dkr_LoS <- served_in_date_range %>%
-  select(vars_prep,
+  select(all_of(vars_prep),
          AgeAtEntry,
          RelationshipToHoH,
          LengthOfStay) %>%
@@ -351,7 +351,7 @@ dkr_LoS <- served_in_date_range %>%
 
 missing_months_times_homeless <- served_in_date_range %>%
   select(
-    vars_prep,
+    all_of(vars_prep),
     AgeAtEntry,
     RelationshipToHoH,
     MonthsHomelessPastThreeYears,
@@ -372,7 +372,7 @@ missing_months_times_homeless <- served_in_date_range %>%
 
 dkr_months_times_homeless <- served_in_date_range %>%
   select(
-    vars_prep,
+    all_of(vars_prep),
     AgeAtEntry,
     RelationshipToHoH,
     MonthsHomelessPastThreeYears,
@@ -391,7 +391,7 @@ dkr_months_times_homeless <- served_in_date_range %>%
 
 detail_missing_living_situation <- served_in_date_range %>%
   select(
-    vars_prep,
+    all_of(vars_prep),
     AgeAtEntry,
     RelationshipToHoH,
     LivingSituation,
@@ -467,7 +467,7 @@ detail_missing_living_situation <- served_in_date_range %>%
 # DisablingCondition at Entry
 
 detail_missing_disabilities <- served_in_date_range %>%
-  select(vars_prep,
+  select(all_of(vars_prep),
          AgeAtEntry,
          RelationshipToHoH,
          DisablingCondition) %>%
@@ -501,7 +501,7 @@ smallDisabilities <- Disabilities %>%
 rm(Disabilities)
 
 detail_conflicting_disabilities <- served_in_date_range %>%
-  select(vars_prep,
+  select(all_of(vars_prep),
          EnrollmentID,
          AgeAtEntry,
          RelationshipToHoH,
@@ -850,7 +850,7 @@ check_eligibility <- served_in_date_range %>%
       filter(DataCollectionStage == 3)
     
     path_SOAR_missing_at_exit <- served_in_date_range %>%
-      select(vars_prep,
+      select(all_of(vars_prep),
              EnrollmentID,
              AgeAtEntry,
              ClientEnrolledInPATH,
@@ -1023,7 +1023,7 @@ check_eligibility <- served_in_date_range %>%
     missing_income_entry <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
       select(
-        vars_prep,
+        all_of(vars_prep),
         AgeAtEntry,
         DataCollectionStage,
         TotalMonthlyIncome,
@@ -1297,7 +1297,7 @@ check_eligibility <- served_in_date_range %>%
       filter(ExitDate > PreviousEntryAdjust &
                ExitDate < PreviousExitAdjust) %>%
       ungroup() %>%
-      select(vars_we_want, PreviousProject)
+      select(all_of(vars_we_want), PreviousProject)
     
     rrh_overlaps <- served_in_date_range %>%
       select(all_of(vars_prep), ExitAdjust) %>%
@@ -1324,7 +1324,7 @@ check_eligibility <- served_in_date_range %>%
         Overlap = int_overlaps(InProject, PreviousStay)
       ) %>%
       filter(Overlap == TRUE) %>%
-      select(vars_we_want, PreviousProject)
+      select(all_of(vars_we_want), PreviousProject)
     
     psh_overlaps <- served_in_date_range %>%
       select(all_of(vars_prep), ExitAdjust) %>%
@@ -1351,7 +1351,7 @@ check_eligibility <- served_in_date_range %>%
         Overlap = int_overlaps(InProject, PreviousStay)
       ) %>%
       filter(Overlap == TRUE) %>%
-      select(vars_we_want, PreviousProject)
+      select(all_of(vars_we_want), PreviousProject)
     
     dq_overlaps <- staging_overlaps %>%
       mutate(
@@ -1359,7 +1359,7 @@ check_eligibility <- served_in_date_range %>%
         Overlap = int_overlaps(LiterallyInProject, PreviousStay)
       ) %>%
       filter(Overlap == TRUE) %>%
-      select(vars_we_want, PreviousProject)
+      select(all_of(vars_we_want), PreviousProject)
     
     dq_overlaps <-
       rbind(dq_overlaps, rrh_overlaps, psh_overlaps, same_day_overlaps)
@@ -1408,7 +1408,7 @@ check_eligibility <- served_in_date_range %>%
     health_insurance_subs <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
       select(
-        vars_prep,
+        all_of(vars_prep),
         DataCollectionStage,
         InsuranceFromAnySource,
         Medicaid,
@@ -1516,7 +1516,7 @@ check_eligibility <- served_in_date_range %>%
     missing_ncbs_entry <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
       select(AgeAtEntry,
-             vars_prep,
+             all_of(vars_prep),
              DataCollectionStage,
              BenefitsFromAnySource) %>%
       filter(
@@ -1533,7 +1533,7 @@ check_eligibility <- served_in_date_range %>%
     conflicting_ncbs_entry <- served_in_date_range %>%
       left_join(ncb_subs, by = c("PersonalID", "EnrollmentID")) %>%
       select(AgeAtEntry,
-             vars_prep,
+             all_of(vars_prep),
              DataCollectionStage,
              BenefitsFromAnySource,
              BenefitCount) %>%
@@ -1552,7 +1552,7 @@ check_eligibility <- served_in_date_range %>%
     missing_ncbs_exit <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
       select(AgeAtEntry,
-             vars_prep,
+             all_of(vars_prep),
              DataCollectionStage,
              BenefitsFromAnySource) %>%
       filter(
@@ -1569,7 +1569,7 @@ check_eligibility <- served_in_date_range %>%
     conflicting_ncbs_exit <- served_in_date_range %>%
       left_join(ncb_subs, by = c("PersonalID", "EnrollmentID")) %>%
       select(AgeAtEntry,
-             vars_prep,
+             all_of(vars_prep),
              DataCollectionStage,
              BenefitsFromAnySource,
              BenefitCount) %>%
@@ -1612,7 +1612,7 @@ check_eligibility <- served_in_date_range %>%
     # SSVF projects should be showing this as an Error, whereas non-SSVF projects
     # should be showing it as a warning, and only back to Feb of 2018.
     services_on_hh_members <- served_in_date_range %>%
-      select(vars_prep,
+      select(all_of(vars_prep),
              EnrollmentID,
              RelationshipToHoH,
              GrantType) %>%
@@ -1627,7 +1627,7 @@ check_eligibility <- served_in_date_range %>%
       select(all_of(vars_we_want))
     
     services_on_hh_members_ssvf <- served_in_date_range %>%
-      select(vars_prep,
+      select(all_of(vars_prep),
              EnrollmentID,
              RelationshipToHoH,
              GrantType) %>%
@@ -1641,7 +1641,7 @@ check_eligibility <- served_in_date_range %>%
     rm(Services)
     
     referrals_on_hh_members <- served_in_date_range %>%
-      select(vars_prep,
+      select(all_of(vars_prep),
              RelationshipToHoH,
              EnrollmentID,
              GrantType) %>%
