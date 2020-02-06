@@ -269,7 +269,7 @@ rm(hh_too_many_hohs, hh_no_hoh, hh_children_only)
 
 missing_approx_date_homeless <- served_in_date_range %>%
   select(
-    vars_prep,
+    all_of(vars_prep),
     EnrollmentID,
     ProjectID,
     AgeAtEntry,
@@ -612,7 +612,7 @@ missing_county_prior <- served_in_date_range %>%
 
 check_eligibility <- served_in_date_range %>%
   select(
-    vars_prep,
+    all_of(vars_prep),
     ProjectID,
     AgeAtEntry,
     RelationshipToHoH,
@@ -627,36 +627,39 @@ check_eligibility <- served_in_date_range %>%
       ymd(EntryDate) > mdy("10012016") &
       ProjectID != 1859 &
       # "Crisis TH" which should be treated like an es
-      (ProjectType %in% c(2, 3, 9, 10, 13) &
-         # PTCs that require LH status
-         (
-           is.na(LivingSituation) |
-             (
-               LivingSituation %in% c(4:7, 15, 25:27, 29) & # institution
-                 (
-                   !LengthOfStay %in% c(2, 3, 10, 11) | # <90 days
-                     is.na(LengthOfStay) |
-                     PreviousStreetESSH == 0 | # LH prior
-                     is.na(PreviousStreetESSH)
-                 )
-             ) |
-             (
-               LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) &
-                 # not homeless
-                 (
-                   !LengthOfStay %in% c(10, 11) |  # <1 week
-                     is.na(LengthOfStay) |
-                     PreviousStreetESSH == 0 | # LH prior
-                     is.na(PreviousStreetESSH)
-                 )
-             )
-         )) |
       (
-        ProjectType == 12 &
-          !LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36)
-      ) |
-      (ProjectType %in% c(8, 4) & # Safe Haven and Outreach!LivingSituation == 16)
-      ) # unsheltered only
+        (ProjectType %in% c(2, 3, 9, 10, 13) &
+           # PTCs that require LH status
+           (
+             is.na(LivingSituation) |
+               (
+                 LivingSituation %in% c(4:7, 15, 25:27, 29) & # institution
+                   (
+                     !LengthOfStay %in% c(2, 3, 10, 11) | # <90 days
+                       is.na(LengthOfStay) |
+                       PreviousStreetESSH == 0 | # LH prior
+                       is.na(PreviousStreetESSH)
+                   )
+               ) |
+               (
+                 LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) &
+                   # not homeless
+                   (
+                     !LengthOfStay %in% c(10, 11) |  # <1 week
+                       is.na(LengthOfStay) |
+                       PreviousStreetESSH == 0 | # LH prior
+                       is.na(PreviousStreetESSH)
+                   )
+               )
+           )) |
+          (
+            ProjectType == 12 &
+              !LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36)
+          ) |
+          (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
+             LivingSituation != 16) # unsheltered only
+      )
+  ) 
     
     detail_eligibility <- check_eligibility %>%
       select(
