@@ -548,7 +548,7 @@ setdiff(b, a)
 
 Client 244 is not pulling into the ART report. It should be. It isn't pulling in because the ART report is erroneously pulling in an old Move-In Date. R is correct.
 
-This tells me there is a bug in ART that is not pulling in correct Move-In Dates. Which worries me in regards to the SPMs!?!
+This tells me there is a bug in ART that is not pulling in correct Move-In Dates. Which worries me in regards to the SPMs!?! Submitted a case to WS.
 
 ## Testing AdultEnterers
 
