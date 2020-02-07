@@ -550,6 +550,8 @@ Client 244 is not pulling into the ART report. It should be. It isn't pulling in
 
 This tells me there is a bug in ART that is not pulling in correct Move-In Dates. Which worries me in regards to the SPMs!?! Submitted a case to WS.
 
+I doubt they'll be fixing this, but I don't care much (at least in regards to the Project Evaluation report) because R is correct anyway.
+
 ## Testing AdultEnterers
 
 Checking Medina - Medina MHA - Medina County TRA - PSH. 
