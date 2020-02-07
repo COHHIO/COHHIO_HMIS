@@ -566,6 +566,65 @@ missing_long_duration <- served_in_date_range %>%
 
 rm(smallDisabilities)
 
+# Extremely Long Stayers --------------------------------------------------
+
+th_stayers <- served_in_date_range %>%
+  select(all_of(vars_prep)) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 2)
+
+Top2_TH <- subset(th_stayers, Days > quantile(Days, prob = 1 - 2 / 100))
+
+rrh_stayers <- served_in_date_range %>%
+  select(all_of(vars_prep)) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 13) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+Top2_RRH <- subset(rrh_stayers, Days > quantile(Days, prob = 1 - 2 / 100))
+
+es_stayers <- served_in_date_range %>%
+  select(all_of(vars_prep)) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 1) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+Top2_ES <- subset(es_stayers, Days > quantile(Days, prob = 1 - 2 / 100))
+
+psh_stayers <- served_in_date_range %>%
+  select(all_of(vars_prep)) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 3) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+Top1_PSH <- subset(psh_stayers, Days > quantile(Days, prob = 1 - 1 / 100))
+
+hp_stayers <- served_in_date_range %>%
+  select(all_of(vars_prep)) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 12) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+Top5_HP <- subset(hp_stayers, Days > quantile(Days, prob = 1 - 5 / 100))
+
+extremely_long_stayers <- rbind(Top1_PSH,
+                                Top2_ES,
+                                Top2_RRH,
+                                Top2_TH,
+                                Top5_HP) %>%
+  mutate(Issue = "Extremely Long Stayer",
+         Type = "Warning") %>%
+  select(all_of(vars_we_want))
+
+rm(list = ls(pattern = "Top*"),
+   es_stayers,
+   th_stayers,
+   psh_stayers,
+   rrh_stayers,
+   hp_stayers)
+
+
 # MoveInDate
 
 # incorrectMoveInDate <- served_in_date_range %>%
@@ -877,7 +936,6 @@ check_eligibility <- served_in_date_range %>%
     
     # Missing PATH Contact End Date
     ## client is adult/hoh, has a contact record, and the End Date is null -> error
-    
     
     # Duplicate EEs -----------------------------------------------------------
     # this could be more nuanced
@@ -2017,6 +2075,7 @@ check_eligibility <- served_in_date_range %>%
       dkr_residence_prior,
       duplicate_ees,
       entered_ph_without_spdat,
+      extremely_long_stayers,
       future_ees,
       hh_issues,
       incorrect_ee_type,
@@ -2155,6 +2214,13 @@ check_eligibility <- served_in_date_range %>%
       arrange(Type, Issue) %>%
       mutate(
         Guidance = case_when(
+          Issue == "Extremely Long Stayer" ~
+            "This client is showing as an outlier for Length of Stay for this 
+          project type in the Balance of State CoC. Please verify that this 
+          client is still in your project. If they are, be sure there are no 
+          alternative permanent housing solutions for this client. If the client 
+          is no longer in your project, please enter their Exit Date as the 
+          closest estimation of the day they left your project.",
           Issue == "Access Point with Entry Exits" ~
             "Access Points should only be entering Referrals and Diversion Services
       into the AP provider- not Entry Exits. If a user has done this, the Entry
@@ -2465,6 +2531,7 @@ check_eligibility <- served_in_date_range %>%
       duplicate_ees,
       Enrollment,
       entered_ph_without_spdat,
+      extremely_long_stayers,
       future_ees,
       hh_issues,
       projects_current_hmis,
