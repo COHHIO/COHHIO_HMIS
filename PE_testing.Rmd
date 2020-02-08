@@ -602,8 +602,44 @@ setdiff(a, b)
 
 Client 180763 had two entries into the project (now confirmed fixed), and both were showing in the ART report, whereas only one was showing in the R logic. ART was right, as we want to capture every entry in these kinds of measures. Corrected logic in R.
 
+Hocking MHA PSH: in ART it's showing 20, in R it's showing 23.
 
+```{r}
+art <- c(
+  94621,
+  186428,
+  210595,
+  215548,
+  215548,
+  227475,
+  228396,
+  230045,
+  230045,
+  230549,
+  231534,
+  233688,
+  235802,
+  61876,
+  148511,
+  197646,
+  222878,
+  225696,
+  228459,
+  229416,
+  231534,
+  231745,
+  233758
+)
 
+r <- pe_adults_entered %>%
+  filter(ProjectID == 418) %>%
+  pull(PersonalID)
+
+setdiff(r, art)
+
+```
+
+This is happening because clients in this project have Duplicate Entry Exits. So R is counting every Entry Exit for each client and counting that is separate clients. In ART, it's actually using the 23 (counting all EEs) as the divisor. I'm seeing where the decision is to keep each EE. I think that's fine, but I want to flag any projects with Duplicate Entry Exits for this particular measure and prevent them getting the points if they have Duplicate EEs. Maybe. I should at least pull that DQ issue in here and show it.
 
 
 
