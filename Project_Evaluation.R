@@ -22,6 +22,27 @@ rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC,
 
 load("images/cohorts.RData")
 rm(FileActualStart, FileStart, FileEnd, stop, update_date, summary)
+
+load("images/Data_Quality.RData")
+
+dq_flags <- dq_2019 %>%
+  mutate(DQ_flags = case_when(
+           Issue %in% c(
+             "Duplicate Entry Exits",
+             "Children Only Household",
+             "No Head of Household",
+             "Too Many Heads of Household"
+           ) ~ "basic",
+           Issue %in% c(
+             "Conflicting Non-cash Benefits yes/no at Entry",
+             "Conflicting Health Insurance yes/no at Exit",
+             "Conflicting Income yes/no at Entry"
+           ) ~ "subs"
+         )) %>%
+  filter(!is.na(DQ_flags)) %>%
+  select(ProjectName, DQ_flags) %>%
+  distinct() 
+
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
@@ -119,6 +140,9 @@ pe_adults_entered <-  co_adults_entered %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate))
+
+# this one counts each entry and therefore should have Duplicate EEs shown
+# as a potential DQ issue that affects this measure.
 
 # for ncb logic
 # Adults who moved in and exited during date range
@@ -319,15 +343,16 @@ pe_exits_to_ph <- pe_hohs_served %>%
       is.na(Destination) ~ "Still in Program"
     ),
     MeetsObjective =
-      case_when(ProjectType %in% c(3, 9) &
-                  DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
-                ProjectType %in% c(3, 9) &
-                  !DestinationGroup %in% c("Permanent", "Still in Program") ~ 0,
-                ProjectType %in% c(2, 8, 13) &
-                  DestinationGroup == "Permanent" ~ 1,
-                ProjectType %in% c(2, 8, 13) &
-                  DestinationGroup != "Permanent" ~ 0)
-    
+      case_when(
+        ProjectType %in% c(3, 9) &
+          DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
+        ProjectType %in% c(3, 9) &
+          !DestinationGroup %in% c("Permanent", "Still in Program") ~ 0,
+        ProjectType %in% c(2, 8, 13) &
+          DestinationGroup == "Permanent" ~ 1,
+        ProjectType %in% c(2, 8, 13) &
+          DestinationGroup != "Permanent" ~ 0
+      )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
@@ -351,16 +376,25 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPH / HoHsServedLeavers
     ),
     ExitsToPHPoints = if_else((ProjectType == 3 &
-                        HoHsServed == 0) |
-                       (ProjectType != 3 &
-                          HoHsServedLeavers) == 0,
-                     10,
-                     pe_score(Structure, ExitsToPHPercent)
+                                 HoHsServed == 0) |
+                                (ProjectType != 3 &
+                                   HoHsServedLeavers) == 0,
+                              10,
+                              pe_score(Structure, ExitsToPHPercent)
     )
   ) %>%
-  select(ProjectType, ProjectName, ExitsToPH, ExitsToPHPercent, ExitsToPHPoints)
+  select(
+    ProjectType,
+    ProjectName,
+    HoHsServedLeavers,
+    ExitsToPH,
+    ExitsToPHPercent,
+    ExitsToPHPoints
+  ) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
+# DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
@@ -394,13 +428,24 @@ summary_pe_own_housing <- pe_own_housing %>%
     OwnHousingPercent = if_else(ProjectType != 3,
                                 OwnHousing / HoHsMovedInLeavers,
                                 NULL),
-    OwnHousingPoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
-                     10,
-                     pe_score(Structure, OwnHousingPercent))
+    OwnHousingPoints = if_else(
+      HoHsMovedInLeavers == 0 & ProjectType != 3,
+      10,
+      pe_score(Structure, OwnHousingPercent)
+    ),
+    OwnHousingPoints = if_else(is.na(OwnHousingPoints) & 
+                                 ProjectType != 3, 0, OwnHousingPoints)
   ) %>%
-  select(ProjectType, ProjectName, OwnHousing, OwnHousingPercent, OwnHousingPoints)
+  select(ProjectType,
+         ProjectName,
+         HoHsMovedInLeavers,
+         OwnHousing,
+         OwnHousingPercent,
+         OwnHousingPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: No percents over 100%, everyone who should has a score
+# DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
 # Accessing Mainstream Resources: NCBs ------------------------------------
 # PSH, TH, SH, RRH
@@ -456,10 +501,19 @@ summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
     NCBsAtExitPercent = NCBsAtExit / AdultMovedInLeavers,
     NCBsAtExitPoints = "undecided" # pe_score(Structure, NCBsAtExit)
   ) %>%
-  select(ProjectType, ProjectName, NCBsAtExit, NCBsAtExitPercent, NCBsAtExitPoints)
+  select(
+    ProjectType,
+    ProjectName,
+    AdultMovedInLeavers,
+    NCBsAtExit,
+    NCBsAtExitPercent,
+    NCBsAtExitPoints
+  ) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: No percents over 100%, no score structure assigned, waiting on 
 # committee
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Accessing Mainstream Resources: Health Insurance ------------------------
 # PSH, TH, SH, RRH
@@ -523,6 +577,7 @@ summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # one problem is there can be multiple updates and annuals, trying to figure
 # out the best way to get the most recent income
@@ -608,6 +663,7 @@ summary_pe_increase_income <- pe_increase_income %>%
          IncreasedIncomePoints)
 
 #TEST RESULTS: Nothing over 100%, all projects have legit points
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
@@ -652,6 +708,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
          MedianLoSPoints)
 
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
+# DQ Flags: nothing extra
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! requesting that it be removed from scoring)
@@ -679,6 +736,7 @@ summary_pe_utilization <- pe_coc_funded %>%
 # TEST RESULTS: There are outliers that should be followed up with
 # TEST RESULTS: RRH might should have points, but the logic does not 
 # currently include them. Can write them in if that's the decision.
+# DQ Flags: nothing extra
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -718,6 +776,7 @@ summary_pe_res_prior <- pe_res_prior %>%
   select(ProjectType, ProjectName, LHResPrior, LHResPriorPercent, LHResPriorPoints)
 
 # TEST RESULTS: Nothing over 100%, all projects have points that should
+# DQ Flags: nothing extra
 
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
@@ -758,6 +817,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
          NoIncomeAtEntryPoints)
 
 # TEST RESULTS: nothing over 100%, everyone has points who should
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
@@ -905,12 +965,12 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   select(ProjectType, ProjectName, AvgHHI, MedHHI, AverageHHIPoints,
          MedianHHIPoints)
 
-# TEST RESULTS: HHIs are as expected, everyone has points
+# TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
+# scores to ART
+# DQ flags: nothing extra because DKRs and missings are worked into the scoring
 
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
-
-load("images/Data_Quality.RData")
 
 pe_dq <- dq_2019 %>%
   filter(Type %in% c("Error", "High Priority") & 
@@ -986,7 +1046,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
          LongTermHomelessPoints)
   
 # TEST RESULTS: No percents over 100%, all PSH's are getting legit points
-
+# DQ flags: nothing extra
 
 # Final Scoring -----------------------------------------------------------
 
