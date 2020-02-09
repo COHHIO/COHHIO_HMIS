@@ -642,4 +642,117 @@ setdiff(r, art)
 This is happening because clients in this project have Duplicate Entry Exits. So R is counting every Entry Exit for each client and counting that is separate clients. In ART, it's actually using the 23 (counting all EEs) as the divisor. I'm seeing where the decision is to keep each EE. I think that's fine, but I want to flag any projects with Duplicate Entry Exits for this particular measure and prevent them getting the points if they have Duplicate EEs. Maybe. I should at least pull that DQ issue in here and show it.
 
 
+Now I'm seeing Licking -  Licking MHA - Licking Shelter Plus Care - PSH has a different number of clients served, which is weird.
+
+```{r}
+art <- c(
+  203145,
+103239,
+201402,
+196739,
+224376,
+217370,
+33429,
+225772,
+225773,
+194812,
+194811,
+204336,
+214706,
+59753,
+59762,
+70643,
+234755,
+68736,
+239358,
+164076,
+164091,
+209555,
+209556,
+209553,
+209554,
+143597,
+221894,
+177082,
+211187,
+217619,
+173640,
+170119,
+203782,
+227453,
+194325,
+192836,
+201010,
+5454,
+221364,
+197445,
+225780,
+234754,
+226994,
+203795,
+223362,
+194804,
+209549,
+194545,
+187986,
+224379,
+202066,
+13387,
+12313,
+75765,
+197450,
+223961,
+223965,
+202065,
+185487,
+185485,
+185489,
+185488,
+200910,
+224133,
+153022,
+153021,
+203800,
+194493,
+209824,
+185797,
+218174,
+204595,
+168926,
+207860,
+196741,
+143728,
+209845,
+198006,
+209844,
+55598,
+143594,
+143596,
+143595,
+188234,
+153018,
+224377,
+224375,
+196740,
+120293,
+151224,
+151222,
+219652,
+212787
+)
+
+r <- pe_clients_served %>%
+  filter(ProjectID == 148) %>%
+  pull(PersonalID)
+
+setdiff(r, art)
+setdiff(art, r)
+
+length(r)
+
+length(art)
+```
+
+The Client IDs found here were because of a gap between when the 2 reports were run AND there was a duplicate client issue. Fixed the duplicate Client (and created a script to look at which clients that are in Rm are associated with some sort of duplicate). There are actually very few so I just merged the ones with exact matching data. The only duplicate clients left are ones where there were two different SSNs/DOBs or visibility was locked or they were Anonymous.
+
 
