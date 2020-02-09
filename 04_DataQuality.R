@@ -2136,12 +2136,12 @@ check_eligibility <- served_in_date_range %>%
           "Health Insurance Missing at Exit",
           "Income Missing at Entry",
           "Income Missing at Exit",
+          "Non-cash Benefits Missing at Entry",
           "Missing Disability Subs",
           "Missing Length of Stay",
           "Don't Know/Refused Residence Prior",
           "Don't Know/Refused Months or Times Homeless",
           "Missing Residence Prior",
-          "Non-cash Benefits Missing at Entry",
           "Missing Months or Times Homeless"
         )
       )
