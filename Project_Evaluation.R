@@ -26,22 +26,23 @@ rm(FileActualStart, FileStart, FileEnd, stop, update_date, summary)
 load("images/Data_Quality.RData")
 
 dq_flags <- dq_2019 %>%
-  mutate(DQ_flags = case_when(
-           Issue %in% c(
-             "Duplicate Entry Exits",
-             "Children Only Household",
-             "No Head of Household",
-             "Too Many Heads of Household"
-           ) ~ "basic",
-           Issue %in% c(
-             "Conflicting Non-cash Benefits yes/no at Entry",
-             "Conflicting Health Insurance yes/no at Exit",
-             "Conflicting Income yes/no at Entry"
-           ) ~ "subs"
-         )) %>%
+  mutate(DQ_flags = if_else(
+    Issue %in% c(
+      "Duplicate Entry Exits",
+      "Children Only Household",
+      "No Head of Household",
+      "Too Many Heads of Household"
+    ),
+    1,
+    0
+  )) %>% 
   filter(!is.na(DQ_flags)) %>%
   select(ProjectName, DQ_flags) %>%
   distinct() 
+
+# Considering adding a DQ flag for when subs don't match the yes/no but:
+# 1. Rme has not had sub dq data in it all this time
+# 2. The yes/no is actually more likely to be correct than the subs anyway
 
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
