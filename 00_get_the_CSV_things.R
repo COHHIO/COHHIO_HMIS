@@ -221,23 +221,23 @@ Enrollment <-
 
 # from sheets 1 and 2, getting EE-related data, joining both to En --------
 # will eventually come from aa: ees in ReportWriter, waiting on WS
-counties_rel_to_hoh <- read_xlsx("data/RMisc.xlsx",
+counties <- read_xlsx("data/RMisc.xlsx",
                                  sheet = 1,
-                                 range = cell_cols("B:E"),
-                                 col_types = c("numeric", "numeric", "text", "text"))
+                                 range = cell_cols("A:C"),
+                                 col_types = c("numeric", "text", "text"))
 
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                                 sheet = 2,
                                 range = cell_cols("A:D"))
 
 
-Enrollment <- Enrollment %>% select(-RelationshipToHoH) %>%
+Enrollment <- Enrollment %>% 
   left_join(bowman_entry_exits, by = "EnrollmentID") %>%
-  left_join(counties_rel_to_hoh, by = "EnrollmentID") %>%
+  left_join(counties, by = "EnrollmentID") %>%
   left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
             by = "EnrollmentID")
 
-rm(bowman_entry_exits, counties_rel_to_hoh)
+rm(bowman_entry_exits, counties)
 
 # Adding Exit Data to Enrollment because I'm not tryin to have one-to-one 
 # relationships in this!
