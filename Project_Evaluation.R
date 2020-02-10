@@ -21,7 +21,7 @@ rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC,
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
 load("images/cohorts.RData")
-rm(FileActualStart, FileStart, FileEnd, stop, update_date, summary)
+rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
 load("images/Data_Quality.RData")
 
@@ -38,7 +38,8 @@ dq_flags <- dq_2019 %>%
   )) %>% 
   filter(!is.na(DQ_flags)) %>%
   select(ProjectName, DQ_flags) %>%
-  distinct() 
+  group_by(ProjectName) %>%
+  summarise(DQ_flags = max(DQ_flags, na.rm = FALSE))
 
 # Considering adding a DQ flag for when subs don't match the yes/no but:
 # 1. Rme has not had sub dq data in it all this time
@@ -500,7 +501,7 @@ summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
     NCBsAtExit = if_else(is.na(NCBsAtExit), 0, NCBsAtExit),
     Structure = "undecided",
     NCBsAtExitPercent = NCBsAtExit / AdultMovedInLeavers,
-    NCBsAtExitPoints = "undecided" # pe_score(Structure, NCBsAtExit)
+    NCBsAtExitPoints = -1 # pe_score(Structure, NCBsAtExit)
   ) %>%
   select(
     ProjectType,
@@ -574,7 +575,8 @@ summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
                      10,
                      pe_score(Structure, HIatExitPercent))
   ) %>%
-  select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints)
+  select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
@@ -661,7 +663,8 @@ summary_pe_increase_income <- pe_increase_income %>%
                      pe_score(Structure, IncreasedIncomePercent))
   ) %>%
   select(ProjectType, ProjectName, IncreasedIncome, IncreasedIncomePercent,
-         IncreasedIncomePoints)
+         IncreasedIncomePoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 #TEST RESULTS: Nothing over 100%, all projects have legit points
 # DQ Flags: check subs against Yes/No once the Export has been fixed
@@ -706,7 +709,8 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
                            pe_score(Structure, MedianDays))
   ) %>%
   select(ProjectType, ProjectName, AverageDays, MedianDays, AverageLoSPoints, 
-         MedianLoSPoints)
+         MedianLoSPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
 # DQ Flags: nothing extra
@@ -732,7 +736,8 @@ summary_pe_utilization <- pe_coc_funded %>%
          BedPoints = pe_score(Structure, AvgBedUtilization),
          UnitPoints = pe_score(Structure, AvgUnitUtilization)) %>%
   select(ProjectType, ProjectName, AvgBedUtilization, AvgUnitUtilization, 
-         BedPoints, UnitPoints)
+         BedPoints, UnitPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: There are outliers that should be followed up with
 # TEST RESULTS: RRH might should have points, but the logic does not 
@@ -771,10 +776,15 @@ summary_pe_res_prior <- pe_res_prior %>%
     ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
     LHResPriorPoints = if_else(AdultsEntered == 0,
-                     10,
-                     pe_score(Structure, LHResPriorPercent))
+                               10,
+                               pe_score(Structure, LHResPriorPercent))
   ) %>%
-  select(ProjectType, ProjectName, LHResPrior, LHResPriorPercent, LHResPriorPoints)
+  select(ProjectType,
+         ProjectName,
+         LHResPrior,
+         LHResPriorPercent,
+         LHResPriorPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: Nothing over 100%, all projects have points that should
 # DQ Flags: nothing extra
@@ -815,7 +825,8 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
                      pe_score(Structure, NoIncomeAtEntryPercent))
   ) %>%
   select(ProjectType, ProjectName, NoIncomeAtEntry, NoIncomeAtEntryPercent,
-         NoIncomeAtEntryPoints)
+         NoIncomeAtEntryPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: nothing over 100%, everyone has points who should
 # DQ Flags: check subs against Yes/No once the Export has been fixed
@@ -964,7 +975,8 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
                            pe_score(Structure, MedHHI))
   ) %>%
   select(ProjectType, ProjectName, AvgHHI, MedHHI, AverageHHIPoints,
-         MedianHHIPoints)
+         MedianHHIPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
 # scores to ART
@@ -1044,26 +1056,39 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
                      pe_score(Structure, LongTermHomelessPercent))
   ) %>%
   select(ProjectType, ProjectName, LongTermHomeless, LongTermHomelessPercent,
-         LongTermHomelessPoints)
+         LongTermHomelessPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
   
 # TEST RESULTS: No percents over 100%, all PSH's are getting legit points
 # DQ flags: nothing extra
 
 # Final Scoring -----------------------------------------------------------
 
-summary_pe_final_scoring <- pe_coc_funded[c("ProjectType", "ProjectName")] %>%
+summary_pe_final_scoring <-
+  pe_coc_funded[c("ProjectType", "ProjectName")] %>%
   left_join(summary_pe_dq, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_entries_no_income, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_exits_to_ph, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_health_ins_at_exit, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_homeless_history_index, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_increase_income, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_length_of_stay, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_long_term_homeless, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_non_cash_at_exit, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_own_housing, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_res_prior, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_utilization, by = c("ProjectType", "ProjectName")) %>%
+  left_join(summary_pe_entries_no_income,
+            by = c("ProjectType", "ProjectName")) %>%
+  left_join(summary_pe_exits_to_ph,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_health_ins_at_exit,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_homeless_history_index,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_increase_income,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_length_of_stay,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_long_term_homeless,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_non_cash_at_exit,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_own_housing,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_res_prior,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_utilization,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "ProjectName"))
 
 # Clean the House ---------------------------------------------------------
