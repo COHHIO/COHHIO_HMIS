@@ -470,27 +470,14 @@ pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
     BenefitsFromAnySource,
     DataCollectionStage
   ) %>%
-  group_by(
-    PersonalID,
-    ProjectType,
-    VeteranStatus,
-    EnrollmentID,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    AgeAtEntry,
-    HouseholdID,
-    RelationshipToHoH,
-    ExitDate,
-    ExitAdjust
-  ) %>%
-  summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
+  filter(DataCollectionStage == 3) %>%
   mutate(MeetsObjective =
-           case_when(MostRecentNCB == 1 ~ 1,
-                     MostRecentNCB != 1 |
-                       is.na(MostRecentNCB) ~ 0)) %>%
-  ungroup() %>%
-  select(all_of(vars_to_the_apps), MostRecentNCB)
+           case_when(
+             BenefitsFromAnySource == 1 ~ 1,
+             BenefitsFromAnySource != 1 |
+               is.na(BenefitsFromAnySource) ~ 0
+           )) %>% 
+  select(all_of(vars_to_the_apps), BenefitsFromAnySource)
 
 summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
@@ -538,29 +525,10 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
     InsuranceFromAnySource,
     DataCollectionStage
   ) %>%
-  group_by(
-    PersonalID,
-    ProjectType,
-    VeteranStatus,
-    EnrollmentID,
-    MoveInDateAdjust,
-    AgeAtEntry,    
-    ProjectName,
-    EntryDate,
-    HouseholdID,
-    RelationshipToHoH,
-    ExitDate,
-    ExitAdjust
-  ) %>%
-  summarise(MostRecentHI = InsuranceFromAnySource[max(DataCollectionStage)]) %>%
-  mutate(
-    MostRecentHI = if_else(is.na(MostRecentHI) |
-                             MostRecentHI == 0, 0, 1),
-    MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
-                               MostRecentHI != 1 ~ 0)
-  ) %>%
-  ungroup() %>%
-  select(all_of(vars_to_the_apps), MostRecentHI)
+  filter(DataCollectionStage == 3) %>%
+  mutate(MeetsObjective = case_when(InsuranceFromAnySource == 1 ~ 1,
+                                    InsuranceFromAnySource != 1 ~ 0)) %>% 
+  select(all_of(vars_to_the_apps), InsuranceFromAnySource)
 
 summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
