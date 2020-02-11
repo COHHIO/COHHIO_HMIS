@@ -30,6 +30,7 @@ All discrepancies will be accounted for.
 ART_RRH <- read_excel("data/CoCProjectEvaluationCoCLevel2020.xls",
                       sheet = 1,
                       range = cell_cols("A:J"))
+
 col1 <- paste(colnames(ART_RRH[2]), ART_RRH[1,2], ART_RRH[2,2])
 col2 <- paste(colnames(ART_RRH[3]), ART_RRH[1, 3], ART_RRH[2, 3])
 col3 <- paste(colnames(ART_RRH[4]), ART_RRH[1, 4], ART_RRH[2, 4])
@@ -230,6 +231,10 @@ x <- x %>%
     )
   )
 
+y <- x %>%
+  filter(ART_ClientsServed != 0) %>%
+  select(ProjectType, ProjectID, ProjectName, starts_with("Difference"))
+
 ```
 
 
@@ -247,7 +252,9 @@ a <- c(159647, 207053, 120416, 189596, 189600, 64959, 189597, 189599, 165706, 32
 setdiff(a, pe_clients_served$PersonalID)
 ```
 
-The result here is Client 206291, who has an Exit Date of 1/1/2019. I thought it was an APR error but then I looked up the specs and it is not a vendor error but it nonetheless makes no sense. I put in an AAQ about the specs saying the Exit Date can = the Report Start Date.
+The result here used to be Client 206291, who has an Exit Date of 1/1/2019. I thought it was an APR error but then I looked up the specs and it is not a vendor error but it nonetheless makes no sense. I put in an AAQ about the specs saying the Exit Date can = the Report Start Date.
+
+UPDATE: I got an answer and feel it is ok to change my function so that the Exit Date can = the Report Start Date. I changed it and now this is no longer a problem.
 
 The next one we're going to check out is Sandusky - GLCAP - Permanent Supportive Housing - PSH - DV.
 
@@ -342,7 +349,9 @@ a <- c(164116,
 setdiff(a, pe_clients_served %>% filter(ProjectName == "Sandusky - GLCAP - Permanent Supportive Housing - PSH - DV") %>% pull(PersonalID))
 ```
 
-The Client IDs shown here are 81061 and 177288. Both of these have Exit Dates of 1/1/2019 as well. 
+The Client IDs shown here were 81061 and 177288. Both of these have Exit Dates of 1/1/2019 as well. 
+
+UPDATE: FIXED
 
 The next one we're going to check is Hocking - Hocking MHA  - Hocking Shelter Plus Care - PSH
 
@@ -438,6 +447,8 @@ setdiff(pe_clients_served %>% filter(ProjectName == "Hocking - Hocking MHA  - Ho
 
 These two clients exited on the Report Start Date. This one also previously had a duplicate that was making a difference but that has since been fixed. GD 1/19/2020
 
+UPDATE: FIXED
+
 Next up: Defiance - Northwestern Ohio CAC - PSH
 
 ```{r NOCAC_PSH}
@@ -514,7 +525,10 @@ Client 125580 is duplicated in the R count. :( - FIXED GD 1/19/2020
 The only two problems I found were:
 
 1. The weirdness around the way HUD is counting clients in the date range, where those who exit on the Report Start are being counted as if they slept in the project during the date range. I have not changed anything in my code around this because I put in an AAQ and am awaiting a response.
+UPDATE: I heard back and fixed my code.
+
 2. When clients are served in a project two or more distinct times during the reporting period. I fixed this in my code- not in the cohorts script (because I may want to dedupe in different ways for different applications) but in the Project Evaluation script.
+
 3. Also the two datasets are pulling different providers. I have not checked into this yet.
 
 ## Testing AdultMovedInLeavers
@@ -532,12 +546,213 @@ setdiff(b, a)
 
 ```
 
-I do not know why Client 244 is not pulling into the ART report. It should be. Will need to look more closely at the ART logic at the office.
+Client 244 is not pulling into the ART report. It should be. It isn't pulling in because the ART report is erroneously pulling in an old Move-In Date. R is correct.
+
+This tells me there is a bug in ART that is not pulling in correct Move-In Dates. Which worries me in regards to the SPMs!?! Submitted a case to WS.
+
+I doubt they'll be fixing this, but I don't care much (at least in regards to the Project Evaluation report) because R is correct anyway.
+
+## Testing AdultEnterers
+
+Checking Medina - Medina MHA - Medina County TRA - PSH. 
+
+```{r MedinaPSH}
+
+a <- c(
+  127535,
+  162041,
+  179051,
+  185492,
+  221634,
+  223330,
+  223333,
+  224461,
+  224691,
+  224874,
+  228864,
+  228899,
+  229025,
+  230495,
+  231030,
+  232825,
+  234866,
+  235384,
+  180763,
+  180763,
+  222019,
+  222109,
+  222131,
+  228959,
+  233766,
+  234410,
+  234673,
+  235292,
+  236309,
+  223815,
+  235494
+)
+
+b <- pe_adults_entered %>%
+  filter(ProjectID == 528) %>%
+  pull(PersonalID)
+
+setdiff(a, b)
+
+```
+
+Client 180763 had two entries into the project (now confirmed fixed), and both were showing in the ART report, whereas only one was showing in the R logic. ART was right, as we want to capture every entry in these kinds of measures. Corrected logic in R.
+
+Hocking MHA PSH: in ART it's showing 20, in R it's showing 23.
+
+```{r}
+art <- c(
+  94621,
+  186428,
+  210595,
+  215548,
+  215548,
+  227475,
+  228396,
+  230045,
+  230045,
+  230549,
+  231534,
+  233688,
+  235802,
+  61876,
+  148511,
+  197646,
+  222878,
+  225696,
+  228459,
+  229416,
+  231534,
+  231745,
+  233758
+)
+
+r <- pe_adults_entered %>%
+  filter(ProjectID == 418) %>%
+  pull(PersonalID)
+
+setdiff(r, art)
+
+```
+
+This is happening because clients in this project have Duplicate Entry Exits. So R is counting every Entry Exit for each client and counting that is separate clients. In ART, it's actually using the 23 (counting all EEs) as the divisor. I'm seeing where the decision is to keep each EE. I think that's fine, but I want to flag any projects with Duplicate Entry Exits for this particular measure and prevent them getting the points if they have Duplicate EEs. Maybe. I should at least pull that DQ issue in here and show it.
 
 
+Now I'm seeing Licking -  Licking MHA - Licking Shelter Plus Care - PSH has a different number of clients served, which is weird.
 
+```{r}
+art <- c(
+  203145,
+  103239,
+  201402,
+  196739,
+  224376,
+  217370,
+  33429,
+  225772,
+  225773,
+  194812,
+  194811,
+  204336,
+  214706,
+  59753,
+  59762,
+  70643,
+  234755,
+  68736,
+  239358,
+  164076,
+  164091,
+  209555,
+  209556,
+  209553,
+  209554,
+  143597,
+  221894,
+  177082,
+  211187,
+  217619,
+  173640,
+  170119,
+  203782,
+  227453,
+  194325,
+  192836,
+  201010,
+  5454,
+  221364,
+  197445,
+  225780,
+  234754,
+  226994,
+  203795,
+  223362,
+  194804,
+  209549,
+  194545,
+  187986,
+  224379,
+  202066,
+  13387,
+  12313,
+  75765,
+  197450,
+  223961,
+  223965,
+  202065,
+  185487,
+  185485,
+  185489,
+  185488,
+  200910,
+  224133,
+  153022,
+  153021,
+  203800,
+  194493,
+  209824,
+  185797,
+  218174,
+  204595,
+  168926,
+  207860,
+  196741,
+  143728,
+  209845,
+  198006,
+  209844,
+  55598,
+  143594,
+  143596,
+  143595,
+  188234,
+  153018,
+  224377,
+  224375,
+  196740,
+  120293,
+  151224,
+  151222,
+  219652,
+  212787
+)
 
+r <- pe_clients_served %>%
+  filter(ProjectID == 148) %>%
+  pull(PersonalID)
 
+setdiff(r, art)
+setdiff(art, r)
 
+length(r)
+
+length(art)
+```
+
+The Client IDs found here were because of a gap between when the 2 reports were run AND there was a duplicate client issue. Fixed the duplicate Client (and created a script to look at which clients that are in Rm are associated with some sort of duplicate). There are actually very few so I just merged the ones with exact matching data. The only duplicate clients left are ones where there were two different SSNs/DOBs or visibility was locked or they were Anonymous.
 
 

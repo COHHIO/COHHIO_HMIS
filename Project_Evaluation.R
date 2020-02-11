@@ -21,7 +21,30 @@ rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC,
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
 load("images/cohorts.RData")
-rm(FileActualStart, FileStart, FileEnd, stop, update_date, summary)
+rm(FileActualStart, FileStart, FileEnd, update_date, summary)
+
+load("images/Data_Quality.RData")
+
+dq_flags <- dq_2019 %>%
+  mutate(DQ_flags = if_else(
+    Issue %in% c(
+      "Duplicate Entry Exits",
+      "Children Only Household",
+      "No Head of Household",
+      "Too Many Heads of Household"
+    ),
+    1,
+    0
+  )) %>% 
+  filter(!is.na(DQ_flags)) %>%
+  select(ProjectName, DQ_flags) %>%
+  group_by(ProjectName) %>%
+  summarise(DQ_flags = max(DQ_flags, na.rm = FALSE))
+
+# Considering adding a DQ flag for when subs don't match the yes/no but:
+# 1. Rme has not had sub dq data in it all this time
+# 2. The yes/no is actually more likely to be correct than the subs anyway
+
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
@@ -103,7 +126,7 @@ pe_clients_served <-  co_clients_served %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -117,9 +140,11 @@ pe_adults_entered <-  co_adults_entered %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+  select(all_of(vars_we_want)) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate))
+
+# this one counts each entry and therefore should have Duplicate EEs shown
+# as a potential DQ issue that affects this measure.
 
 # for ncb logic
 # Adults who moved in and exited during date range
@@ -133,7 +158,7 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -146,7 +171,7 @@ pe_adults_moved_in <-  co_adults_moved_in %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
@@ -160,7 +185,7 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -173,7 +198,7 @@ pe_hohs_served <- co_hohs_served %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
@@ -190,7 +215,7 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
   semi_join(coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
-  select(vars_we_want) %>%
+  select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 
@@ -320,19 +345,20 @@ pe_exits_to_ph <- pe_hohs_served %>%
       is.na(Destination) ~ "Still in Program"
     ),
     MeetsObjective =
-      case_when(ProjectType %in% c(3, 9) &
-                  DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
-                ProjectType %in% c(3, 9) &
-                  !DestinationGroup %in% c("Permanent", "Still in Program") ~ 0,
-                ProjectType %in% c(2, 8, 13) &
-                  DestinationGroup == "Permanent" ~ 1,
-                ProjectType %in% c(2, 8, 13) &
-                  DestinationGroup != "Permanent" ~ 0)
-    
+      case_when(
+        ProjectType %in% c(3, 9) &
+          DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
+        ProjectType %in% c(3, 9) &
+          !DestinationGroup %in% c("Permanent", "Still in Program") ~ 0,
+        ProjectType %in% c(2, 8, 13) &
+          DestinationGroup == "Permanent" ~ 1,
+        ProjectType %in% c(2, 8, 13) &
+          DestinationGroup != "Permanent" ~ 0
+      )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(vars_to_the_apps, Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
   group_by(ProjectType, ProjectName) %>%
@@ -352,16 +378,25 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPH / HoHsServedLeavers
     ),
     ExitsToPHPoints = if_else((ProjectType == 3 &
-                        HoHsServed == 0) |
-                       (ProjectType != 3 &
-                          HoHsServedLeavers) == 0,
-                     10,
-                     pe_score(Structure, ExitsToPHPercent)
+                                 HoHsServed == 0) |
+                                (ProjectType != 3 &
+                                   HoHsServedLeavers) == 0,
+                              10,
+                              pe_score(Structure, ExitsToPHPercent)
     )
   ) %>%
-  select(ProjectType, ProjectName, ExitsToPH, ExitsToPHPercent, ExitsToPHPoints)
+  select(
+    ProjectType,
+    ProjectName,
+    HoHsServedLeavers,
+    ExitsToPH,
+    ExitsToPHPercent,
+    ExitsToPHPoints
+  ) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
+# DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
@@ -382,7 +417,7 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       is.na(Destination) ~ "Still in Program"
     )
   ) %>% 
-  select(vars_to_the_apps, Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_own_housing <- pe_own_housing %>%
   group_by(ProjectType, ProjectName) %>%
@@ -395,13 +430,24 @@ summary_pe_own_housing <- pe_own_housing %>%
     OwnHousingPercent = if_else(ProjectType != 3,
                                 OwnHousing / HoHsMovedInLeavers,
                                 NULL),
-    OwnHousingPoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
-                     10,
-                     pe_score(Structure, OwnHousingPercent))
+    OwnHousingPoints = if_else(
+      HoHsMovedInLeavers == 0 & ProjectType != 3,
+      10,
+      pe_score(Structure, OwnHousingPercent)
+    ),
+    OwnHousingPoints = if_else(is.na(OwnHousingPoints) & 
+                                 ProjectType != 3, 0, OwnHousingPoints)
   ) %>%
-  select(ProjectType, ProjectName, OwnHousing, OwnHousingPercent, OwnHousingPoints)
+  select(ProjectType,
+         ProjectName,
+         HoHsMovedInLeavers,
+         OwnHousing,
+         OwnHousingPercent,
+         OwnHousingPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: No percents over 100%, everyone who should has a score
+# DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
 # Accessing Mainstream Resources: NCBs ------------------------------------
 # PSH, TH, SH, RRH
@@ -424,27 +470,14 @@ pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
     BenefitsFromAnySource,
     DataCollectionStage
   ) %>%
-  group_by(
-    PersonalID,
-    ProjectType,
-    VeteranStatus,
-    EnrollmentID,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    AgeAtEntry,
-    HouseholdID,
-    RelationshipToHoH,
-    ExitDate,
-    ExitAdjust
-  ) %>%
-  summarise(MostRecentNCB = BenefitsFromAnySource[max(DataCollectionStage)]) %>%
+  filter(DataCollectionStage == 3) %>%
   mutate(MeetsObjective =
-           case_when(MostRecentNCB == 1 ~ 1,
-                     MostRecentNCB != 1 |
-                       is.na(MostRecentNCB) ~ 0)) %>%
-  ungroup() %>%
-  select(vars_to_the_apps, MostRecentNCB)
+           case_when(
+             BenefitsFromAnySource == 1 ~ 1,
+             BenefitsFromAnySource != 1 |
+               is.na(BenefitsFromAnySource) ~ 0
+           )) %>% 
+  select(all_of(vars_to_the_apps), BenefitsFromAnySource)
 
 summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
@@ -455,12 +488,21 @@ summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
     NCBsAtExit = if_else(is.na(NCBsAtExit), 0, NCBsAtExit),
     Structure = "undecided",
     NCBsAtExitPercent = NCBsAtExit / AdultMovedInLeavers,
-    NCBsAtExitPoints = "undecided" # pe_score(Structure, NCBsAtExit)
+    NCBsAtExitPoints = -1 # pe_score(Structure, NCBsAtExit)
   ) %>%
-  select(ProjectType, ProjectName, NCBsAtExit, NCBsAtExitPercent, NCBsAtExitPoints)
+  select(
+    ProjectType,
+    ProjectName,
+    AdultMovedInLeavers,
+    NCBsAtExit,
+    NCBsAtExitPercent,
+    NCBsAtExitPoints
+  ) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: No percents over 100%, no score structure assigned, waiting on 
 # committee
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Accessing Mainstream Resources: Health Insurance ------------------------
 # PSH, TH, SH, RRH
@@ -483,29 +525,10 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
     InsuranceFromAnySource,
     DataCollectionStage
   ) %>%
-  group_by(
-    PersonalID,
-    ProjectType,
-    VeteranStatus,
-    EnrollmentID,
-    MoveInDateAdjust,
-    AgeAtEntry,    
-    ProjectName,
-    EntryDate,
-    HouseholdID,
-    RelationshipToHoH,
-    ExitDate,
-    ExitAdjust
-  ) %>%
-  summarise(MostRecentHI = InsuranceFromAnySource[max(DataCollectionStage)]) %>%
-  mutate(
-    MostRecentHI = if_else(is.na(MostRecentHI) |
-                             MostRecentHI == 0, 0, 1),
-    MeetsObjective = case_when(MostRecentHI == 1 ~ 1,
-                               MostRecentHI != 1 ~ 0)
-  ) %>%
-  ungroup() %>%
-  select(vars_to_the_apps, MostRecentHI)
+  filter(DataCollectionStage == 3) %>%
+  mutate(MeetsObjective = case_when(InsuranceFromAnySource == 1 ~ 1,
+                                    InsuranceFromAnySource != 1 ~ 0)) %>% 
+  select(all_of(vars_to_the_apps), InsuranceFromAnySource)
 
 summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
@@ -520,10 +543,12 @@ summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
                      10,
                      pe_score(Structure, HIatExitPercent))
   ) %>%
-  select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints)
+  select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # one problem is there can be multiple updates and annuals, trying to figure
 # out the best way to get the most recent income
@@ -580,7 +605,7 @@ pe_increase_income <- income_staging %>%
   ) %>%
   left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
   select(
-    vars_to_the_apps,
+    all_of(vars_to_the_apps),
     "IncomeAtEntry" = Entry,
     "IncomeMostRecent" = MostRecentIncome
   )
@@ -606,14 +631,16 @@ summary_pe_increase_income <- pe_increase_income %>%
                      pe_score(Structure, IncreasedIncomePercent))
   ) %>%
   select(ProjectType, ProjectName, IncreasedIncome, IncreasedIncomePercent,
-         IncreasedIncomePoints)
+         IncreasedIncomePoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 #TEST RESULTS: Nothing over 100%, all projects have legit points
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
 
-pe_length_of_stay <- pe_hohs_moved_in_leavers %>%
+pe_length_of_stay <- pe_clients_moved_in_leavers %>%
   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
   select(ProjectType,
          ProjectName,
@@ -650,25 +677,24 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
                            pe_score(Structure, MedianDays))
   ) %>%
   select(ProjectType, ProjectName, AverageDays, MedianDays, AverageLoSPoints, 
-         MedianLoSPoints)
+         MedianLoSPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
+# DQ Flags: nothing extra
 
 # Community Need: Average Bed/Unit Utilization ----------------------------
-# PSH, TH, SH, RRH (it's true! not sure why)
+# PSH, TH, SH, RRH (it's true! requesting that it be removed from scoring)
 
-# NEED TO FIGURE OUT A WAY TO RUN THE UTILIZATION SCRIPT ON THIS SET DATE RANGE
-# CURRENT METHOD IS CHANGE THE DATE RANGE IN THE UTILIZATION SCRIPT BEFORE
-# RUNNING THIS!!! WHICH IS TERRIBLE!
 source("01_Bed_Unit_Utilization.R")
 # getting what we need from the Utilization script
-utilization_unit_2019 <- utilization_unit %>%
+utilization_unit_2019 <- PE_utilization_unit %>%
   ungroup() %>%
-  select(ProjectType, ProjectName, "AvgUnitUtilization" = FilePeriod)
+  select(ProjectType, ProjectName, AvgUnitUtilization)
 
-utilization_bed_2019 <- utilization_bed %>%
+utilization_bed_2019 <- PE_utilization_bed %>%
   ungroup() %>%
-  select(ProjectType, ProjectName, "AvgBedUtilization" = FilePeriod)
+  select(ProjectType, ProjectName, AvgBedUtilization)
 
 summary_pe_utilization <- pe_coc_funded %>%
   left_join(utilization_bed_2019, by = c("ProjectName", "ProjectType")) %>%
@@ -678,11 +704,13 @@ summary_pe_utilization <- pe_coc_funded %>%
          BedPoints = pe_score(Structure, AvgBedUtilization),
          UnitPoints = pe_score(Structure, AvgUnitUtilization)) %>%
   select(ProjectType, ProjectName, AvgBedUtilization, AvgUnitUtilization, 
-         BedPoints, UnitPoints)
+         BedPoints, UnitPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: There are outliers that should be followed up with
 # TEST RESULTS: RRH might should have points, but the logic does not 
 # currently include them. Can write them in if that's the decision.
+# DQ Flags: nothing extra
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -697,7 +725,7 @@ pe_res_prior <- pe_adults_entered %>%
     1, 
     0
   )) %>%
-  select(vars_to_the_apps, LivingSituation) %>%
+  select(all_of(vars_to_the_apps), LivingSituation) %>%
   filter(!is.na(PersonalID))
 
 summary_pe_res_prior <- pe_res_prior %>%
@@ -716,12 +744,18 @@ summary_pe_res_prior <- pe_res_prior %>%
     ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
     LHResPriorPoints = if_else(AdultsEntered == 0,
-                     10,
-                     pe_score(Structure, LHResPriorPercent))
+                               10,
+                               pe_score(Structure, LHResPriorPercent))
   ) %>%
-  select(ProjectType, ProjectName, LHResPrior, LHResPriorPercent, LHResPriorPoints)
+  select(ProjectType,
+         ProjectName,
+         LHResPrior,
+         LHResPriorPercent,
+         LHResPriorPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: Nothing over 100%, all projects have points that should
+# DQ Flags: nothing extra
 
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
@@ -759,9 +793,11 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
                      pe_score(Structure, NoIncomeAtEntryPercent))
   ) %>%
   select(ProjectType, ProjectName, NoIncomeAtEntry, NoIncomeAtEntryPercent,
-         NoIncomeAtEntryPoints)
+         NoIncomeAtEntryPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: nothing over 100%, everyone has points who should
+# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
@@ -907,14 +943,15 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
                            pe_score(Structure, MedHHI))
   ) %>%
   select(ProjectType, ProjectName, AvgHHI, MedHHI, AverageHHIPoints,
-         MedianHHIPoints)
+         MedianHHIPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
 
-# TEST RESULTS: HHIs are as expected, everyone has points
+# TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
+# scores to ART
+# DQ flags: nothing extra because DKRs and missings are worked into the scoring
 
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
-
-load("images/Data_Quality.RData")
 
 pe_dq <- dq_2019 %>%
   filter(Type %in% c("Error", "High Priority") & 
@@ -969,7 +1006,7 @@ pe_long_term_homeless <- pe_adults_entered %>%
     0
     )
   ) %>%
-  select(vars_to_the_apps, DateToStreetESSH, CurrentHomelessDuration,
+  select(all_of(vars_to_the_apps), DateToStreetESSH, CurrentHomelessDuration,
          MonthsHomelessPastThreeYears, TimesHomelessPastThreeYears)
 
 summary_pe_long_term_homeless <- pe_long_term_homeless %>%
@@ -987,62 +1024,78 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
                      pe_score(Structure, LongTermHomelessPercent))
   ) %>%
   select(ProjectType, ProjectName, LongTermHomeless, LongTermHomelessPercent,
-         LongTermHomelessPoints)
+         LongTermHomelessPoints) %>%
+  left_join(dq_flags, by = "ProjectName")
   
 # TEST RESULTS: No percents over 100%, all PSH's are getting legit points
-
+# DQ flags: nothing extra
 
 # Final Scoring -----------------------------------------------------------
 
-summary_pe_final_scoring <- pe_coc_funded[c("ProjectType", "ProjectName")] %>%
+summary_pe_final_scoring <-
+  pe_coc_funded[c("ProjectType", "ProjectName")] %>%
   left_join(summary_pe_dq, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_entries_no_income, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_exits_to_ph, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_health_ins_at_exit, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_homeless_history_index, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_increase_income, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_length_of_stay, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_long_term_homeless, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_non_cash_at_exit, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_own_housing, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_res_prior, by = c("ProjectType", "ProjectName")) %>%
-  left_join(summary_pe_utilization, by = c("ProjectType", "ProjectName")) %>%
+  left_join(summary_pe_entries_no_income,
+            by = c("ProjectType", "ProjectName")) %>%
+  left_join(summary_pe_exits_to_ph,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_health_ins_at_exit,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_homeless_history_index,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_increase_income,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_length_of_stay,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_long_term_homeless,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_non_cash_at_exit,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_own_housing,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_res_prior,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_utilization,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "ProjectName"))
 
 # Clean the House ---------------------------------------------------------
-# 
-# rm(list = ls()[!(ls() %in% c(
-#   'pe_coc_funded',
-#   'pe_coc_scoring',
-#   'pe_dq_by_provider',
-#   'pe_entries_no_income',
-#   'pe_exits_to_ph',
-#   'pe_health_ins_at_exit',
-#   'pe_homeless_history_index',
-#   'pe_increase_income',
-#   'pe_length_of_stay',
-#   'pe_long_term_homeless',
-#   'pe_non_cash_at_exit',
-#   'pe_own_housing',
-#   'pe_res_prior',
-#   'pe_validation_summary',
-#   'summary_pe_dq_by_provider',
-#   'summary_pe_entries_no_income',
-#   'summary_pe_exits_to_ph',
-#   'summary_pe_health_ins_at_exit',
-#   'summary_pe_homeless_history_index',
-#   'summary_pe_increase_income',
-#   'summary_pe_length_of_stay',
-#   'summary_pe_long_term_homeless',
-#   'summary_pe_non_cash_at_exit',
-#   'summary_pe_own_housing',
-#   'summary_pe_res_prior',
-#   'summary_pe_utilization',
-#   'summary_pe_final_scoring',
-#   'ReportStart', 
-#   'ReportEnd',
-#   'living_situation'
-# ))])
+
+rm(list = ls()[!(ls() %in% c(
+  'pe_adults_entered',
+  'pe_adults_moved_in_leavers',
+  'pe_clients_served',
+  'pe_coc_funded',
+  'pe_coc_scoring',
+  'pe_dq_by_provider',
+  'pe_entries_no_income',
+  'pe_exits_to_ph',
+  'pe_health_ins_at_exit',
+  'pe_homeless_history_index',
+  'pe_increase_income',
+  'pe_length_of_stay',
+  'pe_long_term_homeless',
+  'pe_non_cash_at_exit',
+  'pe_own_housing',
+  'pe_res_prior',
+  'pe_validation_summary',
+  'summary_pe_dq_by_provider',
+  'summary_pe_entries_no_income',
+  'summary_pe_exits_to_ph',
+  'summary_pe_health_ins_at_exit',
+  'summary_pe_homeless_history_index',
+  'summary_pe_increase_income',
+  'summary_pe_length_of_stay',
+  'summary_pe_long_term_homeless',
+  'summary_pe_non_cash_at_exit',
+  'summary_pe_own_housing',
+  'summary_pe_res_prior',
+  'summary_pe_utilization',
+  'summary_pe_final_scoring',
+  'ReportStart',
+  'ReportEnd',
+  'living_situation'
+))])
 
 save.image("images/ProjectEvaluation.RData")
 
@@ -1051,34 +1104,36 @@ save.image("images/ProjectEvaluation.RData")
 # Housing Stability: 6 mo Recurrence --------------------------------------
 # PSH, TH, SH, RRH
 
-library(funneljoin)
-
-leavers_psh_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
-           ProjectType == 3)
-
-leavers_rrh_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
-           ProjectType == 13)
-
-leavers_th_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
-           ProjectType == 2)
-
-leavers_es_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
-           ProjectType == 1)
-
-leavers_sso_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
-           ProjectType == 6)
-
-leavers_sh_to_ph <- co_clients_served %>%
-  filter(Destination %in% c(3, 10:11, 19:23, 26, 28, 31, 33:34) &
-           ProjectType == 8)
-
-returners <- co_clients_served
-
+# library(funneljoin)
+# 
+# perm_destinations <- c(3, 10:11, 19:23, 26, 28, 31, 33:34)
+# 
+# leavers_psh_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 3)
+# 
+# leavers_rrh_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 13)
+# 
+# leavers_th_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 2)
+# 
+# leavers_es_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 1)
+# 
+# leavers_sso_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 6)
+# 
+# leavers_sh_to_ph <- co_clients_served %>%
+#   filter(Destination %in% perm_destinations &
+#            ProjectType == 8)
+# 
+# returners <- co_clients_served
+# 
 
 
 # Housing Stability: 6-24 mo Recurrence -----------------------------------

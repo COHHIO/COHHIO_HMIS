@@ -179,89 +179,8 @@ rm(coc_scoring)
 
 # Regions
 
-regions <- tribble(
-  ~ County, ~ Region,
-  "Defiance", 1,
-  "Fulton", 1,
-  "Henry", 1,
-  "Paulding", 1,
-  "Van Wert", 1,
-  "Williams", 1,
-  "Erie", 2,
-  "Huron", 2,
-  "Ottawa", 2,
-  "Richland", 2,
-  "Sandusky", 2,
-  "Seneca", 2,
-  "Wood", 2,
-  "Adams", 3,
-  "Brown", 3,
-  "Lawrence", 3,
-  "Pike", 3,
-  "Scioto", 3,
-  "Ashland", 4,
-  "Lorain", 4,
-  "Medina", 4,
-  "Wayne", 4,
-  "Ashtabula", 5,
-  "Geauga", 5,
-  "Lake", 5,
-  "Portage", 5,
-  "Trumbull", 5,
-  "Carroll", 6,
-  "Columbiana", 6,
-  "Harrison", 6,
-  "Jefferson", 6,
-  "Tuscarawas", 6,
-  "Belmont", 7,
-  "Guernsey", 7,
-  "Monroe", 7,
-  "Noble", 7,
-  "Morgan", 8,
-  "Muskingum", 8,
-  "Washington", 8,
-  "Coshocton", 9,
-  "Fairfield", 9,
-  "Holmes", 9,
-  "Knox", 9,
-  "Licking", 9,
-  "Delaware", 10,
-  "Madison", 10,
-  "Marion", 10,
-  "Morrow", 10,
-  "Union", 10,
-  "Crawford", 11,
-  "Hancock", 11,
-  "Hardin", 11,
-  "Putnam", 11,
-  "Wyandot", 11,
-  "Allen", 12,
-  "Auglaize", 12,
-  "Mercer", 12,
-  "Champaign", 13,
-  "Darke", 13,
-  "Logan", 13,
-  "Miami", 13,
-  "Preble", 13,
-  "Shelby", 13,
-  "Butler", 14,
-  "Clermont", 14,
-  "Warren", 14,
-  "Clark", 15,
-  "Greene", 15,
-  "Clinton", 16,
-  "Fayette", 16,
-  "Highland", 16,
-  "Pickaway", 16,
-  "Ross", 16,
-  "Athens", 17,
-  "Gallia", 17,
-  "Hocking", 17,
-  "Jackson", 17,
-  "Meigs",17,
-  "Perry", 17,
-  "Vinton", 17
-) %>%
+regions <- read_csv("data/Regions.csv",
+                    col_types = "cn") %>%
   mutate(RegionName = paste("Homeless Planning Region", Region))
 # 
 # Project <- left_join(project_county, regions, by = "County")
@@ -272,6 +191,27 @@ EnrollmentCoC <-
   read_csv("data/EnrollmentCoC.csv", 
            col_types = "cncnnDcnTTnTn")
 
+# VeteranCE --------------------------------------------------------------
+
+if(file.exists("data/cevets.zip")) {
+  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/cevets.csv")
+  
+  file.remove("data/cevets.zip")
+}
+
+VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+
+VeteranCE <- 
+  mutate(
+    VeteranCE,
+    DateVeteranIdentified = mdy(DateVeteranIdentified),
+    ExpectedPHDate = mdy(ExpectedPHDate),
+    MostRecentOfferDate = mdy(MostRecentOfferDate)
+  )
+
 # Enrollment --------------------------------------------------------------
 
 Enrollment <-
@@ -281,21 +221,23 @@ Enrollment <-
 
 # from sheets 1 and 2, getting EE-related data, joining both to En --------
 # will eventually come from aa: ees in ReportWriter, waiting on WS
-counties_rel_to_hoh <- read_xlsx("data/RMisc.xlsx",
+counties <- read_xlsx("data/RMisc.xlsx",
                                  sheet = 1,
-                                 range = cell_cols("B:E"),
-                                 col_types = c("numeric", "numeric", "text", "text"))
+                                 range = cell_cols("A:C"),
+                                 col_types = c("numeric", "text", "text"))
 
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                                 sheet = 2,
                                 range = cell_cols("A:D"))
 
 
-Enrollment <- Enrollment %>% select(-RelationshipToHoH) %>%
-  left_join(., bowman_entry_exits, by = "EnrollmentID") %>%
-  left_join(., counties_rel_to_hoh, by = "EnrollmentID") 
+Enrollment <- Enrollment %>% 
+  left_join(bowman_entry_exits, by = "EnrollmentID") %>%
+  left_join(counties, by = "EnrollmentID") %>%
+  left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
+            by = "EnrollmentID")
 
-rm(bowman_entry_exits, counties_rel_to_hoh)
+rm(bowman_entry_exits, counties)
 
 # Adding Exit Data to Enrollment because I'm not tryin to have one-to-one 
 # relationships in this!
@@ -315,8 +257,11 @@ small_project <- Project %>%
   select(ProjectID, ProjectType, ProjectName) 
 
 # getting HoH's Entry Dates bc WS is using that to overwrite MoveIn Dates
+# only doing this for RRH and PSHs since Move In Date doesn't matter for ES, etc.
 HoHsEntry <- Enrollment %>%
-  filter(RelationshipToHoH == 1) %>%
+  left_join(small_project, by = "ProjectID") %>%
+  filter(RelationshipToHoH == 1 &
+           ProjectType %in% c(3, 9, 13)) %>%
   select(HouseholdID, "HoHsEntry" = EntryDate) %>%
   unique()
 
@@ -324,11 +269,9 @@ HoHsEntry <- Enrollment %>%
 # marked as Head of Household AND the HoHs have different Entry Dates. RARE,
 # but possible. Not sure how to fix this, maybe it's just something to know.
 
-y <- Enrollment %>%
-  left_join(HoHsEntry, by = "HouseholdID")
-
-Enrollment <- y %>%
+Enrollment <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
+  left_join(HoHsEntry, by = "HouseholdID") %>%
   mutate(
     MoveInDateAdjust = case_when(
       EntryDate < mdy("10012017") &
@@ -352,7 +295,7 @@ Enrollment <- y %>%
     )
   )
 
-rm(small_project, y, HoHsEntry)
+rm(small_project, HoHsEntry)
 
 # Client Location
 
@@ -470,28 +413,6 @@ Scores <- read_csv("data/scores.csv",
     ScoreDate = mdy(ScoreDate),
     PersonalID = as.double(PersonalID),
     Score = as.double(Score)
-  )
-
-
-# VeteranCE --------------------------------------------------------------
-
-if(file.exists("data/cevets.zip")) {
-  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
-  
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/cevets.csv")
-  
-  file.remove("data/cevets.zip")
-}
-
-VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
-
-VeteranCE <- 
-  mutate(
-    VeteranCE,
-    DateVeteranIdentified = mdy(DateVeteranIdentified),
-    ExpectedPHDate = mdy(ExpectedPHDate),
-    MostRecentOfferDate = mdy(MostRecentOfferDate)
   )
 
 # Offers -----------------------------------------------------------------
@@ -635,7 +556,8 @@ Referrals <- Referrals %>%
 # HUD CSV Specs -----------------------------------------------------------
 
 HUD_specs <- read_csv("HUD/HUDSpecs.csv",
-                      col_types = "ccnc")
+                      col_types = "ccnc") %>%
+  as.data.frame()
 
 # Age Function ------------------------------------------------------------
 
@@ -693,7 +615,7 @@ rm(small_client)
 
 served_between <- function(table, start, end){
   served <- ymd(table$EntryDate) <= mdy(end) &
-    (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
+    (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
   served
 }
 
@@ -899,6 +821,28 @@ project_type <- function(ReferenceNo){
     ReferenceNo == 14 ~ "Coordinated Entry"
   )
 }
+
+# HUD_value_to_description <-
+#   function(table, element_name, element_column) {
+#     element_name <- sym(element_name)
+#     element_column <- enquo(element_column)
+#     
+#     a <- HUD_specs %>%
+#       filter(DataElement == element_name) %>%
+#       select("ReferenceNo", "Description")
+#     
+#     table$element_column <- with(a,
+#                                  Description[match(table$element_column,
+#                                                    HUD_specs$ReferenceNo)])
+#   }
+# 
+# a <- subset(HUD_specs,
+#             DataElement == "HouseholdType",
+#             select = c("ReferenceNo", "Description"))
+# Inventory$HouseholdType <- with(a,
+#                                 Description[match(Inventory$HouseholdType,
+#                                                   ReferenceNo)])
+
 
 # # HMIS participating Between --------------------------------------------------
 # 
