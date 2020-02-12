@@ -487,7 +487,9 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
   filter(ProjectType != 3) %>%
   mutate(
     MeetsObjective = case_when(
+      DQ_flags == 0 &
       Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
+      DQ_flags == 1 |
       !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
     ),
     DestinationGroup = case_when(
@@ -539,6 +541,7 @@ pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
   select(
     PersonalID,
     ProjectName,
+    DQ_flags,
     EnrollmentID,
     ProjectType,
     HouseholdID,
@@ -555,9 +558,11 @@ pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
   filter(DataCollectionStage == 3) %>%
   mutate(MeetsObjective =
            case_when(
+             DQ_flags == 0 &
              BenefitsFromAnySource == 1 ~ 1,
              BenefitsFromAnySource != 1 |
-               is.na(BenefitsFromAnySource) ~ 0
+               is.na(BenefitsFromAnySource) |
+               DQ_flags == 1 ~ 0
            )) %>% 
   select(all_of(vars_to_the_apps), BenefitsFromAnySource)
 
@@ -594,6 +599,7 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
   select(
     PersonalID,
     ProjectType,
+    DQ_flags,
     VeteranStatus,
     EnrollmentID,
     ProjectName,
@@ -608,8 +614,10 @@ pe_health_ins_at_exit <- pe_clients_moved_in_leavers %>%
     DataCollectionStage
   ) %>%
   filter(DataCollectionStage == 3) %>%
-  mutate(MeetsObjective = case_when(InsuranceFromAnySource == 1 ~ 1,
-                                    InsuranceFromAnySource != 1 ~ 0)) %>% 
+  mutate(MeetsObjective = case_when(DQ_flags == 0 &
+                                      InsuranceFromAnySource == 1 ~ 1,
+                                    InsuranceFromAnySource != 1 |
+                                      DQ_flags == 1 ~ 0)) %>% 
   select(all_of(vars_to_the_apps), InsuranceFromAnySource)
 
 summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
@@ -672,6 +680,7 @@ income_staging <- rbind(income_staging_fixed, income_staging_variable) %>%
 pe_increase_income <- income_staging %>%
   pivot_wider(names_from = DataCollectionStage,
               values_from = TotalMonthlyIncome) %>%
+  left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
   mutate(
     MostRecentIncome = case_when(
       !is.na(Exit) ~ Exit,!is.na(Update) ~ Update,
@@ -682,12 +691,12 @@ pe_increase_income <- income_staging %>%
     Annual = NULL,
     Entry = if_else(is.na(Entry), 0, Entry),
     MostRecentIncome = if_else(is.na(MostRecentIncome), Entry, MostRecentIncome),
-    MeetsObjective = case_when(MostRecentIncome > Entry ~ 1,
-                               MostRecentIncome <= Entry ~ 0)
-  ) %>%
-  left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
+    MeetsObjective = case_when(
+      MostRecentIncome > Entry & DQ_flags == 0 ~ 1,
+      MostRecentIncome <= Entry | DQ_flags == 1 ~ 0)
+  ) %>%  select(
     all_of(vars_to_the_apps),
+    DQ_flags,
     "IncomeAtEntry" = Entry,
     "IncomeMostRecent" = MostRecentIncome
   )
@@ -726,6 +735,7 @@ pe_length_of_stay <- pe_clients_moved_in_leavers %>%
   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
   select(ProjectType,
          ProjectName,
+         DQ_flags,
          EntryDate,
          EntryAdjust,
          MoveInDateAdjust,
@@ -738,7 +748,7 @@ pe_length_of_stay <- pe_clients_moved_in_leavers %>%
          VeteranStatus)
 
 summary_pe_length_of_stay <- pe_length_of_stay %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, DQ_flags) %>%
   summarise(
     AverageDays = as.numeric(mean(DaysInProject))
   ) %>%
@@ -750,9 +760,13 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       ProjectType == 8 ~ "260_340_10",
       ProjectType == 13 ~ "150_210_10"
     ),
-    AverageLoSPoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
-                            10,
-                            pe_score(Structure, AverageDays))
+    AverageLoSPoints = case_when(
+      DQ_flags == 1 ~ 0,
+      HoHsMovedInLeavers == 0 &
+        ProjectType != 3 &
+        DQ_flags == 0 ~ 10,
+      TRUE ~ pe_score(Structure, AverageDays)
+    )
   ) %>%
   select(ProjectType, ProjectName, AverageDays, AverageLoSPoints) %>%
   left_join(dq_flags, by = "ProjectName")
@@ -794,7 +808,7 @@ summary_pe_utilization <- pe_coc_funded %>%
 
 pe_res_prior <- pe_adults_entered %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
-  mutate(MeetsObjective = if_else(
+  mutate(MeetsObjective = if_else(DQ_flags == 0 &
     (ProjectType %in% c(2, 3, 13) &
        LivingSituation %in% c(1, 16, 18)) |
       (ProjectType == 8 &
@@ -845,6 +859,7 @@ pe_entries_no_income <- pe_adults_entered %>%
     PersonalID,
     ProjectType,
     ProjectName,
+    DQ_flags,
     EnrollmentID,
     HouseholdID,
     EntryDate,
@@ -852,7 +867,7 @@ pe_entries_no_income <- pe_adults_entered %>%
     ExitDate,
     IncomeAtEntry
   ) %>%
-  mutate(MeetsObjective = if_else(IncomeAtEntry == 0, 1, 0)) %>%
+  mutate(MeetsObjective = if_else(IncomeAtEntry == 0 & DQ_flags == 0, 1, 0)) %>%
   filter(!is.na(PersonalID))
 
 summary_pe_entries_no_income <- pe_entries_no_income %>%
@@ -883,6 +898,7 @@ pe_homeless_history_index <- pe_adults_entered %>%
   select(
     ProjectType,
     ProjectName,
+    DQ_flags,
     PersonalID,
     EnrollmentID,
     HouseholdID,
@@ -1066,7 +1082,7 @@ pe_long_term_homeless <- pe_adults_entered %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
                                        units = "days"),
-    MeetsObjective = if_else((
+    MeetsObjective = if_else(DQ_flags == 0 & (
       CurrentHomelessDuration >= 365 &
         !is.na(CurrentHomelessDuration)
     ) |
