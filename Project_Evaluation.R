@@ -740,8 +740,7 @@ pe_length_of_stay <- pe_clients_moved_in_leavers %>%
 summary_pe_length_of_stay <- pe_length_of_stay %>%
   group_by(ProjectType, ProjectName) %>%
   summarise(
-    AverageDays = as.numeric(mean(DaysInProject)),
-    MedianDays = as.numeric(median(DaysInProject))
+    AverageDays = as.numeric(mean(DaysInProject))
   ) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -753,13 +752,9 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
     ),
     AverageLoSPoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
                             10,
-                            pe_score(Structure, AverageDays)),
-    MedianLoSPoints = if_else(HoHsMovedInLeavers == 0 & ProjectType != 3,
-                           10,
-                           pe_score(Structure, MedianDays))
+                            pe_score(Structure, AverageDays))
   ) %>%
-  select(ProjectType, ProjectName, AverageDays, MedianDays, AverageLoSPoints, 
-         MedianLoSPoints) %>%
+  select(ProjectType, ProjectName, AverageDays, AverageLoSPoints) %>%
   left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
@@ -1019,13 +1014,10 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
     Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
-    AverageHHIPoints = if_else(AdultsEntered == 0, 10,
-                            pe_score(Structure, AvgHHI)),
     MedianHHIPoints = if_else(AdultsEntered == 0, 10,
                            pe_score(Structure, MedHHI))
   ) %>%
-  select(ProjectType, ProjectName, AvgHHI, MedHHI, AverageHHIPoints,
-         MedianHHIPoints) %>%
+  select(ProjectType, ProjectName, MedHHI, MedianHHIPoints) %>%
   left_join(dq_flags, by = "ProjectName")
 
 # TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
