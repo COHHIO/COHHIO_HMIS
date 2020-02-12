@@ -25,26 +25,6 @@ rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
 load("images/Data_Quality.RData")
 
-dq_flags <- dq_2019 %>%
-  mutate(DQ_flags = if_else(
-    Issue %in% c(
-      "Duplicate Entry Exits",
-      "Children Only Household",
-      "No Head of Household",
-      "Too Many Heads of Household"
-    ),
-    1,
-    0
-  )) %>% 
-  filter(!is.na(DQ_flags)) %>%
-  select(ProjectName, DQ_flags) %>%
-  group_by(ProjectName) %>%
-  summarise(DQ_flags = max(DQ_flags, na.rm = FALSE))
-
-# Considering adding a DQ flag for when subs don't match the yes/no but:
-# 1. Rme has not had sub dq data in it all this time
-# 2. The yes/no is actually more likely to be correct than the subs anyway
-
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
@@ -73,15 +53,37 @@ pe_coc_funded <- Funder %>%
                       "ProjectName", 
                       "ProjectType", 
                       "HMISParticipatingProject")], by = "ProjectID") %>%
-  left_join(dq_flags, by = "ProjectName") %>%
   filter(HMISParticipatingProject == 1) %>%
   select(ProjectType,
          ProjectName,
          ProjectID,
-         DQ_flags,
          Funder,
          StartDate,
          EndDate)
+
+dq_flags <- dq_2019 %>%
+  right_join(pe_coc_funded, by = c("ProjectID", "ProjectType", "ProjectName")) %>%
+  mutate(DQ_flags = if_else(
+    Issue %in% c(
+      "Duplicate Entry Exits",
+      "Children Only Household",
+      "No Head of Household",
+      "Too Many Heads of Household"
+    ),
+    1,
+    0
+  )) %>%
+  filter(!is.na(DQ_flags)) %>%
+  select(ProjectName, DQ_flags) %>%
+  group_by(ProjectName) %>%
+  summarise(DQ_flags = max(DQ_flags, na.rm = FALSE))
+
+# Considering adding a DQ flag for when subs don't match the yes/no but:
+# 1. Rme has not had sub dq data in it all this time
+# 2. The yes/no is actually more likely to be correct than the subs anyway
+
+pe_coc_funded <- pe_coc_funded %>% left_join(dq_flags, by = "ProjectName")
+  
 
 vars_we_want <- c(
   "PersonalID",
@@ -435,7 +437,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
           DestinationGroup == "Permanent" ~ 1,
         ProjectType %in% c(2, 8, 13) &
           (DestinationGroup != "Permanent" |
-             DQ_flags == 0) ~ 0
+             DQ_flags == 1) ~ 0
       )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
@@ -790,13 +792,20 @@ utilization_bed_2019 <- PE_utilization_bed %>%
 summary_pe_utilization <- pe_coc_funded %>%
   left_join(utilization_bed_2019, by = c("ProjectName", "ProjectType")) %>%
   left_join(utilization_unit_2019, by = c("ProjectName", "ProjectType")) %>%
-  select(ProjectType, ProjectName, AvgBedUtilization, AvgUnitUtilization) %>%
+  select(ProjectType, ProjectName, AvgBedUtilization, AvgUnitUtilization, DQ_flags) %>%
   mutate(Structure = "80_90_10",
-         BedPoints = pe_score(Structure, AvgBedUtilization),
-         UnitPoints = pe_score(Structure, AvgUnitUtilization)) %>%
+         BedPoints = if_else(DQ_flags == 0, 
+                             pe_score(Structure, AvgBedUtilization),
+                             0),
+         UnitPoints = if_else(DQ_flags == 0,
+                              pe_score(Structure, AvgUnitUtilization),
+                              0),
+         UtilizationPoints = case_when(
+           BedPoints >= UnitPoints ~ BedPoints,
+           UnitPoints > BedPoints ~ UnitPoints
+         )) %>%
   select(ProjectType, ProjectName, AvgBedUtilization, AvgUnitUtilization, 
-         BedPoints, UnitPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+         BedPoints, UnitPoints, UtilizationPoints, DQ_flags)
 
 # TEST RESULTS: There are outliers that should be followed up with
 # TEST RESULTS: RRH might should have points, but the logic does not 
@@ -1096,11 +1105,12 @@ pe_long_term_homeless <- pe_adults_entered %>%
     0
     )
   ) %>%
-  select(all_of(vars_to_the_apps), DateToStreetESSH, CurrentHomelessDuration,
-         MonthsHomelessPastThreeYears, TimesHomelessPastThreeYears)
+  select(all_of(vars_to_the_apps), DQ_flags, DateToStreetESSH, 
+         CurrentHomelessDuration, MonthsHomelessPastThreeYears, 
+         TimesHomelessPastThreeYears)
 
 summary_pe_long_term_homeless <- pe_long_term_homeless %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, DQ_flags) %>%
   summarise(LongTermHomeless = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -1114,8 +1124,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
                      pe_score(Structure, LongTermHomelessPercent))
   ) %>%
   select(ProjectType, ProjectName, LongTermHomeless, LongTermHomelessPercent,
-         LongTermHomelessPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+         LongTermHomelessPoints, DQ_flags)
   
 # TEST RESULTS: No percents over 100%, all PSH's are getting legit points
 # DQ flags: nothing extra
