@@ -223,7 +223,7 @@ Enrollment <-
 # will eventually come from aa: ees in ReportWriter, waiting on WS
 counties <- read_xlsx("data/RMisc.xlsx",
                                  sheet = 1,
-                                 range = cell_cols("A:C"),
+                                 range = cell_cols("A, C:D"),
                                  col_types = c("numeric", "text", "text"))
 
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
@@ -231,7 +231,7 @@ bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                                 range = cell_cols("A:D"))
 
 
-Enrollment <- Enrollment %>% 
+Enrollment <- Enrollment %>% #select(-RelationshipToHoH) %>%
   left_join(bowman_entry_exits, by = "EnrollmentID") %>%
   left_join(counties, by = "EnrollmentID") %>%
   left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
