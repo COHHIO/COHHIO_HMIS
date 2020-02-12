@@ -67,14 +67,21 @@ pe_coc_funded <- Funder %>%
   filter(Funder %in% c(1:7, 43) &
            ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(ReportStart))) %>%
+              ymd(EndDate) >= mdy(ReportEnd))) %>%
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID", 
                       "ProjectName", 
                       "ProjectType", 
                       "HMISParticipatingProject")], by = "ProjectID") %>%
+  left_join(dq_flags, by = "ProjectName") %>%
   filter(HMISParticipatingProject == 1) %>%
-  select(ProjectType, ProjectName, ProjectID, Funder, StartDate, EndDate)
+  select(ProjectType,
+         ProjectName,
+         ProjectID,
+         DQ_flags,
+         Funder,
+         StartDate,
+         EndDate)
 
 vars_we_want <- c(
   "PersonalID",
@@ -83,6 +90,7 @@ vars_we_want <- c(
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
+  "DQ_flags",
   "EntryDate",
   "HouseholdID",
   "RelationshipToHoH",
@@ -123,9 +131,19 @@ vars_to_the_apps <- c(
 pe_clients_served <-  co_clients_served %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
@@ -137,9 +155,19 @@ pe_clients_served <-  co_clients_served %>%
 pe_adults_entered <-  co_adults_entered %>%
   filter(entered_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate))
 
@@ -155,9 +183,19 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
       exited_between(., ReportStart, ReportEnd)
   ) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
@@ -168,9 +206,19 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
 pe_adults_moved_in <-  co_adults_moved_in %>%
   filter(stayed_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
@@ -182,9 +230,19 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
   filter(stayed_between(., ReportStart, ReportEnd) &
            exited_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
@@ -195,9 +253,19 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
 pe_hohs_served <- co_hohs_served %>%
   filter(served_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
@@ -212,9 +280,19 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
   filter(stayed_between(., ReportStart, ReportEnd) &
            exited_between(., ReportStart, ReportEnd)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  semi_join(coc_funded, by = "ProjectID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
-  left_join(Enrollment, by = c("PersonalID", "EnrollmentID", "ProjectID")) %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
@@ -347,13 +425,17 @@ pe_exits_to_ph <- pe_hohs_served %>%
     MeetsObjective =
       case_when(
         ProjectType %in% c(3, 9) &
+          DQ_flags == 0 &
           DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
         ProjectType %in% c(3, 9) &
-          !DestinationGroup %in% c("Permanent", "Still in Program") ~ 0,
+          (!DestinationGroup %in% c("Permanent", "Still in Program")|
+             DQ_flags == 1) ~ 0,
         ProjectType %in% c(2, 8, 13) &
+          DQ_flags == 0 &
           DestinationGroup == "Permanent" ~ 1,
         ProjectType %in% c(2, 8, 13) &
-          DestinationGroup != "Permanent" ~ 0
+          (DestinationGroup != "Permanent" |
+             DQ_flags == 0) ~ 0
       )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
@@ -1096,6 +1178,32 @@ rm(list = ls()[!(ls() %in% c(
   'ReportEnd',
   'living_situation'
 ))])
+
+next_thing_due <- tribble(
+  ~ DueDate, ~ Event,
+  "1/11/2020", "2019 CoC Competition Training",
+  "3/14/2020", "Ohio BoS CoC Grant Inventory Worksheet finalized by COHHIO",
+  "3/15/2020", "COHHIO makes Project Evaluation 2020 Report available in Rme",
+  "3/22/2020", "COHHIO makes Project Evaluation Estimated Scores available in Rm",
+  "4/11/2020", "All HMIS Data in the Project Evaluation report finalized",
+  "4/1/2020", "All Policies and Procedures documents submitted by Recipients",
+  "4/15/2020", "COHHIO saves out Final Project Evaluation Report data",
+  "4/8/2020", "Project Conversion and New CoC Project Proposals due to ODSA/COHHIO",
+  "4/19/2020", "Written project Proposal Feedback Provided to Project Conversion 
+  and New CoC Project Applicants",
+  "5/10/2020", "COHHIO releases Project Evaluation results and preliminary CoC project 
+  ranking (renewals only)",
+  "5/17/2020", "Appeals Submission Due Date"
+) %>%
+  mutate(
+    DueDate = mdy(DueDate),
+    ShowStart = lag(ymd(DueDate), n = 1L, order_by = DueDate),
+    ShowStart = if_else(is.na(ShowStart), today(), ShowStart),
+    ShowEnd = ymd(DueDate),
+    DateRange = interval(ShowStart, ShowEnd)
+  ) %>%
+  filter(today() %within% DateRange) %>%
+  select(Event, DueDate)
 
 save.image("images/ProjectEvaluation.RData")
 
