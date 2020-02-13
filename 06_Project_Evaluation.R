@@ -894,7 +894,7 @@ summary_pe_res_prior <- pe_res_prior %>%
 pe_entries_no_income <- pe_adults_entered %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
   select(EnrollmentID, HouseholdID, DQ_flags) %>%
-  left_join(pe_increase_income, by = c("EnrollmentID", "HouseholdID")) %>%
+  left_join(pe_increase_income, by = c("EnrollmentID", "HouseholdID", "DQ_flags")) %>%
   select(
     PersonalID,
     ProjectType,
