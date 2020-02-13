@@ -223,8 +223,10 @@ Enrollment <-
 # will eventually come from aa: ees in ReportWriter, waiting on WS
 counties <- read_xlsx("data/RMisc.xlsx",
                                  sheet = 1,
-                                 range = cell_cols("A, C:D"),
-                                 col_types = c("numeric", "text", "text"))
+                                 range = cell_cols("A:D"),
+                                 col_types = c("numeric", "numeric", "text", "text")) %>%
+  select(EnrollmentID, CountyServed, CountyPrior)
+  
 
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                                 sheet = 2,
