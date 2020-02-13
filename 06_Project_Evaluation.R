@@ -176,6 +176,27 @@ pe_adults_entered <-  co_adults_entered %>%
 # this one counts each entry and therefore should have Duplicate EEs shown
 # as a potential DQ issue that affects this measure.
 
+## for testing purposes only
+
+pe_hohs_entered <-  co_hohs_entered %>%
+  filter(entered_between(., ReportStart, ReportEnd)) %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
+  left_join(Client, by = "PersonalID") %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
+  select(all_of(vars_we_want)) %>%
+  arrange(PersonalID, ProjectID, desc(EntryDate))
+
 # for ncb logic
 # Adults who moved in and exited during date range
 
@@ -369,6 +390,15 @@ summary_pe_adults_entered <- pe_adults_entered %>%
                                  as.integer(0),
                                  AdultsEntered))
 
+summary_pe_hohs_entered <- pe_hohs_entered %>%
+  group_by(ProjectID) %>%
+  summarise(HoHsEntered = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(HoHsEntered = if_else(is.na(HoHsEntered),
+                               as.integer(0),
+                               HoHsEntered))
+
 pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_adults_moved_in, by = "ProjectID") %>%
   full_join(summary_pe_hohs_served_leavers, by = "ProjectID") %>%
@@ -377,6 +407,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_clients_moved_in_leavers, by = "ProjectID") %>%
   full_join(summary_pe_hohs_moved_in_leavers, by = "ProjectID") %>%
   full_join(summary_pe_hohs_served, by = "ProjectID") %>%
+  full_join(summary_pe_hohs_entered, by = "ProjectID") %>%
   left_join(pe_coc_funded, by = "ProjectID") %>%
   select(
     ProjectType,
@@ -862,7 +893,7 @@ summary_pe_res_prior <- pe_res_prior %>%
 
 pe_entries_no_income <- pe_adults_entered %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
-  select(EnrollmentID, HouseholdID) %>%
+  select(EnrollmentID, HouseholdID, DQ_flags) %>%
   left_join(pe_increase_income, by = c("EnrollmentID", "HouseholdID")) %>%
   select(
     PersonalID,
