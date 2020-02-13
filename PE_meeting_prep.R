@@ -11,7 +11,7 @@ vispdats_entering_ph <- dq_2019 %>%
   filter(Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT") %>%
   select(ProjectName, PersonalID) %>% 
   group_by(ProjectName) %>% 
-  summarise(n()) %>%
+  summarise(ClientsWithNoSPDAT = n()) %>%
   view()
 
 # looked up some clients in Miami Family Abuse and the clients do not appear to 
@@ -22,17 +22,18 @@ vispdats_entering_ph <- dq_2019 %>%
 
 # DQ_flag Point Forfeits --------------------------------------------------
 
-dq_flags 
-#(11/93) have flags
+pe_coc_funded %>% select(ProjectName, DQ_flags) %>% view()
+
+#(11/93) have a flag
 
 # Compare HoHs entering to Adults entering --------------------------------
 
-summary(summary_pe_homeless_history_index)
-summary(summary_pe_homeless_history_index_test)
+summary(summary_pe_homeless_history_index) # all adults
+summary(summary_pe_homeless_history_index_test) # hohs only
 # adults: SLIGHTLY lower Means than HoHs
 
-summary(summary_pe_long_term_homeless)
-summary(summary_pe_long_term_homeless_test)
+summary(summary_pe_long_term_homeless) # all adults
+summary(summary_pe_long_term_homeless_test) # hohs only
 # adults: a little higher Means than HoHs
 
 
