@@ -24,7 +24,9 @@ vispdats_entering_ph <- dq_2019 %>%
 
 pe_coc_funded %>% select(ProjectName, DQ_flags) %>% view()
 
-#(11/93) have a flag
+# (11/93) have a flag
+# need to add in missing data as flags
+# need to add a way for users to know why they missed the objective bc of DQ
 
 # Compare HoHs entering to Adults entering --------------------------------
 
@@ -41,8 +43,6 @@ summary(summary_pe_long_term_homeless_test) # hohs only
 th_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 2)
 psh_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 3)
 rrh_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 13)
-sso_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 6)
-# ^^ no "adult moved in leavers"
 sh_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 8)
 
 
