@@ -22,7 +22,7 @@
 # Currently, this file is expecting the following files in your data/ directory:
 
 # RMisc.xlsx 
-# (all theHUD CSV Export FY2020 .csv files)
+# (all the HUD CSV Export FY2020 .csv files)
 # casemanagers.zip or .csv
 # cevets.zip or .csv
 # cocscoring.zip or .csv (during CoC Competition only)
