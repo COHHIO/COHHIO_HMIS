@@ -36,4 +36,22 @@ summary(summary_pe_long_term_homeless) # all adults
 summary(summary_pe_long_term_homeless_test) # hohs only
 # adults: a little higher Means than HoHs
 
+# Non-Cash Benefits Scoring Structure -------------------------------------
+
+th_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 2)
+psh_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 3)
+rrh_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 13)
+sso_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 6)
+# ^^ no "adult moved in leavers"
+sh_ncbs <- summary_pe_non_cash_at_exit %>% filter(ProjectType == 8)
+
+
+summary(th_ncbs)
+summary(psh_ncbs)
+summary(rrh_ncbs)
+summary(sh_ncbs)
+
+hist(th_ncbs$NCBsAtExitPercent, main = "Transitional Housing") 
+hist(psh_ncbs$NCBsAtExitPercent, main = "PSH") 
+hist(rrh_ncbs$NCBsAtExitPercent, main = "Rapid Rehousing") 
 
