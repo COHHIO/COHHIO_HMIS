@@ -779,7 +779,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
 # Community Need: Average Bed/Unit Utilization ----------------------------
 # PSH, TH, SH, RRH (it's true! requesting that it be removed from scoring)
 
-source("01_Bed_Unit_Utilization.R")
+load("images/Utilization.RData")
 # getting what we need from the Utilization script
 utilization_unit_2019 <- PE_utilization_unit %>%
   ungroup() %>%
