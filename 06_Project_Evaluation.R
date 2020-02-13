@@ -1080,6 +1080,155 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
 # scores to ART
 # DQ flags: nothing extra because DKRs and missings are worked into the scoring
 
+# Community Need: Homeless History Index TEST -----------------------------
+# PSH, TH, SH, RRH
+
+pe_homeless_history_index_test <- pe_hohs_entered %>%
+  select(
+    ProjectType,
+    ProjectName,
+    DQ_flags,
+    PersonalID,
+    EnrollmentID,
+    HouseholdID,
+    AgeAtEntry,
+    VeteranStatus,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    DateToStreetESSH,
+    TimesHomelessPastThreeYears,
+    MonthsHomelessPastThreeYears
+  ) %>%
+  mutate(
+    DaysHomelessAtEntry_test = if_else(
+      ymd(EntryDate) >= ymd(DateToStreetESSH),
+      difftime(EntryDate,
+               DateToStreetESSH,
+               units = "days"),
+      NULL
+    ),
+    HHI = case_when(
+      DaysHomelessAtEntry_test > 364 |
+        (
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            TimesHomelessPastThreeYears == 4
+        )  ~ 7,
+      DaysHomelessAtEntry_test <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            TimesHomelessPastThreeYears %in% c(1, 2, 3)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              TimesHomelessPastThreeYears == 4
+          )
+        ) ~ 6,
+      DaysHomelessAtEntry_test <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+            (
+              TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                is.na(TimesHomelessPastThreeYears)
+            )
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              TimesHomelessPastThreeYears %in% c(1, 2, 3)
+          )
+        ) ~ 5,
+      DaysHomelessAtEntry_test <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
+            TimesHomelessPastThreeYears %in% c(2, 3, 4)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
+              (
+                TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 4,
+      DaysHomelessAtEntry_test <= 364 &
+        ((
+          MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
+            TimesHomelessPastThreeYears == 4
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
+              (
+                TimesHomelessPastThreeYears %in% c(8, 9, 99, 1) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 3,
+      DaysHomelessAtEntry_test <= 364 &
+        (((
+          is.na(TimesHomelessPastThreeYears) |
+            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+        ) &
+          TimesHomelessPastThreeYears == 4
+        ) |
+          (
+            MonthsHomelessPastThreeYears == 101 &
+              TimesHomelessPastThreeYears %in% c(2, 3, 4)
+          ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
+              (
+                TimesHomelessPastThreeYears %in% c(1, 2, 3, 8, 9, 99) |
+                  is.na(TimesHomelessPastThreeYears)
+              )
+          )
+        ) ~ 2,
+      DaysHomelessAtEntry_test <= 364 &
+        ((
+          MonthsHomelessPastThreeYears == 101 &
+            (
+              is.na(TimesHomelessPastThreeYears) |
+                TimesHomelessPastThreeYears %in% c(1, 8, 9, 99)
+            )
+        ) |
+          ((
+            is.na(MonthsHomelessPastThreeYears) |
+              MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+          ) &
+            TimesHomelessPastThreeYears %in% c(1, 2, 3)
+          )
+        ) ~ 1,
+      DaysHomelessAtEntry_test <= 364 &
+        ((
+          is.na(MonthsHomelessPastThreeYears) |
+            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
+        ) &
+          (
+            TimesHomelessPastThreeYears %in% c(8, 9, 99) |
+              is.na(TimesHomelessPastThreeYears)
+          )
+        ) ~ 0,
+      TRUE ~ 0
+    )
+  )
+
+summary_pe_homeless_history_index_test <- pe_homeless_history_index_test %>%
+  group_by(ProjectType, ProjectName) %>%
+  summarise(AvgHHI = mean(HHI),
+            MedHHI_test = median(HHI)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
+    MedianHHIPoints_test = if_else(AdultsEntered == 0, 10,
+                              pe_score(Structure, MedHHI_test))
+  ) %>%
+  select(ProjectType, ProjectName, MedHHI_test, MedianHHIPoints_test) %>%
+  left_join(dq_flags, by = "ProjectName")
+
+# TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
+# scores to ART
+# DQ flags: nothing extra because DKRs and missings are worked into the scoring
+
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
 
@@ -1160,6 +1309,53 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
 # TEST RESULTS: No percents over 100%, all PSH's are getting legit points
 # DQ flags: nothing extra
 
+# Community Need: Long Term Homeless Households TEST ----------------------
+# PSH
+# PLEASE NOTE THE SPECS SAY HOHS ENTERED BUT IN 2019 WE GOT PUSHBACK ON THIS
+# BECAUSE SOMETIMES THE HOH IS NOT THE ONE WITH THE HOMELESS HISTORY
+
+pe_long_term_homeless_test <- pe_hohs_entered %>%
+  mutate(
+    CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
+                                       units = "days"),
+    MeetsObjective = if_else(DQ_flags == 0 & (
+      CurrentHomelessDuration >= 365 &
+        !is.na(CurrentHomelessDuration)
+    ) |
+      (
+        TimesHomelessPastThreeYears == 4 &
+          MonthsHomelessPastThreeYears %in% c(112, 113) &
+          !is.na(TimesHomelessPastThreeYears) &
+          !is.na(MonthsHomelessPastThreeYears)
+      ),
+    1,
+    0
+    )
+  ) %>%
+  select(all_of(vars_to_the_apps), DQ_flags, DateToStreetESSH, 
+         CurrentHomelessDuration, MonthsHomelessPastThreeYears, 
+         TimesHomelessPastThreeYears)
+
+summary_pe_long_term_homeless_test <- pe_long_term_homeless_test %>%
+  group_by(ProjectType, ProjectName, DQ_flags) %>%
+  summarise(LongTermHomeless = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    LongTermHomeless = if_else(is.na(LongTermHomeless),
+                               0,
+                               LongTermHomeless),
+    Structure = if_else(ProjectType == 3, "20_90_5", NULL),
+    LongTermHomelessPercent = LongTermHomeless / AdultsEntered,
+    LongTermHomelessPoints_test = if_else(AdultsEntered == 0, 5,
+                                     pe_score(Structure, LongTermHomelessPercent))
+  ) %>%
+  select(ProjectType, ProjectName, LongTermHomeless, LongTermHomelessPercent,
+         LongTermHomelessPoints_test, DQ_flags)
+
+# TEST RESULTS: No percents over 100%, all PSH's are getting legit points
+# DQ flags: nothing extra
+
 # Final Scoring -----------------------------------------------------------
 
 summary_pe_final_scoring <-
@@ -1186,6 +1382,10 @@ summary_pe_final_scoring <-
   left_join(summary_pe_res_prior,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_utilization,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_homeless_history_index_test,
+            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  left_join(summary_pe_long_term_homeless_test,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "ProjectName"))
 
@@ -1214,9 +1414,11 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_exits_to_ph',
   'summary_pe_health_ins_at_exit',
   'summary_pe_homeless_history_index',
+  'summary_pe_homeless_history_index_test',
   'summary_pe_increase_income',
   'summary_pe_length_of_stay',
   'summary_pe_long_term_homeless',
+  'summary_pe_long_term_homeless_test',
   'summary_pe_non_cash_at_exit',
   'summary_pe_own_housing',
   'summary_pe_res_prior',
