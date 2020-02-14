@@ -22,7 +22,7 @@
 # Currently, this file is expecting the following files in your data/ directory:
 
 # RMisc.xlsx 
-# (all theHUD CSV Export FY2020 .csv files)
+# (all the HUD CSV Export FY2020 .csv files)
 # casemanagers.zip or .csv
 # cevets.zip or .csv
 # cocscoring.zip or .csv (during CoC Competition only)
@@ -223,15 +223,17 @@ Enrollment <-
 # will eventually come from aa: ees in ReportWriter, waiting on WS
 counties <- read_xlsx("data/RMisc.xlsx",
                                  sheet = 1,
-                                 range = cell_cols("A:C"),
-                                 col_types = c("numeric", "text", "text"))
+                                 range = cell_cols("A:D"),
+                                 col_types = c("numeric", "numeric", "text", "text")) %>%
+  select(EnrollmentID, CountyServed, CountyPrior)
+  
 
 bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
                                 sheet = 2,
                                 range = cell_cols("A:D"))
 
 
-Enrollment <- Enrollment %>% 
+Enrollment <- Enrollment %>% #select(-RelationshipToHoH) %>%
   left_join(bowman_entry_exits, by = "EnrollmentID") %>%
   left_join(counties, by = "EnrollmentID") %>%
   left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 

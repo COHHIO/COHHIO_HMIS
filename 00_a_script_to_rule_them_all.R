@@ -92,7 +92,9 @@ if(length(list.files("./data", pattern = "(odod_live_hudcsv)")) > 0){
   "Don't forget to delete the .7z file in your /data folder. It has PII in it!"
 } else {"Your data folder looks good."}
 
-source("00_get_the_CSV_things.R")
+if(stop == 0){
+  source("00_get_the_CSV_things.R")
+}
 
 if(ymd(FileActualStart) > mdy(FileStart)){
   stop <- 1
@@ -126,6 +128,10 @@ if (stop == 0) {
   
   print("working on Cohorts")
   source("05_Cohorts.R")
+  rm(list = ls())
+  
+  print("working on Project Evaluation")
+  source("06_Project_Evaluation.R")
   rm(list = ls())
   
   print("Done! All images are updated.")
