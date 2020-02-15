@@ -359,6 +359,7 @@ missing_months_times_homeless <- served_in_date_range %>%
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            ymd(EntryDate) >= mdy("10012016") &
+           ProjectType %in% c(1, 4, 8) &
            (
              is.na(MonthsHomelessPastThreeYears) |
                is.na(TimesHomelessPastThreeYears) |
@@ -1577,7 +1578,8 @@ check_eligibility <- served_in_date_range %>%
              EnrollmentID,
              DataCollectionStage,
              BenefitsFromAnySource,
-             BenefitCount)
+             BenefitCount) %>%
+      unique()
     
     missing_ncbs_entry <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -1634,11 +1636,13 @@ check_eligibility <- served_in_date_range %>%
     
     conflicting_ncbs_exit <- served_in_date_range %>%
       left_join(ncb_subs, by = c("PersonalID", "EnrollmentID")) %>%
-      select(AgeAtEntry,
-             all_of(vars_prep),
-             DataCollectionStage,
-             BenefitsFromAnySource,
-             BenefitCount) %>%
+      select(
+        AgeAtEntry,
+        all_of(vars_prep),
+        DataCollectionStage,
+        BenefitsFromAnySource,
+        BenefitCount
+      ) %>%
       filter(DataCollectionStage == 3 &
                (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
                ((BenefitsFromAnySource == 1 &
