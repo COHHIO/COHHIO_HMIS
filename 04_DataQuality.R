@@ -17,6 +17,7 @@ library(janitor)
 library(lubridate)
 library(scales)
 
+source("04_Guidance.R")
 load("images/COHHIOHMIS.RData")
 
 rm(
@@ -150,7 +151,6 @@ vars_we_want <- c(vars_prep,
 # Missing UDEs ------------------------------------------------------------
 
 dq_name <- served_in_date_range %>%
-  # filter(FirstName != "ok") %>%
   mutate(
     Issue = case_when(
       FirstName == "Missing" ~ 
@@ -454,7 +454,7 @@ dkr_months_times_homeless <- served_in_date_range %>%
          Type = "Warning") %>%
   select(all_of(vars_we_want))
 
-detail_missing_living_situation <- served_in_date_range %>%
+missing_living_situation <- served_in_date_range %>%
   select(
     all_of(vars_prep),
     AgeAtEntry,
@@ -584,7 +584,7 @@ conflicting_disabilities <- served_in_date_range %>%
   ) %>%
   select(all_of(vars_we_want))
 
-rm(detail_conflicting_disabilities, smallDisabilities)
+rm(smallDisabilities)
 
 # Extremely Long Stayers --------------------------------------------------
 
@@ -760,19 +760,6 @@ check_eligibility <- served_in_date_range %>%
       mutate(Issue = "Don't Know/Refused Destination",
              Type = "Warning") %>%
       select(all_of(vars_we_want))
-    
-    # Missing SSVF Data
-    
-    # Percent of AMI (HoH Only)
-    # Last Permanent Address
-    # SOAR
-    # Year Entered Service
-    # Theater of Operations
-    # Branch
-    # Discharge Status
-    # VAMC Station Number
-    # HP Targeting Criteria
-    
     
     # Missing PATH Data -------------------------------------------------------
     
@@ -2021,6 +2008,7 @@ check_eligibility <- served_in_date_range %>%
       conflicting_ncbs_exit,
       dkr_client_veteran_info,
       dkr_destination,
+      dkr_living_situation,
       dkr_LoS,
       dkr_months_times_homeless,
       dkr_residence_prior,
@@ -2028,6 +2016,9 @@ check_eligibility <- served_in_date_range %>%
       dq_ethnicity,
       dq_gender,
       dq_name,
+      dq_race,
+      dq_ssn,
+      dq_veteran,
       duplicate_ees,
       entered_ph_without_spdat,
       extremely_long_stayers,
@@ -2036,21 +2027,23 @@ check_eligibility <- served_in_date_range %>%
       incorrect_ee_type,
       lh_without_spdat,
       missing_approx_date_homeless,
+      missing_client_location,
       missing_client_veteran_info,
       missing_county_served,
       missing_county_prior,
       missing_destination,
       missing_disabilities,
-      missing_disability_subs,
       missing_health_insurance_entry,
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
+      missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
-      missing_ncbs_entry,
-      conflicting_ncbs_exit,
       missing_previous_street_ESSH,
+      missing_ncbs_entry,
+      missing_ncbs_exit,
+      missing_race,
       missing_residence_prior,
       internal_old_outstanding_referrals,
       path_enrolled_missing,
@@ -2145,7 +2138,6 @@ check_eligibility <- served_in_date_range %>%
             "Conflicting Income yes/no at Exit",
             "Conflicting Non-cash Benefits yes/no at Entry",
             "Conflicting Non-cash Benefits yes/no at Exit",
-            # "Missing Disability Subs",
             # "Incomplete Living Situation Data",
             # "Missing Months or Times Homeless",
             # "Don't Know/Refused Residence Prior",
@@ -2428,7 +2420,8 @@ check_eligibility <- served_in_date_range %>%
       left_join(user_help, by = c("Type", "Issue")) %>%
       mutate(Type = factor(Type, levels = c("High Priority",
                                             "Error",
-                                            "Warning")))
+                                            "Warning"))) %>%
+      unique()
     
     # Unsheltered DQ ----------------------------------------------------------
     
@@ -2486,6 +2479,12 @@ check_eligibility <- served_in_date_range %>%
       dkr_destination,
       dkr_LoS,
       dkr_client_veteran_info,
+      dq_dob,
+      dq_ethnicity,
+      dq_gender,
+      dq_race,
+      dq_ssn,
+      dq_veteran,
       duplicate_ees,
       Enrollment,
       entered_ph_without_spdat,
@@ -2497,25 +2496,24 @@ check_eligibility <- served_in_date_range %>%
       # incorrectMoveInDate,
       lh_without_spdat,
       missing_approx_date_homeless,
+      missing_client_location,
       missing_client_veteran_info,
       missing_county_prior,
       missing_county_served,
       missing_destination,
       missing_disabilities,
       detail_missing_disabilities,
-      missing_disability_subs,
+      # missing_disability_subs,
       missing_health_insurance_entry,
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
-      detail_missing_living_situation,
-      missing_long_duration,
+      missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
-      missing_udes,
       internal_old_outstanding_referrals,
       path_enrolled_missing,
       path_missing_los_res_prior,
@@ -2534,6 +2532,7 @@ check_eligibility <- served_in_date_range %>%
       ssvf_at_entry,
       ssvf_hp_screen,
       ssvf_served_in_date_range,
+      unlikely_ncbs_entry,
       unsheltered_enrollments,
       unsheltered_not_unsheltered,
       unsh_missing_cm,
@@ -2766,6 +2765,7 @@ check_eligibility <- served_in_date_range %>%
       theme_minimal(base_size = 18)
     
     rm(list = ls(pattern = "dq_data_"))
+    rm(list = ls(pattern = "guidance_"))
     rm(
       stray_services,
       staging_outstanding_referrals,
