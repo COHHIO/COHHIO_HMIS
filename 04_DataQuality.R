@@ -653,10 +653,11 @@ missing_county_served <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 # CountyPrior
-# check to see if all hh members have to answer this or if just adults or all?
+
 missing_county_prior <- served_in_date_range %>%
-  filter(is.na(CountyPrior),
-         RelationshipToHoH == 1) %>%
+  filter(is.na(CountyPrior) &
+         (AgeAtEntry > 17 |
+            is.na(AgeAtEntry))) %>%
   mutate(Issue = "Missing County of Prior Residence",
          Type = "Error") %>%
   select(all_of(vars_we_want))
@@ -1082,6 +1083,7 @@ check_eligibility <- served_in_date_range %>%
         IncomeFromAnySource
       ) %>%
       filter(DataCollectionStage == 1 &
+               ProjectName != "Unsheltered Clients - OUTREACH" &
                (AgeAtEntry > 17 |
                   is.na(AgeAtEntry)) &
                (IncomeFromAnySource == 99 |
@@ -1201,79 +1203,7 @@ check_eligibility <- served_in_date_range %>%
       select(all_of(vars_we_want))
     
     rm(income_subs)
-    
-    # conflictingIncomeYN <- served_in_date_range %>%
-    #   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-    #   select(
-    #     PersonalID,
-    #     EnrollmentID,
-    #     HouseholdID,
-    #     AgeAtEntry,
-    #     ProjectName,
-    #     EntryDate,
-    #     MoveInDateAdjust,
-    #     ExitDate,
-    #     ProjectType,
-    #     CountyServed,
-    #     ProviderCounty,
-    #     Region,
-    #     DataCollectionStage,
-    #     TotalMonthlyIncome,
-    #     IncomeFromAnySource,
-    #     Earned,
-    #     EarnedAmount,
-    #     Unemployment,
-    #     UnemploymentAmount,
-    #     SSI,
-    #     SSIAmount,
-    #     SSDI,
-    #     SSDIAmount,
-    #     VADisabilityService,
-    #     VADisabilityServiceAmount,
-    #     VADisabilityNonService,
-    #     VADisabilityNonServiceAmount,
-    #     PrivateDisability,
-    #     PrivateDisabilityAmount,
-    #     WorkersComp,
-    #     WorkersCompAmount,
-    #     TANF,
-    #     TANFAmount,
-    #     GA,
-    #     GAAmount,
-    #     SocSecRetirement,
-    #     SocSecRetirementAmount,
-    #     Pension,
-    #     PensionAmount,
-    #     ChildSupport,
-    #     ChildSupportAmount,
-    #     Alimony,
-    #     AlimonyAmount,
-    #     OtherIncomeSource,
-    #     OtherIncomeAmount,
-    #     OtherIncomeSourceIdentify,
-    #     UserCreating
-    #   ) %>%
-    #   filter(DataCollectionStage == 3 &
-    #            (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
-    #            ((
-    #              IncomeFromAnySource == 1 &
-    #                Earned + Unemployment + SSI + SSDI + VADisabilityService +
-    #                VADisabilityNonService + PrivateDisability + WorkersComp +
-    #                TANF + GA + SocSecRetirement + Pension + ChildSupport +
-    #                Alimony + OtherIncomeSource == 0
-    #            ) |
-    #              (
-    #                IncomeFromAnySource == 0 &
-    #                  Earned + Unemployment + SSI + SSDI + VADisabilityService +
-    #                  VADisabilityNonService + PrivateDisability + WorkersComp +
-    #                  TANF + GA + SocSecRetirement + Pension + ChildSupport +
-    #                  Alimony + OtherIncomeSource > 0
-    #              )
-    #            )) %>%
-    #   mutate(Issue = "Conflicting Income yes/no at Exit",
-    #          Type = "Error") %>%
-    #   select(all_of(vars_we_want))
-    
+
     # Overlapping Enrollment/Move In Dates ------------------------------------
     
     # this only pulls the most recent EE in the overlap and I think that's fine but
@@ -1439,6 +1369,7 @@ check_eligibility <- served_in_date_range %>%
              DataCollectionStage,
              InsuranceFromAnySource) %>%
       filter(DataCollectionStage == 1 &
+               ProjectName != "Unsheltered Clients - OUTREACH" &
                (InsuranceFromAnySource == 99 |
                   is.na(InsuranceFromAnySource))) %>%
       mutate(Issue = "Health Insurance Missing at Entry",
@@ -1451,6 +1382,7 @@ check_eligibility <- served_in_date_range %>%
              DataCollectionStage,
              InsuranceFromAnySource) %>%
       filter(DataCollectionStage == 3 &
+               ProjectName != "Unsheltered Clients - OUTREACH" &
                (InsuranceFromAnySource == 99 |
                   is.na(InsuranceFromAnySource))) %>%
       mutate(Issue = "Health Insurance Missing at Exit",
@@ -1485,6 +1417,7 @@ check_eligibility <- served_in_date_range %>%
     
     conflicting_health_insurance_entry <- health_insurance_subs %>%
       filter(DataCollectionStage == 1 &
+               ProjectName != "Unsheltered Clients - OUTREACH" &
                ((InsuranceFromAnySource == 1 &
                    SourceCount == 0) |
                   (InsuranceFromAnySource == 0 &
@@ -1496,6 +1429,7 @@ check_eligibility <- served_in_date_range %>%
     
     conflicting_health_insurance_exit <- health_insurance_subs %>%
       filter(DataCollectionStage == 3 &
+               ProjectName != "Unsheltered Clients - OUTREACH" &
                ((InsuranceFromAnySource == 1 &
                    SourceCount == 0) |
                   (InsuranceFromAnySource == 0 &
@@ -1534,6 +1468,7 @@ check_eligibility <- served_in_date_range %>%
                        "DataCollectionStage"))
     
     ncb_subs <- served_in_date_range %>%
+      filter(ProjectName != "Unsheltered Clients - OUTREACH") %>%
       left_join(ncb_subs, by = c("PersonalID", "EnrollmentID")) %>%
       select(
         PersonalID,
@@ -1599,6 +1534,25 @@ check_eligibility <- served_in_date_range %>%
                )) %>%
       mutate(Issue = "Conflicting Non-cash Benefits yes/no at Entry",
              Type = "Error") %>%
+      select(all_of(vars_we_want))
+    
+
+# Unlikely NCBs -----------------------------------------------------------
+
+    unlikely_ncbs_entry <- served_in_date_range %>%
+      left_join(ncb_subs, by = c("PersonalID", "EnrollmentID")) %>%
+      select(
+        AgeAtEntry,
+        all_of(vars_prep),
+        DataCollectionStage,
+        BenefitsFromAnySource,
+        BenefitCount
+      ) %>%
+      filter(DataCollectionStage == 1 &
+               (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
+               (BenefitCount == 6)) %>%
+      mutate(Issue = "Client has ALL SIX Non-cash Benefits at Entry",
+             Type = "Warning") %>%
       select(all_of(vars_we_want))
     
     # Missing NCBs at Exit ----------------------------------------------------
