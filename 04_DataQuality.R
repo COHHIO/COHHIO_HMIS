@@ -579,7 +579,7 @@ conflicting_disabilities <- served_in_date_range %>%
   filter((DisablingCondition == 0 & !is.na(DisabilitiesID)) |
            (DisablingCondition == 1 & is.na(DisabilitiesID))) %>% 
   mutate(
-    Issue = "Conflicting Disability yes/no",
+    Issue = "Conflicting Disability of Long Duration yes/no",
     Type = "Error"
   ) %>%
   select(all_of(vars_we_want))
