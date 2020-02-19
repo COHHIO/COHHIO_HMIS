@@ -2214,7 +2214,7 @@ check_eligibility <- served_in_date_range %>%
           # "Income Missing at Exit",
           # "Non-cash Benefits Missing at Entry",
           "Missing Disability Subs",
-          "Missing Length of Stay",
+          "Missing Length of Stay",  # case 873163
           # "Don't Know/Refused Residence Prior",
           # "Don't Know/Refused Months or Times Homeless",
           # "Missing Residence Prior",
