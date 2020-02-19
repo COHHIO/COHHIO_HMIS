@@ -490,44 +490,40 @@ detail_missing_living_situation <- served_in_date_range %>%
   mutate(Issue = "Incomplete Living Situation Data", Type = "Error") %>%
   select(all_of(vars_we_want))
 
-# DKRLivingSituationDetail <- served_in_date_range %>%
-#   select(
-#     PersonalID,
-#     HouseholdID,
-#     EnrollmentID,
-#     ProjectID,
-#     ProjectType,
-#     ProjectName,
-#     EntryDate,
-#     MoveInDateAdjust,
-#     ExitDate,
-#     AgeAtEntry,
-#     CountyServed,
-#     ProviderCounty,
-#     Region,
-#     RelationshipToHoH,
-#     LivingSituation,
-#     LengthOfStay,
-#     LOSUnderThreshold,
-#     PreviousStreetESSH,
-#     DateToStreetESSH,
-#     MonthsHomelessPastThreeYears,
-#     TimesHomelessPastThreeYears,
-#     UserCreating
-#   ) %>%
-#   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-#            ymd(EntryDate) > mdy("10012016") &
-#            (
-#              MonthsHomelessPastThreeYears %in% c(8, 9) |
-#                TimesHomelessPastThreeYears %in% c(8, 9) |
-#                LivingSituation %in% c(8, 9)
-#
-#            )
-#   ) %>%
-#   mutate(Issue = "Don't Know/Refused Living Situation", Type = "Warning")
-#
-# DKRLivingSituation <- DKRLivingSituationDetail %>%
-#   select(all_of(vars_we_want))
+dkr_living_situation <- served_in_date_range %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    EnrollmentID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    ProjectRegion,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    AgeAtEntry,
+    CountyServed,
+    RelationshipToHoH,
+    LivingSituation,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH,
+    DateToStreetESSH,
+    MonthsHomelessPastThreeYears,
+    TimesHomelessPastThreeYears,
+    UserCreating
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) > mdy("10012016") &
+           (
+             MonthsHomelessPastThreeYears %in% c(8, 9) |
+               TimesHomelessPastThreeYears %in% c(8, 9) |
+               LivingSituation %in% c(8, 9)
+           )
+  ) %>%
+  mutate(Issue = "Don't Know/Refused Living Situation", Type = "Warning") %>%
+  select(all_of(vars_we_want))
 
 # DisablingCondition at Entry
 
@@ -554,10 +550,8 @@ smallDisabilities <- Disabilities %>%
     IndefiniteAndImpairs =
       case_when(
         DisabilityType %in% c(6, 8) ~ 1,
-        IndefiniteAndImpairs == 99 ~ -1,
         TRUE ~ IndefiniteAndImpairs)
   ) %>%
-  filter(IndefiniteAndImpairs == 1) %>%
   select(
     PersonalID,
     DisabilitiesID,
@@ -571,73 +565,26 @@ smallDisabilities <- Disabilities %>%
 
 rm(Disabilities)
 
-detail_conflicting_disabilities <- served_in_date_range %>%
+conflicting_disabilities <- served_in_date_range %>%
   select(all_of(vars_prep),
          EnrollmentID,
          AgeAtEntry,
          RelationshipToHoH,
          DisablingCondition) %>%
-  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(
+    smallDisabilities %>%
+      filter(IndefiniteAndImpairs == 1),
+    by = c("PersonalID", "EnrollmentID")
+  ) %>% 
   filter((DisablingCondition == 0 & !is.na(DisabilitiesID)) |
            (DisablingCondition == 1 & is.na(DisabilitiesID))) %>% 
-  group_by(
-    HouseholdID,
-    PersonalID,
-    ProjectName,
-    ProjectType,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    UserCreating,    
-    ProjectRegion,
-    EnrollmentID,
-    AgeAtEntry,
-    RelationshipToHoH,
-    DisablingCondition
-  ) %>%
-  summarise(HasLongDurationSub = max(IndefiniteAndImpairs)) %>%
-  ungroup() %>%
   mutate(
-    Issue = case_when(
-      DisablingCondition != HasLongDurationSub ~
-        "Conflicting Disability yes/no"
-    ),
+    Issue = "Conflicting Disability yes/no",
     Type = "Error"
   ) %>%
-  filter(!is.na(Issue))
-
-conflicting_disabilities <- detail_conflicting_disabilities %>%
   select(all_of(vars_we_want))
 
-rm(detail_conflicting_disabilities)
-
-# INCORRECT, DON'T USE FOR REAL UNTIL THE EXPORT IS FIXED
-missing_disability_subs <- served_in_date_range %>%
-  select(
-    all_of(vars_prep),
-    EnrollmentID,
-    RelationshipToHoH,
-    ProjectType,
-    DisablingCondition
-  ) %>%
-  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
-  filter(DisablingCondition == 1 & is.na(DisabilitiesID)) %>%
-  mutate(Issue = "Missing Disability Subs", Type = "Error") %>%
-  select(all_of(vars_we_want))
-
-## NOT SURE IF THIS EVEN MATTERS ANYMORE?
-missing_long_duration <- served_in_date_range %>%
-  select(all_of(vars_prep),
-         EnrollmentID,
-         RelationshipToHoH,
-         DisablingCondition) %>%
-  left_join(smallDisabilities, by = c("PersonalID", "EnrollmentID")) %>%
-  filter(IndefiniteAndImpairs == 99) %>%
-  mutate(Issue = "Disabilities: missing Long Duration in subassessment",
-         Type = "Error") %>%
-  select(all_of(vars_we_want))
-
-rm(smallDisabilities)
+rm(detail_conflicting_disabilities, smallDisabilities)
 
 # Extremely Long Stayers --------------------------------------------------
 
@@ -696,32 +643,6 @@ rm(list = ls(pattern = "Top*"),
    psh_stayers,
    rrh_stayers,
    hp_stayers)
-
-
-# MoveInDate
-
-# incorrectMoveInDate <- served_in_date_range %>%
-#   filter(ProjectType %in% c(3, 9, 13) &
-#            RelationshipToHoH == 1 &
-#            ((
-#              ymd(MoveInDate) < ymd(EntryDate) |
-#                ymd(MoveInDate) > ymd(ExitDate)
-#            ) |
-#              (ProjectType %in% c(3, 9) &
-#                ymd(EntryDate) < mdy("10012017") &
-#                  ymd(EntryDate) != ymd(MoveInDate)
-#              ))) %>%
-#   mutate(Issue = "Incorrect Move In Date",
-#          Type = "Error") %>%
-#   select(HouseholdID,
-#          PersonalID,
-#          ProjectName,
-#          Issue,
-#          Type,
-#          EntryDate,
-#          "MoveInDateAdjust" = MoveInDate,
-#          ExitDate,
-#          UserCreating)
 
 # CountyServed
 
