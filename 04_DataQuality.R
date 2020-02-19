@@ -39,7 +39,7 @@ projects_current_hmis <- Project %>%
   filter(
     ProjectID == 1695 | (
       HMISParticipatingProject == 1 &
-        !str_detect(ProjectName, "zz") &
+        str_detect(ProjectName, "zz", negate = TRUE) &
         # <- since we can't trust projects_current_hmis
         operating_between(., FileStart, FileEnd) &
         (GrantType != "HOPWA" |
@@ -66,7 +66,8 @@ rm(Inventory, Organization)
 
 served_in_date_range <- Enrollment %>%
   filter(served_between(., FileStart, FileEnd)) %>%
-  left_join(Client, by = "PersonalID") %>%
+  left_join(Client %>%
+              select(-DateCreated), by = "PersonalID") %>%
   select(
     PersonalID,
     FirstName,
@@ -107,7 +108,7 @@ served_in_date_range <- Enrollment %>%
     ExitDate,
     Destination,
     ExitAdjust,
-    DateCreated = DateCreated.x,
+    DateCreated,
     UserCreating,
     ClientEnrolledInPATH,
     LengthOfStay,
@@ -121,7 +122,7 @@ served_in_date_range <- Enrollment %>%
 
 DV <- HealthAndDV %>%
   filter(DataCollectionStage == 1) %>%
-  select(EnrollmentID, CurrentlyFleeing)
+  select(EnrollmentID, DomesticViolenceVictim, WhenOccurred, CurrentlyFleeing)
 
 served_in_date_range <- served_in_date_range %>%
   left_join(DV, by = "EnrollmentID")
@@ -148,25 +149,105 @@ vars_we_want <- c(vars_prep,
 
 # Missing UDEs ------------------------------------------------------------
 
-missing_udes <- served_in_date_range %>%
+dq_name <- served_in_date_range %>%
+  # filter(FirstName != "ok") %>%
   mutate(
     Issue = case_when(
-      FirstName == "Missing" ~ "Missing Name Data Quality",
-      FirstName %in% c("DKR", "Partial") ~ "Incomplete or Don't Know/Refused Name",
+      FirstName == "Missing" ~ 
+        "Missing Name Data Quality",
+      FirstName %in% c("DKR", "Partial") ~
+        "Incomplete or Don't Know/Refused Name"
+    ),
+    Type = case_when(
+      Issue == "Missing Name Data Quality" ~ "Error",
+      Issue == "Incomplete or Don't Know/Refused Name" ~ "Warning"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(all_of(vars_we_want))
+
+dq_dob <- served_in_date_range %>%
+  mutate(
+    Issue = case_when(
+      is.na(DOB) & DOBDataQuality %in% c(1, 2) ~ "Missing DOB",
       DOBDataQuality == 99 ~ "Missing Date of Birth Data Quality",
       DOBDataQuality %in% c(2, 8, 9) ~ "Don't Know/Refused or Approx. Date of Birth",
       AgeAtEntry < 0 |
-        AgeAtEntry > 95 ~ "Incorrect Date of Birth or Entry Date",
+        AgeAtEntry > 95 ~ "Incorrect Date of Birth or Entry Date"
+    ),
+    Type = case_when(
+      Issue %in% c(
+        "Missing DOB",
+        "Incorrect Date of Birth or Entry Date",
+        "Missing Date of Birth Data Quality"
+      ) ~ "Error",
+      Issue ==  "Don't Know/Refused or Approx. Date of Birth" ~ "Warning"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(all_of(vars_we_want))
+
+dq_ssn <- served_in_date_range %>%
+  mutate(
+    Issue = case_when(
       SSN == "Missing" ~ "Missing SSN",
       SSN == "Invalid" ~ "Invalid SSN",
       SSN == "DKR" ~ "Don't Know/Refused SSN",
-      SSN == "Incomplete" ~ "Incomplete SSN",
+      SSN == "Incomplete" ~ "Incomplete SSN"
+    ),
+    Type = case_when(
+      Issue %in% c("Missing SSN", "Invalid SSN") ~ "Error",
+      Issue == "Don't Know/Refused SSN" ~ "Warning"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(all_of(vars_we_want))
+
+dq_race <- served_in_date_range %>%
+  mutate(
+    Issue = case_when(
       RaceNone == 99 ~ "Missing Race",
-      RaceNone %in% c(8, 9) ~ "Don't Know/Refused Race",
+      RaceNone %in% c(8, 9) ~ "Don't Know/Refused Race"
+    ),
+    Type = case_when(
+      Issue == "Missing Race" ~ "Error",
+      Issue == "Don't Know/Refused Race" ~ "Warning"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(all_of(vars_we_want))
+
+dq_ethnicity <- served_in_date_range %>%
+  mutate(
+    Issue = case_when(
       Ethnicity == 99 ~ "Missing Ethnicity",
-      Ethnicity %in% c(8, 9) ~ "Don't Know/Refused Ethnicity",
+      Ethnicity %in% c(8, 9) ~ "Don't Know/Refused Ethnicity"
+    ),
+    Type = case_when(
+      Issue == "Missing Ethnicity" ~ "Error",
+      Issue == "Don't Know/Refused Ethnicity" ~ "Warning"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(all_of(vars_we_want))
+
+dq_gender <- served_in_date_range %>%
+  mutate(
+    Issue = case_when(
       Gender == 99 ~ "Missing Gender",
-      Gender %in% c(8, 9) ~ "Don't Know/Refused Gender",
+      Gender %in% c(8, 9) ~ "Don't Know/Refused Gender"
+    ),
+    Type = case_when(
+      Issue == "Missing Gender" ~ "Error",
+      Issue == "Don't Know/Refused Gender" ~ "Warning"
+    )
+  ) %>%
+  filter(!is.na(Issue)) %>%
+  select(all_of(vars_we_want))
+
+dq_veteran <- served_in_date_range %>%
+  mutate(
+    Issue = case_when(
       (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
         VeteranStatus == 99 ~ "Missing Veteran Status",
       (AgeAtEntry >= 18 | is.na(AgeAtEntry)) &
@@ -177,25 +258,8 @@ missing_udes <- served_in_date_range %>%
         Destination %in% c(19, 28) ~ "Check Veteran Status for Accuracy"
     ),
     Type = case_when(
+      Issue == "Missing Veteran Status" ~ "Error",
       Issue %in% c(
-        "Missing Name Data Quality",
-        "Missing DOB",
-        "Incorrect Date of Birth or Entry Date",
-        "Missing Date of Birth Data Quality",
-        "Missing SSN",
-        "Invalid SSN",
-        "Missing Race",
-        "Missing Ethnicity",
-        "Missing Gender",
-        "Missing Veteran Status"
-      ) ~ "Error",
-      Issue %in% c(
-        "Incomplete or Don't Know/Refused Name",
-        "Don't Know/Refused or Approx. Date of Birth",
-        "Don't Know/Refused SSN",
-        "Don't Know/Refused Race",
-        "Don't Know/Refused Ethnicity",
-        "Don't Know/Refused Gender",
         "Don't Know/Refused Veteran Status",
         "Check Veteran Status for Accuracy"
       ) ~ "Warning"
