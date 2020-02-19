@@ -2024,6 +2024,10 @@ check_eligibility <- served_in_date_range %>%
       dkr_LoS,
       dkr_months_times_homeless,
       dkr_residence_prior,
+      dq_dob,
+      dq_ethnicity,
+      dq_gender,
+      dq_name,
       duplicate_ees,
       entered_ph_without_spdat,
       extremely_long_stayers,
@@ -2043,13 +2047,11 @@ check_eligibility <- served_in_date_range %>%
       missing_income_entry,
       missing_income_exit,
       missing_LoS,
-      missing_long_duration,
       missing_months_times_homeless,
       missing_ncbs_entry,
       conflicting_ncbs_exit,
       missing_previous_street_ESSH,
       missing_residence_prior,
-      missing_udes,
       internal_old_outstanding_referrals,
       path_enrolled_missing,
       path_missing_los_res_prior,
@@ -2063,7 +2065,8 @@ check_eligibility <- served_in_date_range %>%
       services_on_hh_members_ssvf,
       spdat_on_non_hoh,
       ssvf_at_entry,
-      ssvf_hp_screen
+      ssvf_hp_screen,
+      unlikely_ncbs_entry
     ) %>%
       filter(!ProjectName %in% c(
         "Diversion from Homeless System",
@@ -2075,25 +2078,25 @@ check_eligibility <- served_in_date_range %>%
     dq_main <- dq_main %>%
       filter(
         !Issue %in% c(
-          "Conflicting Disability yes/no",
-          "Conflicting Health Insurance yes/no at Entry",
-          "Conflicting Health Insurance yes/no at Exit",
-          "Conflicting Income yes/no at Entry",
-          "Conflicting Income yes/no at Exit",
-          "Conflicting Non-cash Benefits yes/no at Entry",
-          "Conflicting Non-cash Benefits yes/no at Exit",
+          # "Conflicting Disability of Long Duration yes/no",
+          # "Conflicting Health Insurance yes/no at Entry",
+          # "Conflicting Health Insurance yes/no at Exit",
+          # "Conflicting Income yes/no at Entry",
+          # "Conflicting Income yes/no at Exit",
+          # "Conflicting Non-cash Benefits yes/no at Entry",
+          # "Conflicting Non-cash Benefits yes/no at Exit",
           # "Non-cash Benefits Missing at Exit",
           # "Health Insurance Missing at Entry",
           # "Health Insurance Missing at Exit",
           # "Income Missing at Entry",
           # "Income Missing at Exit",
           # "Non-cash Benefits Missing at Entry",
-          "Missing Disability Subs",
-          "Missing Length of Stay",  # case 873163
+          # "Missing Disability Subs",
+          "Missing Length of Stay"#,  # case 873163
           # "Don't Know/Refused Residence Prior",
           # "Don't Know/Refused Months or Times Homeless",
           # "Missing Residence Prior",
-          "Missing Months or Times Homeless"
+          # "Missing Months or Times Homeless"
         )
       )
     
@@ -2105,6 +2108,10 @@ check_eligibility <- served_in_date_range %>%
       dkr_months_times_homeless,
       dkr_residence_prior,
       dkr_LoS,
+      dq_dob,
+      dq_ethnicity,
+      dq_gender,
+      dq_name,
       duplicate_ees,
       future_ees,
       hh_issues,
@@ -2116,7 +2123,6 @@ check_eligibility <- served_in_date_range %>%
       missing_LoS,
       missing_months_times_homeless,
       missing_residence_prior,
-      missing_udes,
       internal_old_outstanding_referrals,
       referrals_on_hh_members,
       spdat_on_non_hoh,
@@ -2131,26 +2137,26 @@ check_eligibility <- served_in_date_range %>%
       filter(
         UserCounty != "Franklin" &
           !Issue %in% c(
-            "Conflicting Disability yes/no",
-            "Conflicting Disability yes/no at Exit",
+            # "Conflicting Disability of Long Duration yes/no",
+            # "Conflicting Disability yes/no at Exit",
             "Conflicting Health Insurance yes/no at Entry",
             "Conflicting Health Insurance yes/no at Exit",
             "Conflicting Income yes/no at Entry",
             "Conflicting Income yes/no at Exit",
             "Conflicting Non-cash Benefits yes/no at Entry",
             "Conflicting Non-cash Benefits yes/no at Exit",
-            "Missing Disability Subs",
+            # "Missing Disability Subs",
             # "Incomplete Living Situation Data",
-            "Missing Months or Times Homeless"#,
+            # "Missing Months or Times Homeless",
             # "Don't Know/Refused Residence Prior",
             # "Don't Know/Refused Months or Times Homeless",
-            # "Health Insurance Missing at Entry",
-            # "Health Insurance Missing at Exit",
-            # "Income Missing at Entry",
-            # "Income Missing at Exit",
+            "Health Insurance Missing at Entry",
+            "Health Insurance Missing at Exit",
+            "Income Missing at Entry",
+            "Income Missing at Exit",
             # "Missing Residence Prior",
-            # "Non-cash Benefits Missing at Entry",
-            # "Non-cash Benefits Missing at Exit"
+            "Non-cash Benefits Missing at Entry",
+            "Non-cash Benefits Missing at Exit"
           )
       )
     # add in Issue explanations -----------------------------------------------
