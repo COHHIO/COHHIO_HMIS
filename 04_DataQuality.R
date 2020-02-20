@@ -146,7 +146,8 @@ vars_prep <- c(
 
 vars_we_want <- c(vars_prep,
                   "Issue",
-                  "Type")
+                  "Type",
+                  "Guidance")
 
 # Missing UDEs ------------------------------------------------------------
 
@@ -161,7 +162,10 @@ dq_name <- served_in_date_range %>%
     Type = case_when(
       Issue == "Missing Name Data Quality" ~ "Error",
       Issue == "Incomplete or Don't Know/Refused Name" ~ "Warning"
-    )
+    ),
+    Guidance = if_else(Type == "Warning", 
+                       guidance_dkr_data, 
+                       guidance_missing_pii)
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
@@ -185,19 +189,13 @@ dq_dob <- served_in_date_range %>%
     ),
     Guidance = case_when(
       Issue == "Incorrect Date of Birth or Entry Date" ~
-      "The HMIS data is indicating the client entered the project PRIOR to
+        "The HMIS data is indicating the client entered the project PRIOR to
       being born. Correct either the Date of Birth or the Entry Date, whichever
       is incorrect.",
       Issue %in% c("Missing DOB", "Missing Date of Birth Data Quality") ~
-      "This data element is required to be collected at project Entry. Please
-      click into the client's Entry pencil to save this data to HMIS.",
-      Issue == "Don't Know/Refused or Approx. Date of Birth" ~ 
-        "It is widely understood that not every client will be able to or consent
-      to answer every question in every assessment. If you do have any of this
-      data, but it is just not entered into HMIS yet, please enter it. If you
-      can reasonably attempt again to collect this data from the client (like
-      if they are still in your project), then please do so. Otherwise, there is
-      no action needed."
+        guidance_missing_at_entry,
+      Issue == "Don't Know/Refused or Approx. Date of Birth" ~
+        guidance_dkr_data
     )
   ) %>%
   filter(!is.na(Issue)) %>%
@@ -209,11 +207,20 @@ dq_ssn <- served_in_date_range %>%
       SSN == "Missing" ~ "Missing SSN",
       SSN == "Invalid" ~ "Invalid SSN",
       SSN == "DKR" ~ "Don't Know/Refused SSN",
-      SSN == "Incomplete" ~ "Incomplete SSN"
+      SSN == "Incomplete" ~ "Invalid SSN"
     ),
     Type = case_when(
       Issue %in% c("Missing SSN", "Invalid SSN") ~ "Error",
       Issue == "Don't Know/Refused SSN" ~ "Warning"
+    ),
+    Guidance = case_when(
+      Issue == "Don't Know/Refused SSN" ~ guidance_dkr_data,
+      Issue == "Missing SSN" ~ guidance_missing_pii,
+      Issue == "Invalid SSN" ~ "The Social Security Number does not conform with standards set by the
+      Social Security Administration. This includes rules like every SSN is
+      exactly 9 digits and cannot have certain number patterns. Correct by
+      navigating to the client's record, then clicking the Client Profile tab,
+      then click into the Client Record pencil to correct the data."
     )
   ) %>%
   filter(!is.na(Issue)) %>%
@@ -228,7 +235,10 @@ dq_race <- served_in_date_range %>%
     Type = case_when(
       Issue == "Missing Race" ~ "Error",
       Issue == "Don't Know/Refused Race" ~ "Warning"
-    )
+    ),
+    Guidance = if_else(Type == "Warning", 
+                       guidance_dkr_data, 
+                       guidance_missing_at_entry)
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
@@ -242,7 +252,10 @@ dq_ethnicity <- served_in_date_range %>%
     Type = case_when(
       Issue == "Missing Ethnicity" ~ "Error",
       Issue == "Don't Know/Refused Ethnicity" ~ "Warning"
-    )
+    ),
+    Guidance = if_else(Type == "Warning", 
+                       guidance_dkr_data, 
+                       guidance_missing_at_entry)
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
@@ -256,7 +269,10 @@ dq_gender <- served_in_date_range %>%
     Type = case_when(
       Issue == "Missing Gender" ~ "Error",
       Issue == "Don't Know/Refused Gender" ~ "Warning"
-    )
+    ),
+    Guidance = if_else(Type == "Warning", 
+                       guidance_dkr_data, 
+                       guidance_missing_at_entry)
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
@@ -279,7 +295,14 @@ dq_veteran <- served_in_date_range %>%
         "Don't Know/Refused Veteran Status",
         "Check Veteran Status for Accuracy"
       ) ~ "Warning"
-    )
+    ),
+    Guidance = case_when(
+      Issue == "Check Veteran Status for Accuracy" ~ "You have indicated the household exited to a destination that only
+      veterans are eligible for, but the head of household appears to be not a
+      veteran. Either the Veteran Status is incorrect or the Destination is
+      incorrect.", 
+      Issue == "Missing Veteran Status" ~ guidance_missing_pii,
+      Issue == "Don't Know/Refused Veteran Status" ~ guidance_dkr_data)
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
@@ -293,7 +316,9 @@ missing_client_location <- served_in_date_range %>%
   filter(is.na(ClientLocation),
          RelationshipToHoH == 1) %>%
   mutate(Type = "High Priority",
-         Issue = "Missing Client Location") %>%
+         Issue = "Missing Client Location",
+         Guidance = "If Client Location is missing, this household will be 
+         excluded from all HUD reporting.") %>%
   select(all_of(vars_we_want))
 
 # Household Issues --------------------------------------------------------
@@ -327,8 +352,16 @@ hh_no_hoh <- served_in_date_range %>%
   filter(hasHoH == FALSE) %>%
   ungroup() %>%
   left_join(served_in_date_range, by = c("PersonalID", "HouseholdID")) %>%
-  mutate(Issue = "No Head of Household",
-         Type = "High Priority") %>%
+  mutate(
+    Issue = "No Head of Household",
+    Type = "High Priority",
+    Guidance = "Please be sure all members of the household are included in the program
+      stay, and that each household member's birthdate is correct. If those
+      things are both true, or the client is a single, check inside the Entry
+      pencil to be sure each household member has \"Relationship to Head of
+      Household\" answered and that one of them says Self (head of household).
+      Singles are always Self (head of household)."
+  ) %>%
   select(all_of(vars_we_want))
 
 hh_too_many_hohs <- served_in_date_range %>%
@@ -340,7 +373,10 @@ hh_too_many_hohs <- served_in_date_range %>%
   ungroup() %>%
   left_join(served_in_date_range, by = c("PersonalID", "HouseholdID")) %>%
   mutate(Issue = "Too Many Heads of Household",
-         Type = "High Priority") %>%
+         Type = "High Priority",
+         Guidance = "Check inside the Entry pencil to be sure each household member has
+      \"Relationship to Head of Household\" answered and that only one of
+      them says Self (head of household).") %>%
   select(all_of(vars_we_want))
 
 hh_issues <- rbind(hh_too_many_hohs, hh_no_hoh, hh_children_only)
@@ -368,7 +404,9 @@ missing_approx_date_homeless <- served_in_date_range %>%
            LOSUnderThreshold == 1 &
            PreviousStreetESSH == 1
   ) %>%
-  mutate(Issue = "Missing Approximate Date Homeless", Type = "Error") %>%
+  mutate(Issue = "Missing Approximate Date Homeless", 
+         Type = "Error",
+         Guidance = guidance_missing_at_entry) %>%
   select(all_of(vars_we_want))
 
 missing_previous_street_ESSH <- served_in_date_range %>%
@@ -386,7 +424,8 @@ missing_previous_street_ESSH <- served_in_date_range %>%
            LOSUnderThreshold == 1
   ) %>%
   mutate(Issue = "Missing Previously From Street, ES, or SH (Length of Time Homeless questions)",
-         Type = "Error") %>%
+         Type = "Error",
+         Guidance = guidance_missing_at_entry) %>%
   select(all_of(vars_we_want))
 
 missing_residence_prior <- served_in_date_range %>%
@@ -397,7 +436,8 @@ missing_residence_prior <- served_in_date_range %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            (is.na(LivingSituation) | LivingSituation == 99)) %>%
   mutate(Issue = "Missing Residence Prior",
-         Type = "Error") %>%
+         Type = "Error",
+         Guidance = guidance_missing_at_entry) %>%
   select(all_of(vars_we_want))
 
 dkr_residence_prior <- served_in_date_range %>%
@@ -408,7 +448,8 @@ dkr_residence_prior <- served_in_date_range %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            LivingSituation %in% c(8, 9)) %>%
   mutate(Issue = "Don't Know/Refused Residence Prior",
-         Type = "Warning") %>%
+         Type = "Warning",
+         Guidance = guidance_dkr_data) %>%
   select(all_of(vars_we_want))
 
 missing_LoS <- served_in_date_range %>%
@@ -419,7 +460,8 @@ missing_LoS <- served_in_date_range %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            (is.na(LengthOfStay) | LengthOfStay == 99)) %>%
   mutate(Issue = "Missing Length of Stay",
-         Type = "Error") %>%
+         Type = "Error",
+         Guidance = guidance_missing_at_entry) %>%
   select(all_of(vars_we_want))
 
 dkr_LoS <- served_in_date_range %>%
@@ -430,7 +472,8 @@ dkr_LoS <- served_in_date_range %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
            LengthOfStay %in% c(8, 9)) %>%
   mutate(Issue = "Don't Know/Refused Residence Prior",
-         Type = "Warning") %>%
+         Type = "Warning",
+         Guidance = guidance_dkr_data) %>%
   select(all_of(vars_we_want))
 
 missing_months_times_homeless <- served_in_date_range %>%
@@ -452,7 +495,8 @@ missing_months_times_homeless <- served_in_date_range %>%
            )
   ) %>%
   mutate(Issue = "Missing Months or Times Homeless",
-         Type = "Error") %>%
+         Type = "Error",
+         Guidance = guidance_missing_at_entry) %>%
   select(all_of(vars_we_want))
 
 dkr_months_times_homeless <- served_in_date_range %>%
@@ -471,7 +515,8 @@ dkr_months_times_homeless <- served_in_date_range %>%
            )
   ) %>%
   mutate(Issue = "Don't Know/Refused Months or Times Homeless",
-         Type = "Warning") %>%
+         Type = "Warning",
+         Guidance = guidance_dkr_data) %>%
   select(all_of(vars_we_want))
 
 missing_living_situation <- served_in_date_range %>%
@@ -507,7 +552,13 @@ missing_living_situation <- served_in_date_range %>%
                )
            )
   ) %>%
-  mutate(Issue = "Incomplete Living Situation Data", Type = "Error") %>%
+  mutate(Issue = "Incomplete Living Situation Data", 
+         Type = "Error",
+         Guidance = "When responding to the Living Situation questions in your
+         Entry Assessment, users must answer questions about some clients' 
+         situation prior to the \"Residence Prior\" that are important to help
+         determine that client's Chronicity. Please answer these questions to
+         the best of your knowledge.") %>%
   select(all_of(vars_we_want))
 
 dkr_living_situation <- served_in_date_range %>%
@@ -542,7 +593,9 @@ dkr_living_situation <- served_in_date_range %>%
                LivingSituation %in% c(8, 9)
            )
   ) %>%
-  mutate(Issue = "Don't Know/Refused Living Situation", Type = "Warning") %>%
+  mutate(Issue = "Don't Know/Refused Living Situation", 
+         Type = "Warning",
+         Guidance = guidance_dkr_data) %>%
   select(all_of(vars_we_want))
 
 # DisablingCondition at Entry
@@ -554,7 +607,9 @@ detail_missing_disabilities <- served_in_date_range %>%
          DisablingCondition) %>%
   filter(DisablingCondition == 99 |
            is.na(DisablingCondition)) %>%
-  mutate(Issue = "Missing Disabling Condition", Type = "Error")
+  mutate(Issue = "Missing Disabling Condition", 
+         Type = "Error",
+         Guidance = guidance_missing_at_entry)
 
 missing_disabilities <- detail_missing_disabilities %>%
   select(all_of(vars_we_want))
@@ -681,8 +736,14 @@ rm(list = ls(pattern = "Top*"),
 
 missing_county_served <- served_in_date_range %>%
   filter(is.na(CountyServed)) %>%
-  mutate(Issue = "Missing County Served",
-         Type = "Error") %>%
+  mutate(
+    Issue = "Missing County Served",
+    Type = "Error",
+    Guidance = "County Served must be collected at Entry for all clients. County is
+      very important so that the client is prioritized into the correct service
+      areas for various housing solutions. This can be corrected through the
+      Entry pencil."
+  ) %>%
   select(all_of(vars_we_want))
 
 # CountyPrior
@@ -692,7 +753,8 @@ missing_county_prior <- served_in_date_range %>%
          (AgeAtEntry > 17 |
             is.na(AgeAtEntry))) %>%
   mutate(Issue = "Missing County of Prior Residence",
-         Type = "Error") %>%
+         Type = "Error",
+         Guidance = guidance_missing_at_entry) %>%
   select(all_of(vars_we_want))
 
 # Check Eligibility, Project Type, Residence Prior ------------------------
@@ -777,7 +839,15 @@ check_eligibility <- served_in_date_range %>%
       )
     
     check_eligibility <- check_eligibility %>%
-      mutate(Issue = "Check Eligibility", Type = "Warning") %>%
+      mutate(
+        Issue = "Check Eligibility",
+        Type = "Warning",
+        Guidance = "Your Residence Prior data suggests that this project is either serving
+      ineligible households, the household was entered into the wrong project,
+      or the Residence Prior data at Entry is incorrect. Please check the terms
+      of your grant or speak with the CoC team at COHHIO if you are unsure of
+      eligibility criteria for your project type."
+      ) %>%
       select(all_of(vars_we_want))
     
     # Missing Destination
@@ -785,13 +855,19 @@ check_eligibility <- served_in_date_range %>%
       filter(!is.na(ExitDate) &
                (is.na(Destination) | Destination %in% c(99, 30))) %>%
       mutate(Issue = "Missing Destination",
-             Type = "Warning") %>%
+             Type = "Warning",
+             Guidance = "It is widely understood that not every client will complete an exit
+      interview, especially for high-volume emergency shelters. A few warnings
+      for Missing Destination is no cause for concern, but if there is a large
+      number, please contact the CoC team to work out a way to improve client
+      engagement.") %>%
       select(all_of(vars_we_want))
     
     dkr_destination <- served_in_date_range %>%
       filter(Destination %in% c(8, 9)) %>%
       mutate(Issue = "Don't Know/Refused Destination",
-             Type = "Warning") %>%
+             Type = "Warning",
+             Guidance = guidance_dkr_data) %>%
       select(all_of(vars_we_want))
     
     # Missing PATH Data -------------------------------------------------------
@@ -820,7 +896,8 @@ check_eligibility <- served_in_date_range %>%
                ClientEnrolledInPATH == 1 &
                (is.na(LengthOfStay) | LengthOfStay == 99)) %>%
       mutate(Issue = "Missing Residence Prior Length of Stay (PATH)",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
     
@@ -847,7 +924,8 @@ check_eligibility <- served_in_date_range %>%
                       is.na(ReasonNotEnrolled))
                )) %>%
       mutate(Issue = "PATH Status at Exit Missing or Incomplete",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_exit) %>%
       select(all_of(vars_we_want))
     
     #* Status Determination at Exit
@@ -867,7 +945,9 @@ check_eligibility <- served_in_date_range %>%
           is.na(DateOfPATHStatus)
       ) %>%
       mutate(Issue = "Missing Date of PATH Status",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = "Users must indicate the PATH Status Date for any adult 
+             enrolled in PATH.") %>%
       select(all_of(vars_we_want))
     
     #* PATH Enrolled at Exit
@@ -884,8 +964,13 @@ check_eligibility <- served_in_date_range %>%
           (ClientEnrolledInPATH == 99 |
              is.na(ClientEnrolledInPATH))
       ) %>%
-      mutate(Issue = "Missing PATH Enrollment at Exit",
-             Type = "Error") %>%
+      mutate(
+        Issue = "Missing PATH Enrollment at Exit",
+        Type = "Error",
+        Guidance = "Please enter the data for this item by clicking into the 
+        Entry or Exit pencil and creating an Interim. In the assessment, enter 
+        the correct PATH Enrollment Date and Save."
+      ) %>%
       select(all_of(vars_we_want))
     
     #* Not Enrolled Reason
@@ -907,8 +992,12 @@ check_eligibility <- served_in_date_range %>%
                AgeAtEntry > 17 &
                ClientEnrolledInPATH == 0 &
                is.na(ReasonNotEnrolled)) %>%
-      mutate(Issue = "Missing Reason Not PATH Enrolled",
-             Type = "Error") %>%
+      mutate(
+        Issue = "Missing Reason Not PATH Enrolled",
+        Type = "Error",
+        Guidance = "The user has indicated the household was not enrolled into PATH, but
+      no reason was selected."
+      ) %>%
       select(all_of(vars_we_want))
     
     #* Connection with SOAR at Exit
@@ -936,7 +1025,8 @@ check_eligibility <- served_in_date_range %>%
                DataCollectionStage == 3 &
                is.na(ConnectionWithSOAR)) %>%
       mutate(Issue = "Missing Connection with SOAR at Exit",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_exit) %>%
       select(all_of(vars_we_want))
     
     rm(smallIncomeSOAR)
@@ -956,7 +1046,15 @@ check_eligibility <- served_in_date_range %>%
     # this could be more nuanced
     duplicate_ees <-
       get_dupes(served_in_date_range, PersonalID, ProjectID, EntryDate) %>%
-      mutate(Issue = "Duplicate Entry Exits", Type = "High Priority") %>%
+      mutate(
+        Issue = "Duplicate Entry Exits",
+        Type = "High Priority",
+        Guidance = "Users sometimes create this error when they forget to click into a
+      program stay by using the Entry pencil, and instead they click \"Add
+      Entry/Exit\" each time. To correct, EDA to the project the Entry/Exit
+      belongs to, navigate to the Entry/Exit tab and delete the program stay
+      that was accidentally added for each household member."
+      ) %>%
       select(all_of(vars_we_want))
     
     
@@ -971,7 +1069,13 @@ check_eligibility <- served_in_date_range %>%
                   (
                     ProjectType %in% c(3, 9) & ymd(EntryDate) >= mdy("10012017")
                   )))  %>%
-      mutate(Issue = "Future Entry Date", Type = "Warning") %>%
+      mutate(
+        Issue = "Future Entry Date",
+        Type = "Warning",
+        Guidance = "Users should not be entering a client into a project on a date in the
+      future. There is no action needed, but going forward, please be sure that
+      your data entry workflow is correct according to your project type."
+      ) %>%
       select(all_of(vars_we_want))
     
     # Incorrect Entry Exit Type -----------------------------------------------
@@ -1006,7 +1110,10 @@ check_eligibility <- served_in_date_range %>%
           (ProjectID == 1695 & EEType != "Standard")
       ) %>%
       mutate(Issue = "Incorrect Entry Exit Type",
-             Type = "High Priority") %>%
+             Type = "High Priority",
+             Guidance = "The user selected the wrong Entry Exit Type. To correct, click the
+      Entry pencil and Save & Continue. The Entry Exit Type at the top can then
+      be changed. Click \"Update\" to make this change take effect.") %>%
       select(all_of(vars_we_want))
     
     # HoHs Entering PH without SPDATs -----------------------------------------
@@ -1049,8 +1156,13 @@ check_eligibility <- served_in_date_range %>%
           (CurrentlyFleeing != 1 |
              is.na(CurrentlyFleeing))
       ) %>%
-      mutate(Issue = "Non-Veteran Non-DV HoHs Entering PH without SPDAT",
-             Type = "Warning") %>%
+      mutate(
+        Issue = "Non-Veteran Non-DV HoHs Entering PH without SPDAT",
+        Type = "Warning",
+        Guidance = "Every household (besides those fleeing domestic violence and veteran
+      households) must have a VI-SPDAT score to aid with prioritization into
+      the Permanent Housing (RRH or PSH) project."
+      ) %>%
       select(all_of(vars_we_want))
     
     # HoHs in Shelter without a SPDAT -----------------------------------------
@@ -1068,8 +1180,13 @@ check_eligibility <- served_in_date_range %>%
           is.na(ExitDate) &
           ymd(EntryDate) > ymd("20190101")
       ) %>%
-      mutate(Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
-             Type = "Warning") %>%
+      mutate(
+        Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
+        Type = "Warning",
+        Guidance = "Any household who has been in shelter, Transitional Housing, or a
+      Safe Haven for over 8 days should be assessed with the VI-SPDAT so that
+      they can be prioritized for Permanent Housing (RRH or PSH)."
+      ) %>%
       select(all_of(vars_we_want))
     
     spdat_on_non_hoh <- ees_with_spdats %>%
@@ -1084,8 +1201,17 @@ check_eligibility <- served_in_date_range %>%
         )
       ) %>%
       filter(RelationshipToHoH != 1) %>%
-      mutate(Issue = "SPDAT Created on a Non-Head-of-Household",
-             Type = "Warning") %>%
+      mutate(
+        Issue = "SPDAT Created on a Non-Head-of-Household",
+        Type = "Warning",
+        Guidance = "It is very important to be sure that the VI-SPDAT score goes on the
+        Head of Household of a given program stay because otherwise that score
+      may not pull into any reporting. It is possible a Non Head of Household
+      was a Head of Household in a past program stay, and in that situation,
+      this should not be corrected unless the Head of Household of your program
+      stay is missing their score. To correct this, you would need to completely
+      re-enter the score on the correct client's record."
+      ) %>%
       select(all_of(vars_we_want))
     
     rm(ees_with_spdats)
@@ -1109,7 +1235,8 @@ check_eligibility <- served_in_date_range %>%
                (IncomeFromAnySource == 99 |
                   is.na(IncomeFromAnySource))) %>%
       mutate(Issue = "Income Missing at Entry",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
     smallIncome <- IncomeBenefits %>%
@@ -1182,11 +1309,7 @@ check_eligibility <- served_in_date_range %>%
                )) %>%
       mutate(Issue = "Conflicting Income yes/no at Entry",
              Type = "Error",
-             Guidance = "If the user answered \"Yes\" to \"Income from any source\", then
-    there should be an income subassessment where it indicates which
-    type of income the client is receiving. Similarly if the user answered
-    \"No\", there should not be any income records that say the client is
-      receiving that type of income.") %>%
+             Guidance = guidance_conflicting_income) %>%
       select(all_of(vars_we_want))
     
     # Not calculating Conflicting Income Amounts bc they're calculating the TMI from the
@@ -1212,7 +1335,8 @@ check_eligibility <- served_in_date_range %>%
                (IncomeFromAnySource == 99 |
                   is.na(IncomeFromAnySource))) %>%
       mutate(Issue = "Income Missing at Exit",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_exit) %>%
       select(all_of(vars_we_want))
     
     conflicting_income_exit <- income_subs %>%
@@ -1225,11 +1349,7 @@ check_eligibility <- served_in_date_range %>%
                )) %>%
       mutate(Issue = "Conflicting Income yes/no at Exit",
              Type = "Error",
-             Guidance = "If the user answered \"Yes\" to \"Income from any source\", then
-    there should be an income subassessment where it indicates which
-    type of income the client is receiving. Similarly if the user answered
-    \"No\", there should not be any income records that say the client is
-      receiving that type of income.") %>%
+             Guidance = guidance_conflicting_income) %>%
       select(all_of(vars_we_want))
     
     rm(income_subs)
@@ -1260,7 +1380,21 @@ check_eligibility <- served_in_date_range %>%
           interval(EntryAdjust, ExitAdjust)
         ),
         Issue = "Overlapping Project Stays",
-        Type = "High Priority"
+        Type = "High Priority",
+        Guidance = "A client cannot reside in an ES, TH, or Safe Haven at the 
+        same time. Nor can they have a Move-In Date into a PSH or RRH project 
+        while they are still in an ES, TH, or Safe Haven. Further, they cannot 
+        be in any two RRH's or any two PSH's simultaneously, housed or not. 
+        Please look the client(s) up in HMIS and determine which project stay's
+        Entry/Move-In/or Exit Date is incorrect. PLEASE NOTE: It may be the 
+        \"Previous Provider's\" mistake, but if you are seeing clients here, it 
+        means your project stay was entered last.
+        If the overlap is not your project's mistake, please work with the 
+        project that has the incorrect Entry/Move-In/or Exit Date to get this 
+        corrected or send an email to hmis@cohhio.org if you cannot get it 
+        resolved. These clients will NOT show on their Data Quality app.
+        If YOUR dates are definitely correct, it is fine to continue with other 
+        data corrections as needed."
       ) %>%
       filter(!is.na(LiterallyInProject) &
                int_length(LiterallyInProject) > 0) %>%
@@ -1294,7 +1428,21 @@ check_eligibility <- served_in_date_range %>%
           ProjectType %in% c(1, 2, 4, 8, 12) ~ interval(EntryAdjust, ExitAdjust)
         ),
         Issue = "Overlapping Project Stays",
-        Type = "High Priority"
+        Type = "High Priority",
+        Guidance = "A client cannot reside in an ES, TH, or Safe Haven at the 
+        same time. Nor can they have a Move-In Date into a PSH or RRH project 
+        while they are still in an ES, TH, or Safe Haven. Further, they cannot 
+        be in any two RRH's or any two PSH's simultaneously, housed or not. 
+        Please look the client(s) up in HMIS and determine which project stay's
+        Entry/Move-In/or Exit Date is incorrect. PLEASE NOTE: It may be the 
+        \"Previous Provider's\" mistake, but if you are seeing clients here, it 
+        means your project stay was entered last.
+        If the overlap is not your project's mistake, please work with the 
+        project that has the incorrect Entry/Move-In/or Exit Date to get this 
+        corrected or send an email to hmis@cohhio.org if you cannot get it 
+        resolved. These clients will NOT show on their Data Quality app.
+        If YOUR dates are definitely correct, it is fine to continue with other 
+        data corrections as needed."
       ) %>%
       filter((!is.na(LiterallyInProject) & ProjectType != 13) |
                ProjectType == 13) %>%
@@ -1318,7 +1466,21 @@ check_eligibility <- served_in_date_range %>%
         # bc a client can exit&enter same day
         InProject = interval(EntryDate, ExitAdjust),
         Issue = "Overlapping Project Stays",
-        Type = "High Priority"
+        Type = "High Priority",
+        Guidance = "A client cannot reside in an ES, TH, or Safe Haven at the 
+        same time. Nor can they have a Move-In Date into a PSH or RRH project 
+        while they are still in an ES, TH, or Safe Haven. Further, they cannot 
+        be in any two RRH's or any two PSH's simultaneously, housed or not. 
+        Please look the client(s) up in HMIS and determine which project stay's
+        Entry/Move-In/or Exit Date is incorrect. PLEASE NOTE: It may be the 
+        \"Previous Provider's\" mistake, but if you are seeing clients here, it 
+        means your project stay was entered last.
+        If the overlap is not your project's mistake, please work with the 
+        project that has the incorrect Entry/Move-In/or Exit Date to get this 
+        corrected or send an email to hmis@cohhio.org if you cannot get it 
+        resolved. These clients will NOT show on their Data Quality app.
+        If YOUR dates are definitely correct, it is fine to continue with other 
+        data corrections as needed."
       ) %>%
       filter(ProjectType == 13) %>%
       get_dupes(., PersonalID) %>%
@@ -1345,7 +1507,21 @@ check_eligibility <- served_in_date_range %>%
         # bc a client can exit&enter same day
         InProject = interval(EntryDate, ExitAdjust),
         Issue = "Overlapping Project Stays",
-        Type = "High Priority"
+        Type = "High Priority",
+        Guidance = "A client cannot reside in an ES, TH, or Safe Haven at the 
+        same time. Nor can they have a Move-In Date into a PSH or RRH project 
+        while they are still in an ES, TH, or Safe Haven. Further, they cannot 
+        be in any two RRH's or any two PSH's simultaneously, housed or not. 
+        Please look the client(s) up in HMIS and determine which project stay's
+        Entry/Move-In/or Exit Date is incorrect. PLEASE NOTE: It may be the 
+        \"Previous Provider's\" mistake, but if you are seeing clients here, it 
+        means your project stay was entered last.
+        If the overlap is not your project's mistake, please work with the 
+        project that has the incorrect Entry/Move-In/or Exit Date to get this 
+        corrected or send an email to hmis@cohhio.org if you cannot get it 
+        resolved. These clients will NOT show on their Data Quality app.
+        If YOUR dates are definitely correct, it is fine to continue with other 
+        data corrections as needed."
       ) %>%
       filter(ProjectType == 3) %>%
       get_dupes(., PersonalID) %>%
@@ -1403,7 +1579,8 @@ check_eligibility <- served_in_date_range %>%
                (InsuranceFromAnySource == 99 |
                   is.na(InsuranceFromAnySource))) %>%
       mutate(Issue = "Health Insurance Missing at Entry",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
     missing_health_insurance_exit <- served_in_date_range %>%
@@ -1416,7 +1593,8 @@ check_eligibility <- served_in_date_range %>%
                (InsuranceFromAnySource == 99 |
                   is.na(InsuranceFromAnySource))) %>%
       mutate(Issue = "Health Insurance Missing at Exit",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_exit) %>%
       select(all_of(vars_we_want))
     
     health_insurance_subs <- served_in_date_range %>%
@@ -1455,12 +1633,7 @@ check_eligibility <- served_in_date_range %>%
                )) %>%
       mutate(Issue = "Conflicting Health Insurance yes/no at Entry",
              Type = "Error",
-             Guidance = "If the user answered \"Yes\" to \"Covered by Health 
-        Insurance?\", then there should be a Health Insurance subassessment 
-        where it indicates which type of health insurance the client is 
-        receiving. Similarly if the user answered \"No\", there should not be 
-        any Health Insurance records that say the client is receiving that type 
-        of Health Insurance.") %>%
+             Guidance = guidance_conflicting_hi) %>%
       select(all_of(vars_we_want))
     
     conflicting_health_insurance_exit <- health_insurance_subs %>%
@@ -1474,12 +1647,7 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Conflicting Health Insurance yes/no at Exit",
         Type = "Error",
-        Guidance = "If the user answered \"Yes\" to \"Covered by Health 
-        Insurance?\", then there should be a Health Insurance subassessment 
-        where it indicates which type of health insurance the client is 
-        receiving. Similarly if the user answered \"No\", there should not be 
-        any Health Insurance records that say the client is receiving that type 
-        of Health Insurance."
+        Guidance = guidance_conflicting_hi
       ) %>%
       select(all_of(vars_we_want))
     
@@ -1559,7 +1727,8 @@ check_eligibility <- served_in_date_range %>%
              is.na(BenefitsFromAnySource))
       ) %>%
       mutate(Issue = "Non-cash Benefits Missing at Entry",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
     conflicting_ncbs_entry <- served_in_date_range %>%
@@ -1578,12 +1747,7 @@ check_eligibility <- served_in_date_range %>%
                )) %>%
       mutate(Issue = "Conflicting Non-cash Benefits yes/no at Entry",
              Type = "Error",
-             Guidance = "If the user answered \"Yes\" to \"Non-cash benefits 
-             from any source\", then there should be a Non-cash benefits 
-             subassessment where it indicates which type of income the client is 
-             receiving. Similarly if the user answered \"No\", then there should 
-             not be any non-cash records that say the client is receiving that 
-             type of benefit") %>%
+             Guidance = guidance_conflicting_ncbs) %>%
       select(all_of(vars_we_want))
     
 
@@ -1602,7 +1766,10 @@ check_eligibility <- served_in_date_range %>%
                (AgeAtEntry > 17 | is.na(AgeAtEntry)) &
                (BenefitCount == 6)) %>%
       mutate(Issue = "Client has ALL SIX Non-cash Benefits at Entry",
-             Type = "Warning") %>%
+             Type = "Warning",
+             Guidance = "This client has every single Non-Cash Benefit, 
+             according to HMIS, which is highly unlikely. Please correct (unless
+             it's actually true).") %>%
       select(all_of(vars_we_want))
     
     # Missing NCBs at Exit ----------------------------------------------------
@@ -1620,7 +1787,8 @@ check_eligibility <- served_in_date_range %>%
              is.na(BenefitsFromAnySource))
       ) %>%
       mutate(Issue = "Non-cash Benefits Missing at Exit",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_exit) %>%
       select(all_of(vars_we_want))
     
     conflicting_ncbs_exit <- served_in_date_range %>%
@@ -1641,12 +1809,7 @@ check_eligibility <- served_in_date_range %>%
                )) %>%
       mutate(Issue = "Conflicting Non-cash Benefits yes/no at Exit",
              Type = "Error",
-             Guidance = "If the user answered \"Yes\" to \"Non-cash benefits 
-             from any source\", then there should be a Non-cash benefits 
-             subassessment where it indicates which type of income the client is 
-             receiving. Similarly if the user answered \"No\", then there should 
-             not be any non-cash records that say the client is receiving that 
-             type of benefit") %>%
+             Guidance = guidance_conflicting_ncbs) %>%
       select(all_of(vars_we_want))
     
     rm(ncb_subs)
@@ -1665,10 +1828,16 @@ check_eligibility <- served_in_date_range %>%
              SSDI = if_else(is.na(SSDI), 0, SSDI)) %>%
       filter(SSI + SSDI > 0 &
                DisablingCondition == 0 & AgeAtEntry > 17) %>%
-      select(-DisablingCondition,-SSI,-SSDI,-AgeAtEntry) %>%
+      select(-DisablingCondition, -SSI, -SSDI, -AgeAtEntry) %>%
       unique() %>%
-      mutate(Issue = "Client with No Disability Receiving SSI/SSDI (could be ok)",
-             Type = "Warning") %>%
+      mutate(
+        Issue = "Client with No Disability Receiving SSI/SSDI (could be ok)",
+        Type = "Warning",
+        Guidance = "If a client is receiving SSI or SSDI for THEIR OWN disability, that
+      disability should be indicated in the Disabilities data elements. If
+      an adult is receiving SSI or SSDI benefits on behalf a minor child,
+      then there is no action needed."
+      ) %>%
       select(all_of(vars_we_want))
     
     rm(IncomeBenefits, smallIncome)
@@ -1688,7 +1857,8 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
       mutate(Issue = "Service Transaction on a Non Head of Household",
-             Type = "Warning") %>%
+             Type = "Warning",
+             Guidance = guidance_service_on_non_hoh) %>%
       select(all_of(vars_we_want))
     
     services_on_hh_members_ssvf <- served_in_date_range %>%
@@ -1700,7 +1870,8 @@ check_eligibility <- served_in_date_range %>%
                GrantType == "SSVF") %>%
       semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
       mutate(Issue = "Service Transaction on a Non Head of Household (SSVF)",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_service_on_non_hoh) %>%
       select(all_of(vars_we_want))
     
     rm(Services)
@@ -1715,7 +1886,8 @@ check_eligibility <- served_in_date_range %>%
       semi_join(Referrals,
                 by = c("PersonalID", "ProjectName" = "ProviderCreating")) %>%
       mutate(Issue = "Referral on a Non Head of Household",
-             Type = "Warning") %>%
+             Type = "Warning",
+             Guidance = guidance_referral_on_non_hoh) %>%
       select(all_of(vars_we_want))
     
     referrals_on_hh_members_ssvf <- served_in_date_range %>%
@@ -1727,7 +1899,8 @@ check_eligibility <- served_in_date_range %>%
                GrantType == "SSVF") %>%
       semi_join(Referrals, by = c("PersonalID")) %>%
       mutate(Issue = "Referral on a Non Head of Household (SSVF)",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_referral_on_non_hoh) %>%
       select(all_of(vars_we_want))
     
     # Stray Services (fall outside EE) ----------------------------------------
@@ -1736,7 +1909,9 @@ check_eligibility <- served_in_date_range %>%
     # errors. I'm going to have to make this its own thing. :(
     stray_services <- stray_services %>%
       mutate(Issue = "Service Not Attached to an Entry Exit",
-             Type = "Warning") %>%
+             Type = "Warning",
+             Guidance = "This Service does not fall between any project stay,
+             so it will not show in any reporting.") %>%
       select(PersonalID, ServiceProvider, ServiceStartDate, Issue, Type)
     
     # AP No Recent Referrals --------------------------------------------------
@@ -1839,9 +2014,17 @@ check_eligibility <- served_in_date_range %>%
              EnrollmentID) %>%
       filter(is.na(ReferralOutcome) &
                ReferralDate < today() - days(14)) %>%
-      mutate(ProjectName = ProviderCreating,
-             Issue = "Old Outstanding Referral",
-             Type = "Warning") %>%
+      mutate(
+        ProjectName = ProviderCreating,
+        Issue = "Old Outstanding Referral",
+        Type = "Warning",
+        Guidance = "Referrals should be closed in about 2 weeks. Please be sure you are
+      following up with any referrals and helping the client to find permanent
+      housing. Once a Referral is made, the receiving agency should be saving
+      the \"Referral Outcome\" once it is known. If you have Referrals that are
+      legitimately still open after 2 weeks because there is a lot of follow
+      up going on, no action is needed since the HMIS data is accurate."
+      ) %>%
       select(all_of(vars_we_want))
     
     # ^^this is pulling in neither the Unsheltered NOR referrals from APs
@@ -1889,8 +2072,15 @@ check_eligibility <- served_in_date_range %>%
     
     unsheltered_not_unsheltered <- unsheltered_enrollments %>%
       filter(LivingSituation != 16) %>%
-      mutate(Type = "High Priority",
-             Issue = "Wrong Provider (Not Unsheltered)") %>%
+      mutate(
+        Type = "High Priority",
+        Issue = "Wrong Provider (Not Unsheltered)",
+        Guidance = "Clients who were incorrectly entered into the Unsheltered
+          provider should be exited. Otherwise, correct the data. Please review
+          the <a href=\"https://www.youtube.com/watch?v=qdmrqOHXoN0&t=174s\"
+          target=\"_blank\">data entry portion of the Unsheltered video training</a>
+          for more info.",
+      ) %>%
       select(all_of(vars_we_want))
     
     # Unsheltered Incorrect Provider in CM Record -----------------------------
@@ -1903,8 +2093,14 @@ check_eligibility <- served_in_date_range %>%
         EEProvider == "Unsheltered Clients - OUTREACH" &
           CMProvider == "Unsheltered Clients - OUTREACH"
       ) %>%
-      mutate(Type = "Error",
-             Issue = "Incorrect Provider in Case Manager record") %>%
+      mutate(
+        Type = "Error",
+        Issue = "Incorrect Provider in Case Manager record",
+        Guidance = "When you save a Case Manager record, select the Access Point provider
+          that diverted the household in the provider picklist. See Step 4
+          in the <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
+          target=\"_blank\">Diversion workflow</a> for more info."
+      ) %>%
       select(all_of(vars_we_want))
     
     # Missing End Date on Outreach Contact ------------------------------------
@@ -1926,8 +2122,17 @@ check_eligibility <- served_in_date_range %>%
     
     unsheltered_long_not_referred <-
       anti_join(long_unsheltered, unsheltered_referred, by = "PersonalID") %>%
-      mutate(Type = "Warning",
-             Issue = "Unsheltered 30+ Days with no Referral") %>%
+      mutate(
+        Type = "Warning",
+        Issue = "Unsheltered 30+ Days with no Referral",
+        Guidance = "Ideally households are being referred for housing from the 
+        Unsheltered provider within a short period of time. These particular 
+        households are currently unsheltered and without a referral. If the 
+        household has been referred but that has not been captured in HMIS, 
+        please enter the referral. To learn more about when to exit a household 
+        from the Unsheltered Provider, click
+        <a href=\"https://youtu.be/qdmrqOHXoN0?t=721\" target=\"_blank\">here</a>."
+      ) %>%
       select(all_of(vars_we_want))
     
     rm(long_unsheltered, unsheltered_referred, Referrals)
@@ -1940,8 +2145,14 @@ check_eligibility <- served_in_date_range %>%
           filter(EEProvider == "Unsheltered Clients - OUTREACH"),
         by = c("PersonalID")
       ) %>%
-      mutate(Type = "Error",
-             Issue = "Missing Case Manager record") %>%
+      mutate(
+        Type = "Error",
+        Issue = "Missing Case Manager record",
+        Guidance = "Each client entered into the Diversion Provider should have a Case
+          Manager record. See Step 4 in the
+          <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
+          target=\"_blank\">Diversion workflow</a> for more info."
+      ) %>%
       select(all_of(vars_we_want))
     
     # SSVF --------------------------------------------------------------------
@@ -1997,28 +2208,65 @@ check_eligibility <- served_in_date_range %>%
         by = "PersonalID"
       )
     
-    missing_client_veteran_info <- ssvf_served_in_date_range %>%
+    veteran_missing_year_entered <- ssvf_served_in_date_range %>%
       filter(VeteranStatus == 1) %>%
       mutate(
         Issue = case_when(
           is.na(YearEnteredService) ~ "Missing Year Entered Service",
-          YearEnteredService > year(today()) ~ "Incorrect Year Entered Service",
-          is.na(YearSeparated) ~ "Missing Year Separated",
-          YearSeparated > year(today()) ~ "Incorrect Year Separated",
-          is.na(WorldWarII) | WorldWarII == 99 |
-            is.na(KoreanWar) | KoreanWar == 99 |
-            is.na(VietnamWar) | VietnamWar == 99 |
-            is.na(DesertStorm) | DesertStorm == 99 |
-            is.na(AfghanistanOEF) | AfghanistanOEF == 99 |
-            is.na(IraqOIF) | IraqOIF == 99 |
-            is.na(IraqOND) | IraqOND == 99 |
-            is.na(OtherTheater) |
-            OtherTheater == 99  ~ "Missing War(s)",
-          is.na(MilitaryBranch) ~ "Missing Military Branch",
-          is.na(DischargeStatus) ~ "Missing Discharge Status"
-        ),
-        Type = "Error"
+          YearEnteredService > year(today()) ~ "Incorrect Year Entered Service"),
+        Type = "Error",
+        Guidance = guidance_missing_at_entry
       ) %>%
+      filter(!is.na(Issue)) %>%
+      select(all_of(vars_we_want))
+    
+    veteran_missing_year_separated <- ssvf_served_in_date_range %>%
+      filter(VeteranStatus == 1) %>%
+      mutate(
+        Issue = case_when(
+          is.na(YearSeparated) ~ "Missing Year Separated",
+          YearSeparated > year(today()) ~ "Incorrect Year Separated"),
+        Type = "Error",
+        Guidance = guidance_missing_at_entry
+      ) %>%
+      filter(!is.na(Issue)) %>%
+      select(all_of(vars_we_want))
+    
+    veteran_missing_wars <- ssvf_served_in_date_range %>%
+      filter(
+        VeteranStatus == 1 &
+          (
+            is.na(WorldWarII) | WorldWarII == 99 |
+              is.na(KoreanWar) | KoreanWar == 99 |
+              is.na(VietnamWar) | VietnamWar == 99 |
+              is.na(DesertStorm) | DesertStorm == 99 |
+              is.na(AfghanistanOEF) | AfghanistanOEF == 99 |
+              is.na(IraqOIF) | IraqOIF == 99 |
+              is.na(IraqOND) | IraqOND == 99 |
+              is.na(OtherTheater) |
+              OtherTheater == 99
+          )
+      ) %>%
+      mutate(Issue = "Missing War(s)",
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
+      filter(!is.na(Issue)) %>%
+      select(all_of(vars_we_want))
+    
+    veteran_missing_branch <- ssvf_served_in_date_range %>%
+      filter(VeteranStatus == 1 &
+               is.na(MilitaryBranch)) %>%
+      mutate(Issue = "Missing Military Branch",
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
+      filter(!is.na(Issue)) %>%
+      select(all_of(vars_we_want))
+    
+    veteran_missing_discharge_status <- ssvf_served_in_date_range %>%
+      filter(VeteranStatus == 1 & is.na(DischargeStatus)) %>%
+      mutate(Issue = "Missing Discharge Status",
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       filter(!is.na(Issue)) %>%
       select(all_of(vars_we_want))
     
@@ -2037,26 +2285,39 @@ check_eligibility <- served_in_date_range %>%
           MilitaryBranch %in% c(8, 9) ~ "Missing Military Branch",
           DischargeStatus %in% c(8, 9) ~ "Missing Discharge Status"
         ),
-        Type = "Warning"
+        Type = "Warning",
+        Guidance = guidance_dkr_data
       ) %>%
       filter(!is.na(Issue)) %>%
       select(all_of(vars_we_want))
     
-    ssvf_at_entry <- ssvf_served_in_date_range %>%
-      filter(RelationshipToHoH == 1) %>%
-      mutate(
-        Issue = case_when(
-          is.na(PercentAMI) ~ "Missing Percent AMI",
-          is.na(VAMCStation) ~ "Missing VAMC Station Number",
-          is.na(LastPermanentStreet) |
-            is.na(LastPermanentCity) |
-            # is.na(LastPermanentState) | # still not fixed in export
-            is.na(LastPermanentZIP) ~ "Missing Some or All of Last Permanent Address"
-        ),
-        
-        Type = "Error"
-      ) %>%
-      filter(!is.na(Issue)) %>%
+    ssvf_missing_percent_ami <- ssvf_served_in_date_range %>%
+      filter(RelationshipToHoH == 1 &
+               is.na(PercentAMI)) %>%
+      mutate(Issue = "Missing Percent AMI",
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
+      select(all_of(vars_we_want))
+    
+    ssvf_missing_vamc <- ssvf_served_in_date_range %>%
+      filter(RelationshipToHoH == 1 &
+               is.na(VAMCStation)) %>%
+      mutate(Issue = "Missing VAMC Station Number",
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
+      select(all_of(vars_we_want))
+    
+    ssvf_missing_address <- ssvf_served_in_date_range %>%
+      filter(RelationshipToHoH == 1 &
+               (
+                 is.na(LastPermanentStreet) |
+                   is.na(LastPermanentCity) |
+                   # is.na(LastPermanentState) | # still not fixed in export
+                   is.na(LastPermanentZIP)
+               )) %>%
+      mutate(Issue = "Missing Some or All of Last Permanent Address",
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
     ssvf_hp_screen <- ssvf_served_in_date_range %>%
@@ -2065,7 +2326,8 @@ check_eligibility <- served_in_date_range %>%
                (is.na(HPScreeningScore) |
                   is.na(ThresholdScore))) %>%
       mutate(Issue = "Missing HP Screening or Threshold Score",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
     
@@ -2104,7 +2366,11 @@ check_eligibility <- served_in_date_range %>%
       lh_without_spdat,
       missing_approx_date_homeless,
       missing_client_location,
-      missing_client_veteran_info,
+      veteran_missing_year_entered,
+      veteran_missing_year_separated,
+      veteran_missing_wars,
+      veteran_missing_branch,
+      veteran_missing_discharge_status,
       missing_county_served,
       missing_county_prior,
       missing_destination,
@@ -2132,7 +2398,9 @@ check_eligibility <- served_in_date_range %>%
       services_on_hh_members,
       services_on_hh_members_ssvf,
       spdat_on_non_hoh,
-      ssvf_at_entry,
+      ssvf_missing_address,
+      ssvf_missing_vamc,
+      ssvf_missing_percent_ami,      
       ssvf_hp_screen,
       unlikely_ncbs_entry
     ) %>%
@@ -2141,32 +2409,16 @@ check_eligibility <- served_in_date_range %>%
         "Unsheltered Clients - OUTREACH"
       ))
     
+    dq_main <- dq_main %>%
+      unique()   %>%
+      mutate(Type = factor(Type, levels = c("High Priority",
+                                            "Error",
+                                            "Warning")))  
+    
     # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
     
     dq_main <- dq_main %>%
-      filter(
-        !Issue %in% c(
-          # "Conflicting Disability of Long Duration yes/no",
-          # "Conflicting Health Insurance yes/no at Entry",
-          # "Conflicting Health Insurance yes/no at Exit",
-          # "Conflicting Income yes/no at Entry",
-          # "Conflicting Income yes/no at Exit",
-          # "Conflicting Non-cash Benefits yes/no at Entry",
-          # "Conflicting Non-cash Benefits yes/no at Exit",
-          # "Non-cash Benefits Missing at Exit",
-          # "Health Insurance Missing at Entry",
-          # "Health Insurance Missing at Exit",
-          # "Income Missing at Entry",
-          # "Income Missing at Exit",
-          # "Non-cash Benefits Missing at Entry",
-          # "Missing Disability Subs",
-          "Missing Length of Stay"#,  # case 873163
-          # "Don't Know/Refused Residence Prior",
-          # "Don't Know/Refused Months or Times Homeless",
-          # "Missing Residence Prior",
-          # "Missing Months or Times Homeless"
-        )
-      )
+      filter(!Issue %in% c("Missing Length of Stay")) # case 873163
     
     # Unsheltered DQ ----------------------------------------------------------
     
@@ -2206,303 +2458,22 @@ check_eligibility <- served_in_date_range %>%
       filter(
         UserCounty != "Franklin" &
           !Issue %in% c(
-            # "Conflicting Disability of Long Duration yes/no",
-            # "Conflicting Disability yes/no at Exit",
             "Conflicting Health Insurance yes/no at Entry",
             "Conflicting Health Insurance yes/no at Exit",
             "Conflicting Income yes/no at Entry",
             "Conflicting Income yes/no at Exit",
             "Conflicting Non-cash Benefits yes/no at Entry",
             "Conflicting Non-cash Benefits yes/no at Exit",
-            # "Incomplete Living Situation Data",
-            # "Missing Months or Times Homeless",
-            # "Don't Know/Refused Residence Prior",
-            # "Don't Know/Refused Months or Times Homeless",
             "Health Insurance Missing at Entry",
             "Health Insurance Missing at Exit",
             "Income Missing at Entry",
             "Income Missing at Exit",
-            # "Missing Residence Prior",
             "Non-cash Benefits Missing at Entry",
             "Non-cash Benefits Missing at Exit"
           )
       )
-    # add in Issue explanations -----------------------------------------------
-    
-    a <- dq_main %>%
-      select(Type, Issue)
-    b <- dq_unsheltered %>%
-      select(Type, Issue)
-    c <- rbind(a, b) %>% unique()
-    
-    user_help <- c %>%
-      arrange(Type, Issue) %>%
-      mutate(
-        Guidance = case_when(
-    #       Issue == "Extremely Long Stayer" ~
-    #         "This client is showing as an outlier for Length of Stay for this 
-    #       project type in the Balance of State CoC. Please verify that this 
-    #       client is still in your project. If they are, be sure there are no 
-    #       alternative permanent housing solutions for this client. If the client 
-    #       is no longer in your project, please enter their Exit Date as the 
-    #       closest estimation of the day they left your project.",
-    #       Issue == "Access Point with Entry Exits" ~
-    #         "Access Points should only be entering Referrals and Diversion Services
-    #   into the AP provider- not Entry Exits. If a user has done this, the Entry
-    #   Exit should be deleted. Please see the
-    #   <a href=\"http://hmis.cohhio.org/index.php?pg=kb.page&id=151\"
-    #       target=\"_blank\">Coordinated Entry workflow</a>.",
-    #       Issue == "Children Only Household" ~
-    #         "Unless your project serves youth younger than 18 exclusively, every
-    # household should have at least one adult in it. If you are not sure how
-    # to correct this, please contact the HMIS team for help.",
-    #       Issue == "Conflicting Disability of Long Duration yes/no" ~
-    #         "If the user answered \"Yes\" to the \"Does the client have a disabling
-    # condition?\", then there should be a disability subassessment where it
-    # indicates the disability determination is Yes and the \"If yes,... long
-    # duration\" question is also Yes. Similarly if the user answered \"No\", the
-    #   client has that type of disability",
-    #       Issue %in% c(
-    #         "Conflicting Health Insurance yes/no at Entry",
-    #         "Conflicting Health Insurance yes/no at Exit"
-    #       ) ~
-    #         "If the user answered \"Yes\" to \"Covered by Health Insurance?\", then
-    # there should be a Health Insurance subassessment where it indicates which
-    # type of health insurance the client is receiving. Similarly if the user
-    # answered \"No\", there should not be any Health Insurance records that say
-    #   the client is receiving that type of Health Insurance.",
-    #       Issue %in% c(
-    #         "Conflicting Income yes/no at Entry",
-    #         "Conflicting Income yes/no at Exit"
-    #       ) ~
-    #         "If the user answered \"Yes\" to \"Income from any source\", then
-    # there should be an income subassessment where it indicates which
-    # type of income the client is receiving. Similarly if the user answered
-    # \"No\", there should not be any income records that say the client is
-    #   receiving that type of income.",
-    #       Issue %in% c(
-    #         "Conflicting Non-cash Benefits yes/no at Entry",
-    #         "Conflicting Non-cash Benefits yes/no at Exit"
-    #       ) ~
-    #         "If the user answered \"Yes\" to \"Non-cash benefits from any source\",
-    # then there should be a Non-cash benefits subassessment where it indicates
-    # which type of income the client is receiving. Similarly if the user answered
-    # \"No\", then there should not be any non-cash records that say the client is
-    #   receiving that type of benefit",
-    #       Issue == "Disabilities: missing Long Duration in subassessment" ~
-    #         "Any Disability subassessment the user answers \"Yes\" to should also
-    #   have the \"If yes, is the disability of long duration...\" answered as \"Yes\".",
-    #       Issue == "Incorrect Date of Birth or Entry Date" ~
-    #         "The HMIS data is indicating the client entered the project PRIOR to
-    #   being born. Correct either the Date of Birth or the Entry Date, whichever
-    #   is incorrect.",
-          Issue == "Incorrect Entry Exit Type" ~
-            "The user selected the wrong Entry Exit Type. To correct, click the
-      Entry pencil and Save & Continue. The Entry Exit Type at the top can then
-      be changed. Click \"Update\" to make this change take effect.",
-          Issue == "Invalid SSN" ~
-            "The Social Security Number does not conform with standards set by the
-      Social Security Administration. This includes rules like every SSN is
-      exactly 9 digits and cannot have certain number patterns. Correct by
-      navigating to the client's record, then clicking the Client Profile tab,
-      then click into the Client Record pencil to correct the data.",
-          Issue %in% c(
-            "Missing Connection with SOAR at Exit",
-            "PATH Status at Exit Missing or Incomplete",
-            "Health Insurance Missing at Exit",
-            "Income Missing at Exit"
-          ) ~
-            "Please enter the data for this item by clicking into the Exit pencil on
-      the given Client ID on the appropriate program stay.",
-          Issue == "Missing PATH Enrollment at Exit" ~
-            "Please enter the data for this item by clicking into the Entry or Exit
-      pencil and creating an Interim. In the assessment, enter the correct PATH
-      Enrollment Date and Save.",
-          Issue %in% c(
-            "Missing Date of Birth Data Quality",
-            "Missing Length of Stay",
-            "Missing County of Prior Residence",
-            "Missing Disabling Condition",
-            "Missing Ethnicity",
-            "Missing Gender",
-            "Missing Months or Times Homeless",
-            "Missing Previously From Street, ES, or SH (Length of Time Homeless questions)",
-            "Missing Race",
-            "Missing Residence Prior",
-            "Non-cash Benefits Missing at Entry",
-            "Missing Some or All of Last Permanent Address",
-            "Missing Year Separated",
-            "Missing VAMC Station Number",
-            "Missing Residence Prior Length of Stay (PATH)",
-            "Missing Percent AMI",
-            "Missing War(s)",
-            "Missing Year Entered Service",
-            "Missing HP Screening or Threshold Score",
-            "Health Insurance Missing at Entry",
-            "Income Missing at Entry",
-            "Non-cash Benefits Missing at Entry"
-          ) ~
-            "This data element is required to be collected at project Entry. Please
-      click into the client's Entry pencil to save this data to HMIS.",
-          Issue == "Missing Reason Not PATH Enrolled" ~
-            "The user has indicated the household was not enrolled into PATH, but
-      no reason was selected.",
-          Issue == "Missing County Served" ~
-            "County Served must be collected at Entry for all clients. County is
-      very important so that the client is prioritized into the correct service
-      areas for various housing solutions. This can be corrected through the
-      Entry pencil.",
-          Issue %in% c(
-            "Missing Name Data Quality",
-            "Missing SSN",
-            "Missing Veteran Status"
-          ) ~
-            "Please correct by navigating to the client's record, then clicking the
-      Client Profile tab, then click into the Client Record pencil to save the
-      missing data.",
-          Issue == "No Head of Household" ~
-            "Please be sure all members of the household are included in the program
-      stay, and that each household member's birthdate is correct. If those
-      things are both true, or the client is a single, check inside the Entry
-      pencil to be sure each household member has \"Relationship to Head of
-      Household\" answered and that one of them says Self (head of household).
-      Singles are always Self (head of household).",
-          Issue == "Too Many Heads of Household" ~
-            "Check inside the Entry pencil to be sure each household member has
-      \"Relationship to Head of Household\" answered and that only one of
-      them says Self (head of household).",
-          Issue %in% c(
-            "Referral on a Non Head of Household",
-            "Referral on a Non Head of Household (SSVF)"
-          ) ~
-            "Users should not checkbox all the household members when creating a
-      Referral. Only the Head of Household needs the Referral. It is recommended
-      that users delete any referrals on Non Heads of Household related to this
-      project stay so that the receiving agency does not have to deal with them
-      and they stop showing in reporting."
-          ,
-          Issue %in% c(
-            "Service Transaction on a Non Head of Household (SSVF)",
-            "Service Transaction on a Non Head of Household"
-          ) ~
-            "Users should not checkbox all the household members when creating a
-      Service Transaction. Only the Head of Household needs a Service
-      Transaction. Delete any extraneous Service Transactions related to this
-      project stay.",
-          Issue == "Duplicate Entry Exits" ~
-            "Users sometimes create this error when they forget to click into a
-      program stay by using the Entry pencil, and instead they click \"Add
-      Entry/Exit\" each time. To correct, EDA to the project the Entry/Exit
-      belongs to, navigate to the Entry/Exit tab and delete the program stay
-      that was accidentally added for each household member.",
-          Issue == "Check Eligibility" ~
-            "Your Residence Prior data suggests that this project is either serving
-      ineligible households, the household was entered into the wrong project,
-      or the Residence Prior data at Entry is incorrect. Please check the terms
-      of your grant or speak with the CoC team at COHHIO if you are unsure of
-      eligibility criteria for your project type.",
-          Issue == "Check Veteran Status for Accuracy" ~
-            "You have indicated the household exited to a destination that only
-      veterans are eligible for, but the head of household appears to be not a
-      veteran. Either the Veteran Status is incorrect or the Destination is
-      incorrect.",
-          Issue == "Client with No Disability Receiving SSI/SSDI (could be ok)" ~
-            "If a client is receiving SSI or SSDI for THEIR OWN disability, that
-      disability should be indicated in the Disabilities data elements. If
-      an adult is receiving SSI or SSDI benefits on behalf a minor child,
-      then there is no action needed.",
-          Issue %in% c(
-            "Don't Know/Refused Ethnicity",
-            "Don't Know/Refused or Approx. Date of Birth",
-            "Don't Know/Refused Race",
-            "Don't Know/Refused Veteran Status",
-            "Don't Know/Refused Destination",
-            "Don't Know/Refused Months or Times Homeless",
-            "Don't Know/Refused Residence Prior",
-            "Don't Know/Refused SSN",
-            "Don't Know/Refused War(s)",
-            "Incomplete or Don't Know/Refused Name"
-          ) ~
-            "It is widely understood that not every client will be able to or consent
-      to answer every question in every assessment. If you do have any of this
-      data, but it is just not entered into HMIS yet, please enter it. If you
-      can reasonably attempt again to collect this data from the client (like
-      if they are still in your project), then please do so. Otherwise, there is
-      no action needed.",
-          Issue == "Old Outstanding Referral" ~
-            "Referrals should be closed in about 2 weeks. Please be sure you are
-      following up with any referrals and helping the client to find permanent
-      housing. Once a Referral is made, the receiving agency should be saving
-      the \"Referral Outcome\" once it is known. If you have Referrals that are
-      legitimately still open after 2 weeks because there is a lot of follow
-      up going on, no action is needed since the HMIS data is accurate.",
-          Issue == "Missing Destination" ~
-            "It is widely understood that not every client will complete an exit
-      interview, especially for high-volume emergency shelters. A few warnings
-      for Missing Destination is no cause for concern, but if there is a large
-      number, please contact the CoC team to work out a way to improve client
-      engagement.",
-          Issue == "SPDAT Created on a Non-Head-of-Household" ~
-            "It is very important to be sure that the VI-SPDAT score goes on the
-        Head of Household of a given program stay because otherwise that score
-      may not pull into any reporting. It is possible a Non Head of Household
-      was a Head of Household in a past program stay, and in that situation,
-      this should not be corrected unless the Head of Household of your program
-      stay is missing their score. To correct this, you would need to completely
-      re-enter the score on the correct client's record.",
-          Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT" ~
-            "Every household (besides those fleeing domestic violence and veteran
-      households) must have a VI-SPDAT score to aid with prioritization into
-      the Permanent Housing (RRH or PSH) project.",
-          Issue == "HoHs in shelter or Transitional Housing for 8+ days without SPDAT" ~
-            "Any household who has been in shelter, Transitional Housing, or a
-      Safe Haven for over 8 days should be assessed with the VI-SPDAT so that
-      they can be prioritized for Permanent Housing (RRH or PSH).",
-          Issue == "Missing Disability Subs" ~
-            "The HMIS data indicates the client has a disability, but there is no
-      corresponding Disability to match it.",
-          Issue == "Future Entry Date" ~
-            "Users should not be entering a client into a project on a date in the
-      future. There is no action needed, but going forward, please be sure that
-      your data entry workflow is correct according to your project type.",
-          Issue == "Wrong Provider (Not Unsheltered)" ~
-            "Clients who were incorrectly entered into the Unsheltered
-          provider should be exited. Otherwise, correct the data. Please review
-          the <a href=\"https://www.youtube.com/watch?v=qdmrqOHXoN0&t=174s\"
-          target=\"_blank\">data entry portion of the Unsheltered video training</a>
-          for more info.",
-          Issue == "Incorrect Provider in Case Manager record" ~
-            "When you save a Case Manager record, select the Access Point provider
-          that diverted the household in the provider picklist. See Step 4
-          in the <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
-          target=\"_blank\">Diversion workflow</a> for more info.",
-          Issue == "Missing Case Manager record" ~
-            "Each client entered into the Diversion Provider should have a Case
-          Manager record. See Step 4 in the
-          <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
-          target=\"_blank\">Diversion workflow</a> for more info.",
-          Issue == "Unsheltered 30+ Days with no Referral" ~
-            "Ideally households are being referred for housing from the Unsheltered
-          provider within a short period of time. These particular households are
-          currently unsheltered and without a referral. If the household has been
-          referred but that has not been captured in HMIS, please enter the referral.
-          To learn more about when to exit a household from the Unsheltered
-          Provider, click
-          <a href=\"https://youtu.be/qdmrqOHXoN0?t=721\" target=\"_blank\">here</a>."
-        )
-      )
-    
-    dq_main <- dq_main %>%
-      left_join(user_help, by = c("Type", "Issue")) %>%
-      mutate(Type = factor(Type, levels = c("High Priority",
-                                            "Error",
-                                            "Warning"))) %>%
-      unique()
-    
-    # Unsheltered DQ ----------------------------------------------------------
-    
+
     dq_unsheltered <- dq_unsheltered %>%
-      left_join(user_help, by = c("Type", "Issue")) %>%
       mutate(
         Type = if_else(Issue == "Missing County Served", "High Priority", Type),
         Type = factor(Type, levels = c("High Priority",
@@ -2534,92 +2505,10 @@ check_eligibility <- served_in_date_range %>%
       filter(ProjectID != 1695)
     
     dq_providers <- sort(projects_current_hmis$ProjectName)
-    
-    # Clean up the house ------------------------------------------------------
-    
-    rm(
-      aps_with_ees,
-      CaseManagers,
-      check_disability_ssi,
-      check_eligibility,
-      Client,
-      conflicting_disabilities,
-      conflicting_health_insurance_entry,
-      conflicting_health_insurance_exit,
-      conflicting_income_entry,
-      conflicting_income_exit,
-      conflicting_ncbs_entry,
-      conflicting_ncbs_exit,
-      dkr_months_times_homeless,
-      dkr_residence_prior,
-      dkr_destination,
-      dkr_LoS,
-      dkr_client_veteran_info,
-      dq_dob,
-      dq_ethnicity,
-      dq_gender,
-      dq_name,
-      dq_race,
-      dq_ssn,
-      dq_veteran,
-      duplicate_ees,
-      Enrollment,
-      entered_ph_without_spdat,
-      extremely_long_stayers,
-      future_ees,
-      hh_issues,
-      projects_current_hmis,
-      incorrect_ee_type,
-      # incorrectMoveInDate,
-      lh_without_spdat,
-      missing_approx_date_homeless,
-      missing_client_location,
-      missing_client_veteran_info,
-      missing_county_prior,
-      missing_county_served,
-      missing_destination,
-      missing_disabilities,
-      detail_missing_disabilities,
-      # missing_disability_subs,
-      missing_health_insurance_entry,
-      missing_health_insurance_exit,
-      missing_income_entry,
-      missing_income_exit,
-      missing_living_situation,
-      missing_LoS,
-      missing_months_times_homeless,
-      missing_ncbs_entry,
-      missing_ncbs_exit,
-      missing_residence_prior,
-      internal_old_outstanding_referrals,
-      path_enrolled_missing,
-      path_missing_los_res_prior,
-      path_no_status_at_exit,
-      path_reason_missing,
-      path_SOAR_missing_at_exit,
-      path_status_determination,
-      Project,
-      referrals_on_hh_members,
-      referrals_on_hh_members_ssvf,
-      served_in_date_range,
-      services_on_hh_members,
-      services_on_hh_members_ssvf,
-      smallProject,
-      spdat_on_non_hoh,
-      ssvf_at_entry,
-      ssvf_hp_screen,
-      ssvf_served_in_date_range,
-      unlikely_ncbs_entry,
-      unsheltered_enrollments,
-      unsheltered_not_unsheltered,
-      unsh_missing_cm,
-      unsh_incorrect_cmprovider,
-      unsheltered_long_not_referred,
-      update_date,
-      user_help,
-      vars_we_want
-    )
-    
+  
+
+# Plots -------------------------------------------------------------------
+
     dq_data_errors_plot <- dq_past_year %>%
       filter(
         Type %in% c("Error", "High Priority") &
@@ -2841,17 +2730,105 @@ check_eligibility <- served_in_date_range %>%
       scale_fill_viridis_c(direction = -1) +
       theme_minimal(base_size = 18)
     
+    # Clean up the house ------------------------------------------------------
+    
+    rm(
+      aps_with_ees,
+      CaseManagers,
+      check_disability_ssi,
+      check_eligibility,
+      Client,
+      conflicting_disabilities,
+      conflicting_health_insurance_entry,
+      conflicting_health_insurance_exit,
+      conflicting_income_entry,
+      conflicting_income_exit,
+      conflicting_ncbs_entry,
+      conflicting_ncbs_exit,
+      # detail_eligibility, # the app needs; this don't remove it
+      detail_missing_disabilities,
+      dkr_living_situation,
+      dkr_months_times_homeless,
+      dkr_residence_prior,
+      dkr_destination,
+      dkr_LoS,
+      dkr_client_veteran_info,
+      dq_dob,
+      dq_ethnicity,
+      dq_gender,
+      dq_name,
+      dq_race,
+      dq_ssn,
+      dq_veteran,
+      duplicate_ees,
+      Enrollment,
+      entered_ph_without_spdat,
+      extremely_long_stayers,
+      FileActualStart,
+      future_ees,
+      HealthAndDV,
+      hh_issues,
+      incorrect_ee_type,
+      internal_old_outstanding_referrals,
+      lh_without_spdat,
+      missing_approx_date_homeless,
+      missing_client_location,
+      missing_county_prior,
+      missing_county_served,
+      missing_destination,
+      missing_disabilities,
+      missing_health_insurance_entry,
+      missing_health_insurance_exit,
+      missing_income_entry,
+      missing_income_exit,
+      missing_living_situation,
+      missing_LoS,
+      missing_months_times_homeless,
+      missing_ncbs_entry,
+      missing_ncbs_exit,
+      missing_previous_street_ESSH,
+      missing_residence_prior,
+      path_enrolled_missing,
+      path_missing_los_res_prior,
+      path_no_status_at_exit,
+      path_reason_missing,
+      path_SOAR_missing_at_exit,
+      path_status_determination,
+      Project,
+      projects_current_hmis,
+      referrals_on_hh_members,
+      referrals_on_hh_members_ssvf,
+      served_in_date_range,
+      services_on_hh_members,
+      services_on_hh_members_ssvf,
+      smallProject,
+      spdat_on_non_hoh,
+      ssvf_missing_address,
+      ssvf_missing_vamc,
+      ssvf_missing_percent_ami,      
+      ssvf_hp_screen,
+      ssvf_served_in_date_range,      
+      staging_outstanding_referrals,
+      stop,
+      stray_services,
+      unlikely_ncbs_entry,
+      unsheltered_enrollments,
+      unsheltered_not_unsheltered,
+      unsh_missing_cm,
+      unsh_incorrect_cmprovider,
+      unsheltered_long_not_referred,
+      update_date,
+      vars_prep,
+      vars_we_want,
+      veteran_missing_year_entered,
+      veteran_missing_year_separated,
+      veteran_missing_wars,
+      veteran_missing_branch,
+      veteran_missing_discharge_status
+    )    
     rm(list = ls(pattern = "dq_data_"))
     rm(list = ls(pattern = "guidance_"))
-    rm(
-      stray_services,
-      staging_outstanding_referrals,
-      HealthAndDV,
-      missing_previous_street_ESSH,
-      a,
-      b,
-      c
-    )
+
     
     save.image("images/Data_Quality.RData")
 
