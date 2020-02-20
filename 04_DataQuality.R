@@ -182,6 +182,22 @@ dq_dob <- served_in_date_range %>%
         "Missing Date of Birth Data Quality"
       ) ~ "Error",
       Issue ==  "Don't Know/Refused or Approx. Date of Birth" ~ "Warning"
+    ),
+    Guidance = case_when(
+      Issue == "Incorrect Date of Birth or Entry Date" ~
+      "The HMIS data is indicating the client entered the project PRIOR to
+      being born. Correct either the Date of Birth or the Entry Date, whichever
+      is incorrect.",
+      Issue %in% c("Missing DOB", "Missing Date of Birth Data Quality") ~
+      "This data element is required to be collected at project Entry. Please
+      click into the client's Entry pencil to save this data to HMIS.",
+      Issue == "Don't Know/Refused or Approx. Date of Birth" ~ 
+        "It is widely understood that not every client will be able to or consent
+      to answer every question in every assessment. If you do have any of this
+      data, but it is just not entered into HMIS yet, please enter it. If you
+      can reasonably attempt again to collect this data from the client (like
+      if they are still in your project), then please do so. Otherwise, there is
+      no action needed."
     )
   ) %>%
   filter(!is.na(Issue)) %>%
@@ -295,7 +311,11 @@ hh_children_only <- served_in_date_range %>%
   ungroup() %>%
   left_join(served_in_date_range, by = c("PersonalID", "HouseholdID")) %>%
   mutate(Issue = "Children Only Household",
-         Type = "High Priority") %>%
+         Type = "High Priority",
+         Guidance = "Unless your project serves youth younger than 18 
+         exclusively, every household should have at least one adult in it. If 
+         you are not sure how to correct this, please contact the HMIS team for 
+         help.") %>%
   select(all_of(vars_we_want))
 
 hh_no_hoh <- served_in_date_range %>%
@@ -580,7 +600,12 @@ conflicting_disabilities <- served_in_date_range %>%
            (DisablingCondition == 1 & is.na(DisabilitiesID))) %>% 
   mutate(
     Issue = "Conflicting Disability of Long Duration yes/no",
-    Type = "Error"
+    Type = "Error",
+    Guidance = "If the user answered \"Yes\" to the \"Does the client have a disabling
+    condition?\", then there should be a disability subassessment that
+    indicates the disability determination is Yes *and* the \"If yes,... long
+    duration\" question is Yes. Similarly if the user answered \"No\", the 
+    client has that type of disability"
   ) %>%
   select(all_of(vars_we_want))
 
@@ -633,8 +658,16 @@ extremely_long_stayers <- rbind(Top1_PSH,
                                 Top2_RRH,
                                 Top2_TH,
                                 Top5_HP) %>%
-  mutate(Issue = "Extremely Long Stayer",
-         Type = "Warning") %>%
+  mutate(
+    Issue = "Extremely Long Stayer",
+    Type = "Warning",
+    Guidance = "This client is showing as an outlier for Length of Stay
+         for this project type in the Balance of State CoC. Please verify that
+         this client is still in your project. If they are, be sure there are no
+         alternative permanent housing solutions for this client. If the client
+         is no longer in your project, please enter their Exit Date as the
+         closest estimation of the day they left your project."
+  ) %>% 
   select(all_of(vars_we_want))
 
 rm(list = ls(pattern = "Top*"),
@@ -1161,7 +1194,12 @@ check_eligibility <- served_in_date_range %>%
                      IncomeCount > 0)
                )) %>%
       mutate(Issue = "Conflicting Income yes/no at Entry",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = "If the user answered \"Yes\" to \"Income from any source\", then
+    there should be an income subassessment where it indicates which
+    type of income the client is receiving. Similarly if the user answered
+    \"No\", there should not be any income records that say the client is
+      receiving that type of income.") %>%
       select(all_of(vars_we_want))
     
     # Not calculating Conflicting Income Amounts bc they're calculating the TMI from the
@@ -1199,7 +1237,12 @@ check_eligibility <- served_in_date_range %>%
                      IncomeCount > 0)
                )) %>%
       mutate(Issue = "Conflicting Income yes/no at Exit",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = "If the user answered \"Yes\" to \"Income from any source\", then
+    there should be an income subassessment where it indicates which
+    type of income the client is receiving. Similarly if the user answered
+    \"No\", there should not be any income records that say the client is
+      receiving that type of income.") %>%
       select(all_of(vars_we_want))
     
     rm(income_subs)
@@ -1424,7 +1467,13 @@ check_eligibility <- served_in_date_range %>%
                      SourceCount > 0)
                )) %>%
       mutate(Issue = "Conflicting Health Insurance yes/no at Entry",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = "If the user answered \"Yes\" to \"Covered by Health 
+        Insurance?\", then there should be a Health Insurance subassessment 
+        where it indicates which type of health insurance the client is 
+        receiving. Similarly if the user answered \"No\", there should not be 
+        any Health Insurance records that say the client is receiving that type 
+        of Health Insurance.") %>%
       select(all_of(vars_we_want))
     
     conflicting_health_insurance_exit <- health_insurance_subs %>%
@@ -1435,8 +1484,16 @@ check_eligibility <- served_in_date_range %>%
                   (InsuranceFromAnySource == 0 &
                      SourceCount > 0)
                )) %>%
-      mutate(Issue = "Conflicting Health Insurance yes/no at Exit",
-             Type = "Error") %>%
+      mutate(
+        Issue = "Conflicting Health Insurance yes/no at Exit",
+        Type = "Error",
+        Guidance = "If the user answered \"Yes\" to \"Covered by Health 
+        Insurance?\", then there should be a Health Insurance subassessment 
+        where it indicates which type of health insurance the client is 
+        receiving. Similarly if the user answered \"No\", there should not be 
+        any Health Insurance records that say the client is receiving that type 
+        of Health Insurance."
+      ) %>%
       select(all_of(vars_we_want))
     
     rm(health_insurance_subs)
@@ -1533,7 +1590,13 @@ check_eligibility <- served_in_date_range %>%
                      BenefitCount > 0)
                )) %>%
       mutate(Issue = "Conflicting Non-cash Benefits yes/no at Entry",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = "If the user answered \"Yes\" to \"Non-cash benefits 
+             from any source\", then there should be a Non-cash benefits 
+             subassessment where it indicates which type of income the client is 
+             receiving. Similarly if the user answered \"No\", then there should 
+             not be any non-cash records that say the client is receiving that 
+             type of benefit") %>%
       select(all_of(vars_we_want))
     
 
@@ -1590,7 +1653,13 @@ check_eligibility <- served_in_date_range %>%
                      BenefitCount > 0)
                )) %>%
       mutate(Issue = "Conflicting Non-cash Benefits yes/no at Exit",
-             Type = "Error") %>%
+             Type = "Error",
+             Guidance = "If the user answered \"Yes\" to \"Non-cash benefits 
+             from any source\", then there should be a Non-cash benefits 
+             subassessment where it indicates which type of income the client is 
+             receiving. Similarly if the user answered \"No\", then there should 
+             not be any non-cash records that say the client is receiving that 
+             type of benefit") %>%
       select(all_of(vars_we_want))
     
     rm(ncb_subs)
@@ -1749,8 +1818,15 @@ check_eligibility <- served_in_date_range %>%
     
     aps_with_ees <- served_in_date_range %>%
       filter(ProjectType == 14) %>%
-      mutate(Issue = "Access Point with Entry Exits",
-             Type = "High Priority") %>%
+      mutate(
+        Issue = "Access Point with Entry Exits",
+        Type = "High Priority",
+        Guidance = "Access Points should only be entering Referrals and Diversion Services
+      into the AP provider- not Entry Exits. If a user has done this, the Entry
+      Exit should be deleted. Please see the
+      <a href=\"http://hmis.cohhio.org/index.php?pg=kb.page&id=151\"
+          target=\"_blank\">Coordinated Entry workflow</a>."
+      ) %>%
       select(all_of(vars_we_want))
     
     # Side Door ---------------------------------------------------------------
@@ -2171,63 +2247,63 @@ check_eligibility <- served_in_date_range %>%
       arrange(Type, Issue) %>%
       mutate(
         Guidance = case_when(
-          Issue == "Extremely Long Stayer" ~
-            "This client is showing as an outlier for Length of Stay for this 
-          project type in the Balance of State CoC. Please verify that this 
-          client is still in your project. If they are, be sure there are no 
-          alternative permanent housing solutions for this client. If the client 
-          is no longer in your project, please enter their Exit Date as the 
-          closest estimation of the day they left your project.",
-          Issue == "Access Point with Entry Exits" ~
-            "Access Points should only be entering Referrals and Diversion Services
-      into the AP provider- not Entry Exits. If a user has done this, the Entry
-      Exit should be deleted. Please see the
-      <a href=\"http://hmis.cohhio.org/index.php?pg=kb.page&id=151\"
-          target=\"_blank\">Coordinated Entry workflow</a>.",
-          Issue == "Children Only Household" ~
-            "Unless your project serves youth younger than 18 exclusively, every
-    household should have at least one adult in it. If you are not sure how
-    to correct this, please contact the HMIS team for help.",
-          Issue == "Conflicting Disability yes/no" ~
-            "If the user answered \"Yes\" to the \"Does the client have a disabling
-    condition?\", then there should be a disability subassessment where it
-    indicates the disability determination is Yes and the \"If yes,... long
-    duration\" question is also Yes. Similarly if the user answered \"No\", the
-      client has that type of disability",
-          Issue %in% c(
-            "Conflicting Health Insurance yes/no at Entry",
-            "Conflicting Health Insurance yes/no at Exit"
-          ) ~
-            "If the user answered \"Yes\" to \"Covered by Health Insurance?\", then
-    there should be a Health Insurance subassessment where it indicates which
-    type of health insurance the client is receiving. Similarly if the user
-    answered \"No\", there should not be any Health Insurance records that say
-      the client is receiving that type of Health Insurance.",
-          Issue %in% c(
-            "Conflicting Income yes/no at Entry",
-            "Conflicting Income yes/no at Exit"
-          ) ~
-            "If the user answered \"Yes\" to \"Income from any source\", then
-    there should be an income subassessment where it indicates which
-    type of income the client is receiving. Similarly if the user answered
-    \"No\", there should not be any income records that say the client is
-      receiving that type of income.",
-          Issue %in% c(
-            "Conflicting Non-cash Benefits yes/no at Entry",
-            "Conflicting Non-cash Benefits yes/no at Exit"
-          ) ~
-            "If the user answered \"Yes\" to \"Non-cash benefits from any source\",
-    then there should be a Non-cash benefits subassessment where it indicates
-    which type of income the client is receiving. Similarly if the user answered
-    \"No\", then there should not be any non-cash records that say the client is
-      receiving that type of benefit",
-          Issue == "Disabilities: missing Long Duration in subassessment" ~
-            "Any Disability subassessment the user answers \"Yes\" to should also
-      have the \"If yes, is the disability of long duration...\" answered as \"Yes\".",
-          Issue == "Incorrect Date of Birth or Entry Date" ~
-            "The HMIS data is indicating the client entered the project PRIOR to
-      being born. Correct either the Date of Birth or the Entry Date, whichever
-      is incorrect.",
+    #       Issue == "Extremely Long Stayer" ~
+    #         "This client is showing as an outlier for Length of Stay for this 
+    #       project type in the Balance of State CoC. Please verify that this 
+    #       client is still in your project. If they are, be sure there are no 
+    #       alternative permanent housing solutions for this client. If the client 
+    #       is no longer in your project, please enter their Exit Date as the 
+    #       closest estimation of the day they left your project.",
+    #       Issue == "Access Point with Entry Exits" ~
+    #         "Access Points should only be entering Referrals and Diversion Services
+    #   into the AP provider- not Entry Exits. If a user has done this, the Entry
+    #   Exit should be deleted. Please see the
+    #   <a href=\"http://hmis.cohhio.org/index.php?pg=kb.page&id=151\"
+    #       target=\"_blank\">Coordinated Entry workflow</a>.",
+    #       Issue == "Children Only Household" ~
+    #         "Unless your project serves youth younger than 18 exclusively, every
+    # household should have at least one adult in it. If you are not sure how
+    # to correct this, please contact the HMIS team for help.",
+    #       Issue == "Conflicting Disability of Long Duration yes/no" ~
+    #         "If the user answered \"Yes\" to the \"Does the client have a disabling
+    # condition?\", then there should be a disability subassessment where it
+    # indicates the disability determination is Yes and the \"If yes,... long
+    # duration\" question is also Yes. Similarly if the user answered \"No\", the
+    #   client has that type of disability",
+    #       Issue %in% c(
+    #         "Conflicting Health Insurance yes/no at Entry",
+    #         "Conflicting Health Insurance yes/no at Exit"
+    #       ) ~
+    #         "If the user answered \"Yes\" to \"Covered by Health Insurance?\", then
+    # there should be a Health Insurance subassessment where it indicates which
+    # type of health insurance the client is receiving. Similarly if the user
+    # answered \"No\", there should not be any Health Insurance records that say
+    #   the client is receiving that type of Health Insurance.",
+    #       Issue %in% c(
+    #         "Conflicting Income yes/no at Entry",
+    #         "Conflicting Income yes/no at Exit"
+    #       ) ~
+    #         "If the user answered \"Yes\" to \"Income from any source\", then
+    # there should be an income subassessment where it indicates which
+    # type of income the client is receiving. Similarly if the user answered
+    # \"No\", there should not be any income records that say the client is
+    #   receiving that type of income.",
+    #       Issue %in% c(
+    #         "Conflicting Non-cash Benefits yes/no at Entry",
+    #         "Conflicting Non-cash Benefits yes/no at Exit"
+    #       ) ~
+    #         "If the user answered \"Yes\" to \"Non-cash benefits from any source\",
+    # then there should be a Non-cash benefits subassessment where it indicates
+    # which type of income the client is receiving. Similarly if the user answered
+    # \"No\", then there should not be any non-cash records that say the client is
+    #   receiving that type of benefit",
+    #       Issue == "Disabilities: missing Long Duration in subassessment" ~
+    #         "Any Disability subassessment the user answers \"Yes\" to should also
+    #   have the \"If yes, is the disability of long duration...\" answered as \"Yes\".",
+    #       Issue == "Incorrect Date of Birth or Entry Date" ~
+    #         "The HMIS data is indicating the client entered the project PRIOR to
+    #   being born. Correct either the Date of Birth or the Entry Date, whichever
+    #   is incorrect.",
           Issue == "Incorrect Entry Exit Type" ~
             "The user selected the wrong Entry Exit Type. To correct, click the
       Entry pencil and Save & Continue. The Entry Exit Type at the top can then
