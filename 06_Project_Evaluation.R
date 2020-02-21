@@ -10,7 +10,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details at 
-#<https://www.gnu.org/licenses/>.
+# <https://www.gnu.org/licenses/>.
 
 library(tidyverse)
 library(lubridate)
@@ -63,20 +63,35 @@ pe_coc_funded <- Funder %>%
 
 dq_flags <- dq_2019 %>%
   right_join(pe_coc_funded, by = c("ProjectID", "ProjectType", "ProjectName")) %>%
-  mutate(DQ_flags = if_else(
-    Issue %in% c(
-      "Duplicate Entry Exits",
-      "Children Only Household",
-      "No Head of Household",
-      "Too Many Heads of Household"
-    ),
-    1,
-    0
-  )) %>%
-  filter(!is.na(DQ_flags)) %>%
-  select(ProjectName, DQ_flags) %>%
+  mutate(
+    General_DQ_flags = case_when(
+      Issue %in% c(
+        "Duplicate Entry Exits",
+        "Children Only Household",
+        "No Head of Household",
+        "Too Many Heads of Household"
+      ) ~ 1,
+      TRUE ~ 0),
+    Benefit_DQ_flags = case_when(
+      Issue %in% c(
+        "Health Insurance Missing at Entry",
+        "Non-cash Benefits Missing at Entry"
+      ) ~ 1,
+      TRUE ~ 0),
+    Income_DQ_flags = case_when(
+      Issue == "Income Missing at Entry" ~ 1,
+      TRUE ~ 0),
+    Destination_DQ_flags = case_when(
+      Issue == "Missing Destination" ~ 1,
+      TRUE ~ 0
+    )
+  ) %>% 
+  select(ProjectName, ends_with("DQ_flags")) %>%
   group_by(ProjectName) %>%
-  summarise(DQ_flags = max(DQ_flags, na.rm = FALSE))
+  summarise(General_DQ_flags = sum(General_DQ_flags),
+              Benefit_DQ_flags = sum(Benefit_DQ_flags),
+              Income_DQ_flags = sum(Income_DQ_flags),
+              Destination_DQ_flags = sum(Destination_DQ_flags))
 
 # Considering adding a DQ flag for when subs don't match the yes/no but:
 # 1. Rme has not had sub dq data in it all this time
@@ -92,7 +107,10 @@ vars_we_want <- c(
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
-  "DQ_flags",
+  "General_DQ_flags",
+  "Benefit_DQ_flags",
+  "Income_DQ_flags",
+  "Destination_DQ_flags",
   "EntryDate",
   "HouseholdID",
   "RelationshipToHoH",
@@ -122,6 +140,7 @@ vars_to_the_apps <- c(
   "EntryDate",
   "MoveInDateAdjust",
   "ExitDate",
+  "MeetsObjectivePretty",
   "MeetsObjective"
 )
 
@@ -427,6 +446,21 @@ rm(list = ls(pattern = "summary_"))
 
 ## THIS pe_validation_summary NEEDS TO BE **THOROUGHLY** TESTED!!!!
 
+
+# Finalizing DQ Flags -----------------------------------------------------
+
+data_quality_flags_detail <- pe_validation_summary %>%
+  left_join(dq_flags, by = "ProjectName") %>%
+  mutate(General_DQ = if_else(General_DQ_flags/HoHsServed >= .02, 1, 0),
+         Benefits_DQ = if_else(Benefit_DQ_flags/AdultsEntered >= .02, 1, 0),
+         Income_DQ = if_else(Income_DQ_flags/AdultsEntered >= .02, 1, 0),
+         Destination_DQ = if_else(Destination_DQ_flags/ClientsServed >= .02, 1, 0))
+
+data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
+
+data_quality_flags <- data_quality_flags_detail %>%
+  select(ProjectName, General_DQ, Benefits_DQ, Income_DQ, Destination_DQ)
+
 # CoC Scoring -------------------------------------------------------------
 
 summary_pe_coc_scoring <- pe_coc_funded %>%
@@ -445,8 +479,10 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
+# DQ: General & Destination
 
 pe_exits_to_ph <- pe_hohs_served %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -455,20 +491,40 @@ pe_exits_to_ph <- pe_hohs_served %>%
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
+    MeetsObjectivePretty =
+      case_when(
+        General_DQ == 1 &
+          Destination_DQ == 0 ~ "No because of High Priority Data Quality Issues",
+        Destination_DQ == 1 &
+          General_DQ == 0 ~ "No because of Missing Destinations",
+        General_DQ == 1 &
+          Destination_DQ == 1 ~ "No because of Missing Destinations and High Priority 
+        Data Quality Issues",
+        ProjectType %in% c(3, 9) &
+          DestinationGroup %in% c("Permanent", "Still in Program") ~ "Yes",
+        ProjectType %in% c(3, 9) &
+          (!DestinationGroup %in% c("Permanent", "Still in Program")) ~ "No",
+        ProjectType %in% c(2, 8, 13) &
+          DestinationGroup == "Permanent" ~ "Yes",
+        ProjectType %in% c(2, 8, 13) &
+          (DestinationGroup != "Permanent") ~ "No"
+      ),
     MeetsObjective =
       case_when(
+        General_DQ == 1 &
+          Destination_DQ == 0 ~ 0,
+        Destination_DQ == 1 &
+          General_DQ == 0 ~ 0,
+        General_DQ == 1 &
+          Destination_DQ == 1 ~ 0,
         ProjectType %in% c(3, 9) &
-          DQ_flags == 0 &
           DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
         ProjectType %in% c(3, 9) &
-          (!DestinationGroup %in% c("Permanent", "Still in Program")|
-             DQ_flags == 1) ~ 0,
+          (!DestinationGroup %in% c("Permanent", "Still in Program")) ~ 0,
         ProjectType %in% c(2, 8, 13) &
-          DQ_flags == 0 &
           DestinationGroup == "Permanent" ~ 1,
         ProjectType %in% c(2, 8, 13) &
-          (DestinationGroup != "Permanent" |
-             DQ_flags == 1) ~ 0
+          (DestinationGroup != "Permanent") ~ 0
       )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
@@ -476,7 +532,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
   select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, MeetsObjectivePretty) %>%
   summarise(ExitsToPH = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -506,9 +562,9 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServedLeavers,
     ExitsToPH,
     ExitsToPHPercent,
-    ExitsToPHPoints
-  ) %>%
-  left_join(dq_flags, by = "ProjectName")
+    ExitsToPHPoints,
+    MeetsObjectivePretty
+  )
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
 # DQ Flags: None extra bc Destinations of DKR do not count positively anyway
