@@ -140,7 +140,6 @@ vars_to_the_apps <- c(
   "EntryDate",
   "MoveInDateAdjust",
   "ExitDate",
-  "MeetsObjectivePretty",
   "MeetsObjective"
 )
 
@@ -491,32 +490,12 @@ pe_exits_to_ph <- pe_hohs_served %>%
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
-    MeetsObjectivePretty =
-      case_when(
-        General_DQ == 1 &
-          Destination_DQ == 0 ~ "No because of High Priority Data Quality Issues",
-        Destination_DQ == 1 &
-          General_DQ == 0 ~ "No because of Missing Destinations",
-        General_DQ == 1 &
-          Destination_DQ == 1 ~ "No because of Missing Destinations and High Priority 
-        Data Quality Issues",
-        ProjectType %in% c(3, 9) &
-          DestinationGroup %in% c("Permanent", "Still in Program") ~ "Yes",
-        ProjectType %in% c(3, 9) &
-          (!DestinationGroup %in% c("Permanent", "Still in Program")) ~ "No",
-        ProjectType %in% c(2, 8, 13) &
-          DestinationGroup == "Permanent" ~ "Yes",
-        ProjectType %in% c(2, 8, 13) &
-          (DestinationGroup != "Permanent") ~ "No"
-      ),
+    DataQuality = case_when(
+      General_DQ == 1 | Destination_DQ == 1 ~ 0,
+      TRUE ~ 1
+    ),
     MeetsObjective =
       case_when(
-        General_DQ == 1 &
-          Destination_DQ == 0 ~ 0,
-        Destination_DQ == 1 &
-          General_DQ == 0 ~ 0,
-        General_DQ == 1 &
-          Destination_DQ == 1 ~ 0,
         ProjectType %in% c(3, 9) &
           DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
         ProjectType %in% c(3, 9) &
@@ -529,10 +508,10 @@ pe_exits_to_ph <- pe_hohs_served %>%
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), DataQuality, Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
-  group_by(ProjectType, ProjectName, MeetsObjectivePretty) %>%
+  group_by(ProjectType, ProjectName, DataQuality) %>%
   summarise(ExitsToPH = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -573,13 +552,29 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
 # TH, SH, RRH
 
 pe_own_housing <- pe_hohs_moved_in_leavers %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   filter(ProjectType != 3) %>%
   mutate(
     MeetsObjective = case_when(
-      DQ_flags == 0 &
+      General_DQ == 1 &
+        Destination_DQ == 0 ~ 0,
+      Destination_DQ == 1 &
+        General_DQ == 0 ~ 0,
+      General_DQ == 1 &
+        Destination_DQ == 1 ~ 0,      
       Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
-      DQ_flags == 1 |
       !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
+    ),
+    MeetsObjectivePretty = case_when(
+      General_DQ == 1 &
+        Destination_DQ == 0 ~ "No because of High Priority Data Quality Issues",
+      Destination_DQ == 1 &
+        General_DQ == 0 ~ "No because of Missing Destinations",
+      General_DQ == 1 &
+        Destination_DQ == 1 ~ "No because of Missing Destinations and High Priority 
+        Data Quality Issues",
+      Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "Yes",
+      !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "No"
     ),
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -593,7 +588,7 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
   select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_own_housing <- pe_own_housing %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, MeetsObjectivePretty) %>%
   summarise(OwnHousing = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -616,8 +611,8 @@ summary_pe_own_housing <- pe_own_housing %>%
          HoHsMovedInLeavers,
          OwnHousing,
          OwnHousingPercent,
-         OwnHousingPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+         OwnHousingPoints,
+         MeetsObjectivePretty) 
 
 # TEST RESULTS: No percents over 100%, everyone who should has a score
 # DQ Flags: None extra bc Destinations of DKR do not count positively anyway
