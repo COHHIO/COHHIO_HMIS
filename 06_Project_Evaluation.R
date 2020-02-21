@@ -61,7 +61,7 @@ pe_coc_funded <- Funder %>%
          StartDate,
          EndDate)
 
-dq_flags <- dq_2019 %>%
+dq_flags_staging <- dq_2019 %>%
   right_join(pe_coc_funded, by = c("ProjectID", "ProjectType", "ProjectName")) %>%
   mutate(
     General_DQ_flags = case_when(
@@ -97,7 +97,7 @@ dq_flags <- dq_2019 %>%
 # 1. Rme has not had sub dq data in it all this time
 # 2. The yes/no is actually more likely to be correct than the subs anyway
 
-pe_coc_funded <- pe_coc_funded %>% left_join(dq_flags, by = "ProjectName")
+pe_coc_funded <- pe_coc_funded %>% left_join(dq_flags_staging, by = "ProjectName")
   
 
 vars_we_want <- c(
@@ -449,8 +449,8 @@ rm(list = ls(pattern = "summary_"))
 # Finalizing DQ Flags -----------------------------------------------------
 
 data_quality_flags_detail <- pe_validation_summary %>%
-  left_join(dq_flags, by = "ProjectName") %>%
-  mutate(General_DQ = if_else(General_DQ_flags/HoHsServed >= .02, 1, 0),
+  left_join(dq_flags_staging, by = "ProjectName") %>%
+  mutate(General_DQ = if_else(General_DQ_flags/ClientsServed >= .02, 1, 0),
          Benefits_DQ = if_else(Benefit_DQ_flags/AdultsEntered >= .02, 1, 0),
          Income_DQ = if_else(Income_DQ_flags/AdultsEntered >= .02, 1, 0),
          Destination_DQ = if_else(Destination_DQ_flags/ClientsServed >= .02, 1, 0))
@@ -485,14 +485,14 @@ pe_exits_to_ph <- pe_hohs_served %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:23, 28, 31, 34, 36) ~ "Permanent",
+      Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
     DataQuality = case_when(
-      General_DQ == 1 | Destination_DQ == 1 ~ 0,
-      TRUE ~ 1
+      General_DQ == 1 | Destination_DQ == 1 ~ 1,
+      TRUE ~ 0
     ),
     MeetsObjective =
       case_when(
@@ -527,12 +527,18 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPH / HoHsServed,
       ExitsToPH / HoHsServedLeavers
     ),
-    ExitsToPHPoints = if_else((ProjectType == 3 &
-                                 HoHsServed == 0) |
-                                (ProjectType != 3 &
-                                   HoHsServedLeavers) == 0,
-                              10,
-                              pe_score(Structure, ExitsToPHPercent)
+    ExitsToPHPoints = if_else(
+      (ProjectType == 3 &
+         HoHsServed == 0) |
+        (ProjectType != 3 &
+           HoHsServedLeavers) == 0,
+      10,
+      pe_score(Structure, ExitsToPHPercent)
+    ),
+    ExitsToPHPoints = if_else(
+      DataQuality == 0,
+      ExitsToPHPoints,
+      0
     )
   ) %>%
   select(
@@ -542,7 +548,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     ExitsToPH,
     ExitsToPHPercent,
     ExitsToPHPoints,
-    MeetsObjectivePretty
+    DataQuality
   )
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
