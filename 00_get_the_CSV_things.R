@@ -181,6 +181,7 @@ rm(coc_scoring)
 
 regions <- read_csv("data/Regions.csv",
                     col_types = "cn") %>%
+  arrange(Region) %>%
   mutate(RegionName = paste("Homeless Planning Region", Region))
 # 
 # Project <- left_join(project_county, regions, by = "County")
