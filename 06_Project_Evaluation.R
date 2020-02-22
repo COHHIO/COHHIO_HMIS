@@ -837,7 +837,8 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
     AverageLoSPossible = if_else(ProjectType %in% c(2, 8, 13), 10, NULL),
     AverageLoSDQ = case_when(
       General_DQ == 1 & ProjectType %in% c(2, 8 ,13) ~ 1,
-      General_DQ == 0 & ProjectType %in% c(2, 8 ,13) ~ 0)
+      General_DQ == 0 & ProjectType %in% c(2, 8 ,13) ~ 0),
+    AverageLoSPoints = if_else(AverageLoSDQ == 1, 0, AverageLoSPoints)
   ) %>%
   select(ProjectType, ProjectName, AverageDays, AverageLoSPoints, 
          AverageLoSPossible, AverageLoSDQ)
@@ -847,10 +848,12 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
+# DQ: General, ??RES PRIOR??
 
 pe_res_prior <- pe_adults_entered %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
-  mutate(MeetsObjective = if_else(DQ_flags == 0 &
+  mutate(MeetsObjective = if_else(
     (ProjectType %in% c(2, 3, 13) &
        LivingSituation %in% c(1, 16, 18)) |
       (ProjectType == 8 &
@@ -858,11 +861,11 @@ pe_res_prior <- pe_adults_entered %>%
     1, 
     0
   )) %>%
-  select(all_of(vars_to_the_apps), LivingSituation) %>%
+  select(all_of(vars_to_the_apps), LivingSituation, General_DQ) %>%
   filter(!is.na(PersonalID))
 
 summary_pe_res_prior <- pe_res_prior %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, General_DQ) %>%
   summarise(LHResPrior = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -878,14 +881,18 @@ summary_pe_res_prior <- pe_res_prior %>%
     LHResPriorPercent = LHResPrior / AdultsEntered,
     LHResPriorPoints = if_else(AdultsEntered == 0,
                                10,
-                               pe_score(Structure, LHResPriorPercent))
+                               pe_score(Structure, LHResPriorPercent)),
+    LHResPriorPoints = if_else(General_DQ == 1, 0, LHResPriorPoints),
+    LHResPriorPossible = 10,
+    LHResPriorDQ = if_else(General_DQ == 1, 1, 0)
   ) %>%
   select(ProjectType,
          ProjectName,
          LHResPrior,
          LHResPriorPercent,
-         LHResPriorPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+         LHResPriorPoints,
+         LHResPriorPossible,
+         LHResPriorDQ) 
 
 # TEST RESULTS: Nothing over 100%, all projects have points that should
 # DQ Flags: nothing extra
