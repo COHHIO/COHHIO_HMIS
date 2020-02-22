@@ -134,6 +134,10 @@ if (stop == 0) {
   source("06_Project_Evaluation.R")
   rm(list = ls())
   
+  print("working on SPMs")
+  source("07_SPMs.R")
+  rm(list = ls())
+  
   print("Done! All images are updated.")
 } else
 {

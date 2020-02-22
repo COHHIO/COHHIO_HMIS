@@ -10,7 +10,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details at 
-#<https://www.gnu.org/licenses/>.
+# <https://www.gnu.org/licenses/>.
 
 library(tidyverse)
 library(lubridate)
@@ -61,28 +61,43 @@ pe_coc_funded <- Funder %>%
          StartDate,
          EndDate)
 
-dq_flags <- dq_2019 %>%
+dq_flags_staging <- dq_2019 %>%
   right_join(pe_coc_funded, by = c("ProjectID", "ProjectType", "ProjectName")) %>%
-  mutate(DQ_flags = if_else(
-    Issue %in% c(
-      "Duplicate Entry Exits",
-      "Children Only Household",
-      "No Head of Household",
-      "Too Many Heads of Household"
-    ),
-    1,
-    0
-  )) %>%
-  filter(!is.na(DQ_flags)) %>%
-  select(ProjectName, DQ_flags) %>%
+  mutate(
+    General_DQ_flags = case_when(
+      Issue %in% c(
+        "Duplicate Entry Exits",
+        "Children Only Household",
+        "No Head of Household",
+        "Too Many Heads of Household"
+      ) ~ 1,
+      TRUE ~ 0),
+    Benefit_DQ_flags = case_when(
+      Issue %in% c(
+        "Health Insurance Missing at Entry",
+        "Non-cash Benefits Missing at Entry"
+      ) ~ 1,
+      TRUE ~ 0),
+    Income_DQ_flags = case_when(
+      Issue == "Income Missing at Entry" ~ 1,
+      TRUE ~ 0),
+    Destination_DQ_flags = case_when(
+      Issue == "Missing Destination" ~ 1,
+      TRUE ~ 0
+    )
+  ) %>% 
+  select(ProjectName, ends_with("DQ_flags")) %>%
   group_by(ProjectName) %>%
-  summarise(DQ_flags = max(DQ_flags, na.rm = FALSE))
+  summarise(General_DQ_flags = sum(General_DQ_flags),
+              Benefit_DQ_flags = sum(Benefit_DQ_flags),
+              Income_DQ_flags = sum(Income_DQ_flags),
+              Destination_DQ_flags = sum(Destination_DQ_flags))
 
 # Considering adding a DQ flag for when subs don't match the yes/no but:
 # 1. Rme has not had sub dq data in it all this time
 # 2. The yes/no is actually more likely to be correct than the subs anyway
 
-pe_coc_funded <- pe_coc_funded %>% left_join(dq_flags, by = "ProjectName")
+pe_coc_funded <- pe_coc_funded %>% left_join(dq_flags_staging, by = "ProjectName")
   
 
 vars_we_want <- c(
@@ -92,7 +107,10 @@ vars_we_want <- c(
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
-  "DQ_flags",
+  "General_DQ_flags",
+  "Benefit_DQ_flags",
+  "Income_DQ_flags",
+  "Destination_DQ_flags",
   "EntryDate",
   "HouseholdID",
   "RelationshipToHoH",
@@ -427,6 +445,21 @@ rm(list = ls(pattern = "summary_"))
 
 ## THIS pe_validation_summary NEEDS TO BE **THOROUGHLY** TESTED!!!!
 
+
+# Finalizing DQ Flags -----------------------------------------------------
+
+data_quality_flags_detail <- pe_validation_summary %>%
+  left_join(dq_flags_staging, by = "ProjectName") %>%
+  mutate(General_DQ = if_else(General_DQ_flags/ClientsServed >= .02, 1, 0),
+         Benefits_DQ = if_else(Benefit_DQ_flags/AdultsEntered >= .02, 1, 0),
+         Income_DQ = if_else(Income_DQ_flags/AdultsEntered >= .02, 1, 0),
+         Destination_DQ = if_else(Destination_DQ_flags/ClientsServed >= .02, 1, 0))
+
+data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
+
+data_quality_flags <- data_quality_flags_detail %>%
+  select(ProjectName, General_DQ, Benefits_DQ, Income_DQ, Destination_DQ)
+
 # CoC Scoring -------------------------------------------------------------
 
 summary_pe_coc_scoring <- pe_coc_funded %>%
@@ -445,38 +478,40 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
 
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
+# DQ: General & Destination
 
 pe_exits_to_ph <- pe_hohs_served %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:23, 28, 31, 34, 36) ~ "Permanent",
+      Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
+    DataQuality = case_when(
+      General_DQ == 1 | Destination_DQ == 1 ~ 1,
+      TRUE ~ 0
+    ),
     MeetsObjective =
       case_when(
         ProjectType %in% c(3, 9) &
-          DQ_flags == 0 &
           DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
         ProjectType %in% c(3, 9) &
-          (!DestinationGroup %in% c("Permanent", "Still in Program")|
-             DQ_flags == 1) ~ 0,
+          (!DestinationGroup %in% c("Permanent", "Still in Program")) ~ 0,
         ProjectType %in% c(2, 8, 13) &
-          DQ_flags == 0 &
           DestinationGroup == "Permanent" ~ 1,
         ProjectType %in% c(2, 8, 13) &
-          (DestinationGroup != "Permanent" |
-             DQ_flags == 1) ~ 0
+          (DestinationGroup != "Permanent") ~ 0
       )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), DataQuality, Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, DataQuality) %>%
   summarise(ExitsToPH = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -492,12 +527,18 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPH / HoHsServed,
       ExitsToPH / HoHsServedLeavers
     ),
-    ExitsToPHPoints = if_else((ProjectType == 3 &
-                                 HoHsServed == 0) |
-                                (ProjectType != 3 &
-                                   HoHsServedLeavers) == 0,
-                              10,
-                              pe_score(Structure, ExitsToPHPercent)
+    ExitsToPHPoints = if_else(
+      (ProjectType == 3 &
+         HoHsServed == 0) |
+        (ProjectType != 3 &
+           HoHsServedLeavers) == 0,
+      10,
+      pe_score(Structure, ExitsToPHPercent)
+    ),
+    ExitsToPHPoints = if_else(
+      DataQuality == 0,
+      ExitsToPHPoints,
+      0
     )
   ) %>%
   select(
@@ -506,9 +547,9 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServedLeavers,
     ExitsToPH,
     ExitsToPHPercent,
-    ExitsToPHPoints
-  ) %>%
-  left_join(dq_flags, by = "ProjectName")
+    ExitsToPHPoints,
+    DataQuality
+  )
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
 # DQ Flags: None extra bc Destinations of DKR do not count positively anyway
@@ -517,13 +558,29 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
 # TH, SH, RRH
 
 pe_own_housing <- pe_hohs_moved_in_leavers %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   filter(ProjectType != 3) %>%
   mutate(
     MeetsObjective = case_when(
-      DQ_flags == 0 &
+      General_DQ == 1 &
+        Destination_DQ == 0 ~ 0,
+      Destination_DQ == 1 &
+        General_DQ == 0 ~ 0,
+      General_DQ == 1 &
+        Destination_DQ == 1 ~ 0,      
       Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
-      DQ_flags == 1 |
       !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
+    ),
+    MeetsObjectivePretty = case_when(
+      General_DQ == 1 &
+        Destination_DQ == 0 ~ "No because of High Priority Data Quality Issues",
+      Destination_DQ == 1 &
+        General_DQ == 0 ~ "No because of Missing Destinations",
+      General_DQ == 1 &
+        Destination_DQ == 1 ~ "No because of Missing Destinations and High Priority 
+        Data Quality Issues",
+      Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "Yes",
+      !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "No"
     ),
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
@@ -537,7 +594,7 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
   select(all_of(vars_to_the_apps), Destination, DestinationGroup)
 
 summary_pe_own_housing <- pe_own_housing %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, MeetsObjectivePretty) %>%
   summarise(OwnHousing = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -560,16 +617,16 @@ summary_pe_own_housing <- pe_own_housing %>%
          HoHsMovedInLeavers,
          OwnHousing,
          OwnHousingPercent,
-         OwnHousingPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+         OwnHousingPoints,
+         MeetsObjectivePretty) 
 
 # TEST RESULTS: No percents over 100%, everyone who should has a score
 # DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
-# Accessing Mainstream Resources: NCBs ------------------------------------
+# Accessing Mainstream Resources: Benefits -----------------------------------
 # PSH, TH, SH, RRH
 
-pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
+pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
@@ -586,92 +643,98 @@ pe_non_cash_at_exit <- pe_adults_moved_in_leavers %>%
     ExitDate,
     ExitAdjust,
     BenefitsFromAnySource,
+    InsuranceFromAnySource,
     DataCollectionStage
   ) %>%
   filter(DataCollectionStage == 3) %>%
   mutate(MeetsObjective =
            case_when(
              DQ_flags == 0 &
-             BenefitsFromAnySource == 1 ~ 1,
-             BenefitsFromAnySource != 1 |
-               is.na(BenefitsFromAnySource) |
+             (BenefitsFromAnySource == 1 |
+               InsuranceFromAnySource == 1) ~ 1,
+             (BenefitsFromAnySource != 1 |
+               is.na(BenefitsFromAnySource) &
+                (InsuranceFromAnySource != 1 |
+                   is.na(InsuranceFromAnySource))) |
                DQ_flags == 1 ~ 0
            )) %>% 
-  select(all_of(vars_to_the_apps), BenefitsFromAnySource)
+  select(all_of(vars_to_the_apps), BenefitsFromAnySource, InsuranceFromAnySource)
 
-summary_pe_non_cash_at_exit <- pe_non_cash_at_exit %>%
+
+summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
   group_by(ProjectType, ProjectName) %>%
-  summarise(NCBsAtExit = sum(MeetsObjective)) %>%
+  summarise(BenefitsAtExit = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
-    NCBsAtExit = if_else(is.na(NCBsAtExit), 0, NCBsAtExit),
-    Structure = "undecided",
-    NCBsAtExitPercent = NCBsAtExit / AdultMovedInLeavers,
-    NCBsAtExitPoints = -1 # pe_score(Structure, NCBsAtExit)
+    BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
+    Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
+    BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
+    BenefitsAtExitPoints = if_else(ClientsMovedInLeavers == 0,
+                               10,
+                               pe_score(Structure, BenefitsAtExit))
   ) %>%
   select(
     ProjectType,
     ProjectName,
     AdultMovedInLeavers,
-    NCBsAtExit,
-    NCBsAtExitPercent,
-    NCBsAtExitPoints
+    BenefitsAtExit,
+    BenefitsAtExitPercent,
+    BenefitsAtExitPoints
   ) %>%
   left_join(dq_flags, by = "ProjectName")
 
-# TEST RESULTS: No percents over 100%, no score structure assigned, waiting on 
-# committee
-# DQ Flags: check subs against Yes/No once the Export has been fixed
+# TEST RESULTS: Needs retesting since I had to change the logic after the last meeting
+# DQ Flags: check subs against Yes/No 
 
-# Accessing Mainstream Resources: Health Insurance ------------------------
-# PSH, TH, SH, RRH
-
-pe_health_ins_at_exit <- pe_adults_moved_in_leavers %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(
-    PersonalID,
-    ProjectType,
-    DQ_flags,
-    VeteranStatus,
-    EnrollmentID,
-    ProjectName,
-    EntryDate,
-    MoveInDateAdjust,
-    AgeAtEntry,
-    HouseholdID,
-    RelationshipToHoH,
-    ExitDate,
-    ExitAdjust,
-    InsuranceFromAnySource,
-    BenefitsFromAnySource,
-    DataCollectionStage
-  ) %>%
-  filter(DataCollectionStage == 3) %>%
-  mutate(MeetsObjective = if_else(
-    DQ_flags == 0 &
-      (InsuranceFromAnySource == 1 |
-         BenefitsFromAnySource == 1),
-    1,
-    0
-  )) %>% 
-  select(all_of(vars_to_the_apps), InsuranceFromAnySource, BenefitsFromAnySource)
-
-summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
-  group_by(ProjectType, ProjectName) %>%
-  summarise(HIatExit = sum(MeetsObjective)) %>%
-  ungroup() %>%
-  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
-  mutate(
-    HIatExit = if_else(is.na(HIatExit), 0, HIatExit),
-    Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
-    HIatExitPercent = HIatExit / ClientsMovedInLeavers,
-    HIatExitPoints = if_else(ClientsMovedInLeavers == 0,
-                     10,
-                     pe_score(Structure, HIatExitPercent))
-  ) %>%
-  select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+# # Accessing Mainstream Resources: Health Insurance ------------------------
+# # PSH, TH, SH, RRH
+# 
+# pe_health_ins_at_exit <- pe_adults_moved_in_leavers %>%
+#   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+#   select(
+#     PersonalID,
+#     ProjectType,
+#     DQ_flags,
+#     VeteranStatus,
+#     EnrollmentID,
+#     ProjectName,
+#     EntryDate,
+#     MoveInDateAdjust,
+#     AgeAtEntry,
+#     HouseholdID,
+#     RelationshipToHoH,
+#     ExitDate,
+#     ExitAdjust,
+#     InsuranceFromAnySource,
+#     BenefitsFromAnySource,
+#     DataCollectionStage
+#   ) %>%
+#   filter(DataCollectionStage == 3) %>%
+#   mutate(MeetsObjective = if_else(
+#     DQ_flags == 0 &
+#       (InsuranceFromAnySource == 1 |
+#          BenefitsFromAnySource == 1),
+#     1,
+#     0
+#   )) %>% 
+#   select(all_of(vars_to_the_apps), InsuranceFromAnySource, BenefitsFromAnySource)
+# 
+# summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
+#   group_by(ProjectType, ProjectName) %>%
+#   summarise(HIatExit = sum(MeetsObjective)) %>%
+#   ungroup() %>%
+#   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+#   mutate(
+#     HIatExit = if_else(is.na(HIatExit), 0, HIatExit),
+#     Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
+#     HIatExitPercent = HIatExit / ClientsMovedInLeavers,
+#     HIatExitPoints = if_else(ClientsMovedInLeavers == 0,
+#                      10,
+#                      pe_score(Structure, HIatExitPercent))
+#   ) %>%
+#   select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints) %>%
+#   left_join(dq_flags, by = "ProjectName")
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
@@ -1137,8 +1200,8 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_exits_to_ph,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
-  left_join(summary_pe_health_ins_at_exit,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+  # left_join(summary_pe_health_ins_at_exit,
+  #           by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_homeless_history_index,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_increase_income,
@@ -1147,7 +1210,7 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_long_term_homeless,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
-  left_join(summary_pe_non_cash_at_exit,
+  left_join(summary_pe_benefits_at_exit,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_own_housing,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
@@ -1166,24 +1229,24 @@ rm(list = ls()[!(ls() %in% c(
   'pe_dq_by_provider',
   'pe_entries_no_income',
   'pe_exits_to_ph',
-  'pe_health_ins_at_exit',
+  # 'pe_health_ins_at_exit',
   'pe_homeless_history_index',
   'pe_increase_income',
   'pe_length_of_stay',
   'pe_long_term_homeless',
-  'pe_non_cash_at_exit',
+  'pe_benefits_at_exit',
   'pe_own_housing',
   'pe_res_prior',
   'pe_validation_summary',
   'summary_pe_dq_by_provider',
   'summary_pe_entries_no_income',
   'summary_pe_exits_to_ph',
-  'summary_pe_health_ins_at_exit',
+  # 'summary_pe_health_ins_at_exit',
   'summary_pe_homeless_history_index',
   'summary_pe_increase_income',
   'summary_pe_length_of_stay',
   'summary_pe_long_term_homeless',
-  'summary_pe_non_cash_at_exit',
+  'summary_pe_benefits_at_exit',
   'summary_pe_own_housing',
   'summary_pe_res_prior',
   'summary_pe_utilization',
