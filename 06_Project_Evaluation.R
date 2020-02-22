@@ -799,12 +799,14 @@ summary_pe_increase_income <- pe_increase_income %>%
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
+# DQ: General
 
 pe_length_of_stay <- pe_clients_moved_in_leavers %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
   select(ProjectType,
          ProjectName,
-         DQ_flags,
+         General_DQ,
          EntryDate,
          EntryAdjust,
          MoveInDateAdjust,
@@ -812,12 +814,10 @@ pe_length_of_stay <- pe_clients_moved_in_leavers %>%
          DaysInProject,
          PersonalID,
          EnrollmentID,
-         HouseholdID,
-         AgeAtEntry,
-         VeteranStatus)
+         HouseholdID)
 
 summary_pe_length_of_stay <- pe_length_of_stay %>%
-  group_by(ProjectType, ProjectName, DQ_flags) %>%
+  group_by(ProjectType, ProjectName, General_DQ) %>%
   summarise(
     AverageDays = as.numeric(mean(DaysInProject))
   ) %>%
@@ -830,15 +830,17 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       ProjectType == 13 ~ "150_210_10"
     ),
     AverageLoSPoints = case_when(
-      DQ_flags == 1 ~ 0,
       HoHsMovedInLeavers == 0 &
-        ProjectType != 3 &
-        DQ_flags == 0 ~ 10,
+        ProjectType != 3 ~ 10,
       TRUE ~ pe_score(Structure, AverageDays)
-    )
+    ),
+    AverageLoSPossible = if_else(ProjectType %in% c(2, 8, 13), 10, NULL),
+    AverageLoSDQ = case_when(
+      General_DQ == 1 & ProjectType %in% c(2, 8 ,13) ~ 1,
+      General_DQ == 0 & ProjectType %in% c(2, 8 ,13) ~ 0)
   ) %>%
-  select(ProjectType, ProjectName, AverageDays, AverageLoSPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+  select(ProjectType, ProjectName, AverageDays, AverageLoSPoints, 
+         AverageLoSPossible, AverageLoSDQ)
 
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
 # DQ Flags: nothing extra
