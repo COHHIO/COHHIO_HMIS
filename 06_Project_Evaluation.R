@@ -490,7 +490,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
       Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     ),
-    DataQuality = case_when(
+    ExitsToPHDQ = case_when(
       General_DQ == 1 | Destination_DQ == 1 ~ 1,
       TRUE ~ 0
     ),
@@ -508,10 +508,10 @@ pe_exits_to_ph <- pe_hohs_served %>%
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
            ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
-  select(all_of(vars_to_the_apps), DataQuality, Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), ExitsToPHDQ, Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
-  group_by(ProjectType, ProjectName, DataQuality) %>%
+  group_by(ProjectType, ProjectName, ExitsToPHDQ) %>%
   summarise(ExitsToPH = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -535,8 +535,9 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       10,
       pe_score(Structure, ExitsToPHPercent)
     ),
+    ExitsToPHPossible = 10,
     ExitsToPHPoints = if_else(
-      DataQuality == 0,
+      ExitsToPHDQ == 0,
       ExitsToPHPoints,
       0
     )
@@ -548,7 +549,8 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     ExitsToPH,
     ExitsToPHPercent,
     ExitsToPHPoints,
-    DataQuality
+    ExitsToPHPossible,
+    ExitsToPHDQ
   )
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
@@ -562,39 +564,27 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
   filter(ProjectType != 3) %>%
   mutate(
     MeetsObjective = case_when(
-      General_DQ == 1 &
-        Destination_DQ == 0 ~ 0,
-      Destination_DQ == 1 &
-        General_DQ == 0 ~ 0,
-      General_DQ == 1 &
-        Destination_DQ == 1 ~ 0,      
-      Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 1,
-      !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ 0
+      Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 1,
+      !Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 0
     ),
-    MeetsObjectivePretty = case_when(
-      General_DQ == 1 &
-        Destination_DQ == 0 ~ "No because of High Priority Data Quality Issues",
-      Destination_DQ == 1 &
-        General_DQ == 0 ~ "No because of Missing Destinations",
-      General_DQ == 1 &
-        Destination_DQ == 1 ~ "No because of Missing Destinations and High Priority 
-        Data Quality Issues",
-      Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "Yes",
-      !Destination %in% c(3, 10:11, 19:21, 28, 31) ~ "No"
+    OwnHousingDQ = case_when(
+      General_DQ == 1 |
+        Destination_DQ == 1 ~ 1,
+      TRUE ~ 0
     ),
     DestinationGroup = case_when(
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:21, 28, 31, 33, 34) ~ "Household's Own Housing",
+      Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
       Destination %in% c(22:23) ~ "Shared Housing",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 24, 30, 99, 32) ~ "Other",
       is.na(Destination) ~ "Still in Program"
     )
   ) %>% 
-  select(all_of(vars_to_the_apps), Destination, DestinationGroup)
+  select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
 
 summary_pe_own_housing <- pe_own_housing %>%
-  group_by(ProjectType, ProjectName, MeetsObjectivePretty) %>%
+  group_by(ProjectType, ProjectName, OwnHousingDQ) %>%
   summarise(OwnHousing = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -610,7 +600,9 @@ summary_pe_own_housing <- pe_own_housing %>%
       pe_score(Structure, OwnHousingPercent)
     ),
     OwnHousingPoints = if_else(is.na(OwnHousingPoints) & 
-                                 ProjectType != 3, 0, OwnHousingPoints)
+                                 ProjectType != 3, 0, OwnHousingPoints),
+    OwnHousingPoints = if_else(OwnHousingDQ == 1, 0, OwnHousingPoints),
+    OwnHousingPossible = if_else(ProjectType != 3, 5, NULL)
   ) %>%
   select(ProjectType,
          ProjectName,
@@ -618,8 +610,8 @@ summary_pe_own_housing <- pe_own_housing %>%
          OwnHousing,
          OwnHousingPercent,
          OwnHousingPoints,
-         MeetsObjectivePretty) 
-
+         OwnHousingPossible,
+         OwnHousingDQ)
 # TEST RESULTS: No percents over 100%, everyone who should has a score
 # DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
@@ -627,11 +619,11 @@ summary_pe_own_housing <- pe_own_housing %>%
 # PSH, TH, SH, RRH
 
 pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
     PersonalID,
     ProjectName,
-    DQ_flags,
     EnrollmentID,
     ProjectType,
     HouseholdID,
@@ -644,25 +636,35 @@ pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
     ExitAdjust,
     BenefitsFromAnySource,
     InsuranceFromAnySource,
-    DataCollectionStage
+    DataCollectionStage,
+    General_DQ,
+    Benefits_DQ
   ) %>%
   filter(DataCollectionStage == 3) %>%
-  mutate(MeetsObjective =
-           case_when(
-             DQ_flags == 0 &
-             (BenefitsFromAnySource == 1 |
-               InsuranceFromAnySource == 1) ~ 1,
-             (BenefitsFromAnySource != 1 |
-               is.na(BenefitsFromAnySource) &
-                (InsuranceFromAnySource != 1 |
-                   is.na(InsuranceFromAnySource))) |
-               DQ_flags == 1 ~ 0
-           )) %>% 
-  select(all_of(vars_to_the_apps), BenefitsFromAnySource, InsuranceFromAnySource)
-
+  mutate(
+    MeetsObjective =
+      case_when(
+        (BenefitsFromAnySource == 1 |
+           InsuranceFromAnySource == 1) ~ 1,
+        (
+          BenefitsFromAnySource != 1 |
+            is.na(BenefitsFromAnySource) &
+            (InsuranceFromAnySource != 1 |
+               is.na(InsuranceFromAnySource)) ~ 0
+        )
+      ),
+    BenefitsAtExitDQ = if_else(General_DQ == 1 |
+                                 Benefits_DQ == 1, 1, 0)
+  ) %>% 
+  select(
+    all_of(vars_to_the_apps),
+    BenefitsAtExitDQ,
+    BenefitsFromAnySource,
+    InsuranceFromAnySource
+  )
 
 summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, BenefitsAtExitDQ) %>%
   summarise(BenefitsAtExit = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -672,7 +674,9 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
     BenefitsAtExitPoints = if_else(ClientsMovedInLeavers == 0,
                                10,
-                               pe_score(Structure, BenefitsAtExit))
+                               pe_score(Structure, BenefitsAtExit)),
+    BenefitsAtExitPossible = 10,
+    BenefitsAtExitPoints = if_else(BenefitsAtExitDQ == 1, 0, BenefitsAtExitPoints)
   ) %>%
   select(
     ProjectType,
@@ -680,9 +684,10 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     AdultMovedInLeavers,
     BenefitsAtExit,
     BenefitsAtExitPercent,
-    BenefitsAtExitPoints
-  ) %>%
-  left_join(dq_flags, by = "ProjectName")
+    BenefitsAtExitPoints,
+    BenefitsAtExitPossible,
+    BenefitsAtExitDQ
+  ) 
 
 # TEST RESULTS: Needs retesting since I had to change the logic after the last meeting
 # DQ Flags: check subs against Yes/No 
@@ -1200,8 +1205,6 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_exits_to_ph,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
-  # left_join(summary_pe_health_ins_at_exit,
-  #           by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_homeless_history_index,
             by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
   left_join(summary_pe_increase_income,
