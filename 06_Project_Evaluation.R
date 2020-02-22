@@ -692,55 +692,6 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
 # TEST RESULTS: Needs retesting since I had to change the logic after the last meeting
 # DQ Flags: check subs against Yes/No 
 
-# # Accessing Mainstream Resources: Health Insurance ------------------------
-# # PSH, TH, SH, RRH
-# 
-# pe_health_ins_at_exit <- pe_adults_moved_in_leavers %>%
-#   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-#   select(
-#     PersonalID,
-#     ProjectType,
-#     DQ_flags,
-#     VeteranStatus,
-#     EnrollmentID,
-#     ProjectName,
-#     EntryDate,
-#     MoveInDateAdjust,
-#     AgeAtEntry,
-#     HouseholdID,
-#     RelationshipToHoH,
-#     ExitDate,
-#     ExitAdjust,
-#     InsuranceFromAnySource,
-#     BenefitsFromAnySource,
-#     DataCollectionStage
-#   ) %>%
-#   filter(DataCollectionStage == 3) %>%
-#   mutate(MeetsObjective = if_else(
-#     DQ_flags == 0 &
-#       (InsuranceFromAnySource == 1 |
-#          BenefitsFromAnySource == 1),
-#     1,
-#     0
-#   )) %>% 
-#   select(all_of(vars_to_the_apps), InsuranceFromAnySource, BenefitsFromAnySource)
-# 
-# summary_pe_health_ins_at_exit <- pe_health_ins_at_exit %>%
-#   group_by(ProjectType, ProjectName) %>%
-#   summarise(HIatExit = sum(MeetsObjective)) %>%
-#   ungroup() %>%
-#   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
-#   mutate(
-#     HIatExit = if_else(is.na(HIatExit), 0, HIatExit),
-#     Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
-#     HIatExitPercent = HIatExit / ClientsMovedInLeavers,
-#     HIatExitPoints = if_else(ClientsMovedInLeavers == 0,
-#                      10,
-#                      pe_score(Structure, HIatExitPercent))
-#   ) %>%
-#   select(ProjectType, ProjectName, HIatExit, HIatExitPercent, HIatExitPoints) %>%
-#   left_join(dq_flags, by = "ProjectName")
-
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
 # DQ Flags: check subs against Yes/No once the Export has been fixed
@@ -786,30 +737,32 @@ pe_increase_income <- income_staging %>%
   pivot_wider(names_from = DataCollectionStage,
               values_from = TotalMonthlyIncome) %>%
   left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(
     MostRecentIncome = case_when(
-      !is.na(Exit) ~ Exit,!is.na(Update) ~ Update,
+      !is.na(Exit) ~ Exit,
+      !is.na(Update) ~ Update,
       !is.na(Annual) ~ Annual
     ),
-    Exit = NULL,
-    Update = NULL,
-    Annual = NULL,
-    Entry = if_else(is.na(Entry), 0, Entry),
-    MostRecentIncome = if_else(is.na(MostRecentIncome), Entry, MostRecentIncome),
+    IncomeAtEntry = if_else(is.na(Entry), 0, Entry),
+    IncomeMostRecent = if_else(is.na(MostRecentIncome), Entry, MostRecentIncome),
     MeetsObjective = case_when(
-      MostRecentIncome > Entry & DQ_flags == 0 ~ 1,
-      MostRecentIncome <= Entry | DQ_flags == 1 ~ 0)
-  ) %>%  select(
+      IncomeMostRecent > IncomeAtEntry ~ 1,
+      IncomeMostRecent <= IncomeAtEntry ~ 0),
+    IncreasedIncomeDQ = if_else(General_DQ == 1 |
+                                  Income_DQ == 1, 1, 0)
+  ) %>%  
+  select(
     all_of(vars_to_the_apps),
-    DQ_flags,
-    "IncomeAtEntry" = Entry,
-    "IncomeMostRecent" = MostRecentIncome
+    IncreasedIncomeDQ,
+    IncomeAtEntry,
+    IncomeMostRecent
   )
 
 rm(list = ls(pattern = "income_staging"))
 
 summary_pe_increase_income <- pe_increase_income %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, IncreasedIncomeDQ) %>%
   summarise(IncreasedIncome = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -824,11 +777,22 @@ summary_pe_increase_income <- pe_increase_income %>%
     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
     IncreasedIncomePoints = if_else(AdultsMovedIn == 0,
                      10,
-                     pe_score(Structure, IncreasedIncomePercent))
+                     pe_score(Structure, IncreasedIncomePercent)),
+    IncreasedIncomePossible = 10,
+    IncreasedIncomePoints = if_else(IncreasedIncomeDQ == 1, 
+                                    0, 
+                                    IncreasedIncomePoints)
   ) %>%
-  select(ProjectType, ProjectName, IncreasedIncome, IncreasedIncomePercent,
-         IncreasedIncomePoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+  select(
+    ProjectType,
+    ProjectName,
+    IncreasedIncome,
+    AdultsMovedIn,
+    IncreasedIncomePercent,
+    IncreasedIncomePoints,
+    IncreasedIncomePossible,
+    IncreasedIncomeDQ
+  ) 
 
 # TEST RESULTS: Nothing over 100%, all projects have legit points
 # DQ Flags: check subs against Yes/No once the Export has been fixed
