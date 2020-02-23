@@ -950,12 +950,12 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
+# DQ: General, ??LoS questions??
 
 pe_homeless_history_index <- pe_adults_entered %>%
   select(
     ProjectType,
     ProjectName,
-    DQ_flags,
     PersonalID,
     EnrollmentID,
     HouseholdID,
@@ -968,6 +968,7 @@ pe_homeless_history_index <- pe_adults_entered %>%
     TimesHomelessPastThreeYears,
     MonthsHomelessPastThreeYears
   ) %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(
     DaysHomelessAtEntry = if_else(
       ymd(EntryDate) >= ymd(DateToStreetESSH),
@@ -1080,18 +1081,24 @@ pe_homeless_history_index <- pe_adults_entered %>%
   )
 
 summary_pe_homeless_history_index <- pe_homeless_history_index %>%
-  group_by(ProjectType, ProjectName) %>%
-  summarise(AvgHHI = mean(HHI),
-            MedHHI = median(HHI)) %>%
+  group_by(ProjectType, ProjectName, General_DQ) %>%
+  summarise(MedHHI = median(HHI)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
     Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
     MedianHHIPoints = if_else(AdultsEntered == 0, 10,
-                           pe_score(Structure, MedHHI))
+                           pe_score(Structure, MedHHI)),
+    MedianHHIPossible = 10,
+    MedianHHIDQ = if_else(General_DQ == 1, 1, 0),
+    MedianHHIPoints = if_else(MedianHHIDQ == 1, 0, MedianHHIPoints)
   ) %>%
-  select(ProjectType, ProjectName, MedHHI, MedianHHIPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+  select(ProjectType,
+         ProjectName,
+         MedHHI,
+         MedianHHIPoints,
+         MedianHHIPossible,
+         MedianHHIDQ)
 
 # TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
 # scores to ART
