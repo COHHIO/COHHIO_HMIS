@@ -96,8 +96,9 @@ dq_flags_staging <- dq_2019 %>%
 # Considering adding a DQ flag for when subs don't match the yes/no but:
 # 1. Rme has not had sub dq data in it all this time
 # 2. The yes/no is actually more likely to be correct than the subs anyway
-
-pe_coc_funded <- pe_coc_funded %>% left_join(dq_flags_staging, by = "ProjectName")
+# 
+pe_coc_funded <- pe_coc_funded %>%
+  left_join(dq_flags_staging, by = "ProjectName")
   
 
 vars_we_want <- c(
@@ -853,26 +854,26 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
 pe_res_prior <- pe_adults_entered %>%
   left_join(data_quality_flags, by = "ProjectName") %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
-  mutate(MeetsObjective = if_else(
-    (ProjectType %in% c(2, 3, 13) &
-       LivingSituation %in% c(1, 16, 18)) |
-      (ProjectType == 8 &
-         LivingSituation == 16),
-    1, 
-    0
-  )) %>%
-  select(all_of(vars_to_the_apps), LivingSituation, General_DQ) %>%
-  filter(!is.na(PersonalID))
+  mutate(LHResPriorDQ = if_else(General_DQ == 1, 1, 0),
+         MeetsObjective = if_else(
+           (ProjectType %in% c(2, 3, 13) &
+              LivingSituation %in% c(1, 16, 18)) |
+             (ProjectType == 8 &
+                LivingSituation == 16),
+           1,
+           0
+         )) %>% 
+  select(all_of(vars_to_the_apps), LivingSituation, LHResPriorDQ)
 
 summary_pe_res_prior <- pe_res_prior %>%
-  group_by(ProjectType, ProjectName, General_DQ) %>%
+  group_by(ProjectType, ProjectName, LHResPriorDQ) %>%
   summarise(LHResPrior = sum(MeetsObjective)) %>%
   ungroup() %>%
-  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  right_join(pe_validation_summary,
+             by = c("ProjectType",
+                    "ProjectName")) %>%
   mutate(
-    LHResPrior = if_else(is.na(LHResPrior),
-                         0,
-                         LHResPrior),
+    LHResPrior = if_else(is.na(LHResPrior), 0, LHResPrior),
     Structure = case_when(
       ProjectType %in% c(3, 13) ~ "75_85_10",
       ProjectType == 2 ~ "67_75_10",
@@ -882,17 +883,19 @@ summary_pe_res_prior <- pe_res_prior %>%
     LHResPriorPoints = if_else(AdultsEntered == 0,
                                10,
                                pe_score(Structure, LHResPriorPercent)),
-    LHResPriorPoints = if_else(General_DQ == 1, 0, LHResPriorPoints),
-    LHResPriorPossible = 10,
-    LHResPriorDQ = if_else(General_DQ == 1, 1, 0)
+    LHResPriorPoints = if_else(LHResPriorDQ == 1, 0, LHResPriorPoints),
+    LHResPriorPossible = 10
   ) %>%
-  select(ProjectType,
-         ProjectName,
-         LHResPrior,
-         LHResPriorPercent,
-         LHResPriorPoints,
-         LHResPriorPossible,
-         LHResPriorDQ) 
+  select(
+    ProjectType,
+    ProjectName,
+    LHResPrior,
+    AdultsEntered,
+    LHResPriorPercent,
+    LHResPriorPoints,
+    LHResPriorPossible,
+    LHResPriorDQ
+  ) 
 
 # TEST RESULTS: Nothing over 100%, all projects have points that should
 # DQ Flags: nothing extra
@@ -901,26 +904,20 @@ summary_pe_res_prior <- pe_res_prior %>%
 # PSH, TH, SH, RRH
 
 pe_entries_no_income <- pe_adults_entered %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
-  select(EnrollmentID, HouseholdID, DQ_flags) %>%
-  left_join(pe_increase_income, by = c("EnrollmentID", "HouseholdID", "DQ_flags")) %>%
-  select(
-    PersonalID,
-    ProjectType,
-    ProjectName,
-    DQ_flags,
-    EnrollmentID,
-    HouseholdID,
-    EntryDate,
-    MoveInDateAdjust,
-    ExitDate,
-    IncomeAtEntry
-  ) %>%
-  mutate(MeetsObjective = if_else(IncomeAtEntry == 0 & DQ_flags == 0, 1, 0)) %>%
-  filter(!is.na(PersonalID))
+  left_join(IncomeBenefits %>%
+              select(EnrollmentID, 
+                     IncomeFromAnySource) %>%
+              unique(), 
+            by = c("EnrollmentID")) %>%
+  mutate(MeetsObjective = if_else(IncomeFromAnySource == 0, 1, 0),
+         NoIncomeAtEntryDQ = if_else(General_DQ == 1|
+                                     Income_DQ == 1, 1, 0)) %>%
+  select(all_of(vars_to_the_apps), NoIncomeAtEntryDQ)
 
 summary_pe_entries_no_income <- pe_entries_no_income %>%
-  group_by(ProjectType, ProjectName) %>%
+  group_by(ProjectType, ProjectName, NoIncomeAtEntryDQ) %>%
   summarise(NoIncomeAtEntry = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -931,11 +928,22 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10"),
     NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
-                     pe_score(Structure, NoIncomeAtEntryPercent))
+                     pe_score(Structure, NoIncomeAtEntryPercent)),
+    NoIncomeAtEntryPossible = if_else(ProjectType != 2, 10, NULL),
+    NoIncomeAtEntryPoints = if_else(NoIncomeAtEntryDQ == 1, 
+                                    0, 
+                                    NoIncomeAtEntryPoints)
   ) %>%
-  select(ProjectType, ProjectName, NoIncomeAtEntry, NoIncomeAtEntryPercent,
-         NoIncomeAtEntryPoints) %>%
-  left_join(dq_flags, by = "ProjectName")
+  select(
+    ProjectType,
+    ProjectName,
+    NoIncomeAtEntry,
+    AdultsEntered,
+    NoIncomeAtEntryPercent,
+    NoIncomeAtEntryPoints,
+    NoIncomeAtEntryPossible,
+    NoIncomeAtEntryDQ
+  )
 
 # TEST RESULTS: nothing over 100%, everyone has points who should
 # DQ Flags: check subs against Yes/No once the Export has been fixed
