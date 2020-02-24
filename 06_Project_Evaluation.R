@@ -61,42 +61,6 @@ pe_coc_funded <- Funder %>%
          StartDate,
          EndDate)
 
-dq_flags_staging <- dq_2019 %>%
-  right_join(pe_coc_funded, by = c("ProjectID", "ProjectType", "ProjectName")) %>%
-  mutate(
-    General_DQ_flags = case_when(
-      Issue %in% c(
-        "Duplicate Entry Exits",
-        "Children Only Household",
-        "No Head of Household",
-        "Too Many Heads of Household"
-      ) ~ 1,
-      TRUE ~ 0),
-    Benefit_DQ_flags = case_when(
-      Issue %in% c(
-        "Health Insurance Missing at Entry",
-        "Non-cash Benefits Missing at Entry"
-      ) ~ 1,
-      TRUE ~ 0),
-    Income_DQ_flags = case_when(
-      Issue == "Income Missing at Entry" ~ 1,
-      TRUE ~ 0),
-    Destination_DQ_flags = case_when(
-      Issue == "Missing Destination" ~ 1,
-      TRUE ~ 0
-    )
-  ) %>% 
-  select(ProjectName, ends_with("DQ_flags")) %>%
-  group_by(ProjectName) %>%
-  summarise(General_DQ_flags = sum(General_DQ_flags),
-              Benefit_DQ_flags = sum(Benefit_DQ_flags),
-              Income_DQ_flags = sum(Income_DQ_flags),
-              Destination_DQ_flags = sum(Destination_DQ_flags))
-
-# Considering adding a DQ flag for when subs don't match the yes/no but:
-# 1. Rme has not had sub dq data in it all this time
-# 2. The yes/no is actually more likely to be correct than the subs anyway
-# 
 pe_coc_funded <- pe_coc_funded %>%
   left_join(dq_flags_staging, by = "ProjectName")
   
@@ -448,6 +412,38 @@ rm(list = ls(pattern = "summary_"))
 
 
 # Finalizing DQ Flags -----------------------------------------------------
+dq_flags_staging <- dq_2019 %>%
+  right_join(pe_coc_funded, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
+  mutate(
+    GeneralFlag =
+      if_else(
+        Issue %in% c(
+          "Duplicate Entry Exits",
+          "Children Only Household",
+          "No Head of Household",
+          "Too Many Heads of Household"
+        ),
+        1,
+        0
+      ),
+    BenefitsFlag =
+      if_else(Issue == "Non-cash Benefits Missing at Entry", 1, 0),
+    # ^^ not looking at HI DQ bc it flags for children and
+    # we're not looking at children in the scoring
+    IncomeFlag =
+      if_else(Issue == "Income Missing at Entry", 1, 0),
+    LoTHFlag =
+      if_else(Issue == "Missing Months or Times Homeless", 1, 0),
+    DestinationFlag =
+      if_else(Issue == "Missing Destination", 1, 0)
+  ) %>%
+  select(ProjectName, PersonalID, Flag) %>%
+  filter(!is.na(Flag)) %>%
+  group_by(ProjectName)
+
+# Considering adding a DQ flag for when subs don't match the yes/no but:
+# 1. Rme has not had sub dq data in it all this time
+# 2. The yes/no is actually more likely to be correct than the subs anyway
 
 data_quality_flags_detail <- pe_validation_summary %>%
   left_join(dq_flags_staging, by = "ProjectName") %>%
@@ -541,17 +537,18 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPHDQ == 0,
       ExitsToPHPoints,
       0
-    )
+    ),
+    ExitsToTPHCohort = "HoHsServedLeavers"
   ) %>%
   select(
     ProjectType,
     ProjectName,
-    HoHsServedLeavers,
     ExitsToPH,
     ExitsToPHPercent,
     ExitsToPHPoints,
     ExitsToPHPossible,
-    ExitsToPHDQ
+    ExitsToPHDQ,
+    ExitsToTPHCohort
   )
 
 # TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
@@ -603,11 +600,12 @@ summary_pe_own_housing <- pe_own_housing %>%
     OwnHousingPoints = if_else(is.na(OwnHousingPoints) & 
                                  ProjectType != 3, 0, OwnHousingPoints),
     OwnHousingPoints = if_else(OwnHousingDQ == 1, 0, OwnHousingPoints),
-    OwnHousingPossible = if_else(ProjectType != 3, 5, NULL)
+    OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
+    OwnHousingCohort = "HoHsMovedInLeavers"
   ) %>%
   select(ProjectType,
          ProjectName,
-         HoHsMovedInLeavers,
+         OwnHousingCohort,
          OwnHousing,
          OwnHousingPercent,
          OwnHousingPoints,
@@ -673,16 +671,19 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
     Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
-    BenefitsAtExitPoints = if_else(ClientsMovedInLeavers == 0,
+    BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
                                10,
                                pe_score(Structure, BenefitsAtExit)),
     BenefitsAtExitPossible = 10,
-    BenefitsAtExitPoints = if_else(BenefitsAtExitDQ == 1, 0, BenefitsAtExitPoints)
+    BenefitsAtExitPoints = if_else(BenefitsAtExitDQ == 1, 
+                                   0, 
+                                   BenefitsAtExitPoints),
+    BenefitsAtExitCohort = "AdultMovedInLeavers"
   ) %>%
   select(
     ProjectType,
     ProjectName,
-    AdultMovedInLeavers,
+    BenefitsAtExitCohort,
     BenefitsAtExit,
     BenefitsAtExitPercent,
     BenefitsAtExitPoints,
@@ -782,13 +783,14 @@ summary_pe_increase_income <- pe_increase_income %>%
     IncreasedIncomePossible = 10,
     IncreasedIncomePoints = if_else(IncreasedIncomeDQ == 1, 
                                     0, 
-                                    IncreasedIncomePoints)
+                                    IncreasedIncomePoints),
+    IncreasedIncomeCohort = "AdultsMovedIn"
   ) %>%
   select(
     ProjectType,
     ProjectName,
     IncreasedIncome,
-    AdultsMovedIn,
+    IncreasedIncomeCohort,
     IncreasedIncomePercent,
     IncreasedIncomePoints,
     IncreasedIncomePossible,
@@ -831,7 +833,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       ProjectType == 13 ~ "150_210_10"
     ),
     AverageLoSPoints = case_when(
-      HoHsMovedInLeavers == 0 &
+      ClientsMovedInLeavers == 0 &
         ProjectType != 3 ~ 10,
       TRUE ~ pe_score(Structure, AverageDays)
     ),
@@ -839,13 +841,13 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
     AverageLoSDQ = case_when(
       General_DQ == 1 & ProjectType %in% c(2, 8 ,13) ~ 1,
       General_DQ == 0 & ProjectType %in% c(2, 8 ,13) ~ 0),
-    AverageLoSPoints = if_else(AverageLoSDQ == 1, 0, AverageLoSPoints)
+    AverageLoSPoints = if_else(AverageLoSDQ == 1, 0, AverageLoSPoints),
+    AverageLoSCohort = "ClientsMovedInLeavers"
   ) %>%
-  select(ProjectType, ProjectName, AverageDays, AverageLoSPoints, 
-         AverageLoSPossible, AverageLoSDQ)
+  select(ProjectType, ProjectName, AverageDays, AverageLoSCohort, 
+         AverageLoSPoints, AverageLoSPossible, AverageLoSDQ)
 
 # TEST RESULTS: Min and Max days look ok, everyone has points who should
-# DQ Flags: nothing extra
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -884,13 +886,14 @@ summary_pe_res_prior <- pe_res_prior %>%
                                10,
                                pe_score(Structure, LHResPriorPercent)),
     LHResPriorPoints = if_else(LHResPriorDQ == 1, 0, LHResPriorPoints),
-    LHResPriorPossible = 10
+    LHResPriorPossible = 10,
+    LHResPriorCohort = "AdultsEntered"
   ) %>%
   select(
     ProjectType,
     ProjectName,
     LHResPrior,
-    AdultsEntered,
+    LHResPriorCohort,
     LHResPriorPercent,
     LHResPriorPoints,
     LHResPriorPossible,
@@ -932,13 +935,14 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntryPossible = if_else(ProjectType != 2, 10, NULL),
     NoIncomeAtEntryPoints = if_else(NoIncomeAtEntryDQ == 1, 
                                     0, 
-                                    NoIncomeAtEntryPoints)
+                                    NoIncomeAtEntryPoints),
+    NoIncomeAtEntryCohort = "AdultsEntered"
   ) %>%
   select(
     ProjectType,
     ProjectName,
     NoIncomeAtEntry,
-    AdultsEntered,
+    NoIncomeAtEntryCohort,
     NoIncomeAtEntryPercent,
     NoIncomeAtEntryPoints,
     NoIncomeAtEntryPossible,
@@ -1091,11 +1095,13 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
                            pe_score(Structure, MedHHI)),
     MedianHHIPossible = 10,
     MedianHHIDQ = if_else(General_DQ == 1, 1, 0),
-    MedianHHIPoints = if_else(MedianHHIDQ == 1, 0, MedianHHIPoints)
+    MedianHHIPoints = if_else(MedianHHIDQ == 1, 0, MedianHHIPoints),
+    MedianHHICohort = "AdultsEntered"
   ) %>%
   select(ProjectType,
          ProjectName,
          MedHHI,
+         MedianHHICohort,
          MedianHHIPoints,
          MedianHHIPossible,
          MedianHHIDQ)
@@ -1132,21 +1138,25 @@ summary_pe_dq <- summary_pe_dq %>%
            DQPercent > .08 & DQPercent <= .1 ~ 1,
            DQPercent > .1 ~ 0
            ),
+         DQPossible = 5,
+         DQCohort = "ClientsServed"
          ) %>%
-  select(ProjectName, ProjectType, "DQIssues" = Issues, DQPercent, DQPoints)
+  select(ProjectName, ProjectType, "DQIssues" = Issues, DQCohort, DQPercent, 
+         DQPoints, DQPossible)
 
 # TEST RESULTS: no percents over 100%, everyone has points
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
-# PLEASE NOTE THE SPECS SAY HOHS ENTERED BUT IN 2019 WE GOT PUSHBACK ON THIS
-# BECAUSE SOMETIMES THE HOH IS NOT THE ONE WITH THE HOMELESS HISTORY
+# Decided in Feb meeting that we're going to use Adults Entered for this one
+# DQ: General and ???LoTH questions???
 
 pe_long_term_homeless <- pe_adults_entered %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
                                        units = "days"),
-    MeetsObjective = if_else(DQ_flags == 0 & (
+    MeetsObjective = if_else((
       CurrentHomelessDuration >= 365 &
         !is.na(CurrentHomelessDuration)
     ) |
@@ -1158,14 +1168,15 @@ pe_long_term_homeless <- pe_adults_entered %>%
       ),
     1,
     0
-    )
+    ),
+    LTHomelessDQ = if_else(ProjectType == 3 & General_DQ == 1, 1, 0)
   ) %>%
-  select(all_of(vars_to_the_apps), DQ_flags, DateToStreetESSH, 
+  select(all_of(vars_to_the_apps), DateToStreetESSH, 
          CurrentHomelessDuration, MonthsHomelessPastThreeYears, 
-         TimesHomelessPastThreeYears)
+         TimesHomelessPastThreeYears, LTHomelessDQ)
 
 summary_pe_long_term_homeless <- pe_long_term_homeless %>%
-  group_by(ProjectType, ProjectName, DQ_flags) %>%
+  group_by(ProjectType, ProjectName, LTHomelessDQ) %>%
   summarise(LongTermHomeless = sum(MeetsObjective)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
@@ -1174,12 +1185,28 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
                               0,
                               LongTermHomeless),
     Structure = if_else(ProjectType == 3, "20_90_5", NULL),
-    LongTermHomelessPercent = LongTermHomeless / AdultsEntered,
+    LongTermHomelessPercent = if_else(AdultsEntered > 0,
+                                      LongTermHomeless / AdultsEntered,
+                                      NULL),    
     LongTermHomelessPoints = if_else(AdultsEntered == 0, 5,
-                     pe_score(Structure, LongTermHomelessPercent))
+                     pe_score(Structure, LongTermHomelessPercent)), 
+    LongTermHomelessPoints = case_when(
+      LTHomelessDQ == 0 ~ LongTermHomelessPoints,
+      LTHomelessDQ == 1 ~ 0,
+      is.na(LTHomelessDQ) ~ LongTermHomelessPoints),
+    LongTermHomelessPossible = if_else(ProjectType == 3, 5, NULL),
+    LongTermhomelessCohort = "AdultsEntered"
   ) %>%
-  select(ProjectType, ProjectName, LongTermHomeless, LongTermHomelessPercent,
-         LongTermHomelessPoints, DQ_flags)
+  select(
+    ProjectType,
+    ProjectName,
+    LongTermHomeless,
+    LongTermHomelessPercent,
+    LongTermHomelessPoints,
+    LongTermhomelessCohort,
+    LongTermHomelessPossible,
+    LTHomelessDQ
+  ) 
   
 # TEST RESULTS: No percents over 100%, all PSH's are getting legit points
 # DQ flags: nothing extra
@@ -1192,21 +1219,21 @@ summary_pe_final_scoring <-
   left_join(summary_pe_entries_no_income,
             by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_exits_to_ph,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_homeless_history_index,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_increase_income,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_length_of_stay,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_long_term_homeless,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_benefits_at_exit,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_own_housing,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_res_prior,
-            by = c("ProjectType", "ProjectName", "DQ_flags")) %>%
+            by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "ProjectName"))
 
 # Clean the House ---------------------------------------------------------
