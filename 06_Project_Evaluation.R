@@ -1163,6 +1163,7 @@ summary_pe_dq <- summary_pe_dq %>%
 # DQ: General and ???LoTH questions???
 
 pe_long_term_homeless <- pe_adults_entered %>%
+  right_join(pe_coc_funded, by = c("ProjectName", "ProjectType", "ProjectID")) %>%
   left_join(data_quality_flags, by = "ProjectName") %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
@@ -1227,7 +1228,8 @@ hohs_wo_scores <- dq_2019 %>%
   summarise(HoHTotal = n())
 
 pe_scored_at_ph_entry <- pe_hohs_entered %>%
-  left_join(data_quality_flags, by = "ProjectName") %>%
+  right_join(pe_coc_funded, by = c("ProjectName", "ProjectType", "ProjectID")) %>%
+  left_join(data_quality_flags, by = c("ProjectName")) %>%
   left_join(
     dq_2019 %>%
       filter(Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT") %>%
