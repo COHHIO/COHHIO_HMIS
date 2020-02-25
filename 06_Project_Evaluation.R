@@ -61,10 +61,6 @@ pe_coc_funded <- Funder %>%
          StartDate,
          EndDate)
 
-# pe_coc_funded <- pe_coc_funded %>%
-#   left_join(dq_flags_staging, by = "ProjectName")
-  
-
 vars_we_want <- c(
   "PersonalID",
   "ProjectType",
@@ -72,10 +68,6 @@ vars_we_want <- c(
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
-  # "General_DQ_flags",
-  # "Benefit_DQ_flags",
-  # "Income_DQ_flags",
-  # "Destination_DQ_flags",
   "EntryDate",
   "HouseholdID",
   "RelationshipToHoH",
@@ -1328,7 +1320,9 @@ rm(list = ls()[!(ls() %in% c(
   'pe_long_term_homeless',
   'pe_own_housing',
   'pe_res_prior',
+  'pe_scored_at_ph_entry',
   'pe_validation_summary',
+  'summary_pe_benefits_at_exit',
   'summary_pe_dq_by_provider',
   'summary_pe_entries_no_income',
   'summary_pe_exits_to_ph',
@@ -1336,9 +1330,9 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_increase_income',
   'summary_pe_length_of_stay',
   'summary_pe_long_term_homeless',
-  'summary_pe_benefits_at_exit',
   'summary_pe_own_housing',
   'summary_pe_res_prior',
+  'summary_pe_scored_at_ph_entry',
   'summary_pe_utilization',
   'summary_pe_final_scoring',
   'ReportStart',
