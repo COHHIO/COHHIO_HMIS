@@ -1183,9 +1183,9 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
         Type = "Warning",
-        Guidance = "Any household who has been in shelter, Transitional Housing, or a
-      Safe Haven for over 8 days should be assessed with the VI-SPDAT so that
-      they can be prioritized for Permanent Housing (RRH or PSH)."
+        Guidance = "Any household who has been in shelter, Transitional Housing,
+        or a Safe Haven for over 8 days should be assessed with the VI-SPDAT so
+        that they can be prioritized for Permanent Housing (RRH or PSH)."
       ) %>%
       select(all_of(vars_we_want))
     
