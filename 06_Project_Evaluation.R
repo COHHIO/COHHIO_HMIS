@@ -61,8 +61,8 @@ pe_coc_funded <- Funder %>%
          StartDate,
          EndDate)
 
-pe_coc_funded <- pe_coc_funded %>%
-  left_join(dq_flags_staging, by = "ProjectName")
+# pe_coc_funded <- pe_coc_funded %>%
+#   left_join(dq_flags_staging, by = "ProjectName")
   
 
 vars_we_want <- c(
@@ -72,10 +72,10 @@ vars_we_want <- c(
   "VeteranStatus",
   "EnrollmentID",
   "ProjectName",
-  "General_DQ_flags",
-  "Benefit_DQ_flags",
-  "Income_DQ_flags",
-  "Destination_DQ_flags",
+  # "General_DQ_flags",
+  # "Benefit_DQ_flags",
+  # "Income_DQ_flags",
+  # "Destination_DQ_flags",
   "EntryDate",
   "HouseholdID",
   "RelationshipToHoH",
@@ -397,6 +397,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
     ProjectID,
     ProjectName,
     ClientsServed,
+    HoHsEntered,
     HoHsServed,
     HoHsServedLeavers,
     AdultsMovedIn,
@@ -433,13 +434,31 @@ dq_flags_staging <- dq_2019 %>%
     IncomeFlag =
       if_else(Issue == "Income Missing at Entry", 1, 0),
     LoTHFlag =
-      if_else(Issue == "Missing Months or Times Homeless", 1, 0),
+      if_else(Issue %in% c("Missing Residence Prior",
+                          "Missing Months or Times Homeless"),
+              1,
+              0), 
     DestinationFlag =
       if_else(Issue == "Missing Destination", 1, 0)
   ) %>%
-  select(ProjectName, PersonalID, Flag) %>%
-  filter(!is.na(Flag)) %>%
-  group_by(ProjectName)
+  select(ProjectName, 
+         PersonalID, 
+         HouseholdID,
+         GeneralFlag, 
+         BenefitsFlag, 
+         IncomeFlag, 
+         LoTHFlag,
+         DestinationFlag) %>%
+  filter(
+    GeneralFlag + BenefitsFlag + IncomeFlag + LoTHFlag + DestinationFlag > 0
+  ) %>% 
+  group_by(ProjectName) %>%
+  summarise(GeneralFlagTotal = sum(GeneralFlag),
+            BenefitsFlagTotal = sum(BenefitsFlag),
+            IncomeFlagTotal = sum(IncomeFlag),
+            LoTHFlagTotal = sum(LoTHFlag),
+            DestinationFlagTotal = sum(DestinationFlag))
+
 
 # Considering adding a DQ flag for when subs don't match the yes/no but:
 # 1. Rme has not had sub dq data in it all this time
@@ -447,10 +466,10 @@ dq_flags_staging <- dq_2019 %>%
 
 data_quality_flags_detail <- pe_validation_summary %>%
   left_join(dq_flags_staging, by = "ProjectName") %>%
-  mutate(General_DQ = if_else(General_DQ_flags/ClientsServed >= .02, 1, 0),
-         Benefits_DQ = if_else(Benefit_DQ_flags/AdultsEntered >= .02, 1, 0),
-         Income_DQ = if_else(Income_DQ_flags/AdultsEntered >= .02, 1, 0),
-         Destination_DQ = if_else(Destination_DQ_flags/ClientsServed >= .02, 1, 0))
+  mutate(General_DQ = if_else(GeneralFlagTotal/ClientsServed >= .02, 1, 0),
+         Benefits_DQ = if_else(BenefitsFlagTotal/AdultsEntered >= .02, 1, 0),
+         Income_DQ = if_else(IncomeFlagTotal/AdultsEntered >= .02, 1, 0),
+         Destination_DQ = if_else(DestinationFlagTotal/ClientsServed >= .02, 1, 0))
 
 data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
 
@@ -1207,9 +1226,62 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
     LongTermHomelessPossible,
     LTHomelessDQ
   ) 
-  
-# TEST RESULTS: No percents over 100%, all PSH's are getting legit points
-# DQ flags: nothing extra
+
+# VISPDATs at Entry into PH -----------------------------------------------
+
+hohs_wo_scores <- dq_2019 %>%
+  filter(Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT") %>%
+  group_by(ProjectName) %>%
+  summarise(HoHTotal = n())
+
+pe_scored_at_ph_entry <- pe_hohs_entered %>%
+  left_join(data_quality_flags, by = "ProjectName") %>%
+  left_join(
+    dq_2019 %>%
+      filter(Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT") %>%
+      select("ProjectName", "PersonalID", "HouseholdID", "Issue"),
+    by = c("ProjectName", "PersonalID", "HouseholdID")
+  ) %>%
+  mutate(
+    MeetsObjective = if_else(!is.na(Issue) & 
+                                ProjectType %in% c(3, 13), 0, 1),
+    ScoredAtEntryDQ = if_else(ProjectType %in% c(3, 13) & 
+                                 General_DQ == 1, 1, 0)
+  ) %>%
+  select(all_of(vars_to_the_apps), ScoredAtEntryDQ)
+
+summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
+  group_by(ProjectType, ProjectName, ScoredAtEntryDQ) %>%
+  summarise(ScoredAtEntry = sum(MeetsObjective)) %>%
+  ungroup() %>%
+  right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
+  mutate(
+    ScoredAtEntry = if_else(is.na(ScoredAtEntry),
+                            0,
+                            ScoredAtEntry), 
+    Structure = if_else(ProjectType %in% c(3, 13), "20_90_5", NULL),
+    ScoredAtEntryPercent = if_else(HoHsEntered > 0,
+                                   ScoredAtEntry / HoHsEntered,
+                                   NULL),    
+    ScoredAtEntryPoints = if_else(HoHsEntered == 0, 5,
+                                     pe_score(Structure, ScoredAtEntryPercent)), 
+    ScoredAtEntryPoints = case_when(
+      ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
+      ScoredAtEntryDQ == 1 ~ 0,
+      is.na(ScoredAtEntryDQ) ~ ScoredAtEntryPoints),
+    ScoredAtEntryPossible = if_else(ProjectType %in% c(3, 13), 5, NULL),
+    ScoredAtEntryCohort = "HoHsEntered"
+  ) %>%
+  select(
+    ProjectType,
+    ProjectName,
+    ScoredAtEntry,
+    ScoredAtEntryPercent,
+    ScoredAtEntryPoints,
+    ScoredAtEntryCohort,
+    ScoredAtEntryPossible,
+    ScoredAtEntryDQ
+  ) 
 
 # Final Scoring -----------------------------------------------------------
 
@@ -1219,6 +1291,8 @@ summary_pe_final_scoring <-
   left_join(summary_pe_entries_no_income,
             by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_exits_to_ph,
+            by = c("ProjectType", "ProjectName")) %>%
+  left_join(summary_pe_scored_at_ph_entry,
             by = c("ProjectType", "ProjectName")) %>%
   left_join(summary_pe_homeless_history_index,
             by = c("ProjectType", "ProjectName")) %>%
@@ -1241,25 +1315,23 @@ summary_pe_final_scoring <-
 rm(list = ls()[!(ls() %in% c(
   'pe_adults_entered',
   'pe_adults_moved_in_leavers',
+  'pe_benefits_at_exit',
   'pe_clients_served',
   'pe_coc_funded',
   'pe_coc_scoring',
   'pe_dq_by_provider',
   'pe_entries_no_income',
   'pe_exits_to_ph',
-  # 'pe_health_ins_at_exit',
   'pe_homeless_history_index',
   'pe_increase_income',
   'pe_length_of_stay',
   'pe_long_term_homeless',
-  'pe_benefits_at_exit',
   'pe_own_housing',
   'pe_res_prior',
   'pe_validation_summary',
   'summary_pe_dq_by_provider',
   'summary_pe_entries_no_income',
   'summary_pe_exits_to_ph',
-  # 'summary_pe_health_ins_at_exit',
   'summary_pe_homeless_history_index',
   'summary_pe_increase_income',
   'summary_pe_length_of_stay',
