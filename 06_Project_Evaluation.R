@@ -495,6 +495,13 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     ChronicPrioritizationScore,
     OnTrackSpendingScoring,
     UnspentFundsScoring
+  ) %>%
+  mutate(
+    CostPerExitPossible = 5,
+    HousingFirstPossible = 5,
+    ChronicPrioritizationPossible = 5,
+    OnTrackSpendingPossible = 5,
+    UnspentFundsPossible = 5
   )
 
 # Housing Stability: Exits to PH ------------------------------------------
