@@ -34,7 +34,7 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 
 # Staging -----------------------------------------------------------------
 
-# filter to only CoC-funded projects
+# filter to only CoC-funded projects (leaving out the SSO)
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
@@ -125,7 +125,8 @@ pe_clients_served <-  co_clients_served %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
 # several measures will use this
-# Adults who entered during date range
+
+# Checking for deceased hohs for points adjustments
 
 hoh_exits_to_deceased <- pe_clients_served %>%
   filter(Destination == 24 &
@@ -137,6 +138,7 @@ hoh_exits_to_deceased <- pe_clients_served %>%
 
 hoh_exits_to_deceased[is.na(hoh_exits_to_deceased)] <- 0
 
+# Adults who entered during date range
 
 pe_adults_entered <-  co_adults_entered %>%
   filter(entered_between(., ReportStart, ReportEnd)) %>%
@@ -157,10 +159,9 @@ pe_adults_entered <-  co_adults_entered %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate))
 
-# this one counts each entry and therefore should have Duplicate EEs shown
-# as a potential DQ issue that affects this measure.
+# this one counts each entry 
 
-## vv for vispdat measure
+## for vispdat measure
 
 pe_hohs_entered <-  co_hohs_entered %>%
   filter(entered_between(., ReportStart, ReportEnd)) %>%
@@ -360,10 +361,13 @@ summary_pe_hohs_served_leavers <- pe_hohs_served %>%
                               HoHsServedLeavers))
 
 summary_pe_clients_served <- pe_clients_served %>%
-  right_join(pe_coc_funded, by = "ProjectID") %>%
   group_by(ProjectID) %>%
   summarise(ClientsServed = n()) %>%
-  ungroup()
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  mutate(ClientsServed = if_else(is.na(ClientsServed),
+                                 as.integer(0),
+                                 ClientsServed))
 
 summary_pe_adults_entered <- pe_adults_entered %>%
   group_by(ProjectID) %>%
@@ -723,14 +727,9 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
   ) 
 
 # TEST RESULTS: Needs retesting since I had to change the logic after the last meeting
-# DQ Flags: check subs against Yes/No 
 
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
-# DQ Flags: check subs against Yes/No once the Export has been fixed
-
-# one problem is there can be multiple updates and annuals, trying to figure
-# out the best way to get the most recent income
 
 income_staging2 <-  pe_adults_moved_in %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -829,7 +828,6 @@ summary_pe_increase_income <- pe_increase_income %>%
   ) 
 
 # TEST RESULTS: Nothing over 100%, all projects have legit points
-# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
@@ -882,7 +880,6 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
-# DQ: General, ??RES PRIOR??
 
 pe_res_prior <- pe_adults_entered %>%
   left_join(data_quality_flags, by = "ProjectName") %>%
@@ -932,7 +929,6 @@ summary_pe_res_prior <- pe_res_prior %>%
   ) 
 
 # TEST RESULTS: Nothing over 100%, all projects have points that should
-# DQ Flags: nothing extra
 
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
@@ -981,11 +977,9 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
   )
 
 # TEST RESULTS: nothing over 100%, everyone has points who should
-# DQ Flags: check subs against Yes/No once the Export has been fixed
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
-# DQ: General, ??LoS questions??
 
 pe_homeless_history_index <- pe_adults_entered %>%
   select(
@@ -1139,7 +1133,6 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
 
 # TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
 # scores to ART
-# DQ flags: nothing extra because DKRs and missings are worked into the scoring
 
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
@@ -1180,7 +1173,6 @@ summary_pe_dq <- summary_pe_dq %>%
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
 # Decided in Feb meeting that we're going to use Adults Entered for this one
-# DQ: General and ???LoTH questions???
 
 pe_long_term_homeless <- pe_adults_entered %>%
   right_join(pe_coc_funded, by = c("ProjectName", "ProjectType", "ProjectID")) %>%
@@ -1387,6 +1379,20 @@ next_thing_due <- tribble(
   ) %>%
   filter(today() %within% DateRange) %>%
   select(Event, DueDate)
+
+zero_divisors <- pe_validation_summary %>%
+  filter(ClientsServed == 0 |
+           HoHsEntered == 0 |
+           HoHsServed == 0 |
+           HoHsServedLeavers == 0 |
+           AdultsMovedIn == 0 |
+           AdultsEntered == 0 |
+           ClientsMovedInLeavers == 0 |
+           AdultMovedInLeavers == 0 |
+           HoHsMovedInLeavers == 0) %>%
+  select(-HoHDeaths)
+
+write_csv(zero_divisors, "Reports/zero_divisors.csv")
 
 save.image("images/ProjectEvaluation.RData")
 
