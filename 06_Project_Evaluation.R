@@ -1249,10 +1249,12 @@ pe_scored_at_ph_entry <- pe_hohs_entered %>%
     by = c("ProjectName", "PersonalID", "HouseholdID")
   ) %>%
   mutate(
-    MeetsObjective = if_else(!is.na(Issue) & 
-                                ProjectType %in% c(3, 13), 0, 1),
-    ScoredAtEntryDQ = if_else(ProjectType %in% c(3, 13) & 
-                                 General_DQ == 1, 1, 0)
+    MeetsObjective = case_when(
+      !is.na(PersonalID) & is.na(Issue) & ProjectType %in% c(3, 13) ~ 1, 
+      !is.na(PersonalID) & !is.na(Issue) & ProjectType %in% c(3, 13) ~ 0),
+    ScoredAtEntryDQ = case_when(
+      !is.na(PersonalID) & ProjectType %in% c(3, 13) & General_DQ == 1 ~ 1, 
+      !is.na(PersonalID) & ProjectType %in% c(3, 13) & General_DQ == 0 ~ 0)
   ) %>%
   select(all_of(vars_to_the_apps), ScoredAtEntryDQ)
 
@@ -1265,12 +1267,13 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntry = if_else(is.na(ScoredAtEntry),
                             0,
                             ScoredAtEntry), 
-    Structure = if_else(ProjectType %in% c(3, 13), "20_90_5", NULL),
+    Structure = if_else(ProjectType %in% c(3, 13), "90_100_5", NULL),
     ScoredAtEntryPercent = if_else(HoHsEntered > 0,
                                    ScoredAtEntry / HoHsEntered,
                                    NULL),    
     ScoredAtEntryPoints = if_else(HoHsEntered == 0, 5,
-                                     pe_score(Structure, ScoredAtEntryPercent)), 
+                                     pe_score(Structure, ScoredAtEntryPercent)),
+    testpe_score = pe_score(Structure, ScoredAtEntryPercent),
     ScoredAtEntryPoints = case_when(
       ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
       ScoredAtEntryDQ == 1 ~ 0,
