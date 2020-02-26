@@ -670,6 +670,9 @@ beds_available_between <- function(table, start, end) {
 
 pe_score <- function(structure, value) {
   case_when(
+    structure == "90_100_5" & value < .9 ~ 0,
+    structure == "90_100_5" & value >= .9 & value < 1 ~ 2,
+    structure == "90_100_5" & value == 1 ~ 5,
     structure == "75_85_10" & value >= .85 ~ 10,
     structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5,
     structure == "75_85_10" & value >= .75 & value < .8 ~ 5,
