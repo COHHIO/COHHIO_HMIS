@@ -297,10 +297,10 @@ dq_veteran <- served_in_date_range %>%
       ) ~ "Warning"
     ),
     Guidance = case_when(
-      Issue == "Check Veteran Status for Accuracy" ~ "You have indicated the household exited to a destination that only
-      veterans are eligible for, but the head of household appears to be not a
-      veteran. Either the Veteran Status is incorrect or the Destination is
-      incorrect.", 
+      Issue == "Check Veteran Status for Accuracy" ~ "You have indicated the 
+      household exited to a destination that only veterans are eligible for, but 
+      the head of household appears to be not a veteran. Either the Veteran 
+      Status is incorrect or the Destination is incorrect.", 
       Issue == "Missing Veteran Status" ~ guidance_missing_pii,
       Issue == "Don't Know/Refused Veteran Status" ~ guidance_dkr_data)
   ) %>%
