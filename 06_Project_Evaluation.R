@@ -1271,8 +1271,11 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryPercent = if_else(HoHsEntered > 0,
                                    ScoredAtEntry / HoHsEntered,
                                    NULL),    
-    ScoredAtEntryPoints = if_else(HoHsEntered == 0, 5,
-                                     pe_score(Structure, ScoredAtEntryPercent)),
+    ScoredAtEntryPoints = case_when(
+      HoHsEntered == 0 &
+        ProjectType %in% c(3, 13) ~ 5,
+      HoHsEntered > 0 &
+        ProjectType %in% c(3, 13) ~ pe_score(Structure, ScoredAtEntryPercent)),
     ScoredAtEntryPoints = case_when(
       ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
       ScoredAtEntryDQ == 1 ~ 0,
