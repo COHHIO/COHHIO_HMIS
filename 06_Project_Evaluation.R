@@ -1273,7 +1273,6 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
                                    NULL),    
     ScoredAtEntryPoints = if_else(HoHsEntered == 0, 5,
                                      pe_score(Structure, ScoredAtEntryPercent)),
-    testpe_score = pe_score(Structure, ScoredAtEntryPercent),
     ScoredAtEntryPoints = case_when(
       ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
       ScoredAtEntryDQ == 1 ~ 0,
