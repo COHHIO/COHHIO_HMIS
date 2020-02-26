@@ -1,5 +1,5 @@
 # COHHIO_HMIS
-# Copyright (C) 2019  Coalition on Homelessness and Housing in Ohio (COHHIO)
+# Copyright (C) 2020  Coalition on Homelessness and Housing in Ohio (COHHIO)
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -37,14 +37,14 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 # filter to only CoC-funded projects
 
 coc_funded <- Funder %>%
-  filter(Funder %in% c(1:7, 43) &
+  filter(Funder %in% c(1:7) &
            ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
               ymd(EndDate) >= mdy(ReportStart))) %>%
   select(ProjectID, Funder)
 
 pe_coc_funded <- Funder %>%
-  filter(Funder %in% c(1:7, 43) &
+  filter(Funder %in% c(1:7) &
            ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
               ymd(EndDate) >= mdy(ReportEnd))) %>%
@@ -124,10 +124,19 @@ pe_clients_served <-  co_clients_served %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
-
-
 # several measures will use this
 # Adults who entered during date range
+
+hoh_exits_to_deceased <- pe_clients_served %>%
+  filter(Destination == 24 &
+           RelationshipToHoH == 1) %>%
+  group_by(ProjectID) %>%
+  summarise(HoHDeaths = n()) %>%
+  ungroup() %>%
+  right_join(pe_coc_funded["ProjectID"], by = "ProjectID")
+
+hoh_exits_to_deceased[is.na(hoh_exits_to_deceased)] <- 0
+
 
 pe_adults_entered <-  co_adults_entered %>%
   filter(entered_between(., ReportStart, ReportEnd)) %>%
@@ -384,6 +393,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_hohs_served, by = "ProjectID") %>%
   full_join(summary_pe_hohs_entered, by = "ProjectID") %>%
   left_join(pe_coc_funded, by = "ProjectID") %>%
+  left_join(hoh_exits_to_deceased, by = "ProjectID") %>%
   select(
     ProjectType,
     ProjectID,
@@ -392,6 +402,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
     HoHsEntered,
     HoHsServed,
     HoHsServedLeavers,
+    HoHDeaths,
     AdultsMovedIn,
     AdultsEntered,
     ClientsMovedInLeavers,
@@ -402,6 +413,8 @@ pe_validation_summary <- summary_pe_adults_entered %>%
 rm(list = ls(pattern = "summary_"))
 
 ## THIS pe_validation_summary NEEDS TO BE **THOROUGHLY** TESTED!!!!
+## Ask if you need to subtract the deaths from all the Leaver totals and
+# remove Destination 24 from the "Other" Destination Group.
 
 
 # Finalizing DQ Flags -----------------------------------------------------
