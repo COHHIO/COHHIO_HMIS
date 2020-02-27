@@ -830,8 +830,6 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     BenefitsAtExitDQ
   ) 
 
-# TEST RESULTS: Needs retesting since I had to change the logic after the last meeting
-
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
 
@@ -911,9 +909,10 @@ summary_pe_increase_income <- pe_increase_income %>%
       ProjectType == 13 ~ "14_18_10"
     ),
     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
-    IncreasedIncomePoints = pe_score(Structure, IncreasedIncomePercent),
-    # IncreasedIncomePoints = case_when(AdultsMovedIn == 0 ~ 10,
-    #                                   IncreasedIncomeDQ == 1 ~ 0),
+    IncreasedIncomePoints = case_when(
+      AdultsMovedIn > 0 ~ pe_score(Structure, IncreasedIncomePercent),
+      AdultsMovedIn == 0 & (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 10,
+      IncreasedIncomeDQ == 1 ~ 0),
     IncreasedIncomePossible = 10,
     IncreasedIncomeCohort = "AdultsMovedIn"
   ) %>%
@@ -928,11 +927,8 @@ summary_pe_increase_income <- pe_increase_income %>%
     IncreasedIncomeDQ
   ) 
 
-# TEST RESULTS: Nothing over 100%, all projects have legit points
-
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
-# DQ: General
 
 pe_length_of_stay <- pe_clients_moved_in_leavers %>%
   left_join(data_quality_flags, by = "ProjectName") %>%
@@ -971,13 +967,13 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
     AverageLoSDQ = case_when(
       General_DQ == 1 & ProjectType %in% c(2, 8 ,13) ~ 1,
       General_DQ == 0 & ProjectType %in% c(2, 8 ,13) ~ 0),
-    AverageLoSPoints = if_else(AverageLoSDQ == 1, 0, AverageLoSPoints),
+    AverageLoSPoints = case_when(
+      AverageLoSDQ == 1 ~ 0, 
+      AverageLoSDQ == 0 | is.na(AverageLoSDQ) ~ AverageLoSPoints),
     AverageLoSCohort = "ClientsMovedInLeavers"
   ) %>%
   select(ProjectType, ProjectName, AverageDays, AverageLoSCohort, 
          AverageLoSPoints, AverageLoSPossible, AverageLoSDQ)
-
-# TEST RESULTS: Min and Max days look ok, everyone has points who should
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
 # PSH, TH, SH (Street only), RRH
@@ -1014,7 +1010,9 @@ summary_pe_res_prior <- pe_res_prior %>%
     LHResPriorPoints = if_else(AdultsEntered == 0,
                                10,
                                pe_score(Structure, LHResPriorPercent)),
-    LHResPriorPoints = if_else(LHResPriorDQ == 1, 0, LHResPriorPoints),
+    LHResPriorPoints = case_when(
+      LHResPriorDQ == 1 ~ 0, 
+      LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
     LHResPriorPossible = 10,
     LHResPriorCohort = "AdultsEntered"
   ) %>%
@@ -1028,8 +1026,6 @@ summary_pe_res_prior <- pe_res_prior %>%
     LHResPriorPossible,
     LHResPriorDQ
   ) 
-
-# TEST RESULTS: Nothing over 100%, all projects have points that should
 
 # Community Need: Entries with No Income ----------------------------------
 # PSH, TH, SH, RRH
@@ -1061,9 +1057,8 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
                      pe_score(Structure, NoIncomeAtEntryPercent)),
     NoIncomeAtEntryPossible = if_else(ProjectType != 2, 10, NULL),
-    NoIncomeAtEntryPoints = if_else(NoIncomeAtEntryDQ == 1, 
-                                    0, 
-                                    NoIncomeAtEntryPoints),
+    NoIncomeAtEntryPoints = case_when(NoIncomeAtEntryDQ == 1 ~ 0,
+                                      NoIncomeAtEntryDQ == 0 | is.na(NoIncomeAtEntryDQ) ~ NoIncomeAtEntryPoints),
     NoIncomeAtEntryCohort = "AdultsEntered"
   ) %>%
   select(
@@ -1076,8 +1071,6 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntryPossible,
     NoIncomeAtEntryDQ
   )
-
-# TEST RESULTS: nothing over 100%, everyone has points who should
 
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
@@ -1221,7 +1214,8 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
                            pe_score(Structure, MedHHI)),
     MedianHHIPossible = 10,
     MedianHHIDQ = if_else(General_DQ == 1, 1, 0),
-    MedianHHIPoints = if_else(MedianHHIDQ == 1, 0, MedianHHIPoints),
+    MedianHHIPoints = case_when(MedianHHIDQ == 1 ~ 0, 
+                                MedianHHIDQ == 0 | is.na(MedianHHIDQ) ~ MedianHHIPoints),
     MedianHHICohort = "AdultsEntered"
   ) %>%
   select(ProjectType,
@@ -1231,9 +1225,6 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
          MedianHHIPoints,
          MedianHHIPossible,
          MedianHHIDQ)
-
-# TEST RESULTS: HHIs are as expected, everyone has points, need to compare 
-# scores to ART
 
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
@@ -1268,8 +1259,6 @@ summary_pe_dq <- summary_pe_dq %>%
          ) %>%
   select(ProjectName, ProjectType, "DQIssues" = Issues, DQCohort, DQPercent, 
          DQPoints, DQPossible)
-
-# TEST RESULTS: no percents over 100%, everyone has points
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
@@ -1307,18 +1296,18 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
     LongTermHomeless = if_else(is.na(LongTermHomeless),
-                              0,
+                              0,     
                               LongTermHomeless),
     Structure = if_else(ProjectType == 3, "20_90_5", NULL),
     LongTermHomelessPercent = if_else(AdultsEntered > 0,
                                       LongTermHomeless / AdultsEntered,
                                       NULL),    
-    LongTermHomelessPoints = if_else(AdultsEntered == 0, 5,
+    LongTermHomelessPoints = if_else(AdultsEntered == 0 &
+                                       ProjectType == 3, 5,
                      pe_score(Structure, LongTermHomelessPercent)), 
-    LongTermHomelessPoints = case_when(
-      LTHomelessDQ == 0 ~ LongTermHomelessPoints,
-      LTHomelessDQ == 1 ~ 0,
-      is.na(LTHomelessDQ) ~ LongTermHomelessPoints),
+    LongTermHomelessPoints = case_when(LTHomelessDQ == 0 |
+                                         is.na(LTHomelessDQ) ~ LongTermHomelessPoints,
+                                       LTHomelessDQ == 1 ~ 0), 
     LongTermHomelessPossible = if_else(ProjectType == 3, 5, NULL),
     LongTermhomelessCohort = "AdultsEntered"
   ) %>%
