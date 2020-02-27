@@ -25,6 +25,111 @@ rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
 load("images/Data_Quality.RData")
 
+# Points function ---------------------------------------------------------
+
+pe_score <- function(structure, value) {
+  case_when(
+    structure == "75_85_10" & value >= .85 ~ 10,
+    structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5,
+    structure == "75_85_10" & value >= .75 & value < .8 ~ 5,
+    structure == "75_85_10" & value < .75 ~ 0,
+    structure == "20_90_5" & value >= .9 ~ 5,
+    structure == "20_90_5" & value >= .75 & value < .9 ~ 4,
+    structure == "20_90_5" & value >= .5 & value < .75 ~ 3,
+    structure == "20_90_5" & value >= .3 & value < .5 ~ 2,
+    structure == "20_90_5" & value >= .2 & value < .3 ~ 1,
+    structure == "20_90_5" & value < .2 ~ 0,
+    structure == "2_6_10" & value <= .02 ~ 10,
+    structure == "2_6_10" & value <= .04 & value > .02 ~ 7.5,
+    structure == "2_6_10" & value <= .06 & value > .04 ~ 5,
+    structure == "2_6_10" & value > .06 ~ 0,
+    structure == "5_9_10" & value <= .05 ~ 10,
+    structure == "5_9_10" & value <= .08 & value > .05 ~ 7.5,
+    structure == "5_9_10" & value <= .09 & value > .08 ~ 5,
+    structure == "5_9_10" & value > .09 ~ 0,
+    structure == "75_83_10" & value >= .83 ~ 10,
+    structure == "75_83_10" & value >= .79 & value < .83 ~ 7.5,
+    structure == "75_83_10" & value >= .75 & value < .79 ~ 5,
+    structure == "75_83_10" & value < .75 ~ 0,
+    structure == "72_80_5" & value >= .8 ~ 5,
+    structure == "72_80_5" & value >= .76 & value < .8 ~ 3,
+    structure == "72_80_5" & value >= .72 & value < .76 ~ 2,
+    structure == "72_80_5" & value < .72 ~ 0,
+    structure == "7_12_10" & value <= .07 ~ 10,
+    structure == "7_12_10" & value <= .09 & value > .07 ~ 7.5,
+    structure == "7_12_10" & value <= .12 & value > .09 ~ 5,
+    structure == "7_12_10" & value > .12 ~ 0,
+    structure == "12_17_10" & value <= .12 ~ 10,
+    structure == "12_17_10" & value > 12 & value <= .14 ~ 7.5,
+    structure == "12_17_10" & value > .14 & value <= 17 ~ 5,
+    structure == "12_17_10" & value > .17 ~ 0,
+    structure == "22_28_10" & value >= .28 ~ 10,
+    structure == "22_28_10" & value >= .26 & value < .28 ~ 7.5,
+    structure == "22_28_10" & value >= .22 & value < .26 ~ 5,
+    structure == "22_28_10" & value < .22 ~ 0,
+    structure == "0_7_10_PSH" & value >= 6 & value <= 7 ~ 10,
+    structure == "0_7_10_PSH" & value >= 5 & value < 6 ~ 9,
+    structure == "0_7_10_PSH" & value >= 3 & value < 5 ~ 8,
+    structure == "0_7_10_PSH" & value >= 2 & value < 3 ~ 5,
+    structure == "0_7_10_PSH" & value >= 1 & value < 2 ~ 2,
+    structure == "0_7_10_PSH" & value < 1 ~ 0,
+    structure == "200_280_10" & value <= 200 ~ 10,
+    structure == "200_280_10" & value <= 240 & value > 200 ~ 7.5,
+    structure == "200_280_10" & value <= 280 & value > 240 ~ 5,
+    structure == "200_280_10" & value > 280 ~ 0,
+    structure == "67_75_10" & value >= .75 ~ 10,
+    structure == "67_75_10" & value >= .71 & value < .75 ~ 7.5,
+    structure == "67_75_10" & value >= .67 & value < .71 ~ 5,
+    structure == "67_75_10" & value < .67 ~ 0,
+    structure == "0_7_10" & value >= 4 & value <= 7 ~ 10,
+    structure == "0_7_10" & value >= 3 & value < 4 ~ 8,
+    structure == "0_7_10" & value >= 2 & value < 3 ~ 7,
+    structure == "0_7_10" & value >= 1 & value < 2 ~ 5,
+    structure == "0_7_10" & value < 1 ~ 0,
+    structure == "15_19_10" & value <= .15 ~ 10,
+    structure == "15_19_10" & value <= .17 & value > .15 ~ 7.5,
+    structure == "15_19_10" & value <= .19 & value > .17 ~ 5,
+    structure == "15_19_10" & value > .19 ~ 0,
+    structure == "20_24_10" & value <= .2 ~ 10,
+    structure == "20_24_10" & value <= .22 & value > .2 ~ 7.5,
+    structure == "20_24_10" & value <= .24 & value > .22 ~ 5,
+    structure == "20_24_10" & value > .24 ~ 0,
+    structure == "16_20_10" & value >= .2 ~ 10,
+    structure == "16_20_10" & value < .2 & value >= .18 ~ 7.5,
+    structure == "16_20_10" & value < .18 & value >= .16 ~ 5,
+    structure == "16_20_10" & value < .16 ~ 0,
+    structure == "260_340_10" & value <= 260 ~ 10,
+    structure == "260_340_10" & value > 260 & value <= 300 ~ 7.5,
+    structure == "260_340_10" & value > 300 & value <= 340 ~ 5,
+    structure == "260_340_10" & value > 340 ~ 0,
+    structure == "0_100_10" & value == 1 ~ 10,
+    structure == "0_100_10" & value < 1 ~ 0,
+    structure == "14_18_10" & value >=  .18 ~ 10,
+    structure == "14_18_10" & value < .18 & value >= .16 ~ 7.5,
+    structure == "14_18_10" & value < .16 & value >= .14 ~ 5,
+    structure == "14_18_10" & value < .14 ~ 0,
+    structure == "150_210_10" & value <= 150 ~ 10,
+    structure == "150_210_10" & value <= 170 & value > 150 ~ 7.5,
+    structure == "150_210_10" & value <= 210 & value > 170 ~ 5,
+    structure == "150_210_10" & value > 210 ~ 0,
+    structure == "80_90_10" & value >= .9 ~ 10,
+    structure == "80_90_10" & value >= .85 & value < .9 ~ 7.5,
+    structure == "80_90_10" & value >= .8 & value < .85 ~ 5,
+    structure == "80_90_10" & value < .8 ~ 0,
+    structure == "34_40_10" & value >= .4 ~ 10,
+    structure == "34_40_10" & value >= .37 & value < .4 ~ 7.5,
+    structure == "34_40_10" & value >= .34 & value < .37 ~ 5,
+    structure == "34_40_10" & value < .34 ~ 0,
+    structure == "24_30_10" & value >= .3 ~ 10,
+    structure == "24_30_10" & value >= .27 & value < .3 ~ 7.5,
+    structure == "24_30_10" & value >= .24 & value < .27 ~ 5,
+    structure == "24_30_10" & value < .24 ~ 0,
+    structure == "90_100_5" & value == 1 ~ 5,
+    structure == "90_100_5" & value >= .9 & value < 1 ~ 2,
+    structure == "90_100_5" & value < .9 ~ 0
+  )
+}
+
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
@@ -1233,11 +1338,6 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
   ) 
 
 # VISPDATs at Entry into PH -----------------------------------------------
-
-hohs_wo_scores <- dq_2019 %>%
-  filter(Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT") %>%
-  group_by(ProjectName) %>%
-  summarise(HoHTotal = n())
 
 pe_scored_at_ph_entry <- pe_hohs_entered %>%
   right_join(pe_coc_funded, by = c("ProjectName", "ProjectType", "ProjectID")) %>%
