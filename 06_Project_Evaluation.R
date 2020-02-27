@@ -668,13 +668,13 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       (ProjectType == 3 &
          HoHsServed == 0) |
         (ProjectType != 3 &
-           HoHsServedLeavers) == 0,
+           HoHsServedLeavers == 0),
       10,
       pe_score(Structure, ExitsToPHPercent)
     ),
     ExitsToPHPossible = 10,
     ExitsToPHPoints = if_else(
-      ExitsToPHDQ == 0,
+      ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
       ExitsToPHPoints,
       0
     ),
@@ -690,9 +690,6 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     ExitsToPHDQ,
     ExitsToTPHCohort
   )
-
-# TESTING RESULTS: No percents over 100%, No NAs for Points except the SSO
-# DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
 # Housing Stability: Moved into Own Housing -------------------------------
 # TH, SH, RRH
@@ -737,9 +734,11 @@ summary_pe_own_housing <- pe_own_housing %>%
       10,
       pe_score(Structure, OwnHousingPercent)
     ),
-    OwnHousingPoints = if_else(is.na(OwnHousingPoints) & 
-                                 ProjectType != 3, 0, OwnHousingPoints),
-    OwnHousingPoints = if_else(OwnHousingDQ == 1, 0, OwnHousingPoints),
+    OwnHousingPoints = if_else(is.nan(OwnHousingPercent) &
+                                 ProjectType != 3, 10, OwnHousingPoints),
+    OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
+                                 is.na(OwnHousingDQ) |
+                                   OwnHousingDQ == 0 ~ OwnHousingPoints),
     OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
     OwnHousingCohort = "HoHsMovedInLeavers"
   ) %>%
@@ -751,8 +750,6 @@ summary_pe_own_housing <- pe_own_housing %>%
          OwnHousingPoints,
          OwnHousingPossible,
          OwnHousingDQ)
-# TEST RESULTS: No percents over 100%, everyone who should has a score
-# DQ Flags: None extra bc Destinations of DKR do not count positively anyway
 
 # Accessing Mainstream Resources: Benefits -----------------------------------
 # PSH, TH, SH, RRH
@@ -815,9 +812,11 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
                                10,
                                pe_score(Structure, BenefitsAtExit)),
     BenefitsAtExitPossible = 10,
-    BenefitsAtExitPoints = if_else(BenefitsAtExitDQ == 1, 
-                                   0, 
-                                   BenefitsAtExitPoints),
+    BenefitsAtExitPoints = case_when(
+      BenefitsAtExitDQ == 1 ~ 0,
+      is.na(BenefitsAtExitDQ) |
+        BenefitsAtExitDQ == 0 ~ BenefitsAtExitPoints
+    ), 
     BenefitsAtExitCohort = "AdultMovedInLeavers"
   ) %>%
   select(
@@ -906,19 +905,16 @@ summary_pe_increase_income <- pe_increase_income %>%
   mutate(
     IncreasedIncome = if_else(is.na(IncreasedIncome), 0, IncreasedIncome),
     Structure = case_when(
-      ProjectType == 2 ~ "24_30_10",
-      ProjectType == 3 ~ "22_28_10",
+      ProjectType == 3 ~ "24_30_10",
+      ProjectType == 2 ~ "22_28_10",
       ProjectType == 8 ~ "16_20_10",
       ProjectType == 13 ~ "14_18_10"
     ),
     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
-    IncreasedIncomePoints = if_else(AdultsMovedIn == 0,
-                     10,
-                     pe_score(Structure, IncreasedIncomePercent)),
+    IncreasedIncomePoints = pe_score(Structure, IncreasedIncomePercent),
+    # IncreasedIncomePoints = case_when(AdultsMovedIn == 0 ~ 10,
+    #                                   IncreasedIncomeDQ == 1 ~ 0),
     IncreasedIncomePossible = 10,
-    IncreasedIncomePoints = if_else(IncreasedIncomeDQ == 1, 
-                                    0, 
-                                    IncreasedIncomePoints),
     IncreasedIncomeCohort = "AdultsMovedIn"
   ) %>%
   select(
