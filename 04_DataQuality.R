@@ -791,7 +791,7 @@ check_eligibility <- served_in_date_range %>%
                    )
                ) |
                (
-                 LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36) &
+                 LivingSituation %in% c(3, 10, 11, 14, 19:23, 28, 31, 35, 36) &
                    # not homeless
                    (
                      !LengthOfStay %in% c(10, 11) |  # <1 week
@@ -803,7 +803,8 @@ check_eligibility <- served_in_date_range %>%
            )) |
           (
             ProjectType == 12 &
-              !LivingSituation %in% c(3, 10, 11, 19:23, 28, 31, 35, 36)
+              !LivingSituation %in% c(3, 10, 11, 14, 19:23, 28, 31, 35, 36) |
+              PreviousStreetESSH != 0 
           ) |
           (ProjectType %in% c(8, 4) & # Safe Haven and Outreach
              LivingSituation != 16) # unsheltered only
