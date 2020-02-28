@@ -624,7 +624,8 @@ pe_exits_to_ph <- pe_hohs_served %>%
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
       Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 24, 30, 99) ~ "Other",
+      Destination %in% c(8, 9, 17, 30, 99) ~ "Other",
+      Destination == 24 ~ "Deceased (not counted as negative or positive",
       is.na(Destination) ~ "Still in Program"
     ),
     ExitsToPHDQ = case_when(
@@ -653,6 +654,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
+    HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
     Structure = case_when(
       ProjectType == 3 ~ "80_90_10",
@@ -712,7 +714,8 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
       Destination %in% c(22:23) ~ "Shared Housing",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 24, 30, 99, 32) ~ "Other",
+      Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
+      Destination == 24 ~ "Deceased",
       is.na(Destination) ~ "Still in Program"
     )
   ) %>% 
@@ -724,6 +727,7 @@ summary_pe_own_housing <- pe_own_housing %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "ProjectName")) %>%
   mutate(
+    HoHsMovedInLeavers = HoHsMovedInLeavers - HoHDeaths,
     OwnHousing = if_else(is.na(OwnHousing), 0, OwnHousing),
     Structure = if_else(ProjectType != 3, "72_80_5", NULL),
     OwnHousingPercent = if_else(ProjectType != 3,
@@ -735,7 +739,7 @@ summary_pe_own_housing <- pe_own_housing %>%
       pe_score(Structure, OwnHousingPercent)
     ),
     OwnHousingPoints = if_else(is.nan(OwnHousingPercent) &
-                                 ProjectType != 3, 10, OwnHousingPoints),
+                                 ProjectType != 3, 5, OwnHousingPoints),
     OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
                                  is.na(OwnHousingDQ) |
                                    OwnHousingDQ == 0 ~ OwnHousingPoints),
