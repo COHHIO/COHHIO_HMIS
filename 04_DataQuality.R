@@ -1168,8 +1168,7 @@ check_eligibility <- served_in_date_range %>%
       select(all_of(vars_we_want))
     
     # HoHs in Shelter without a SPDAT -----------------------------------------
-    # this is a little different than the ART report; it only flags stayers
-    # since users can't do anything about leavers
+
     lh_without_spdat <- served_in_date_range %>%
       filter(is.na(PHTrack) | PHTrack != "Self Resolve" |
                ymd(ExpectedPHDate) < today()) %>%
