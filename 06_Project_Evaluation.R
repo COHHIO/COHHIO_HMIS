@@ -153,7 +153,7 @@ pe_coc_funded <- Funder %>%
            ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
               ymd(EndDate) >= mdy(ReportEnd)) &
-           ProjectId != 2069) %>%
+           ProjectID != 2069) %>%
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID", 
                       "ProjectName", 
@@ -522,11 +522,6 @@ pe_validation_summary <- summary_pe_adults_entered %>%
 
 rm(list = ls(pattern = "summary_"))
 
-## THIS pe_validation_summary NEEDS TO BE **THOROUGHLY** TESTED!!!!
-## Ask if you need to subtract the deaths from all the Leaver totals and
-# remove Destination 24 from the "Other" Destination Group.
-
-
 # Finalizing DQ Flags -----------------------------------------------------
 dq_flags_staging <- dq_2019 %>%
   right_join(pe_coc_funded, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
@@ -587,12 +582,12 @@ data_quality_flags_detail <- pe_validation_summary %>%
   mutate(General_DQ = if_else(GeneralFlagTotal/ClientsServed >= .02, 1, 0),
          Benefits_DQ = if_else(BenefitsFlagTotal/AdultsEntered >= .02, 1, 0),
          Income_DQ = if_else(IncomeFlagTotal/AdultsEntered >= .02, 1, 0),
-         Destination_DQ = if_else(DestinationFlagTotal/ClientsServed >= .02, 1, 0))
+         LoTH_DQ = if_else(LoTHFlagTotal/HoHsServed >= .02, 1, 0))
 
 data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
 
 data_quality_flags <- data_quality_flags_detail %>%
-  select(ProjectName, General_DQ, Benefits_DQ, Income_DQ, Destination_DQ)
+  select(ProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
 
 # CoC Scoring -------------------------------------------------------------
 
@@ -629,11 +624,11 @@ pe_exits_to_ph <- pe_hohs_served %>%
       Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 30, 99) ~ "Other",
-      Destination == 24 ~ "Deceased (not counted as negative or positive",
+      Destination == 24 ~ "Deceased",
       is.na(Destination) ~ "Still in Program"
     ),
     ExitsToPHDQ = case_when(
-      General_DQ == 1 | Destination_DQ == 1 ~ 1,
+      General_DQ == 1 ~ 1,
       TRUE ~ 0
     ),
     MeetsObjective =
@@ -709,8 +704,7 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       !Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 0
     ),
     OwnHousingDQ = case_when(
-      General_DQ == 1 |
-        Destination_DQ == 1 ~ 1,
+      General_DQ == 1 ~ 1,
       TRUE ~ 0
     ),
     DestinationGroup = case_when(
