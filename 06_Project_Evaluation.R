@@ -912,9 +912,11 @@ summary_pe_increase_income <- pe_increase_income %>%
     ),
     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
     IncreasedIncomePoints = case_when(
+      IncreasedIncomeDQ == 1 ~ 0,
       AdultsMovedIn > 0 ~ pe_score(Structure, IncreasedIncomePercent),
-      AdultsMovedIn == 0 & (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 10,
-      IncreasedIncomeDQ == 1 ~ 0),
+      AdultsMovedIn == 0 &
+        (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 10
+    ), 
     IncreasedIncomePossible = 10,
     IncreasedIncomeCohort = "AdultsMovedIn"
   ) %>%
