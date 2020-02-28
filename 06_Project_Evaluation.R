@@ -581,11 +581,6 @@ dq_flags_staging <- dq_2019 %>%
             IncomeFlagTotal = sum(IncomeFlag),
             LoTHFlagTotal = sum(LoTHFlag))
 
-
-# Considering adding a DQ flag for when subs don't match the yes/no but:
-# 1. Rme has not had sub dq data in it all this time
-# 2. The yes/no is actually more likely to be correct than the subs anyway
-
 data_quality_flags_detail <- pe_validation_summary %>%
   left_join(dq_flags_staging, by = "ProjectName") %>%
   mutate(General_DQ = if_else(GeneralFlagTotal/ClientsServed >= .02, 1, 0),
