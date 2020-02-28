@@ -1155,7 +1155,8 @@ check_eligibility <- served_in_date_range %>%
           (VeteranStatus != 1 |
              is.na(VeteranStatus)) &
           (CurrentlyFleeing != 1 |
-             is.na(CurrentlyFleeing))
+             is.na(CurrentlyFleeing) |
+             !WhenOccurred %in% c(1:3))
       ) %>%
       mutate(
         Issue = "Non-Veteran Non-DV HoHs Entering PH without SPDAT",
