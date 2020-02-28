@@ -152,7 +152,8 @@ pe_coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
            ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
-              ymd(EndDate) >= mdy(ReportEnd))) %>%
+              ymd(EndDate) >= mdy(ReportEnd)) &
+           ProjectId != 2069) %>%
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID", 
                       "ProjectName", 
