@@ -542,36 +542,44 @@ dq_flags_staging <- dq_2019 %>%
         0
       ),
     BenefitsFlag =
-      if_else(Issue == "Non-cash Benefits Missing at Entry", 1, 0),
-    # ^^ not looking at HI DQ bc it flags for children and
-    # we're not looking at children in the scoring
+      if_else(
+        Issue %in% c(
+          "Non-cash Benefits Missing at Entry",
+          "Conflicting Non-cash Benefits yes/no at Entry"
+        ),
+        1,
+        0
+      ),
     IncomeFlag =
-      if_else(Issue == "Income Missing at Entry", 1, 0),
+      if_else(
+        Issue %in% c("Income Missing at Entry",
+                     "Conflicting Income yes/no at Entry"),
+        1,
+        0
+      ),
     LoTHFlag =
-      if_else(Issue %in% c("Missing Residence Prior",
-                          "Missing Months or Times Homeless"),
-              1,
-              0), 
-    DestinationFlag =
-      if_else(Issue == "Missing Destination", 1, 0)
-  ) %>%
+      if_else(
+        Issue %in% c("Missing Residence Prior",
+                     "Missing Months or Times Homeless"),
+        1,
+        0
+      )
+  ) %>% 
   select(ProjectName, 
          PersonalID, 
          HouseholdID,
          GeneralFlag, 
          BenefitsFlag, 
          IncomeFlag, 
-         LoTHFlag,
-         DestinationFlag) %>%
+         LoTHFlag) %>%
   filter(
-    GeneralFlag + BenefitsFlag + IncomeFlag + LoTHFlag + DestinationFlag > 0
+    GeneralFlag + BenefitsFlag + IncomeFlag + LoTHFlag > 0
   ) %>% 
   group_by(ProjectName) %>%
   summarise(GeneralFlagTotal = sum(GeneralFlag),
             BenefitsFlagTotal = sum(BenefitsFlag),
             IncomeFlagTotal = sum(IncomeFlag),
-            LoTHFlagTotal = sum(LoTHFlag),
-            DestinationFlagTotal = sum(DestinationFlag))
+            LoTHFlagTotal = sum(LoTHFlag))
 
 
 # Considering adding a DQ flag for when subs don't match the yes/no but:
