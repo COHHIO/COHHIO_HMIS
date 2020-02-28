@@ -166,7 +166,7 @@ coc_scoring <- read_csv("data/cocscoring.csv",
 
 coc_scoring <- coc_scoring %>%
   mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs)) %>%
-  select(1, 4:10)
+  select(1, 4:9)
 
 Project <- Project %>%
   select(-ProjectName) %>%
