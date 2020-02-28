@@ -1146,7 +1146,7 @@ check_eligibility <- served_in_date_range %>%
     entered_ph_without_spdat <-
       anti_join(served_in_date_range, ees_with_spdats, by = "EnrollmentID") %>%
       filter(
-        ProjectType %in% c(3, 9, 13) &
+        ProjectType %in% c(2, 3, 9, 13) &
           !grepl("SSVF", ProjectName) &
           !grepl("GPD", ProjectName) &
           ymd(EntryDate) > ymd("20190101") &
@@ -1159,11 +1159,11 @@ check_eligibility <- served_in_date_range %>%
              !WhenOccurred %in% c(1:3))
       ) %>%
       mutate(
-        Issue = "Non-Veteran Non-DV HoHs Entering PH without SPDAT",
+        Issue = "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT",
         Type = "Warning",
-        Guidance = "Every household (besides those fleeing domestic violence and veteran
-      households) must have a VI-SPDAT score to aid with prioritization into
-      the Permanent Housing (RRH or PSH) project."
+        Guidance = "Every household (besides those fleeing domestic violence and 
+        veteran households) must have a VI-SPDAT score to aid with prioritization 
+        into a Transitional Housing or Permanent Housing (RRH or PSH) project."
       ) %>%
       select(all_of(vars_we_want))
     
@@ -1175,7 +1175,7 @@ check_eligibility <- served_in_date_range %>%
                ymd(ExpectedPHDate) < today()) %>%
       anti_join(ees_with_spdats, by = "EnrollmentID") %>%
       filter(
-        ProjectType %in% c(1, 2, 4, 8) &
+        ProjectType %in% c(1, 4, 8) &
           VeteranStatus != 1 &
           RelationshipToHoH == 1 &
           ymd(EntryDate) < today() - days(8) &
@@ -1183,11 +1183,11 @@ check_eligibility <- served_in_date_range %>%
           ymd(EntryDate) > ymd("20190101")
       ) %>%
       mutate(
-        Issue = "HoHs in shelter or Transitional Housing for 8+ days without SPDAT",
+        Issue = "HoHs in shelter for 8+ days without SPDAT",
         Type = "Warning",
-        Guidance = "Any household who has been in shelter, Transitional Housing,
-        or a Safe Haven for over 8 days should be assessed with the VI-SPDAT so
-        that they can be prioritized for Permanent Housing (RRH or PSH)."
+        Guidance = "Any household who has been in shelter or a Safe Haven for 
+        over 8 days should be assessed with the VI-SPDAT so that they can be 
+        prioritized for Permanent Housing (RRH or PSH)."
       ) %>%
       select(all_of(vars_we_want))
     
