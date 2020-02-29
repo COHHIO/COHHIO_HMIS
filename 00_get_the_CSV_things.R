@@ -162,7 +162,7 @@ if(file.exists("data/cocscoring.zip")) {
 }
 
 coc_scoring <- read_csv("data/cocscoring.csv",
-                        col_types = "dccdi?iiii")
+                        col_types = "dccd?iiii")
 
 coc_scoring <- coc_scoring %>%
   mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs)) %>%
