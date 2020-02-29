@@ -602,7 +602,7 @@ upper_psh_sh <- 12000
 lower_rrh <- 5000
 upper_rrh <- 9000
 
-pe_coc_scoring <- pe_coc_funded %>%
+summary_pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName")) %>%
   select(
     ProjectType,
@@ -625,12 +625,16 @@ pe_coc_scoring <- pe_coc_funded %>%
       (ProjectType == 2 &
          CostPerExit > lower_th &
          CostPerExit <= upper_th) |
-        (ProjectType %in% c(3, 8) &
+        (
+          ProjectType %in% c(3, 8) &
             CostPerExit > lower_psh_sh &
-            CostPerExit <= upper_psh_sh) |
-        (ProjectType == 13 &
+            CostPerExit <= upper_psh_sh
+        ) |
+        (
+          ProjectType == 13 &
             CostPerExit > lower_rrh &
-            CostPerExit <= upper_rrh) ~ 2,
+            CostPerExit <= upper_rrh
+        ) ~ 2,
       (ProjectType == 2 &
          CostPerExit > upper_th) |
         (ProjectType %in% c(3, 8) &
@@ -639,19 +643,18 @@ pe_coc_scoring <- pe_coc_funded %>%
            CostPerExit > upper_rrh) ~ 0
     ),
     CostPerExitPossible = 5,
-    HousingFirstPossible = 15,
-    ChronicPrioritizationPossible = if_else(ProjectType == 3, 5, NULL),
     OnTrackSpendingPossible = 5,
     UnspentFundsPossible = 5,
+    HousingFirstPossible = 15,
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
         ymd(DateReceivedPPDocs) <= ymd(docs_due) &
-        is.na(HousingFirstScore) ~ "Docs received, not yet scored",
+        is.na(HousingFirstScore) ~ 3,
       is.na(DateReceivedPPDocs) &
-        is.na(HousingFirstScore) ~ "Documents not yet received",
+        is.na(HousingFirstScore) ~ 2,
       is.na(DateReceivedPPDocs) &
-        !is.na(HousingFirstScore) ~ "CoC Error",
-      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ "Docs received past the due date"
+        !is.na(HousingFirstScore) ~ 4,
+      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
     ),
     HousingFirstScore = case_when(
       ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
@@ -661,17 +664,37 @@ pe_coc_scoring <- pe_coc_funded %>%
         is.na(HousingFirstScore) ~ -10L,
       ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10L
     ),
+    ChronicPrioritizationDQ = case_when(
+      ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
+        ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+        is.na(ChronicPrioritizationScore) ~ 3,
+      is.na(DateReceivedPPDocs) &
+        is.na(ChronicPrioritizationScore) ~ 2,
+      is.na(DateReceivedPPDocs) &
+        !is.na(ChronicPrioritizationScore) ~ 4,
+      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
+    ),
+    ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL),
     ChronicPrioritizationScore = case_when(
       ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
         ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         ProjectType == 3 &
-        !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore
+        !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
+      is.na(DateReceivedPPDocs) &
+        ProjectType == 3 &
+        is.na(ChronicPrioritizationScore) ~ -5L,
+      ymd(DateReceivedPPDocs) > ymd(docs_due) &
+        ProjectType == 3 ~ -5L
     )
   )
 
+# 2 = Documents not yet received
+# 3 = Docs received, not yet scored
+# 4 = CoC Error
+# 5 = Docs received past the due date
+
 # Housing Stability: Exits to PH ------------------------------------------
 # PSH (includes stayers tho), TH, SH, RRH
-# DQ: General & Destination
 
 pe_exits_to_ph <- pe_hohs_served %>%
   left_join(data_quality_flags, by = "ProjectName") %>%
