@@ -533,7 +533,9 @@ pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_hohs_moved_in_leavers, by = "AltProjectID") %>%
   full_join(summary_pe_hohs_served, by = "AltProjectID") %>%
   full_join(summary_pe_hohs_entered, by = "AltProjectID") %>%
-  left_join(pe_coc_funded %>% select(AltProjectID, ProjectType, AltProjectName) %>% unique(), by = c("AltProjectID")) %>%
+  left_join(pe_coc_funded %>% 
+              select(AltProjectID, ProjectType, AltProjectName) %>% 
+              unique(), by = c("AltProjectID")) %>%
   left_join(hoh_exits_to_deceased, by = "AltProjectID") %>%
   select(
     ProjectType,
