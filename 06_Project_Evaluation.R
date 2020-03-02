@@ -139,21 +139,47 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 
 # Staging -----------------------------------------------------------------
 
+# consolidated projects
+
+x <- pe_coc_funded %>%
+  filter(ProjectID %in% c(718, 719, 721, 
+                          1353, 1354, 
+                          746, 747, 
+                          1774, 15,
+                          737, 738, 739,
+                          548, 763, 764, 774,
+                          1323, 208)) %>%
+  mutate(
+    AltProjectID = case_when(
+      ProjectID %in% c(718, 719, 721) ~ 3000,
+      ProjectID %in% c(1353, 1354) ~ 3001,
+      ProjectID %in% c(746, 747) ~ 3002,
+      ProjectID %in% c(1774, 15) ~ 3003,
+      ProjectID %in% c(737, 738, 739) ~ 3004,
+      ProjectID %in% c(548, 763, 764, 774) ~ 3005,
+      ProjectID %in% c(1323, 208) ~ 3006
+    ),
+    AltProjectName = case_when(
+      ProjectID %in% c(718, 719, 721) ~ "Butler SPC Combined",
+      ProjectID %in% c(1353, 1354) ~ "Clark SPC Combined",
+      ProjectID %in% c(746, 747) ~ "Jefferson PSH Combined",
+      ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined",
+      ProjectID %in% c(737, 738, 739) ~ "Lake PSH Combined",
+      ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull PSH Combined",
+      ProjectID %in% c(1323, 208) ~ "Warren PSH Combined"
+    )
+  ) %>%
+  select(ProjectID, ProjectName, AltProjectID, AltProjectName)
+
 # filter to only CoC-funded projects (leaving out the SSO)
 
-coc_funded <- Funder %>%
-  filter(Funder %in% c(1:7) &
-           ymd(StartDate) <= mdy(ReportEnd) &
-           (is.na(EndDate) |
-              ymd(EndDate) >= mdy(ReportStart))) %>%
-  select(ProjectID, Funder)
-
 pe_coc_funded <- Funder %>%
-  filter(Funder %in% c(1:7) &
+  filter(ProjectID %in% c(718, 721, 1323, 1354, 1774) | # consolidated in 2019
+           (Funder %in% c(1:7) &
            ymd(StartDate) <= mdy(ReportEnd) &
            (is.na(EndDate) |
               ymd(EndDate) >= mdy(ReportEnd)) &
-           ProjectID != 2069) %>%
+           ProjectID != 2069)) %>%
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID", 
                       "ProjectName", 
@@ -165,7 +191,12 @@ pe_coc_funded <- Funder %>%
          ProjectID,
          Funder,
          StartDate,
-         EndDate)
+         EndDate) %>%
+  left_join(x, by = c("ProjectID", "ProjectName")) %>%
+  mutate(
+    AltProjectID = if_else(is.na(AltProjectID), ProjectID, AltProjectID),
+    AltProjectName = if_else(is.na(AltProjectName), ProjectName, AltProjectName)
+  )
 
 vars_we_want <- c(
   "PersonalID",
@@ -227,9 +258,9 @@ pe_clients_served <-  co_clients_served %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project
 # several measures will use this
 
 # Checking for deceased hohs for points adjustments
@@ -237,10 +268,10 @@ pe_clients_served <-  co_clients_served %>%
 hoh_exits_to_deceased <- pe_clients_served %>%
   filter(Destination == 24 &
            RelationshipToHoH == 1) %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(HoHDeaths = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID")
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID")
 
 hoh_exits_to_deceased[is.na(hoh_exits_to_deceased)] <- 0
 
@@ -262,8 +293,8 @@ pe_adults_entered <-  co_adults_entered %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate))
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate))
 
 # this one counts each entry 
 
@@ -285,7 +316,7 @@ pe_hohs_entered <-  co_hohs_entered %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
   arrange(PersonalID, ProjectID, desc(EntryDate))
 
 # for ncb logic
@@ -310,9 +341,9 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # increase income
 #Adults who moved in and were served during date range
@@ -333,9 +364,9 @@ pe_adults_moved_in <-  co_adults_moved_in %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 # health insurance
 # Clients who moved in and exited during date range
@@ -357,9 +388,9 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # exits to PH, but needs an added filter of only mover-inners
 # Heads of Household who were served during date range
@@ -380,9 +411,9 @@ pe_hohs_served <- co_hohs_served %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project	
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 pe_hohs_served_leavers <- pe_hohs_served %>%
   filter(!is.na(ExitDate))
@@ -407,107 +438,107 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
       "ProjectName"
     )
   ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, ProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, ProjectName, .keep_all = TRUE) # no dupes w/in a project
+  select(all_of(vars_we_want), AltProjectID, AltProjectName) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project
 
 # Create Validation Summary -----------------------------------------------
 
 summary_pe_hohs_moved_in_leavers <- pe_hohs_moved_in_leavers %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(HoHsMovedInLeavers = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(HoHsMovedInLeavers = if_else(is.na(HoHsMovedInLeavers),
                                       as.integer(0),
                                       HoHsMovedInLeavers))
 
 summary_pe_adults_moved_in_leavers <- pe_adults_moved_in_leavers %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(AdultMovedInLeavers = n()) %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(AdultMovedInLeavers = if_else(is.na(AdultMovedInLeavers),
                                        as.integer(0),
                                        AdultMovedInLeavers))
 
 summary_pe_adults_moved_in <- pe_adults_moved_in %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(AdultsMovedIn = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(AdultsMovedIn = if_else(is.na(AdultsMovedIn),
                                  as.integer(0),
                                  AdultsMovedIn))
 
 summary_pe_clients_moved_in_leavers <- pe_clients_moved_in_leavers %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(ClientsMovedInLeavers = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(ClientsMovedInLeavers = if_else(is.na(ClientsMovedInLeavers),
                                          as.integer(0),
                                          ClientsMovedInLeavers))
 
 summary_pe_hohs_served <- pe_hohs_served %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(HoHsServed = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(HoHsServed = if_else(is.na(HoHsServed),
                               as.integer(0),
                               HoHsServed))
 
 summary_pe_hohs_served_leavers <- pe_hohs_served %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(HoHsServedLeavers = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(HoHsServedLeavers = if_else(is.na(HoHsServedLeavers),
                               as.integer(0),
                               HoHsServedLeavers))
 
 summary_pe_clients_served <- pe_clients_served %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(ClientsServed = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(ClientsServed = if_else(is.na(ClientsServed),
                                  as.integer(0),
                                  ClientsServed))
 
 summary_pe_adults_entered <- pe_adults_entered %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(AdultsEntered = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(AdultsEntered = if_else(is.na(AdultsEntered),
                                  as.integer(0),
                                  AdultsEntered))
 
 summary_pe_hohs_entered <- pe_hohs_entered %>%
-  group_by(ProjectID) %>%
+  group_by(AltProjectID) %>%
   summarise(HoHsEntered = n()) %>%
   ungroup() %>%
-  right_join(pe_coc_funded["ProjectID"], by = "ProjectID") %>%
+  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
   mutate(HoHsEntered = if_else(is.na(HoHsEntered),
                                as.integer(0),
                                HoHsEntered))
 
 pe_validation_summary <- summary_pe_adults_entered %>%
-  full_join(summary_pe_adults_moved_in, by = "ProjectID") %>%
-  full_join(summary_pe_hohs_served_leavers, by = "ProjectID") %>%
-  full_join(summary_pe_adults_moved_in_leavers, by = "ProjectID") %>%
-  full_join(summary_pe_clients_served, by = "ProjectID") %>%
-  full_join(summary_pe_clients_moved_in_leavers, by = "ProjectID") %>%
-  full_join(summary_pe_hohs_moved_in_leavers, by = "ProjectID") %>%
-  full_join(summary_pe_hohs_served, by = "ProjectID") %>%
-  full_join(summary_pe_hohs_entered, by = "ProjectID") %>%
-  left_join(pe_coc_funded, by = "ProjectID") %>%
-  left_join(hoh_exits_to_deceased, by = "ProjectID") %>%
+  full_join(summary_pe_adults_moved_in, by = "AltProjectID") %>%
+  full_join(summary_pe_hohs_served_leavers, by = "AltProjectID") %>%
+  full_join(summary_pe_adults_moved_in_leavers, by = "AltProjectID") %>%
+  full_join(summary_pe_clients_served, by = "AltProjectID") %>%
+  full_join(summary_pe_clients_moved_in_leavers, by = "AltProjectID") %>%
+  full_join(summary_pe_hohs_moved_in_leavers, by = "AltProjectID") %>%
+  full_join(summary_pe_hohs_served, by = "AltProjectID") %>%
+  full_join(summary_pe_hohs_entered, by = "AltProjectID") %>%
+  left_join(pe_coc_funded %>% select(AltProjectID, ProjectType, AltProjectName) %>% unique(), by = c("AltProjectID")) %>%
+  left_join(hoh_exits_to_deceased, by = "AltProjectID") %>%
   select(
     ProjectType,
-    ProjectID,
-    ProjectName,
+    AltProjectID,
+    AltProjectName,
     ClientsServed,
     HoHsEntered,
     HoHsServed,
