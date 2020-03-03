@@ -776,6 +776,7 @@ check_eligibility <- served_in_date_range %>%
       ymd(EntryDate) > mdy("10012016") &
       ProjectID != 1859 &
       # "Crisis TH" which should be treated like an es
+      ProjectType %in% c(2, 3, 4, 8, 9, 10, 12, 13) &
       (
         (ProjectType %in% c(2, 3, 9, 10, 13) &
            # PTCs that require LH status
