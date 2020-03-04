@@ -177,13 +177,13 @@ consolidations <- pe_coc_funded %>%
       ProjectID %in% c(1323, 208) ~ 3006
     ),
     AltProjectName = case_when(
-      ProjectID %in% c(718, 719, 721) ~ "Butler SPC Combined",
-      ProjectID %in% c(1353, 1354) ~ "Clark SPC Combined",
-      ProjectID %in% c(746, 747) ~ "Jefferson PSH Combined",
+      ProjectID %in% c(718, 719, 721) ~ "PSH Butler County Combined",
+      ProjectID %in% c(1353, 1354) ~ "Springfield SPC 1 Combined",
+      ProjectID %in% c(746, 747) ~ "Jefferson County SPC Combined",
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined",
-      ProjectID %in% c(737, 738, 739) ~ "Lake PSH Combined",
-      ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull PSH Combined",
-      ProjectID %in% c(1323, 208) ~ "Warren PSH Combined"
+      ProjectID %in% c(737, 738, 739) ~ "Lake SPC Combined",
+      ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull SPC Vouchers Combined",
+      ProjectID %in% c(1323, 208) ~ "Warren SPC Combined"
     )
   ) %>%
   select(ProjectID, ProjectName, AltProjectID, AltProjectName)
@@ -928,6 +928,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
     Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
+    BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
     BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
                                10,
                                pe_score(Structure, BenefitsAtExit)),
@@ -1128,6 +1129,7 @@ summary_pe_res_prior <- pe_res_prior %>%
       ProjectType == 8 ~ "0_100_10"
     ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
+    LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
     LHResPriorPoints = if_else(AdultsEntered == 0,
                                10,
                                pe_score(Structure, LHResPriorPercent)),
@@ -1174,6 +1176,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
                               0,
                               NoIncomeAtEntry),
     Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10"),
+    NoIncomeAtEntryDQ = if_else(is.na(NoIncomeAtEntryDQ), 0, NoIncomeAtEntryDQ),
     NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
                      pe_score(Structure, NoIncomeAtEntryPercent)),
@@ -1335,6 +1338,7 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
                            pe_score(Structure, MedHHI)),
     MedianHHIPossible = 10,
     MedianHHIDQ = if_else(General_DQ == 1, 1, 0),
+    MedianHHIDQ = if_else(is.na(MedianHHIDQ), 0, MedianHHIDQ),
     MedianHHIPoints = case_when(MedianHHIDQ == 1 ~ 0, 
                                 MedianHHIDQ == 0 | is.na(MedianHHIDQ) ~ MedianHHIPoints),
     MedianHHICohort = "AdultsEntered"
