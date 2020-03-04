@@ -18,6 +18,12 @@ library(scales)
 
 load("images/COHHIOHMIS.RData")
 
+# despite the fact we're pulling in usually more than 2 years of data, the 
+# utilization reporting will only go back 2 years. (decision based on lack of
+# a need to go back further and time to code all that.)
+
+FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
+
 # Creating Beds table -----------------------------------------------------
 
 small_project <- Project %>%
