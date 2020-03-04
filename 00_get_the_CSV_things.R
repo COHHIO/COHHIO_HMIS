@@ -763,7 +763,7 @@ project_type <- function(ReferenceNo){
 # on UsesSP which is super clunky and will leave out providers
 
 FileEnd <- format.Date(file.info("data/Enrollment.csv")$mtime, "%m-%d-%Y")
-FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
+FileStart <- format.Date(floor_date(mdy(FileEnd), "year") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
