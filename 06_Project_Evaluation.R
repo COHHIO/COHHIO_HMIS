@@ -625,8 +625,8 @@ data_quality_flags <- data_quality_flags_detail %>%
   select(AltProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
 
 # CoC Scoring -------------------------------------------------------------
-timeline_begin <- mdy("03092020")
-docs_due <- mdy("05152020")
+timeline_begin <- mdy("02012020")
+docs_due <- mdy("04012020")
 
 lower_th <- 6000
 upper_th <- 10000
@@ -1571,10 +1571,8 @@ rm(list = ls()[!(ls() %in% c(
 
 next_thing_due <- tribble(
   ~ DueDate, ~ Event,
-  "1/11/2020", "2019 CoC Competition Training",
-  "3/14/2020", "Ohio BoS CoC Grant Inventory Worksheet finalized by COHHIO",
-  "3/15/2020", "COHHIO makes Project Evaluation 2020 Report available in Rme",
-  "3/22/2020", "COHHIO makes Project Evaluation Estimated Scores available in Rm",
+  "3/18/2020", "2019 CoC Competition Training",
+  "3/23/2020", "COHHIO makes Project Evaluation 2020 Report available in R minor",
   "4/11/2020", "All HMIS Data in the Project Evaluation report finalized",
   "4/1/2020", "All Policies and Procedures documents submitted by Recipients",
   "4/15/2020", "COHHIO saves out Final Project Evaluation Report data",
