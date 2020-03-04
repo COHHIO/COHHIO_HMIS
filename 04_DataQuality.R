@@ -2705,8 +2705,8 @@ check_eligibility <- served_in_date_range %>%
       filter(
         Type == "Warning" &
           Issue %in% c(
-            "HoHs Entering PH without SPDAT",
-            "HoHs in shelter or Transitional Housing for 8+ days without SPDAT"
+            "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT",
+            "HoHs in shelter for 8+ days without SPDAT"
           )
       ) %>%
       select(PersonalID, ProjectID, ProjectName) %>%
