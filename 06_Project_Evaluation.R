@@ -1452,21 +1452,25 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
 # VISPDATs at Entry into PH -----------------------------------------------
 
 pe_scored_at_ph_entry <- pe_hohs_entered %>%
-  right_join(pe_coc_funded, by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = c("AltProjectName")) %>%
   left_join(
     dq_2019 %>%
       filter(Issue == "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT") %>%
-      select("ProjectName", "PersonalID", "HouseholdID", "Issue"),
-    by = c("ProjectName", "PersonalID", "HouseholdID")
+      select("PersonalID", "HouseholdID", "Issue"),
+    by = c("PersonalID", "HouseholdID")
   ) %>%
   mutate(
     MeetsObjective = case_when(
       !is.na(PersonalID) & is.na(Issue) & ProjectType %in% c(2, 3, 13) ~ 1, 
-      !is.na(PersonalID) & !is.na(Issue) & ProjectType %in% c(2, 3, 13) ~ 0),
+      !is.na(PersonalID) & !is.na(Issue) & ProjectType %in% c(2, 3, 13) ~ 0,
+      is.na(PersonalID) & is.na(Issue) & ProjectType %in% c(2, 3, 13) ~ 1),
     ScoredAtEntryDQ = case_when(
-      !is.na(PersonalID) & ProjectType %in% c(2, 3, 13) & General_DQ == 1 ~ 1, 
-      !is.na(PersonalID) & ProjectType %in% c(2, 3, 13) & General_DQ == 0 ~ 0)
+      ProjectType %in% c(2, 3, 13) & General_DQ == 1 ~ 1, 
+      ProjectType %in% c(2, 3, 13) & General_DQ == 0 ~ 0)
   ) %>%
   select(all_of(vars_to_the_apps), ScoredAtEntryDQ)
 
