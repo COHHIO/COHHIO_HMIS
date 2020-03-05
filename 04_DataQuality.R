@@ -20,6 +20,10 @@ library(scales)
 source("04_Guidance.R")
 load("images/COHHIOHMIS.RData")
 
+va_funded <- Funder %>%
+  filter(Funder %in% c(27, 30, 33, 37:42, 45)) %>%
+  select(ProjectID)
+
 rm(
   Affiliation,
   EmploymentEducation,
@@ -1120,8 +1124,9 @@ check_eligibility <- served_in_date_range %>%
     
     # HoHs Entering PH without SPDATs -----------------------------------------
     
-    ees_with_spdats <-
-      left_join(served_in_date_range, Scores, by = "PersonalID") %>%
+    ees_with_spdats <- served_in_date_range %>%
+      anti_join(va_funded, by = "ProjectID") %>%
+      left_join(Scores, by = "PersonalID") %>% 
       select(PersonalID,
              EnrollmentID,
              RelationshipToHoH,
@@ -1148,23 +1153,19 @@ check_eligibility <- served_in_date_range %>%
       anti_join(served_in_date_range, ees_with_spdats, by = "EnrollmentID") %>%
       filter(
         ProjectType %in% c(2, 3, 9, 13) &
-          !grepl("SSVF", ProjectName) &
-          !grepl("GPD", ProjectName) &
           ymd(EntryDate) > ymd("20190101") &
           # only looking at 1/1/2019 forward
           RelationshipToHoH == 1 &
-          (VeteranStatus != 1 |
-             is.na(VeteranStatus)) &
           (CurrentlyFleeing != 1 |
              is.na(CurrentlyFleeing) |
              !WhenOccurred %in% c(1:3))
       ) %>%
       mutate(
-        Issue = "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT",
+        Issue = "Non-DV HoHs Entering PH or TH without SPDAT",
         Type = "Warning",
-        Guidance = "Every household (besides those fleeing domestic violence and 
-        veteran households) must have a VI-SPDAT score to aid with prioritization 
-        into a Transitional Housing or Permanent Housing (RRH or PSH) project."
+        Guidance = "Every household (besides those fleeing domestic violence) 
+        must have a VI-SPDAT score to aid with prioritization into a 
+        Transitional Housing or Permanent Housing (RRH or PSH) project."
       ) %>%
       select(all_of(vars_we_want))
     
@@ -2705,7 +2706,7 @@ check_eligibility <- served_in_date_range %>%
       filter(
         Type == "Warning" &
           Issue %in% c(
-            "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT",
+            "Non-DV HoHs Entering PH or TH without SPDAT",
             "HoHs in shelter for 8+ days without SPDAT"
           )
       ) %>%
