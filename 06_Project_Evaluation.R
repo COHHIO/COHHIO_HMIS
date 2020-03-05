@@ -1180,7 +1180,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
                      pe_score(Structure, NoIncomeAtEntryPercent)),
-    NoIncomeAtEntryPossible = if_else(ProjectType != 2, 10, NULL),
+    NoIncomeAtEntryPossible = 10,
     NoIncomeAtEntryPoints = case_when(NoIncomeAtEntryDQ == 1 ~ 0,
                                       NoIncomeAtEntryDQ == 0 | is.na(NoIncomeAtEntryDQ) ~ NoIncomeAtEntryPoints),
     NoIncomeAtEntryCohort = "AdultsEntered"
@@ -1456,7 +1456,7 @@ pe_scored_at_ph_entry <- pe_hohs_entered %>%
   left_join(data_quality_flags, by = c("AltProjectName")) %>%
   left_join(
     dq_2019 %>%
-      filter(Issue == "Non-Veteran Non-DV HoHs Entering PH without SPDAT") %>%
+      filter(Issue == "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT") %>%
       select("ProjectName", "PersonalID", "HouseholdID", "Issue"),
     by = c("ProjectName", "PersonalID", "HouseholdID")
   ) %>%
