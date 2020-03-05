@@ -1459,7 +1459,7 @@ pe_scored_at_ph_entry <- pe_hohs_entered %>%
   left_join(data_quality_flags, by = c("AltProjectName")) %>%
   left_join(
     dq_2019 %>%
-      filter(Issue == "Non-Veteran Non-DV HoHs Entering PH or TH without SPDAT") %>%
+      filter(Issue == "Non-DV HoHs Entering PH or TH without SPDAT") %>%
       select("PersonalID", "HouseholdID", "Issue"),
     by = c("PersonalID", "HouseholdID")
   ) %>%
