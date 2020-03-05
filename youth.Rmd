@@ -1,0 +1,270 @@
+---
+title: "Youth"
+author: "Genelle Denzin"
+date: "3/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(patchwork)
+library(gt)
+```
+
+```{r data, include=FALSE}
+age_years <- function(earlier, later)
+{
+  lt <- data.frame(earlier, later)
+  age <- as.numeric(format(lt[,2],format="%Y")) - as.numeric(format(lt[,1],format="%Y"))
+  
+  dayOnLaterYear <- ifelse(
+    format(lt[, 1], format = "%m-%d") != "02-29",
+    as.Date(paste(
+      format(lt[, 2], format = "%Y"), "-",
+      format(lt[, 1], format = "%m-%d"),
+      sep = ""
+    )),
+    ifelse(
+      as.numeric(format(later, format = "%Y")) %%
+        400 == 0 |
+        as.numeric(format(later,
+                          format =
+                            "%Y")) %%
+        100 != 0 &
+        as.numeric(format(later, format = "%Y")) %%
+        4 == 0,
+      as.Date(paste(
+        format(lt[, 2], format = "%Y"),
+        "-",
+        format(lt[, 1], format =
+                 "%m-%d"),
+        sep = ""
+      )),
+      as.Date(paste(
+        format(lt[, 2], format = "%Y"),
+        "-",
+        "02-28",
+        sep = ""
+      ))
+    )
+  )
+  
+  age[which(dayOnLaterYear > lt$later)] <- age[which(dayOnLaterYear > lt$later)] - 1
+  
+  age
+}
+
+if(ncol(read_csv("data/Client.csv")) == 36) {
+  Client <-
+    read_csv("data/Client.csv",
+             col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
+    filter(!PersonalID %in% c(5, 4216))
+} else {
+  Client <-
+    read_csv("data/Client.csv",
+             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
+}
+
+Client <- Client %>%
+  select(PersonalID, DOB)
+
+if(file.exists("data/spdatfam.zip")) {
+  unzip(zipfile = "./data/spdatfam.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/spdatfam.csv")
+  
+  file.remove("data/spdatfam.zip")
+}
+
+if(file.exists("data/spdatind.zip")) {
+  unzip(zipfile = "./data/spdatind.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/spdatind.csv")
+  
+  file.remove("data/spdatind.zip")
+}
+
+if(file.exists("data/spdattay.zip")) {
+  unzip(zipfile = "./data/spdattay.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/spdattay.csv")
+  
+  file.remove("data/spdattay.zip")
+}
+
+# if(file.exists("data/spdatind.csv")) {
+# file.remove(c("data/spdatind.csv", "data/spdattay.csv"))
+# }
+
+scores_fam <- read_csv("data/spdatfam.csv") %>%
+  mutate(ScoreType = "FAM",
+         ScoreDate = mdy(ScoreDate))
+scores_ind <- read_csv("data/spdatind.csv") %>%
+  mutate(ScoreType = "IND",
+         ScoreDate = mdy(ScoreDate),
+         Family = if_else(2 == 1, 0, NULL))
+scores_tay <- read_csv("data/spdattay.csv") %>%
+  mutate(ScoreType = "TAY",
+         ScoreDate = mdy(ScoreDate),
+         Family = if_else(2 == 1, 0, NULL))
+
+score_details <- rbind(scores_fam, scores_ind, scores_tay) %>%
+  left_join(Client, by = "PersonalID") %>%
+  mutate(Age = age_years(DOB, ScoreDate),
+         DOB = NULL) %>%
+  filter(ymd(ScoreDate) >= ymd("20190101")) %>%
+  group_by(PersonalID) %>%
+  arrange(ScoreDate) %>%
+  slice(n()) %>%
+  ungroup()
+
+Enrollment <-
+  read_csv("data/Enrollment.csv",
+           col_types =
+             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+
+# from sheets 1 and 2, getting EE-related data, joining both to En --------
+# will eventually come from aa: ees in ReportWriter, waiting on WS
+counties <- read_xlsx("data/RMisc.xlsx",
+                                 sheet = 1,
+                                 range = cell_cols("A:D"),
+                                 col_types = c("numeric", "numeric", "text", "text")) %>%
+  select(EnrollmentID, CountyServed, CountyPrior)
+
+Enrollment <- Enrollment %>%
+  select(PersonalID, EnrollmentID) %>%
+  left_join(counties, by = "EnrollmentID") %>%
+  group_by(PersonalID) %>%
+  arrange(EnrollmentID) %>%
+  slice(n()) %>%
+  ungroup()
+
+score_details_all_region_6 <- score_details %>%
+  left_join(Enrollment, by = "PersonalID") %>%
+  filter(CountyServed %in% c("Columbiana",
+                             "Carroll",
+                             "Jefferson",
+                             "Harrison",
+                             "Tuscarawas"))
+
+score_details_tay_region_6 <- score_details_all_region_6 %>%
+  filter(Age < 25 &
+           Age > 14)
+
+score_details_non_tay_region_6 <- score_details_all_region_6 %>%
+  filter(Age > 24)
+
+
+```
+
+## Scores Across Clients Age 25+ Compared to Transition Aged Youth
+
+This data is for Homeless Planning Region 6 only, and all scores done since 1/1/2019.
+
+```{r echo=FALSE}
+
+over24 <- data.frame(overall_score = score_details_non_tay_region_6$Score)
+
+tay <- data.frame(overall_score = score_details_tay_region_6$Score)
+
+over24$who <- "over24"
+tay$who <- "tay"
+
+both <- rbind(over24, tay)
+
+overall <- ggplot(both, aes(overall_score, fill = who)) + geom_density(alpha = .2)
+
+overall
+
+```
+
+
+## Which SubScores Were Most Significant for Youth?
+
+```{r echo=FALSE}
+
+over24_housing <- data.frame(housing_score = score_details_non_tay_region_6$Housing)
+
+tay_housing <- data.frame(housing_score = score_details_tay_region_6$Housing)
+
+over24_housing$who <- "over24"
+tay_housing$who <- "tay"
+
+both_housing <- rbind(over24_housing, tay_housing)
+
+h <- ggplot(both_housing, aes(housing_score, fill = who)) + 
+  geom_density(alpha = .2) + theme(legend.position="none")
+
+
+over24_risks <- data.frame(risks_score = score_details_non_tay_region_6$Risks)
+
+tay_risks <- data.frame(risks_score = score_details_tay_region_6$Risks)
+
+over24_risks$who <- "over24"
+tay_risks$who <- "tay"
+
+both_risks <- rbind(over24_risks, tay_risks)
+
+r <- ggplot(both_risks, aes(risks_score, fill = who)) + 
+  geom_density(alpha = .2) 
+
+
+
+over24_socialization <- data.frame(socialization_score = score_details_non_tay_region_6$Socialization)
+
+tay_socialization <- data.frame(socialization_score = score_details_tay_region_6$Socialization)
+
+over24_socialization$who <- "over24"
+tay_socialization$who <- "tay"
+
+both_socialization <- rbind(over24_socialization, tay_socialization)
+
+s <- ggplot(both_socialization, aes(socialization_score, fill = who)) + 
+  geom_density(alpha = .2) + theme(legend.position="none")
+
+
+over24_wellness <- data.frame(wellness_score = score_details_non_tay_region_6$Wellness)
+
+tay_wellness <- data.frame(wellness_score = score_details_tay_region_6$Wellness)
+
+over24_wellness$who <- "over24"
+tay_wellness$who <- "tay"
+
+both_wellness <- rbind(over24_wellness, tay_wellness)
+
+w <- ggplot(both_wellness, aes(wellness_score, fill = who)) + 
+  geom_density(alpha = .2) + theme(legend.position="none")
+
+
+over24_family <- data.frame(family_score = score_details_non_tay_region_6$Family)
+
+tay_family <- data.frame(family_score = score_details_tay_region_6$Family)
+
+over24_family$who <- "over24"
+tay_family$who <- "tay"
+
+both_family <- rbind(over24_family, tay_family)
+
+f <- ggplot(both_family, aes(family_score, fill = who)) + 
+  geom_density(alpha = .2) + theme(legend.position="none")
+
+(f + h + r + s + w) / overall
+
+```
+
+## Raw Data (TAY Only)
+
+```{r}
+gt(score_details_tay_region_6 %>%
+     select(PersonalID, ScoreDate, Score, ScoreType, Age, CountyServed))
+```
+
+
+
+
