@@ -14,6 +14,7 @@
 
 library(tidyverse)
 library(lubridate)
+library(scales)
 
 load("images/COHHIOHMIS.RData")
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
@@ -680,8 +681,11 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
            CostPerExit > upper_rrh) ~ 0
     ),
     CostPerExitPossible = 5,
+    CostPerExitMath = "This item is scored by the CoC team.",
     OnTrackSpendingPossible = 5,
+    OnTrackSpendingMath = "This item is scored by the CoC team.",
     UnspentFundsPossible = 5,
+    UnspentFundsMath = "This item is scored by the CoC team.",
     HousingFirstPossible = 15,
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
@@ -699,6 +703,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         is.na(HousingFirstScore) ~ -10L,
       ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10L
     ),
+    HousingFirstMath = "This item is scored by the CoC team.",
     ChronicPrioritizationDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
@@ -718,7 +723,8 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         is.na(ChronicPrioritizationScore) ~ -5L,
       ymd(DateReceivedPPDocs) > ymd(docs_due) &
         ProjectType == 3 ~ -5L
-    )
+    ),
+    ChronicPrioiritationMath = "This item is scored by the CoC team."
   ) 
 
 # 2 = Documents not yet received
@@ -766,6 +772,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
+    ExitsToPHCohort = "HoHsServedLeavers",
     HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
     Structure = case_when(
@@ -778,6 +785,24 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPH / HoHsServed,
       ExitsToPH / HoHsServedLeavers
     ),
+    ExitsToPHMath = case_when(
+      ProjectType == 3 & HoHsServed != 0 ~
+        paste(
+          ExitsToPH,
+          "exits to Permanent Housing or Retention of PSH /",
+          HoHsServed,
+          "Heads of Household =",
+          percent(ExitsToPHPercent)
+        ),
+      ProjectType != 3 & HoHsServedLeavers != 0 ~
+        paste(
+          ExitsToPH,
+          "exits to Permanent Housing /",
+          HoHsServedLeavers,
+          "Heads of Household Leavers =",
+          percent(ExitsToPHPercent)
+        )
+    ), 
     ExitsToPHPoints = if_else(
       (ProjectType == 3 &
          HoHsServed == 0) |
@@ -791,18 +816,18 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
       ExitsToPHPoints,
       0
-    ),
-    ExitsToTPHCohort = "HoHsServedLeavers"
+    )
   ) %>%
   select(
     ProjectType,
     AltProjectName,
     ExitsToPH,
+    ExitsToPHMath,
     ExitsToPHPercent,
     ExitsToPHPoints,
     ExitsToPHPossible,
     ExitsToPHDQ,
-    ExitsToTPHCohort
+    ExitsToPHCohort
   )
 
 # Housing Stability: Moved into Own Housing -------------------------------
@@ -844,6 +869,20 @@ summary_pe_own_housing <- pe_own_housing %>%
     OwnHousingPercent = if_else(ProjectType != 3,
                                 OwnHousing / HoHsMovedInLeavers,
                                 NULL),
+    OwnHousingMath = case_when(
+      HoHsMovedInLeavers == 0 &
+        ProjectType != 3 ~
+        "All points granted because this project had 0 Heads of Household Leavers who Moved into Housing",
+      ProjectType == 3 &
+        (HoHsMovedInLeavers == 0 | HoHsMovedInLeavers != 0) ~ "",
+      HoHsMovedInLeavers != 0 & ProjectType != 3 ~ paste(
+        OwnHousing,
+        "exited to their own permanent housing /",
+        HoHsMovedInLeavers,
+        "Heads of Household Leavers Who Moved Into Housing =",
+        percent(OwnHousingPercent)
+      )
+    ), 
     OwnHousingPoints = if_else(
       HoHsMovedInLeavers == 0 & ProjectType != 3,
       10,
@@ -861,6 +900,7 @@ summary_pe_own_housing <- pe_own_housing %>%
          AltProjectName,
          OwnHousingCohort,
          OwnHousing,
+         OwnHousingMath,
          OwnHousingPercent,
          OwnHousingPoints,
          OwnHousingPossible,
@@ -923,6 +963,17 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
     Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
+    BenefitsAtExitMath = if_else(
+      AdultMovedInLeavers == 0,
+      "All points granted because this project had no adult leavers who moved into the project's housing",
+      paste(
+        BenefitsAtExit,
+        "exited with Non-Cash Benefits or Health Insurance /",
+        AdultMovedInLeavers,
+        "adult leavers who moved into the project's housing =",
+        percent(BenefitsAtExitPercent)
+      )
+    ), 
     BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
     BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
                                10,
@@ -940,6 +991,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     AltProjectName,
     BenefitsAtExitCohort,
     BenefitsAtExit,
+    BenefitsAtExitMath,
     BenefitsAtExitPercent,
     BenefitsAtExitPoints,
     BenefitsAtExitPossible,
@@ -1027,6 +1079,17 @@ summary_pe_increase_income <- pe_increase_income %>%
       ProjectType == 13 ~ "14_18_10"
     ),
     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
+    IncreasedIncomeMath = if_else(
+      AdultsMovedIn != 0,
+      paste(
+        IncreasedIncome,
+        "increased income during their stay /",
+        AdultsMovedIn,
+        "adults who moved into the project's housing =",
+        percent(IncreasedIncomePercent)
+      ),
+      "All points granted because 0 adults moved into the project's housing"
+    ), 
     IncreasedIncomePoints = case_when(
       IncreasedIncomeDQ == 1 ~ 0,
       AdultsMovedIn > 0 ~ pe_score(Structure, IncreasedIncomePercent),
@@ -1041,6 +1104,7 @@ summary_pe_increase_income <- pe_increase_income %>%
     AltProjectName,
     IncreasedIncome,
     IncreasedIncomeCohort,
+    IncreasedIncomeMath,
     IncreasedIncomePercent,
     IncreasedIncomePoints,
     IncreasedIncomePossible,
@@ -1082,6 +1146,11 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
         ProjectType != 3 ~ 10,
       TRUE ~ pe_score(Structure, AverageDays)
     ),
+    AverageLoSMath = if_else(
+      ClientsMovedInLeavers == 0,
+      "All points granted because this project had 0 leavers who moved into the project's housing",
+      paste(as.integer(AverageDays), "average days")
+    ), 
     AverageLoSPossible = if_else(ProjectType %in% c(2, 8), 10, NULL),
     AverageLoSDQ = case_when(
       General_DQ == 1 & ProjectType %in% c(2, 8) ~ 1,
@@ -1091,7 +1160,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       AverageLoSDQ == 0 | is.na(AverageLoSDQ) ~ AverageLoSPoints),
     AverageLoSCohort = "ClientsMovedInLeavers"
   ) %>%
-  select(ProjectType, AltProjectName, AverageDays, AverageLoSCohort, 
+  select(ProjectType, AltProjectName, AverageLoSMath, AverageLoSCohort, 
          AverageLoSPoints, AverageLoSPossible, AverageLoSDQ)
 
 # Community Need: Res Prior = Streets or ESSH -----------------------------
@@ -1126,6 +1195,17 @@ summary_pe_res_prior <- pe_res_prior %>%
       ProjectType == 8 ~ "0_100_10"
     ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
+    LHResPriorMath = if_else(
+      AdultsEntered == 0,
+      "All points granted because this project has 0 adults who entered the project",
+      paste(
+        LHResPrior,
+        "adults were coming from an appropriate living situation /",
+        AdultsEntered,
+        "adults who entered the project during the reporting period =",
+        percent(LHResPriorPercent)
+      )
+    ), 
     LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
     LHResPriorPoints = if_else(AdultsEntered == 0,
                                10,
@@ -1141,6 +1221,7 @@ summary_pe_res_prior <- pe_res_prior %>%
     AltProjectName,
     LHResPrior,
     LHResPriorCohort,
+    LHResPriorMath,
     LHResPriorPercent,
     LHResPriorPoints,
     LHResPriorPossible,
@@ -1180,11 +1261,25 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10"),
     NoIncomeAtEntryDQ = if_else(is.na(NoIncomeAtEntryDQ), 0, NoIncomeAtEntryDQ),
     NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
+    NoIncomeAtEntryMath = if_else(
+      AdultsEntered == 0,
+      "All points granted because 0 adults entered this project during the reporting period",
+      paste(
+        NoIncomeAtEntry,
+        "adults with no income at entry/",
+        AdultsEntered,
+        "adults who entered the project during the reporting period =",
+        percent(NoIncomeAtEntryPercent)
+      )
+    ), 
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
                      pe_score(Structure, NoIncomeAtEntryPercent)),
     NoIncomeAtEntryPossible = 10,
-    NoIncomeAtEntryPoints = case_when(NoIncomeAtEntryDQ == 1 ~ 0,
-                                      NoIncomeAtEntryDQ == 0 | is.na(NoIncomeAtEntryDQ) ~ NoIncomeAtEntryPoints),
+    NoIncomeAtEntryPoints = case_when(
+      NoIncomeAtEntryDQ == 1 ~ 0,
+      NoIncomeAtEntryDQ == 0 |
+        is.na(NoIncomeAtEntryDQ) ~ NoIncomeAtEntryPoints
+    ),
     NoIncomeAtEntryCohort = "AdultsEntered"
   ) %>%
   select(
@@ -1192,6 +1287,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     AltProjectName,
     NoIncomeAtEntry,
     NoIncomeAtEntryCohort,
+    NoIncomeAtEntryMath,
     NoIncomeAtEntryPercent,
     NoIncomeAtEntryPoints,
     NoIncomeAtEntryPossible,
@@ -1336,6 +1432,11 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
+    MedianHHIMath = if_else(
+      AdultsEntered == 0,
+      "All points granted since 0 adults entered this project during the reporting period",
+      paste("Median Homeless History Index = ", MedHHI)
+    ), 
     MedianHHIPoints = if_else(AdultsEntered == 0, 10,
                            pe_score(Structure, MedHHI)),
     MedianHHIPossible = 10,
@@ -1348,6 +1449,7 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   select(ProjectType,
          AltProjectName,
          MedHHI,
+         MedianHHIMath,
          MedianHHICohort,
          MedianHHIPoints,
          MedianHHIPossible,
@@ -1374,6 +1476,11 @@ summary_pe_dq[is.na(summary_pe_dq)] <- 0
 
 summary_pe_dq <- summary_pe_dq %>%
   mutate(DQPercent = n / ClientsServed,
+         DQMath = paste(n,
+                      "errors /",
+                      ClientsServed,
+                      "clients served =",
+                      percent(DQPercent)), 
          DQPoints = case_when(
            n == 0 ~ 5,
            DQPercent > 0 & DQPercent <= .02 ~ 4,
@@ -1386,7 +1493,7 @@ summary_pe_dq <- summary_pe_dq %>%
          DQCohort = "ClientsServed"
          ) %>%
   select(AltProjectName, ProjectType, "DQIssues" = n, DQCohort, DQPercent, 
-         DQPoints, DQPossible)
+         DQPoints, DQMath, DQPossible)
 
 # Community Need: Long Term Homeless Households ---------------------------
 # PSH
@@ -1431,6 +1538,17 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
     LongTermHomelessPercent = if_else(AdultsEntered > 0,
                                       LongTermHomeless / AdultsEntered,
                                       NULL),    
+    LongTermHomelessMath = if_else(
+      AdultsEntered == 0,
+      "All points granted because 0 adults entered this project during the reporting period",
+      paste(
+        LongTermHomeless,
+        "adults were considered to be long-term homeless /",
+        AdultsEntered,
+        "adults entered the project during the reporting period =",
+        percent(LongTermHomelessPercent)
+      )
+    ), 
     LongTermHomelessPoints = if_else(AdultsEntered == 0 &
                                        ProjectType == 3, 5,
                      pe_score(Structure, LongTermHomelessPercent)), 
@@ -1446,6 +1564,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
     LongTermHomeless,
     LongTermHomelessPercent,
     LongTermHomelessPoints,
+    LongTermHomelessMath,
     LongTermhomelessCohort,
     LongTermHomelessPossible,
     LTHomelessDQ
@@ -1490,6 +1609,17 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryPercent = if_else(HoHsEntered > 0,
                                    ScoredAtEntry / HoHsEntered,
                                    NULL),    
+    ScoredAtEntryMath = if_else(
+      HoHsEntered == 0,
+      "All points granted because 0 households entered the project during the reporting period",
+      paste(
+        ScoredAtEntry,
+        "had a VI-SPDAT score at entry /",
+        HoHsEntered,
+        "heads of households who entered the project during the reporting period =",
+        percent(ScoredAtEntryPercent)
+      )
+    ), 
     ScoredAtEntryPoints = case_when(
       HoHsEntered == 0 &
         ProjectType %in% c(2, 3, 13) ~ 5,
@@ -1506,6 +1636,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ProjectType,
     AltProjectName,
     ScoredAtEntry,
+    ScoredAtEntryMath,
     ScoredAtEntryPercent,
     ScoredAtEntryPoints,
     ScoredAtEntryCohort,
