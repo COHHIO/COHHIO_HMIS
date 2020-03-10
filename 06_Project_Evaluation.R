@@ -724,7 +724,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       ymd(DateReceivedPPDocs) > ymd(docs_due) &
         ProjectType == 3 ~ -5L
     ),
-    ChronicPrioiritationMath = "This item is scored by the CoC team."
+    ChronicPrioritizationMath = "This item is scored by the CoC team."
   ) 
 
 # 2 = Documents not yet received
@@ -789,17 +789,17 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ProjectType == 3 & HoHsServed != 0 ~
         paste(
           ExitsToPH,
-          "exits to Permanent Housing or Retention of PSH /",
+          "exits to permanent housing or retention in PSH /",
           HoHsServed,
-          "Heads of Household =",
+          "heads of household =",
           percent(ExitsToPHPercent)
         ),
       ProjectType != 3 & HoHsServedLeavers != 0 ~
         paste(
           ExitsToPH,
-          "exits to Permanent Housing /",
+          "exits to permanent housing /",
           HoHsServedLeavers,
-          "Heads of Household Leavers =",
+          "heads of household leavers =",
           percent(ExitsToPHPercent)
         )
     ), 
@@ -879,7 +879,7 @@ summary_pe_own_housing <- pe_own_housing %>%
         OwnHousing,
         "exited to their own permanent housing /",
         HoHsMovedInLeavers,
-        "Heads of Household Leavers Who Moved Into Housing =",
+        "heads of household leavers who moved into housing =",
         percent(OwnHousingPercent)
       )
     ), 
@@ -968,7 +968,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
       "All points granted because this project had no adult leavers who moved into the project's housing",
       paste(
         BenefitsAtExit,
-        "exited with Non-Cash Benefits or Health Insurance /",
+        "exited with benefits or health insurance /",
         AdultMovedInLeavers,
         "adult leavers who moved into the project's housing =",
         percent(BenefitsAtExitPercent)
