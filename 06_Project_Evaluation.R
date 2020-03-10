@@ -757,7 +757,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
       )
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
-           ProjectType %in% c(3, 9)) %>% # filtering out non-PSH stayers
+           ProjectType == 3) %>% # filtering out non-PSH stayers
   select(all_of(vars_to_the_apps), ExitsToPHDQ, Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
