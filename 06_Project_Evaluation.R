@@ -625,7 +625,6 @@ data_quality_flags <- data_quality_flags_detail %>%
   select(AltProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
 
 # CoC Scoring -------------------------------------------------------------
-timeline_begin <- mdy("02012020")
 docs_due <- mdy("04012020")
 
 lower_th <- 6000
@@ -685,8 +684,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     UnspentFundsPossible = 5,
     HousingFirstPossible = 15,
     HousingFirstDQ = case_when(
-      ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
-        ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         is.na(HousingFirstScore) ~ 3,
       is.na(DateReceivedPPDocs) &
         is.na(HousingFirstScore) ~ 2,
@@ -695,16 +693,14 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
     ),
     HousingFirstScore = case_when(
-      ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
-        ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         !is.na(HousingFirstScore) ~ HousingFirstScore,
       is.na(DateReceivedPPDocs) &
         is.na(HousingFirstScore) ~ -10L,
       ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10L
     ),
     ChronicPrioritizationDQ = case_when(
-      ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
-        ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
       is.na(DateReceivedPPDocs) &
         is.na(ChronicPrioritizationScore) ~ 2,
@@ -714,8 +710,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     ),
     ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL),
     ChronicPrioritizationScore = case_when(
-      ymd(DateReceivedPPDocs) > ymd(timeline_begin) &
-        ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         ProjectType == 3 &
         !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
       is.na(DateReceivedPPDocs) &
@@ -1161,10 +1156,15 @@ pe_entries_no_income <- pe_adults_entered %>%
                      IncomeFromAnySource) %>%
               unique(), 
             by = c("EnrollmentID")) %>%
-  mutate(MeetsObjective = if_else(IncomeFromAnySource == 0, 1, 0),
-         NoIncomeAtEntryDQ = if_else(General_DQ == 1|
-                                     Income_DQ == 1, 1, 0)) %>%
-  select(all_of(vars_to_the_apps), NoIncomeAtEntryDQ)
+  mutate(
+    IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
+                                  99,
+                                  IncomeFromAnySource),
+    MeetsObjective = if_else(IncomeFromAnySource == 0, 1, 0),
+    NoIncomeAtEntryDQ = if_else(General_DQ == 1 |
+                                  Income_DQ == 1, 1, 0)
+  ) %>% 
+  select(all_of(vars_to_the_apps), IncomeFromAnySource, NoIncomeAtEntryDQ)
 
 summary_pe_entries_no_income <- pe_entries_no_income %>%
   group_by(ProjectType, AltProjectName, NoIncomeAtEntryDQ) %>%
