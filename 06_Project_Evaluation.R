@@ -490,7 +490,7 @@ summary_pe_hohs_served <- pe_hohs_served %>%
                               as.integer(0),
                               HoHsServed))
 
-summary_pe_hohs_served_leavers <- pe_hohs_served %>%
+summary_pe_hohs_served_leavers <- pe_hohs_served_leavers %>%
   group_by(AltProjectID) %>%
   summarise(HoHsServedLeavers = n()) %>%
   ungroup() %>%
@@ -995,7 +995,9 @@ pe_increase_income <- income_staging %>%
       !is.na(Annual) ~ Annual
     ),
     IncomeAtEntry = if_else(is.na(Entry), 0, Entry),
-    IncomeMostRecent = if_else(is.na(MostRecentIncome), Entry, MostRecentIncome),
+    IncomeMostRecent = if_else(is.na(MostRecentIncome), 
+                               IncomeAtEntry, 
+                               MostRecentIncome),
     MeetsObjective = case_when(
       IncomeMostRecent > IncomeAtEntry ~ 1,
       IncomeMostRecent <= IncomeAtEntry ~ 0),
@@ -1463,6 +1465,7 @@ pe_scored_at_ph_entry <- pe_hohs_entered %>%
       select("PersonalID", "HouseholdID", "Issue"),
     by = c("PersonalID", "HouseholdID")
   ) %>%
+  filter(ProjectType != 8) %>%
   mutate(
     MeetsObjective = case_when(
       !is.na(PersonalID) & is.na(Issue) & ProjectType %in% c(2, 3, 13) ~ 1, 
