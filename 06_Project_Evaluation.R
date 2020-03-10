@@ -1200,7 +1200,7 @@ summary_pe_res_prior <- pe_res_prior %>%
       "All points granted because this project has 0 adults who entered the project",
       paste(
         LHResPrior,
-        "adults were coming from an appropriate living situation /",
+        "coming from an appropriate living situation /",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
         percent(LHResPriorPercent)
@@ -1266,7 +1266,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
       "All points granted because 0 adults entered this project during the reporting period",
       paste(
         NoIncomeAtEntry,
-        "adults with no income at entry/",
+        "had no income at entry/",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
         percent(NoIncomeAtEntryPercent)
@@ -1543,7 +1543,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
       "All points granted because 0 adults entered this project during the reporting period",
       paste(
         LongTermHomeless,
-        "adults were considered to be long-term homeless /",
+        "considered to be long-term homeless /",
         AdultsEntered,
         "adults entered the project during the reporting period =",
         percent(LongTermHomelessPercent)
