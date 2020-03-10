@@ -1616,7 +1616,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
         ScoredAtEntry,
         "had a VI-SPDAT score at entry /",
         HoHsEntered,
-        "heads of households who entered the project during the reporting period =",
+        "heads of household who entered the project during the reporting period =",
         percent(ScoredAtEntryPercent)
       )
     ), 
