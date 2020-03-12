@@ -774,6 +774,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
   mutate(
     ExitsToPHCohort = "HoHsServedLeavers",
     HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
+    HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
     Structure = case_when(
       ProjectType == 3 ~ "80_90_10",
@@ -789,7 +790,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ProjectType == 3 & HoHsServed != 0 ~
         paste(
           ExitsToPH,
-          "exits to permanent housing or retention in PSH ÷",
+          "exits to permanent housing or retention in PSH /",
           HoHsServed,
           "heads of household =",
           percent(ExitsToPHPercent)
@@ -797,7 +798,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       ProjectType != 3 & HoHsServedLeavers != 0 ~
         paste(
           ExitsToPH,
-          "exits to permanent housing ÷",
+          "exits to permanent housing /",
           HoHsServedLeavers,
           "heads of household leavers =",
           percent(ExitsToPHPercent)
@@ -877,7 +878,7 @@ summary_pe_own_housing <- pe_own_housing %>%
         (HoHsMovedInLeavers == 0 | HoHsMovedInLeavers != 0) ~ "",
       HoHsMovedInLeavers != 0 & ProjectType != 3 ~ paste(
         OwnHousing,
-        "exited to their own permanent housing ÷",
+        "exited to their own permanent housing /",
         HoHsMovedInLeavers,
         "heads of household leavers who moved into housing =",
         percent(OwnHousingPercent)
@@ -968,7 +969,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
       "All points granted because this project had no adult leavers who moved into the project's housing",
       paste(
         BenefitsAtExit,
-        "exited with benefits or health insurance ÷",
+        "exited with benefits or health insurance /",
         AdultMovedInLeavers,
         "adult leavers who moved into the project's housing =",
         percent(BenefitsAtExitPercent)
@@ -1083,7 +1084,7 @@ summary_pe_increase_income <- pe_increase_income %>%
       AdultsMovedIn != 0,
       paste(
         IncreasedIncome,
-        "increased income during their stay ÷",
+        "increased income during their stay /",
         AdultsMovedIn,
         "adults who moved into the project's housing =",
         percent(IncreasedIncomePercent)
@@ -1200,7 +1201,7 @@ summary_pe_res_prior <- pe_res_prior %>%
       "All points granted because this project has 0 adults who entered the project",
       paste(
         LHResPrior,
-        "coming from an appropriate living situation ÷",
+        "coming from an appropriate living situation /",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
         percent(LHResPriorPercent)
@@ -1267,7 +1268,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
       "All points granted because 0 adults entered this project during the reporting period",
       paste(
         NoIncomeAtEntry,
-        "had no income at entry ÷",
+        "had no income at entry /",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
         percent(NoIncomeAtEntryPercent)
@@ -1478,7 +1479,7 @@ summary_pe_dq[is.na(summary_pe_dq)] <- 0
 summary_pe_dq <- summary_pe_dq %>%
   mutate(DQPercent = n / ClientsServed,
          DQMath = paste(n,
-                      "errors ÷",
+                      "errors /",
                       ClientsServed,
                       "clients served =",
                       percent(DQPercent)), 
@@ -1544,7 +1545,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
       "All points granted because 0 adults entered this project during the reporting period",
       paste(
         LongTermHomeless,
-        "considered to be long-term homeless ÷",
+        "considered to be long-term homeless /",
         AdultsEntered,
         "adults entered the project during the reporting period =",
         percent(LongTermHomelessPercent)
@@ -1615,7 +1616,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
       "All points granted because 0 households entered the project during the reporting period",
       paste(
         ScoredAtEntry,
-        "had a VI-SPDAT score at entry ÷",
+        "had a VI-SPDAT score at entry /",
         HoHsEntered,
         "heads of household who entered the project during the reporting period =",
         percent(ScoredAtEntryPercent)
