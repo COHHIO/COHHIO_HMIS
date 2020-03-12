@@ -30,6 +30,8 @@ load("images/Data_Quality.RData")
 
 pe_score <- function(structure, value) {
   case_when(
+    structure == "0_730_10" & value <= 730 ~ 10,
+    structure == "0_730_10" & value > 730 ~ 0,
     structure == "75_85_10" & value >= .85 ~ 10,
     structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5,
     structure == "75_85_10" & value >= .75 & value < .8 ~ 5,
@@ -1140,7 +1142,8 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
   mutate(
     Structure = case_when(
       ProjectType == 2 ~ "200_280_10",
-      ProjectType == 8 ~ "260_340_10"
+      ProjectType == 8 ~ "260_340_10",
+      ProjectType == 13 ~ "0_730_10"
     ),
     AverageLoSPoints = case_when(
       ClientsMovedInLeavers == 0 &
@@ -1152,10 +1155,10 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       "All points granted because this project had 0 leavers who moved into the project's housing",
       paste(as.integer(AverageDays), "average days")
     ), 
-    AverageLoSPossible = if_else(ProjectType %in% c(2, 8), 10, NULL),
+    AverageLoSPossible = if_else(ProjectType %in% c(2, 8, 13), 10, NULL),
     AverageLoSDQ = case_when(
-      General_DQ == 1 & ProjectType %in% c(2, 8) ~ 1,
-      General_DQ == 0 & ProjectType %in% c(2, 8) ~ 0),
+      General_DQ == 1 & ProjectType %in% c(2, 8, 13) ~ 1,
+      General_DQ == 0 & ProjectType %in% c(2, 8, 13) ~ 0),
     AverageLoSPoints = case_when(
       AverageLoSDQ == 1 ~ 0, 
       AverageLoSDQ == 0 | is.na(AverageLoSDQ) ~ AverageLoSPoints),
