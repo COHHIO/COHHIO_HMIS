@@ -2614,6 +2614,31 @@ check_eligibility <- served_in_date_range %>%
       scale_fill_viridis_c(direction = -1) +
       theme_minimal(base_size = 18)
     
+    dq_data_unsheltered_high <- dq_unsheltered %>%
+      filter(Type == "High Priority") %>%
+      select(PersonalID, HouseholdID, DefaultProvider) %>%
+      unique() %>%
+      group_by(DefaultProvider) %>%
+      summarise(clientsWithErrors = n()) %>%
+      ungroup() %>%
+      arrange(desc(clientsWithErrors))
+    
+    dq_plot_unsheltered_high <-
+      ggplot(
+        head(dq_data_unsheltered_high, 20L),
+        aes(
+          x = reorder(DefaultProvider, clientsWithErrors),
+          y = clientsWithErrors,
+          fill = clientsWithErrors
+        )
+      ) +
+      geom_col(show.legend = FALSE) +
+      coord_flip() +
+      labs(x = "",
+           y = "Clients") +
+      scale_fill_viridis_c(direction = -1) +
+      theme_minimal(base_size = 18)
+    
     dq_data_hh_issues_plot <- dq_past_year %>%
       filter(
         Type %in% c("Error", "High Priority") &
@@ -2755,6 +2780,7 @@ check_eligibility <- served_in_date_range %>%
       dkr_destination,
       dkr_LoS,
       dkr_client_veteran_info,
+      dq_data_unsheltered_high,
       dq_dob,
       dq_ethnicity,
       dq_gender,
