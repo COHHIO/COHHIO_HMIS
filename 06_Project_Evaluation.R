@@ -896,6 +896,7 @@ summary_pe_own_housing <- pe_own_housing %>%
     OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
                                  is.na(OwnHousingDQ) |
                                    OwnHousingDQ == 0 ~ OwnHousingPoints),
+    OwnHousingPoints = if_else(is.na(OwnHousingPoints), 0, OwnHousingPoints),
     OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
     OwnHousingCohort = "HoHsMovedInLeavers"
   ) %>%
@@ -1162,6 +1163,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
     AverageLoSPoints = case_when(
       AverageLoSDQ == 1 ~ 0, 
       AverageLoSDQ == 0 | is.na(AverageLoSDQ) ~ AverageLoSPoints),
+    AverageLoSPoints = if_else(is.na(AverageLoSPoints), 0, AverageLoSPoints),
     AverageLoSCohort = "ClientsMovedInLeavers"
   ) %>%
   select(ProjectType, AltProjectName, AverageLoSMath, AverageLoSCohort, 
@@ -1560,6 +1562,8 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
     LongTermHomelessPoints = case_when(LTHomelessDQ == 0 |
                                          is.na(LTHomelessDQ) ~ LongTermHomelessPoints,
                                        LTHomelessDQ == 1 ~ 0), 
+    LongTermHomelessPoints = if_else(is.na(LongTermHomelessPoints), 0, 
+                                     LongTermHomelessPoints),
     LongTermHomelessPossible = if_else(ProjectType == 3, 5, NULL),
     LongTermhomelessCohort = "AdultsEntered"
   ) %>%
@@ -1634,6 +1638,9 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
       ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
       ScoredAtEntryDQ == 1 ~ 0,
       is.na(ScoredAtEntryDQ) ~ ScoredAtEntryPoints),
+    ScoredAtEntryPoints = if_else(is.na(ScoredAtEntryPoints), 
+                                  0, 
+                                  ScoredAtEntryPoints),
     ScoredAtEntryPossible = if_else(ProjectType %in% c(2, 3, 13), 5, NULL),
     ScoredAtEntryCohort = "HoHsEntered"
   ) %>%
@@ -1677,6 +1684,40 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "AltProjectName"))
 
+pe_final_scores <- summary_pe_final_scoring
+
+pe_final_scores$HousingFirstScore[is.na(pe_final_scores$HousingFirstScore)] <- 0
+pe_final_scores$ChronicPrioritizationScore[is.na(pe_final_scores$ChronicPrioritizationScore)] <- 0
+pe_final_scores$OnTrackSpendingScoring[is.na(pe_final_scores$OnTrackSpendingScoring)] <- 0
+pe_final_scores$UnspentFundsScoring[is.na(pe_final_scores$UnspentFundsScoring)] <- 0
+pe_final_scores$CostPerExitScore[is.na(pe_final_scores$CostPerExitScore)] <- 0
+
+pe_final_scores <- pe_final_scores %>%
+  mutate(
+    TotalScore = DQPoints +
+      NoIncomeAtEntryPoints +
+      ExitsToPHPoints +
+      ScoredAtEntryPoints +
+      MedianHHIPoints +
+      IncreasedIncomePoints +
+      AverageLoSPoints +
+      LongTermHomelessPoints +
+      BenefitsAtExitPoints +
+      OwnHousingPoints +
+      LHResPriorPoints +
+      HousingFirstScore +
+      ChronicPrioritizationScore +
+      OnTrackSpendingScoring +
+      UnspentFundsScoring +
+      CostPerExitScore
+  ) %>%
+  select(ProjectType, 
+         AltProjectName, 
+         ends_with("Points"),
+         ends_with("Score"),
+         ends_with("Scoring"),
+         TotalScore)
+
 # Clean the House ---------------------------------------------------------
 
 rm(list = ls()[!(ls() %in% c(
@@ -1689,6 +1730,7 @@ rm(list = ls()[!(ls() %in% c(
   'pe_dq_by_provider',
   'pe_entries_no_income',
   'pe_exits_to_ph',
+  'pe_final_scores',
   'pe_homeless_history_index',
   'pe_increase_income',
   'pe_length_of_stay',
