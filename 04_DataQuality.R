@@ -2772,7 +2772,7 @@ check_eligibility <- served_in_date_range %>%
       conflicting_income_exit,
       conflicting_ncbs_entry,
       conflicting_ncbs_exit,
-      # detail_eligibility, # the app needs this; don't remove it
+      # detail_eligibility, # the app needs this; keep this commented out
       detail_missing_disabilities,
       dkr_living_situation,
       dkr_months_times_homeless,
