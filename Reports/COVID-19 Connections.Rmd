@@ -1,0 +1,78 @@
+---
+title: "Connections"
+output: html_document
+---
+
+## Needed Files
+
+RMisc.xlsx
+HUD CSV Export
+  * Project.csv
+  * ProjectCoC.csv
+health_departments.csv
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(lubridate)
+library(tidyverse)
+library(knitr)
+library(readxl)
+library(here)
+
+Project <- 
+  read_csv(here("data/Project.csv"),
+           col_types = "nnccDDnnnnnnnnTTcTn") 
+
+provider_extras <- read_xlsx(here("data/RMisc.xlsx"),
+                                sheet = 4,
+                                range = cell_cols("A:H")) %>%
+  mutate(ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
+                                 str_remove(ProviderRegion, "0"),
+                                 ProviderRegion),
+         ProviderRegion = NULL)
+
+provider_addresses <- read_csv(here("data/ProjectCoC.csv"),
+                               col_types = "ddcdccccddTTdld")
+
+Project <- Project %>%
+  select(-ProjectName) %>%
+  left_join(provider_extras, by = "ProjectID") %>%
+  left_join(provider_addresses, by = "ProjectID") %>%
+  mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0)) %>% 
+  select(-UsesSP)
+
+providers <- Project %>%
+  filter(ProjectType %in% c(1, 2, 8)) %>%
+  select(
+    ProjectName,
+    ProjectType,
+    OrganizationName,
+    ProjectCounty,
+    ProjectRegion,
+    Address1,
+    Address2,
+    City,
+    State,
+    ZIP
+  )
+
+health_depts <- read_csv(here("Reports/health_departments.csv"),
+                         col_types = "cccd")
+
+rm(list = ls()[!(ls() %in% c('health_depts',
+                             'providers'))])
+
+
+```
+
+## Joining the Two
+
+```{r}
+
+connections <- providers %>%
+  left_join(health_depts, by = c("ProjectCounty" = "County"))
+
+write_csv(connections, here("Reports/connections.csv"))
+
+```
+
