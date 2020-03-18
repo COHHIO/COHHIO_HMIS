@@ -54,7 +54,8 @@ if(ncol(read_csv("data/Client.csv")) == 36) {
 } else {
   Client <-
     read_csv("data/Client.csv",
-             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn")
+             col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
+    filter(!PersonalID %in% c(5, 4216))
 }
 
 # Masking PII in the Client file (but not DOB) 
@@ -372,6 +373,39 @@ if(file.exists("data/casemanagers.zip")) {
 CaseManagers <- read_csv("data/casemanagers.csv",
                              col_types = "dccccc")
 
+
+# Contacts ----------------------------------------------------------------
+# only pulling in contacts made between an Entry Date and an Exit Date
+
+suppressWarnings(Contacts <- read_xlsx(
+  "data/RMisc.xlsx",
+  sheet = 5,
+  range = cell_cols("A:K"),
+  col_types = c(
+    "numeric",
+    "text",
+    "date",
+    "date",
+    "numeric",
+    "text",
+    "date",
+    "date",
+    "date",
+    "text",
+    "text"
+  )
+) %>%
+  mutate(
+    EntryDate = ymd(format.Date(EntryDate, "%Y-%m-%d")),
+    ExitDate = ymd(format.Date(ExitDate, "%Y-%m-%d")),
+    ContactDate = ymd(format.Date(ContactDate, "%Y-%m-%d")),
+    ContactStartDate = ymd(format.Date(ContactStartDate, "%Y-%m-%d")),
+    ContactEndDate = ymd(format.Date(ContactEndDate, "%Y-%m-%d")),
+    ProjectName = str_remove(ProjectName, "\\(.*\\)")
+  ) %>%
+  filter(ContactDate >= EntryDate &
+           ContactDate <= ExitDate))
+
 # Scores ------------------------------------------------------------------
 
 if(file.exists("data/scoresfam.zip")) {
@@ -435,7 +469,7 @@ Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
     AcceptDeclineDate = mdy(AcceptDeclineDate)
   )
 
-# Users ------------------- ----------------------------------------------
+# Users ------------------------------------------------------------------
 Users <- read_xlsx("data/RMisc.xlsx",
                    sheet = 3,
                    range = cell_cols("A:G")) %>%
