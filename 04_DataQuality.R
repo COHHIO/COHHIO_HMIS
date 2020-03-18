@@ -312,8 +312,6 @@ dq_veteran <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 # Missing Client Location -------------------------------------------------
-# only pulls in Data Collection Stage 1 CoCCode bc none of our
-# reporting looks at this at multiple data collection stages
 
 missing_client_location <- served_in_date_range %>%
   filter(is.na(ClientLocation),
@@ -1040,15 +1038,84 @@ check_eligibility <- served_in_date_range %>%
     ## client is adult/hoh and has no contact record in the EE -> error
     ## this is a high priority data quality issue
     
+    small_contacts <- Contacts %>%
+      group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
+      summarise(ContactCount = n()) %>%
+      ungroup()
+    
+    missing_path_contact <- served_in_date_range %>%
+      filter(GrantType == "PATH" &
+               (AgeAtEntry > 17 |
+                  RelationshipToHoH == 1)) %>%
+      select(all_of(vars_prep)) %>%
+      left_join(small_contacts,
+                by = c("PersonalID",
+                       "ProjectName",
+                       "EntryDate",
+                       "ExitDate")) %>%
+      mutate_at(vars(ContactCount), ~replace(., is.na(.), 0)) %>%
+      filter(ContactCount == 0) %>%
+      mutate(Issue = "Missing PATH Contact",
+             Type = "High Priority",
+             Guidance = "Every adult or Head of Household must have a Living
+             Situation contact record.") %>%
+      select(all_of(vars_we_want))
+    
+    rm(small_contacts)
+    
     # Incorrect PATH Contact Date
     ## client is adult/hoh, has a contact record, and the first record in the EE
     ## does not equal the Entry Date ->  error
     
+    x <- Contacts %>%
+      group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
+      arrange(ContactStartDate) %>%
+      slice(1L)
+    
+    incorrect_path_contact_date <- served_in_date_range %>%
+      filter(GrantType == "PATH" &
+               (AgeAtEntry > 17 |
+                  RelationshipToHoH == 1)) %>%
+      select(all_of(vars_prep)) %>%
+      inner_join(x, by = c("PersonalID",
+                           "ProjectName",
+                           "EntryDate",
+                           "ExitDate")) %>%
+      filter(ContactDate != EntryDate) %>%
+      mutate(
+        Issue = "No PATH Contact Entered at Entry",
+        Type = "Error",
+        Guidance = "Every adult or head of household should have a Living
+             Situation contact record where the Contact Date matches the Entry
+             Date. This would represent the initial contact made with the
+             client."
+      ) %>%
+      select(all_of(vars_we_want))
+    
+    rm(x)
+    
     # Missing PATH Contact End Date
-    ## client is adult/hoh, has a contact record, and the End Date is null -> error
+    ## client is adult/hoh, has a contact record, and the End Date is null
+    
+    missing_path_contact_end_date <- served_in_date_range %>%
+      filter(GrantType == "PATH" &
+               (AgeAtEntry > 17 |
+                  RelationshipToHoH == 1)) %>%
+      select(all_of(vars_prep)) %>%
+      inner_join(Contacts, by = c("PersonalID",
+                           "ProjectName",
+                           "EntryDate",
+                           "ExitDate")) %>%
+      filter(is.na(ContactEndDate)) %>%
+      mutate(Issue = "No Contact End Date (PATH)",
+             Type = "Error",
+             Guidance = "All Contact records should have a Start and End Date. 
+             The End Date should = the Start Date.") %>%
+      select(all_of(vars_we_want))
     
     # Duplicate EEs -----------------------------------------------------------
-    # this could be more nuanced
+    # this could be more nuanced but it's ok to leave it since we are also
+    # looking at overlaps
     duplicate_ees <-
       get_dupes(served_in_date_range, PersonalID, ProjectID, EntryDate) %>%
       mutate(
@@ -2365,14 +2432,11 @@ check_eligibility <- served_in_date_range %>%
       future_ees,
       hh_issues,
       incorrect_ee_type,
+      incorrect_path_contact_date,
+      internal_old_outstanding_referrals,
       lh_without_spdat,
       missing_approx_date_homeless,
       missing_client_location,
-      veteran_missing_year_entered,
-      veteran_missing_year_separated,
-      veteran_missing_wars,
-      veteran_missing_branch,
-      veteran_missing_discharge_status,
       missing_county_served,
       missing_county_prior,
       missing_destination,
@@ -2384,11 +2448,12 @@ check_eligibility <- served_in_date_range %>%
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
+      missing_path_contact,
+      missing_path_contact_end_date,
       missing_previous_street_ESSH,
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
-      internal_old_outstanding_referrals,
       path_enrolled_missing,
       path_missing_los_res_prior,
       path_no_status_at_exit,
@@ -2403,8 +2468,13 @@ check_eligibility <- served_in_date_range %>%
       ssvf_missing_address,
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
-      ssvf_hp_screen,
-      unlikely_ncbs_entry
+      ssvf_hp_screen,      
+      unlikely_ncbs_entry,
+      veteran_missing_year_entered,
+      veteran_missing_year_separated,
+      veteran_missing_wars,
+      veteran_missing_branch,
+      veteran_missing_discharge_status
     ) %>%
       filter(!ProjectName %in% c(
         "Diversion from Homeless System",
@@ -2420,7 +2490,14 @@ check_eligibility <- served_in_date_range %>%
     # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
     
     dq_main <- dq_main %>%
-      filter(!Issue %in% c("Missing Length of Stay")) # case 873163
+      filter(
+        !Issue %in% c(
+          "Missing Length of Stay", # case 873163
+          "Missing PATH Contact", # waiting on AW comments
+          "No Contact End Date (PATH)", # waiting on AW comments
+          "No PATH Contact Entered at Entry" # waiting on AW comments
+        )
+      ) 
     
     # Unsheltered DQ ----------------------------------------------------------
     
