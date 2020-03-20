@@ -72,7 +72,8 @@ smallEnrollment <- Enrollment %>%
     EntryAdjust,
     MoveInDateAdjust,
     ExitAdjust,
-    Destination
+    Destination,
+    DateCreated
   ) 
 
 validation <- smallProject %>%
@@ -90,7 +91,8 @@ validation <- smallProject %>%
     MoveInDate,
     MoveInDateAdjust,
     ExitDate,
-    Destination
+    Destination,
+    DateCreated
   ) %>%
   filter(!is.na(EntryDate))
 
@@ -226,7 +228,7 @@ qpr_spending <- Services %>%
            RelationshipToHoH == 1 &
            !is.na(Amount)) %>%
   select(-RelationshipToHoH)
-  
+
 rm(Client, 
    Enrollment, 
    Organization,
