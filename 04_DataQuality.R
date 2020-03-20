@@ -1188,6 +1188,7 @@ check_eligibility <- served_in_date_range %>%
       be changed. Click \"Update\" to make this change take effect.") %>%
       select(all_of(vars_we_want))
     
+    
     # HoHs Entering PH without SPDATs -----------------------------------------
     
     ees_with_spdats <- served_in_date_range %>%
@@ -2564,12 +2565,16 @@ check_eligibility <- served_in_date_range %>%
     
     # Controls what is shown in the CoC-wide DQ tab ---------------------------
     
+    # for CoC-wide DQ tab
+    
     ReportStart <- "10012018"
     ReportEnd <- format.Date(today(), "%m-%d-%Y")
     
     dq_past_year <- dq_main %>%
       filter(served_between(., ReportStart, ReportEnd)) %>%
       left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
+    
+    # for project evaluation reporting
     
     ReportStart <- "01012019"
     ReportEnd <- "12312019"
@@ -2583,11 +2588,10 @@ check_eligibility <- served_in_date_range %>%
     projects_current_hmis <- projects_current_hmis %>%
       filter(ProjectID != 1695)
     
-    dq_providers <- sort(projects_current_hmis$ProjectName)
-  
+    dq_providers <- sort(projects_current_hmis$ProjectName)    
 
 # Plots -------------------------------------------------------------------
-
+    
     dq_data_errors_plot <- dq_past_year %>%
       filter(
         Type %in% c("Error", "High Priority") &
