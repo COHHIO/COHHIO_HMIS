@@ -2696,7 +2696,8 @@ check_eligibility <- served_in_date_range %>%
       theme_minimal(base_size = 18)
     
     dq_data_unsheltered_high <- dq_unsheltered %>%
-      filter(Type == "High Priority") %>%
+      filter(Type == "High Priority",
+             served_between(., "01012019", format.Date(today(), "%m-%d-%Y"))) %>%
       select(PersonalID, HouseholdID, DefaultProvider) %>%
       unique() %>%
       group_by(DefaultProvider) %>%
