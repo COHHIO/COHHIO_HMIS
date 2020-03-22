@@ -113,7 +113,8 @@ disability_data <- co_active_list %>%
   group_by(HouseholdID) %>%
   mutate(HouseholdSize = n(),
          DisabilityInHH = max(DisablingCondition),
-         TAY = if_else(max(AgeAtEntry) < 25, 1, 0)) %>%
+         TAY = if_else(max(AgeAtEntry) < 25, 1, 0),
+         PHTrack = if_else(ymd(ExpectedPHDate) < today(), "<expired>", PHTrack)) %>%
   ungroup() 
 
 # Indicate if the Household Has No Income ---------------------------------
