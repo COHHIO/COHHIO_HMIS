@@ -187,10 +187,19 @@ scores_staging <- Scores %>%
   select(-ScoreDate)
 
 
-# final join for Active List ----------------------------------------------
+# join for Active List ----------------------------------------------------
 
 active_list <- adding_in_income %>%
   left_join(scores_staging, by = "PersonalID")
+
+
+# Add Veteran Status ------------------------------------------------------
+
+
+# Add Chronicity ----------------------------------------------------------
+
+
+# Add Referral Status -----------------------------------------------------
 
 
 
