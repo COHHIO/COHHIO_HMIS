@@ -19,21 +19,32 @@ library(janitor)
 load("images/cohorts.RData")
 load("images/COHHIOHMIS.RData")
 
-# clients currently homeless in our system
+# clients currently entered into a homeless project in our system
 
 co_currently_homeless <- co_clients_served %>%
-  filter(ProjectType %in% c(1, 2, 4, 8),
-         is.na(ExitDate)) %>%
-  select(PersonalID, ProjectName, ProjectType, HouseholdID, RelationshipToHoH,
-         VeteranStatus, EntryDate, AgeAtEntry)
-
-
+  filter(is.na(ExitDate) &
+           (ProjectType %in% c(1, 2, 4, 8) |
+              (
+                ProjectType %in% c(3, 9, 13) &
+                  is.na(MoveInDateAdjust)
+              ))) %>%
+  select(
+    PersonalID,
+    ProjectName,
+    ProjectType,
+    HouseholdID,
+    EnrollmentID,
+    RelationshipToHoH,
+    VeteranStatus,
+    EntryDate,
+    AgeAtEntry
+  )
 
 # correcting for bad hh data (while also flagging it) ---------------------
 
 ALL_HHIDs <- co_currently_homeless %>% select(HouseholdID) %>% unique()
 
-# marking who is a hoh
+# marking who is a hoh (accounts for singles not marked as hohs in the data)
 
 clean_hh_data <- co_currently_homeless %>%
   mutate(
@@ -42,8 +53,10 @@ clean_hh_data <- co_currently_homeless %>%
            (str_detect(HouseholdID, fixed("h_")) &
               RelationshipToHoH == 1), 1, 0)) 
 
-HHIDs_in_current_logic <- clean_hh_data %>% filter(hoh == 1) %>%
-  select(HouseholdID) %>% unique()
+HHIDs_in_current_logic <- clean_hh_data %>% 
+  filter(hoh == 1) %>%
+  select(HouseholdID) %>%
+  unique()
 
 # marking which hhs are not represented in the hohs marked (bc of bad hh data)
 
@@ -61,14 +74,14 @@ Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   arrange(desc(AgeAtEntry)) %>% # picking oldest hh member
   slice(1L) %>% 
   mutate(correctedhoh = 1) %>%
-  select(HouseholdID, PersonalID, correctedhoh) %>%
+  select(HouseholdID, PersonalID, EnrollmentID, correctedhoh) %>%
   ungroup()
 
 # merging the "corrected" hohs back into the main dataset with a flag
 
-Active_List <- clean_hh_data %>%
+co_active_list <- clean_hh_data %>%
   left_join(Adjusted_HoHs,
-            by = c("HouseholdID", "PersonalID")) %>%
+            by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
   mutate(
     Note = if_else(
       correctedhoh == 1,
@@ -80,29 +93,103 @@ Active_List <- clean_hh_data %>%
   ) %>%
   select(-correctedhoh, - hoh)
 
-rm(Adjusted_HoHs, co_currently_homeless, HHIDs_with_bad_dq)
+rm(Adjusted_HoHs, co_currently_homeless, HHIDs_with_bad_dq, clean_hh_data)
 
+# Adding in Disability Status of HH, County, PHTrack ----------------------
 
-# Adding in Disability Status of Household --------------------------------
-
+disability_data <- co_active_list %>%
+  left_join(
+    Enrollment %>%
+      select(
+        PersonalID,
+        HouseholdID,
+        DisablingCondition,
+        CountyServed,
+        PHTrack,
+        ExpectedPHDate
+      ),
+    by = c("PersonalID", "HouseholdID")
+  ) %>%
+  group_by(HouseholdID) %>%
+  mutate(HouseholdSize = n(),
+         DisabilityInHH = max(DisablingCondition),
+         TAY = if_else(max(AgeAtEntry) < 25, 1, 0)) %>%
+  ungroup() 
 
 # Indicate if the Household Has No Income ---------------------------------
 
+income_data <- disability_data %>%
+  left_join(
+    IncomeBenefits %>%
+      select(
+        PersonalID,
+        EnrollmentID,
+        IncomeFromAnySource,
+        DateCreated,
+        DataCollectionStage
+      ),
+    by = c("PersonalID", "EnrollmentID")
+  ) %>%
+  mutate(
+    DataCollectionStage = case_when(
+      DataCollectionStage == 1 ~ "Entry",
+      DataCollectionStage == 2 ~ "Update",
+      DataCollectionStage == 3 ~ "Exit",
+      DataCollectionStage == 5 ~ "Annual"
+    )
+  )
+
+income_staging_fixed <- income_data %>% 
+  filter(DataCollectionStage == "Entry") 
+
+income_staging_variable <- income_data %>%
+  filter(DataCollectionStage %in% c("Update", "Annual", "Exit")) %>%
+  group_by(EnrollmentID) %>%
+  mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
+  filter(MaxUpdate == DateCreated) %>%
+  select(-MaxUpdate) %>%
+  distinct() %>%
+  ungroup() 
+
+income_staging <-
+  rbind(income_staging_fixed, income_staging_variable) %>%
+  select(PersonalID,
+         EnrollmentID,
+         IncomeFromAnySource,
+         DataCollectionStage) %>%
+  unique() %>%
+  mutate(
+    DataCollectionStage = case_when(
+      DataCollectionStage == "Entry" ~ "Entry",
+      DataCollectionStage != "Entry" ~ "After Entry"
+    )
+  ) %>% 
+  group_by(PersonalID, EnrollmentID) %>%
+  arrange(DataCollectionStage) %>%
+  slice(1L) %>%
+  ungroup() %>%
+  select(-DataCollectionStage)
+  
+
+adding_in_income <- disability_data %>%
+  left_join(income_staging, by = c("PersonalID", "EnrollmentID")) 
+  
 
 # Add in Score ------------------------------------------------------------
 
+scores_staging <- Scores %>%
+  filter(ScoreDate > today() - years(1)) %>%
+  group_by(PersonalID) %>%
+  arrange(desc(ymd(ScoreDate))) %>%
+  slice(1L) %>%
+  ungroup() %>%
+  select(-ScoreDate)
 
-# Add in Household Size ---------------------------------------------------
 
+# final join for Active List ----------------------------------------------
 
-# Add in PH Track and Expected PH Date ------------------------------------
-
-
-# Add in County -----------------------------------------------------------
-
-
-# Add in TAY status -------------------------------------------------------
-
+active_list <- adding_in_income %>%
+  left_join(scores_staging, by = "PersonalID")
 
 
 
