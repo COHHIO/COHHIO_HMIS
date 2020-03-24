@@ -26,13 +26,11 @@ rm(Affiliation,
    Services,
    Disabilities,
    Funder,
-   Geography,
    HealthAndDV,
    IncomeBenefits,
    Inventory,
    Offers,
    Organization,
-   Regions,
    Scores,
    Users,
    VeteranCE)
@@ -62,9 +60,8 @@ singlyChronicAtEntry <-
   ) %>%
   mutate(ChronicAtEntry = 1)
 
-# pulling all EEs with the Chronic designation, creating a marker for whether
-# each client is in a hh with someone who is Chronic, throwing out all clients
-# who are neither Chronic themselves nor in a hh with someone who's Chronic.
+# pulling all EEs with the Chronic designation, marking all hh members of anyone
+# with a Chronic marker as also Chronic
 
 allChronicAtEntry <- 
   full_join(
@@ -91,9 +88,13 @@ allChronicAtEntry <-
     )
   ) %>%
   group_by(HouseholdID) %>%
-  mutate(ChronicHousehold = sum(ChronicAtEntry, na.rm = TRUE)) %>%
-  filter(ChronicHousehold > 0) %>%
-  ungroup() %>% select(-ChronicHousehold)
+  mutate(ChronicHousehold = sum(ChronicAtEntry, na.rm = TRUE),
+         ChronicStatus = case_when(
+           ChronicHousehold > 0 ~ "Chronic",
+           ChronicHousehold == 0 ~ "Not Chronic")) %>%
+  # filter(ChronicStatus == "Chronic") %>%
+  ungroup() %>% 
+  select(-ChronicHousehold)
 
 
 # adding in Project data for convenience
@@ -104,7 +105,8 @@ allChronicAtEntry <- left_join(allChronicAtEntry, smallProject, by = "ProjectID"
 # up to 365 or more, it marks the client as ConsecutiveChronic
 
 agedIntoChronicity <- allChronicAtEntry %>%
-  filter(ProjectType %in% c(1, 8)) %>%
+  filter(ProjectType %in% c(1, 8) &
+           ymd(DateToStreetESSH) + years(1) > ymd(EntryDate)) %>%
   mutate(
     DaysHomelessInProject = difftime(ymd(ExitAdjust),
                                              ymd(EntryDate),
@@ -116,9 +118,15 @@ agedIntoChronicity <- allChronicAtEntry %>%
                                      ymd(DateToStreetESSH)
                                    ),
                                    units = "days"),
-    ConsecutiveChronic = DaysBetweenHomeless +  DaysHomelessInProject >= 365
+    ConsecutiveChronic = DaysBetweenHomeless + DaysHomelessInProject >= 365,
+    ChronicStatus = "Aged In"
   ) %>%
-  filter(ConsecutiveChronic == TRUE)
+  filter(ConsecutiveChronic == TRUE) %>%
+  select(-DaysHomelessInProject,
+         -DaysBetweenHomeless,
+         -ConsecutiveChronic)
+
+
 
 rm(smallEnrollment, smallProject, Client, Enrollment)
 
