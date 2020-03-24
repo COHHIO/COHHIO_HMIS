@@ -236,8 +236,8 @@ bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
 
 
 Enrollment <- Enrollment %>% #select(-RelationshipToHoH) %>%
-  left_join(bowman_entry_exits, by = "EnrollmentID") %>%
-  left_join(counties, by = "EnrollmentID") %>%
+  inner_join(bowman_entry_exits, by = "EnrollmentID") %>%
+  inner_join(counties, by = "EnrollmentID") %>%
   left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
             by = "EnrollmentID")
 
