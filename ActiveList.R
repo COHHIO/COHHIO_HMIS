@@ -121,7 +121,8 @@ disability_data <- co_active_list %>%
     TAY = if_else(max(AgeAtEntry) < 25, 1, 0),
     PHTrack = if_else(ymd(ExpectedPHDate) < today(), "<expired>", PHTrack)
   ) %>%
-  ungroup() 
+  ungroup() %>%
+  select(-AgeAtEntry)
 
 # Indicate if the Household Has No Income ---------------------------------
 
@@ -202,17 +203,20 @@ smallEnrollment <- Enrollment %>%
          DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
          MonthsHomelessPastThreeYears, DisablingCondition)
 
-singly_chronic <- 
+singly_chronic <-
   co_active_list %>%
-  left_join(smallEnrollment, by = c("PersonalID",
-                                    "EnrollmentID",
-                                    "HouseholdID")) %>%
-  mutate(SinglyChronic = if_else(((ymd(DateToStreetESSH) + years(1) <= ymd(EntryDate)) |
-                                     (
-                                       MonthsHomelessPastThreeYears %in% c(112, 113) &
-                                         TimesHomelessPastThreeYears == 4
-                                     )) &
-                                    DisablingCondition == 1, 1, 0))
+  left_join(smallEnrollment,
+            by = c("PersonalID",
+                   "EnrollmentID",
+                   "HouseholdID")) %>%
+  mutate(SinglyChronic =
+           if_else(((ymd(DateToStreetESSH) + years(1) <= ymd(EntryDate)) |
+                      (
+                        MonthsHomelessPastThreeYears %in% c(112, 113) &
+                          TimesHomelessPastThreeYears == 4
+                      )
+           ) &
+             DisablingCondition == 1, 1, 0))
 
 # pulling all EEs with the Chronic designation, marking all hh members of anyone
 # with a Chronic marker as also Chronic
@@ -323,12 +327,14 @@ add_referrals <- add_chronicity %>%
 
 # Account for Multiple EEs ------------------------------------------------
 
+# bucket the ptc's
 ptc_status <- add_referrals %>%
   mutate(PTCStatus = case_when(
     ProjectType %in% c(1, 2, 4, 8) ~ "LH",
     ProjectType %in% c(3, 9, 13) ~ "PH"
   )) 
 
+# split out the clients with ph entries
 clients_in_ph <- ptc_status %>%
   group_by(PersonalID) %>%
   arrange(desc(PTCStatus)) %>%
@@ -338,6 +344,7 @@ clients_in_ph <- ptc_status %>%
   mutate(InPH = 1) %>%
   select(PersonalID, InPH)
 
+# split out the clients with lh entries
 clients_in_lh <- ptc_status %>%
   group_by(PersonalID) %>%
   arrange(PTCStatus) %>%
@@ -347,6 +354,7 @@ clients_in_lh <- ptc_status %>%
   mutate(LH = 1) %>%
   select(PersonalID, LH)
 
+# join them back, with one row per client, create PTCStatus variable
 client_ptc_status <- clients_in_lh %>%
   full_join(clients_in_ph, by = "PersonalID") %>%
   mutate(
@@ -360,27 +368,34 @@ client_ptc_status <- clients_in_lh %>%
   ) %>%
   select(PersonalID, PTCStatus)
 
+# add PTCStatus variable into the main dataframe (but now you have multiple
+# rows per client again)
 add_ptc_status <- add_referrals %>%
     left_join(client_ptc_status, by = "PersonalID")
 
+# take only the clients with multiple rows and slice out only the current lh
+# ee's or if there are multiple lh ee's, take the most recent (thinking the
+# most recent is probably the most up to date?)
 split_up_dupes <- get_dupes(add_ptc_status, PersonalID) %>%
   mutate(PTCGames = if_else(ProjectType %in% c(1, 2, 4, 8), 1, 2)) %>%
   group_by(PersonalID) %>%
   arrange(PTCGames, desc(EntryDate)) %>%
-  slice(1L)
+  slice(1L) %>%
+  select(-dupe_count, -PTCGames) %>%
+  ungroup()
 
+# remove the clients in split_up_dupes from the main dataframe so you can
+# add them back in now that they've been deduplicated
 duplicated_clients <- get_dupes(add_ptc_status, PersonalID) %>%
   pull(PersonalID) %>% unique()
 
 filter_out_dupes <- add_ptc_status %>%
   filter(!PersonalID %in% duplicated_clients)
 
+# add the deduplicated clients back in with the ones with only one ee
 deduplicated_active_list <- rbind(split_up_dupes, filter_out_dupes)
   
   
-
-# join for Active List ----------------------------------------------------
-
 
 
 
