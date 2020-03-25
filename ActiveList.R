@@ -283,17 +283,101 @@ add_chronicity <- add_scores %>%
 
 # Add Referral Status -----------------------------------------------------
 
+# thinking maybe it makes the most sense to only look at referrals that have 
+# been accepted for the purposes of the Active List. Because who cares if
+# there's an open referral on a client who needs housing? That doesn't mean
+# anything because we haven't really assigned a meaning to that. But an
+# accepted referral does supposedly mean something, and it would add context
+# to know that a household on this list has been accepted into (if not entered 
+# into) another project.
+
+# also thinking the Refer-to provider should be an RRH or PSH? Maybe? Because
+# referrals to a homeless project wouldn't mean anything on an Active List,
+# right?
+
+Referrals <- Referrals %>%
+  left_join(Project %>% select(ProjectName, "ReferToPTC" = ProjectType),
+            by = c("Referred-ToProvider" = "ProjectName"))
 
 who_has_referrals <- add_chronicity %>%
   left_join(Referrals %>%
-              filter(ReferralDate > today() - days(14)),
+              filter(ReferralDate >= today() - days(14) &
+                       ReferralOutcome == "Accepted" &
+                       ReferToPTC %in% c(3, 9, 13)),
             by = c("PersonalID"))
+
+add_referrals <- add_chronicity %>%
+  left_join(
+    who_has_referrals %>%
+      select(PersonalID,
+             HouseholdID,
+             EnrollmentID,
+             "ReferredToProvider" = "Referred-ToProvider",
+             ReferralDate),
+    by = c("PersonalID", "HouseholdID", "EnrollmentID")
+  )
+
 
 # Add COVID-19 Status -----------------------------------------------------
 
 
-# Account for Overlapping EEs ---------------------------------------------
+# Account for Multiple EEs ------------------------------------------------
 
+ptc_status <- add_referrals %>%
+  mutate(PTCStatus = case_when(
+    ProjectType %in% c(1, 2, 4, 8) ~ "LH",
+    ProjectType %in% c(3, 9, 13) ~ "PH"
+  )) 
+
+clients_in_ph <- ptc_status %>%
+  group_by(PersonalID) %>%
+  arrange(desc(PTCStatus)) %>%
+  slice(1L) %>%
+  filter(PTCStatus == "PH") %>%
+  ungroup() %>%
+  mutate(InPH = 1) %>%
+  select(PersonalID, InPH)
+
+clients_in_lh <- ptc_status %>%
+  group_by(PersonalID) %>%
+  arrange(PTCStatus) %>%
+  slice(1L) %>%
+  filter(PTCStatus == "LH") %>%
+  ungroup() %>%
+  mutate(LH = 1) %>%
+  select(PersonalID, LH)
+
+client_ptc_status <- clients_in_lh %>%
+  full_join(clients_in_ph, by = "PersonalID") %>%
+  mutate(
+    InPH = if_else(is.na(InPH), 0, InPH),
+    LH = if_else(is.na(LH), 0, LH),
+    PTCStatus = if_else(
+      InPH == 1,
+      "Has Entry into RRH or PSH",
+      "Currently Has No Entry into RRH or PSH"
+    )
+  ) %>%
+  select(PersonalID, PTCStatus)
+
+add_ptc_status <- add_referrals %>%
+    left_join(client_ptc_status, by = "PersonalID")
+
+split_up_dupes <- get_dupes(add_ptc_status, PersonalID) %>%
+  mutate(PTCGames = if_else(ProjectType %in% c(1, 2, 4, 8), 1, 2)) %>%
+  group_by(PersonalID) %>%
+  arrange(PTCGames, desc(EntryDate)) %>%
+  slice(1L)
+
+duplicated_clients <- get_dupes(add_ptc_status, PersonalID) %>%
+  pull(PersonalID) %>% unique()
+
+filter_out_dupes <- add_ptc_status %>%
+  filter(!PersonalID %in% duplicated_clients)
+
+deduplicated_active_list <- rbind(split_up_dupes, filter_out_dupes)
+  
+  
 
 # join for Active List ----------------------------------------------------
 
