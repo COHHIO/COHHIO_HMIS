@@ -1,0 +1,101 @@
+---
+title: "Ohio Hotel & Lodging Association Hotels Willing to Help"
+author: "Coalition on Homelessness and Housing in Ohio"
+date: "3/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(readxl)
+library(here)
+library(gt)
+
+hotels <- read_xlsx(here("data/OHLAhotels.xlsx")) %>%
+  select("PropertyName" = 1, 
+         "Address" = 2,
+         "City" = 3,
+         "State" = 4,
+         "ZIP" = 5,
+         "County" = 6,
+         "ContactName" = 7,
+         Email,
+         Phone,
+         "AltPhone" = 10,
+         "Notes" = 11) %>%
+  mutate(Phone = parse_number(Phone),
+    AltPhone = parse_number(AltPhone),
+    Phone = if_else(nchar(Phone) == 10, Phone, NULL),
+    AltPhone = if_else(nchar(AltPhone) == 10, AltPhone, NULL),
+    Phone = gsub("(^\\d{3})(\\d{3})(\\d{4}$)", 
+                                    "\\1-\\2-\\3",
+                                    Phone),
+    AltPhone = gsub("(^\\d{3})(\\d{3})(\\d{4}$)", 
+                                    "\\1-\\2-\\3",
+                                    AltPhone)) %>%
+  filter(PropertyName %in% c(
+    "Hotel Indigo Cleveland - East Beachwood",
+    "Marriott at The University of Dayton***",
+    "Marriott & Residence Inn OSU**",
+    "Renaissance Westerville**",
+    "Residence Inn Columbus Downtown**",
+    "SpringHill Suites/TownePlace Suites Easton**",
+    "SpringHilll Suites OSU**",
+    "Quality Inn & Suites Mason**"
+  ))
+
+entitlements <- tribble(
+  ~ County, ~ Region,
+  "Montgomery", "Dayton, Kettering/Montgomery County CoC",
+  "Hamilton", "Cincinnati/Hamilton County CoC",
+  "Lucas", "Toledo/Lucas County CoC",
+  "Cuyahoga", "Cleveland/Cuyahoga County CoC",
+  "Franklin", "Columbus/Franklin County CoC",
+  "Mahoning", "Youngstown/Mahoning County CoC",
+  "Summit", "Akron, Barberton/Summit County CoC",
+  "Stark", "Canton, Massillon, Alliance/Stark County CoC"
+)
+
+
+regions <- read_csv(here("data/Regions.csv")) %>%
+  mutate(Region = if_else(
+    nchar(Region) == 1,
+    paste0("Balance of State CoC Region 0", Region),
+    paste("Balance of State CoC Region", Region)
+  ))
+
+regions <- rbind(entitlements, regions)
+
+bucketing2 <- hotels %>%
+  left_join(regions, by = "County") %>%
+  mutate(
+    Address = paste0(Address, 
+                          ", ",
+                          City,
+                          ", ",
+                          County,
+                          " County, ",
+                          State,
+                          " ",
+                          ZIP),
+         Contact = if_else(!is.na(AltPhone),
+                           paste(ContactName, Email, Phone, "or", AltPhone),
+                           paste(ContactName, Email, Phone))) %>%
+  arrange(Region) %>%
+  select("Property Name" = PropertyName, Address, Contact, Region)
+```
+
+```{r}
+
+gt(bucketing2,
+   groupname_col = "Region") %>%
+  tab_options(
+    row_group.background.color = "#dadcf1",
+    row_group.font.size = 16,
+    row_group.font.weight = "bold"
+  ) 
+
+```
+
