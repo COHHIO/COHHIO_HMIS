@@ -14,38 +14,48 @@ library(here)
 library(gt)
 
 hotels <- read_xlsx(here("data/OHLAhotels.xlsx")) %>%
-  select("PropertyName" = 1, 
-         "Address" = 2,
-         "City" = 3,
-         "State" = 4,
-         "ZIP" = 5,
-         "County" = 6,
-         "ContactName" = 7,
-         Email,
-         Phone,
-         "AltPhone" = 10,
-         "Notes" = 11) %>%
-  mutate(Phone = parse_number(Phone),
+  select(
+    "PropertyName" = 1,
+    "Address" = 2,
+    "City" = 3,
+    "State" = 4,
+    "ZIP" = 5,
+    "County" = 6,
+    "ContactName" = 7,
+    Email,
+    Phone,
+    "AltPhone" = 10,
+    "Notes" = 11
+  ) %>%
+  mutate(
+    Phone = parse_number(Phone),
     AltPhone = parse_number(AltPhone),
     Phone = if_else(nchar(Phone) == 10, Phone, NULL),
     AltPhone = if_else(nchar(AltPhone) == 10, AltPhone, NULL),
-    Phone = gsub("(^\\d{3})(\\d{3})(\\d{4}$)", 
-                                    "\\1-\\2-\\3",
-                                    Phone),
-    AltPhone = gsub("(^\\d{3})(\\d{3})(\\d{4}$)", 
-                                    "\\1-\\2-\\3",
-                                    AltPhone)) %>%
-  filter(PropertyName %in% c(
-    "Hotel Indigo Cleveland - East Beachwood",
-    "Marriott at The University of Dayton***",
-    "Marriott & Residence Inn OSU**",
-    "Renaissance Westerville**",
-    "Residence Inn Columbus Downtown**",
-    "SpringHill Suites/TownePlace Suites Easton**",
-    "SpringHilll Suites OSU**",
-    "Quality Inn & Suites Mason**"
-  ))
+    Phone = gsub("(^\\d{3})(\\d{3})(\\d{4}$)",
+                 "\\1-\\2-\\3",
+                 Phone),
+    AltPhone = gsub("(^\\d{3})(\\d{3})(\\d{4}$)",
+                    "\\1-\\2-\\3",
+                    AltPhone))
 
+# hotels that left comments that indicate they may not be open to housing
+# those in a housing crisis
+restrictions_apply <- c(
+  "Hotel Indigo Cleveland - East Beachwood",
+  "Marriott at The University of Dayton",
+  "Marriott & Residence Inn OSU",
+  "Renaissance Westerville",
+  "Residence Inn Columbus Downtown",
+  "SpringHill Suites/TownePlace Suites Easton",
+  "SpringHilll Suites OSU",
+  "Quality Inn & Suites Mason"
+)
+
+restrictions_apply_noted <- paste(restrictions_apply, "(restrictions may apply)")
+
+# adding the rest of the Ohio CoCs to the regions dataframe bc they're included
+# in the hotels data
 entitlements <- tribble(
   ~ County, ~ Region,
   "Montgomery", "Dayton, Kettering/Montgomery County CoC",
@@ -58,7 +68,7 @@ entitlements <- tribble(
   "Stark", "Canton, Massillon, Alliance/Stark County CoC"
 )
 
-
+# padding region nos with 0 so they sort well
 regions <- read_csv(here("data/Regions.csv")) %>%
   mutate(Region = if_else(
     nchar(Region) == 1,
@@ -68,22 +78,22 @@ regions <- read_csv(here("data/Regions.csv")) %>%
 
 regions <- rbind(entitlements, regions)
 
+# bucketing by CoC & Homeless Planning Region
 bucketing2 <- hotels %>%
   left_join(regions, by = "County") %>%
   mutate(
-    Address = paste0(Address, 
-                          ", ",
-                          City,
-                          ", ",
-                          County,
-                          " County, ",
-                          State,
-                          " ",
-                          ZIP),
-         Contact = if_else(!is.na(AltPhone),
-                           paste(ContactName, Email, Phone, "or", AltPhone),
-                           paste(ContactName, Email, Phone))) %>%
-  arrange(Region) %>%
+    Address = paste0(Address, ", ",  City, ", ", County, " County, ", State, " ", ZIP),
+    Contact = if_else(
+      !is.na(AltPhone),
+      paste(ContactName, Email, Phone, "or", AltPhone),
+      paste(ContactName, Email, Phone)
+    ),
+    PropertyName = str_remove_all(PropertyName, "\\*"),
+    PropertyName = if_else(PropertyName %in% c(restrictions_apply),
+                           paste(PropertyName, "(restrictions may apply)"),
+                           PropertyName)
+  ) %>%
+  arrange(Region, PropertyName) %>%
   select("Property Name" = PropertyName, Address, Contact, Region)
 ```
 
@@ -95,7 +105,15 @@ gt(bucketing2,
     row_group.background.color = "#dadcf1",
     row_group.font.size = 16,
     row_group.font.weight = "bold"
-  ) 
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "gray")
+    ),
+    locations = cells_body(
+      rows = `Property Name` %in% c(restrictions_apply_noted)
+    )
+  )
 
 ```
 
