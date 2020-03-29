@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 *.xml
+Reports/*.pdf
 *.xls
 *.html
 threeyearsdata/
@@ -14,3 +15,4 @@ images/
 fy2020/
 *.docx
 Reports/*.csv
+Reports/ohla_hotels_files
