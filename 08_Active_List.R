@@ -112,10 +112,10 @@ deduplicated_active_list <- rbind(split_up_dupes, filter_out_dupes)
 
 # correcting for bad hh data (while also flagging it) ---------------------
 
+# what household ids exist in the data?
 ALL_HHIDs <- deduplicated_active_list %>% select(HouseholdID) %>% unique()
 
 # marking who is a hoh (accounts for singles not marked as hohs in the data)
-
 clean_hh_data <- deduplicated_active_list %>%
   mutate(
     RelationshipToHoH = if_else(is.na(RelationshipToHoH), 99, RelationshipToHoH),
@@ -123,32 +123,34 @@ clean_hh_data <- deduplicated_active_list %>%
            (str_detect(HouseholdID, fixed("h_")) &
               RelationshipToHoH == 1), 1, 0)) 
 
+# what household ids exist if we only count those with a hoh?
 HHIDs_in_current_logic <- clean_hh_data %>% 
   filter(hoh == 1) %>%
   select(HouseholdID) %>%
   unique()
 
-# marking which hhs are not represented in the hohs marked (bc of bad hh data)
+# which hh ids did not have a hoh?
+HHIDs_with_bad_dq <-
+  anti_join(ALL_HHIDs, HHIDs_in_current_logic,
+            by = "HouseholdID") 
 
+# what household ids have multiple hohs?
 mult_hohs <- clean_hh_data %>% 
   group_by(HouseholdID) %>% 
   summarise(hohs = sum(hoh)) %>%
   filter(hohs > 1) %>%
   select(HouseholdID)
 
-HHIDs_with_bad_dq <-
-  anti_join(ALL_HHIDs, HHIDs_in_current_logic,
-            by = "HouseholdID") 
-
+# give me ALL household ids with some sort of problem
 HHIDs_with_bad_dq <- rbind(HHIDs_with_bad_dq, mult_hohs)
 
+# let's see those same household ids but with all the needed columns
 HHIDs_with_bad_dq <-
   left_join(HHIDs_with_bad_dq, clean_hh_data, by = "HouseholdID")
 
 rm(ALL_HHIDs, HHIDs_in_current_logic, mult_hohs)
 
 # assigning hoh status to the oldest person in the hh
-
 Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   group_by(HouseholdID) %>%
   arrange(desc(AgeAtEntry)) %>% # picking oldest hh member
