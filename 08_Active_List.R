@@ -166,18 +166,16 @@ active_list <- active_list %>%
   left_join(Adjusted_HoHs,
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
   mutate(
-    Note = if_else(
-      correctedhoh == 1,
-      "This household has a Households-related Data Quality issue. PLEASE correct.",
-      NULL
+    HH_DQ_issue = if_else(
+      correctedhoh == 1 & !is.na(correctedhoh),
+      1,
+      0
     ),
     HoH_Adjust = case_when(correctedhoh == 1 ~ 1,
                            is.na(correctedhoh) ~ hoh)
   ) %>%
   filter(HoH_Adjust == 1) %>%
   select(-correctedhoh, -hoh, -RelationshipToHoH, -HoH_Adjust)
-
-rm(Adjusted_HoHs, co_currently_homeless, HHIDs_with_bad_dq, clean_hh_data)
 
 # Adding in Disability Status of HH, County, PHTrack ----------------------
 
@@ -205,7 +203,10 @@ disability_data <- active_list %>%
     DisablingCondition = if_else(DisablingCondition == 100, 1, DisablingCondition),
     DisabilityInHH = if_else(DisabilityInHH == 100, 1, 0),
     TAY = if_else(max(AgeAtEntry) < 25, 1, 0),
-    PHTrack = if_else(ymd(ExpectedPHDate) < today(), "<expired>", PHTrack)
+    PHTrack = if_else(
+      !is.na(PHTrack) &
+        !is.na(ExpectedPHDate) &
+        ymd(ExpectedPHDate) >= today(), PHTrack, NULL)
   ) %>%
   ungroup() %>%
   select(-AgeAtEntry)
@@ -260,7 +261,7 @@ scores_staging <- Scores %>%
   ungroup() %>%
   select(-ScoreDate)
 
-add_scores <- active_list %>%
+active_list <- active_list %>%
   left_join(scores_staging, by = "PersonalID")
 
 # Add Chronicity ----------------------------------------------------------
@@ -390,16 +391,16 @@ who_has_referrals <- active_list %>%
               filter(ReferralDate >= today() - days(14) &
                        ReferralOutcome == "Accepted" &
                        ReferToPTC %in% c(3, 9, 13)),
-            by = c("PersonalID"))
-
-active_list <- active_list %>%
-  left_join(
-    who_has_referrals %>%
+            by = c("PersonalID")) %>%
       select(PersonalID,
              HouseholdID,
              EnrollmentID,
              "ReferredToProvider" = "Referred-ToProvider",
-             ReferralDate),
+             ReferralDate)
+
+active_list <- active_list %>%
+  left_join(
+    who_has_referrals,
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
   )
 
@@ -408,6 +409,39 @@ active_list <- active_list %>%
 
 
 # Clean the House ---------------------------------------------------------
+
+active_list <- active_list %>%
+  mutate(
+    VeteranStatus = if_else(VeteranStatus == 1, "Yes", "No"),
+    DisabilityInHH = if_else(DisabilityInHH == 1, "Yes", "No"),
+    IncomeFromAnySource = if_else(IncomeFromAnySource == 1, "Yes", "No"),
+    TAY = if_else(TAY == 1, "Yes", "No"),
+    ProjectName = if_else(ProjectName == "Unsheltered Clients - OUTREACH",
+                          paste("Unsheltered in",
+                                CountyServed,
+                                "County"),
+                          ProjectName),
+    Situation = case_when(
+      PTCStatus == "Has Entry into RRH or PSH" ~ PTCStatus,
+      PTCStatus == "Currently Has No Entry into RRH or PSH" &
+        !is.na(ReferredToProvider) ~
+        paste(
+          "No current Entry into RRH or PSH but",
+          ReferredToProvider,
+          "accepted this household's referral on",
+          ReferralDate
+        ),
+      PTCStatus == "Currently Has No Entry into RRH or PSH" &
+        is.na(ReferredToProvider) &
+        !is.na(PHTrack) ~ paste("Permanent Housing Track:",
+                                PHTrack,
+                                "by",
+                                ExpectedPHDate),
+      PTCStatus == "Currently Has No Entry into RRH or PSH" &
+        is.na(ReferredToProvider) &
+        is.na(PHTrack) ~ "Has no current Entry into PSH or RRH, no Accepted Referral in the past 2 weeks, and no current Permanent Housing Track"
+    )
+  ) 
 
 rm(list = ls()[!(ls() %in% c("active_list"))])
 
