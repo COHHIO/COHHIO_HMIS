@@ -40,10 +40,12 @@ co_currently_homeless <- co_clients_served %>%
     AgeAtEntry
   )
 
+active_list <- co_currently_homeless
+
 # Account for Multiple EEs ------------------------------------------------
 
 # bucket the ptc's
-ptc_status <- co_currently_homeless %>%
+ptc_status <- active_list %>%
   mutate(PTCStatus = case_when(
     ProjectType %in% c(1, 2, 4, 8) ~ "LH",
     ProjectType %in% c(3, 9, 13) ~ "PH"
@@ -85,13 +87,13 @@ client_ptc_status <- clients_in_lh %>%
 
 # add PTCStatus variable into the main dataframe (but now you have multiple
 # rows per client again)
-add_ptc_status <- co_currently_homeless %>%
+active_list <- active_list %>%
   left_join(client_ptc_status, by = "PersonalID")
 
 # take only the clients with multiple rows and slice out only the current lh
 # ee's or if there are multiple lh ee's, take the most recent (thinking the
 # most recent is probably the most up to date?)
-split_up_dupes <- get_dupes(add_ptc_status, PersonalID) %>%
+split_up_dupes <- get_dupes(active_list, PersonalID) %>%
   mutate(PTCGames = if_else(ProjectType %in% c(1, 2, 4, 8), 1, 2)) %>%
   group_by(PersonalID) %>%
   arrange(PTCGames, desc(EntryDate)) %>%
@@ -101,22 +103,22 @@ split_up_dupes <- get_dupes(add_ptc_status, PersonalID) %>%
 
 # remove the clients in split_up_dupes from the main dataframe so you can
 # add them back in now that they've been deduplicated
-duplicated_clients <- get_dupes(add_ptc_status, PersonalID) %>%
+duplicated_clients <- get_dupes(active_list, PersonalID) %>%
   pull(PersonalID) %>% unique()
 
-filter_out_dupes <- add_ptc_status %>%
+filter_out_dupes <- active_list %>%
   filter(!PersonalID %in% duplicated_clients)
 
 # add the deduplicated clients back in with the ones with only one ee
-deduplicated_active_list <- rbind(split_up_dupes, filter_out_dupes)
+active_list <- rbind(split_up_dupes, filter_out_dupes)
 
 # correcting for bad hh data (while also flagging it) ---------------------
 
 # what household ids exist in the data?
-ALL_HHIDs <- deduplicated_active_list %>% select(HouseholdID) %>% unique()
+ALL_HHIDs <- active_list %>% select(HouseholdID) %>% unique()
 
 # marking who is a hoh (accounts for singles not marked as hohs in the data)
-clean_hh_data <- deduplicated_active_list %>%
+active_list <- active_list %>%
   mutate(
     RelationshipToHoH = if_else(is.na(RelationshipToHoH), 99, RelationshipToHoH),
     hoh = if_else(str_detect(HouseholdID, fixed("s_")) |
@@ -124,7 +126,7 @@ clean_hh_data <- deduplicated_active_list %>%
               RelationshipToHoH == 1), 1, 0)) 
 
 # what household ids exist if we only count those with a hoh?
-HHIDs_in_current_logic <- clean_hh_data %>% 
+HHIDs_in_current_logic <- active_list %>% 
   filter(hoh == 1) %>%
   select(HouseholdID) %>%
   unique()
@@ -135,7 +137,7 @@ HHIDs_with_bad_dq <-
             by = "HouseholdID") 
 
 # what household ids have multiple hohs?
-mult_hohs <- clean_hh_data %>% 
+mult_hohs <- active_list %>% 
   group_by(HouseholdID) %>% 
   summarise(hohs = sum(hoh)) %>%
   filter(hohs > 1) %>%
@@ -146,7 +148,7 @@ HHIDs_with_bad_dq <- rbind(HHIDs_with_bad_dq, mult_hohs)
 
 # let's see those same household ids but with all the needed columns
 HHIDs_with_bad_dq <-
-  left_join(HHIDs_with_bad_dq, clean_hh_data, by = "HouseholdID")
+  left_join(HHIDs_with_bad_dq, active_list, by = "HouseholdID")
 
 rm(ALL_HHIDs, HHIDs_in_current_logic, mult_hohs)
 
@@ -160,8 +162,7 @@ Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   ungroup()
 
 # merging the "corrected" hohs back into the main dataset with a flag
-
-co_active_list <- clean_hh_data %>%
+active_list <- active_list %>%
   left_join(Adjusted_HoHs,
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
   mutate(
@@ -180,7 +181,10 @@ rm(Adjusted_HoHs, co_currently_homeless, HHIDs_with_bad_dq, clean_hh_data)
 
 # Adding in Disability Status of HH, County, PHTrack ----------------------
 
-disability_data <- co_active_list %>%
+# getting whatever data's needed from the Enrollment data frame, creating
+# columns that tell us something about each household and some that are about
+# each client
+disability_data <- active_list %>%
   left_join(
     Enrollment %>%
       select(
@@ -206,9 +210,15 @@ disability_data <- co_active_list %>%
   ungroup() %>%
   select(-AgeAtEntry)
 
+# saving these new columns back to the active list
+active_list <- disability_data
+
 # Indicate if the Household Has No Income ---------------------------------
 
-income_data <- disability_data %>%
+# getting income-related data and data collection stages. this will balloon
+# out the number of rows per client, listing each yes/no update, then, using
+# DateCreated, it picks out the most recent answer, keeping only that one
+income_data <- active_list %>%
   left_join(
     IncomeBenefits %>%
       select(
@@ -220,51 +230,28 @@ income_data <- disability_data %>%
       ),
     by = c("PersonalID", "EnrollmentID")
   ) %>%
+  mutate(DateCreated = ymd_hms(DateCreated)) %>%
+  group_by(PersonalID, EnrollmentID) %>%
   mutate(
-    DataCollectionStage = case_when(
-      DataCollectionStage == 1 ~ "Entry",
-      DataCollectionStage == 2 ~ "Update",
-      DataCollectionStage == 3 ~ "Exit",
-      DataCollectionStage == 5 ~ "Annual"
-    )
-  )
-
-income_staging_fixed <- income_data %>% 
-  filter(DataCollectionStage == "Entry") 
-
-income_staging_variable <- income_data %>%
-  filter(DataCollectionStage %in% c("Update", "Annual", "Exit")) %>%
-  group_by(EnrollmentID) %>%
-  mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
+    MaxUpdate = max(DateCreated),
+    IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
+                                  99,
+                                  IncomeFromAnySource)
+  ) %>%
   filter(MaxUpdate == DateCreated) %>%
-  select(-MaxUpdate) %>%
-  distinct() %>%
-  ungroup() 
-
-income_staging <-
-  rbind(income_staging_fixed, income_staging_variable) %>%
+  ungroup() %>%
   select(PersonalID,
          EnrollmentID,
-         IncomeFromAnySource,
-         DataCollectionStage) %>%
-  unique() %>%
-  mutate(
-    DataCollectionStage = case_when(
-      DataCollectionStage == "Entry" ~ "Entry",
-      DataCollectionStage != "Entry" ~ "After Entry"
-    )
-  ) %>% 
-  group_by(PersonalID, EnrollmentID) %>%
-  arrange(DataCollectionStage) %>%
-  slice(1L) %>%
-  ungroup() %>%
-  select(-DataCollectionStage)
+         IncomeFromAnySource)
   
-adding_in_income <- disability_data %>%
-  left_join(income_staging, by = c("PersonalID", "EnrollmentID")) 
+# adding the column into the active list
+active_list <- active_list %>%
+  left_join(income_data, by = c("PersonalID", "EnrollmentID")) 
   
 # Add in Score ------------------------------------------------------------
 
+# taking the most recent score on the client, but this score cannot be over a
+# year old.
 scores_staging <- Scores %>%
   filter(ScoreDate > today() - years(1)) %>%
   group_by(PersonalID) %>%
@@ -273,20 +260,21 @@ scores_staging <- Scores %>%
   ungroup() %>%
   select(-ScoreDate)
 
-add_scores <- adding_in_income %>%
+add_scores <- active_list %>%
   left_join(scores_staging, by = "PersonalID")
 
 # Add Chronicity ----------------------------------------------------------
 
-# creating a small dataframe of only independently chronic clients
-
+# creating a small basic dataframe to work with
 smallEnrollment <- Enrollment %>%
   select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
          DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
-         MonthsHomelessPastThreeYears, DisablingCondition)
+         MonthsHomelessPastThreeYears)
 
+# getting only the independently-chronic clients. they're chronic right now
+# and because of *their own* homeless history
 singly_chronic <-
-  co_active_list %>%
+  active_list %>%
   left_join(smallEnrollment,
             by = c("PersonalID",
                    "EnrollmentID",
@@ -306,7 +294,6 @@ singly_chronic <-
 
 # pulling all EEs with the Chronic designation, marking all hh members of anyone
 # with a Chronic marker as also Chronic
-
 household_chronic <- singly_chronic %>%
   group_by(HouseholdID) %>%
   mutate(
@@ -319,9 +306,8 @@ household_chronic <- singly_chronic %>%
   ungroup() %>%
   select(-ChronicHousehold)
 
-# adds days in ES or SH projects to days homeless prior to entry and if it adds
-# up to 365 or more, it marks the client as ConsecutiveChronic
-
+# adds current days in ES or SH projects to days homeless prior to entry and if
+# it adds up to 365 or more, it marks the client as AgedIn
 agedIntoChronicity <- household_chronic %>%
   mutate(
     DaysHomelessInProject = difftime(ymd(ExitAdjust),
@@ -346,6 +332,8 @@ agedIntoChronicity <- household_chronic %>%
   ) %>%
   select(-DaysHomelessInProject,-DaysHomelessBeforeEntry)
 
+# adds another ChronicStatus of "Nearly Chronic" which catches those hhs with
+# almost enough times and months to qualify as Chronic
 nearly_chronic <- agedIntoChronicity %>%
   mutate(
     ChronicStatus = if_else(
@@ -368,7 +356,7 @@ nearly_chronic <- agedIntoChronicity %>%
     )
   )
   
-add_chronicity <- add_scores %>%
+active_list <- active_list %>%
   left_join(
     nearly_chronic %>%
       select("PersonalID",
@@ -396,14 +384,15 @@ Referrals <- Referrals %>%
   left_join(Project %>% select(ProjectName, "ReferToPTC" = ProjectType),
             by = c("Referred-ToProvider" = "ProjectName"))
 
-who_has_referrals <- add_chronicity %>%
+# isolates hhs with an Accepted Referral into a PSH or RRH project
+who_has_referrals <- active_list %>%
   left_join(Referrals %>%
               filter(ReferralDate >= today() - days(14) &
                        ReferralOutcome == "Accepted" &
                        ReferToPTC %in% c(3, 9, 13)),
             by = c("PersonalID"))
 
-add_referrals <- add_chronicity %>%
+active_list <- active_list %>%
   left_join(
     who_has_referrals %>%
       select(PersonalID,
@@ -416,7 +405,9 @@ add_referrals <- add_chronicity %>%
 
 # Add COVID-19 Status -----------------------------------------------------
 
-active_list <- add_referrals
+
+
+# Clean the House ---------------------------------------------------------
 
 rm(list = ls()[!(ls() %in% c("active_list"))])
 
