@@ -105,23 +105,22 @@ if(ymd(FileActualStart) > mdy(FileStart)){
 # scripts 
 if (stop == 0) {
   rm(list = ls())
-  
   print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
   rm(list = ls())
-  
+
   print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
   rm(list = ls())
-  
+
   print("working on QPR_EEs")
   source("02_QPR_EEs.R")
   rm(list = ls())
-  
+
   print("working on Veterans")
   source("03_Veterans.R")
   rm(list = ls())
-  
+
   print("working on Data Quality")
   source("04_DataQuality.R")
   rm(list = ls())
@@ -136,6 +135,10 @@ if (stop == 0) {
   
   print("working on SPMs")
   source("07_SPMs.R")
+  rm(list = ls())
+  
+  print("working on SPMs")
+  source("08_Active_List.R")
   rm(list = ls())
   
   print("Done! All images are updated.")
