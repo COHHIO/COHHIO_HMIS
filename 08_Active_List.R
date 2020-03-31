@@ -198,6 +198,7 @@ disability_data <- active_list %>%
   group_by(HouseholdID) %>%
   mutate(
     HouseholdSize = n(),
+    CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),
     DisablingCondition = if_else(DisablingCondition == 1, 100, DisablingCondition),
     DisabilityInHH = max(DisablingCondition),
     DisablingCondition = if_else(DisablingCondition == 100, 1, DisablingCondition),
@@ -213,6 +214,37 @@ disability_data <- active_list %>%
 
 # saving these new columns back to the active list
 active_list <- disability_data
+
+
+# County Guessing ---------------------------------------------------------
+
+# replacing non-Unsheltered-Provider missings with County of the provider
+county <- active_list %>%
+  left_join(Project %>%
+              select(ProjectName, ProjectCounty), by = "ProjectName") %>%
+  mutate(CountyServed = if_else(CountyServed == "MISSING County" &
+                                  ProjectName != "Unsheltered Clients - OUTREACH",
+                                ProjectCounty,
+                                CountyServed),
+         ProjectCounty = NULL)
+
+# replacing missings for the Unsheltered Provider with the County of the
+# Default Provider of the person who entered the Enrollment (grrr!)
+test <- county %>%
+  left_join(Enrollment %>%
+              select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
+  mutate(
+    UserID = gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE),
+    UserCreating = str_remove(UserCreating, "\\(.*\\)"),
+    UserID = as.numeric(UserID)
+  ) %>%
+  left_join(Users %>%
+              select(UserID, UserCounty), by = "UserID") %>%
+  mutate(CountyServed = if_else(CountyServed == "MISSING County" &
+                                  ProjectName == "Unsheltered Clients - OUTREACH",
+                                UserCounty,
+                                CountyServed)) %>%
+  select(-starts_with("User"))
 
 # Indicate if the Household Has No Income ---------------------------------
 
@@ -344,8 +376,8 @@ nearly_chronic <- agedIntoChronicity %>%
             !is.na(DateToStreetESSH)
         ) |
           (
-            MonthsHomelessPastThreeYears %in% c(112, 113) &
-              TimesHomelessPastThreeYears == 4 &
+            MonthsHomelessPastThreeYears %in% c(110:113) &
+              TimesHomelessPastThreeYears%in% c(3, 4) &
               !is.na(MonthsHomelessPastThreeYears) &
               !is.na(TimesHomelessPastThreeYears)
           )
@@ -382,7 +414,8 @@ active_list <- active_list %>%
 # right?
 
 Referrals <- Referrals %>%
-  left_join(Project %>% select(ProjectName, "ReferToPTC" = ProjectType),
+  left_join(Project %>% 
+              select(ProjectName, "ReferToPTC" = ProjectType),
             by = c("Referred-ToProvider" = "ProjectName"))
 
 # isolates hhs with an Accepted Referral into a PSH or RRH project
@@ -439,7 +472,9 @@ active_list <- active_list %>%
                                 ExpectedPHDate),
       PTCStatus == "Currently Has No Entry into RRH or PSH" &
         is.na(ReferredToProvider) &
-        is.na(PHTrack) ~ "Has no current Entry into PSH or RRH, no Accepted Referral in the past 2 weeks, and no current Permanent Housing Track"
+        is.na(PHTrack) ~ 
+        "Has no current Entry into PSH or RRH, no Accepted Referral in the past
+      2 weeks, and no current Permanent Housing Track"
     )
   ) 
 
