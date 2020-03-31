@@ -147,4 +147,5 @@ if (stop == 0) {
   print("Check your data folder for errors")
 }
 
+# all scripts together take about 7 1/2 minutes
 
