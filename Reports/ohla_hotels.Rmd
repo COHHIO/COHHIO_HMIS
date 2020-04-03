@@ -49,7 +49,15 @@ restrictions_apply <- c(
   "Residence Inn Columbus Downtown",
   "SpringHill Suites/TownePlace Suites Easton",
   "SpringHilll Suites OSU",
-  "Quality Inn & Suites Mason"
+  "Quality Inn & Suites Mason",
+  "Baymont by Wyndham",
+  "Cambria Hotel Cleveland Avon",
+  "Fairfield Inn Columbus-New Albany",
+  "Holiday Inn Cleveland - Mayfield",
+  "Holiday Inn Express Cleveland Airport - Brook Park",
+  "Ramada by Wyndham  Strasburg, OH",
+  "Residence Inn Dayton Beavercreek",
+  "TownePlace Suites Cleveland Solon"
 )
 
 restrictions_apply_noted <- paste(restrictions_apply, "(restrictions may apply)")
@@ -89,9 +97,11 @@ bucketing2 <- hotels %>%
       paste(ContactName, Email, Phone)
     ),
     PropertyName = str_remove_all(PropertyName, "\\*"),
-    PropertyName = if_else(PropertyName %in% c(restrictions_apply),
-                           paste(PropertyName, "(restrictions may apply)"),
-                           PropertyName)
+    PropertyName = if_else(
+      PropertyName %in% c(restrictions_apply),
+      paste(PropertyName, "(restrictions may apply)"),
+      PropertyName
+    )
   ) %>%
   arrange(Region, PropertyName) %>%
   select("Property Name" = PropertyName, Address, Contact, Region)
