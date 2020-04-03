@@ -162,6 +162,16 @@ Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   ungroup()
 
 # merging the "corrected" hohs back into the main dataset with a flag
+hh_size <- active_list %>%
+  left_join(Adjusted_HoHs,
+            by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
+  group_by(HouseholdID) %>%
+  summarise(HouseholdSize = n()) %>%
+  ungroup() 
+
+active_list <- active_list %>%
+  left_join(hh_size, by = "HouseholdID")
+
 active_list <- active_list %>%
   left_join(Adjusted_HoHs,
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
@@ -197,7 +207,6 @@ disability_data <- active_list %>%
   ) %>%
   group_by(HouseholdID) %>%
   mutate(
-    HouseholdSize = n(),
     CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),
     DisablingCondition = if_else(DisablingCondition == 1, 100, DisablingCondition),
     DisabilityInHH = max(DisablingCondition),
