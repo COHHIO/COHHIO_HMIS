@@ -16,7 +16,7 @@ library(ggplot2)
 library(lubridate)
 library(plotly)
 
-source("get_SPM_data.R")
+source("07_SPMs.R")
 
 rm(spm_4_1_empl_stayers,
    spm_4_2_income_non_empl_stayers,
