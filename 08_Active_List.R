@@ -446,6 +446,31 @@ active_list <- active_list %>%
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
   )
 
+# Fleeing DV --------------------------------------------------------------
+
+dv <- active_list %>%
+  left_join(
+    HealthAndDV %>%
+      filter(DataCollectionStage == 1) %>%
+      select(
+        EnrollmentID,
+        PersonalID,
+        CurrentlyFleeing,
+        WhenOccurred
+      ),
+    by = c("EnrollmentID", "PersonalID")
+  ) %>%
+  mutate(CurrentlyFleeing = case_when(
+    CurrentlyFleeing != 1 |
+      is.na(CurrentlyFleeing) |
+      !WhenOccurred %in% c(1:3) ~ "No",
+    CurrentlyFleeing == 1 |
+      WhenOccurred %in% c(1:3) ~ "Yes",
+    CurrentlyFleeing == 99 ~ "Unknown"
+  ))
+
+
+
 # Add COVID-19 Status -----------------------------------------------------
 
 
