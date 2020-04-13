@@ -172,21 +172,6 @@ hh_size <- active_list %>%
 active_list <- active_list %>%
   left_join(hh_size, by = "HouseholdID")
 
-active_list <- active_list %>%
-  left_join(Adjusted_HoHs,
-            by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
-  mutate(
-    HH_DQ_issue = if_else(
-      correctedhoh == 1 & !is.na(correctedhoh),
-      1,
-      0
-    ),
-    HoH_Adjust = case_when(correctedhoh == 1 ~ 1,
-                           is.na(correctedhoh) ~ hoh)
-  ) %>%
-  filter(HoH_Adjust == 1) %>%
-  select(-correctedhoh, -hoh, -RelationshipToHoH, -HoH_Adjust)
-
 # Adding in Disability Status of HH, County, PHTrack ----------------------
 
 # getting whatever data's needed from the Enrollment data frame, creating
@@ -231,7 +216,9 @@ active_list <- disability_data
 county <- active_list %>%
   left_join(Project %>%
               select(ProjectName, ProjectCounty), by = "ProjectName") %>%
-  mutate(CountyServed = if_else(CountyServed == "MISSING County" &
+  mutate(
+    CountyGuessed = if_else(CountyServed == "MISSING County", 1, 0),
+    CountyServed = if_else(CountyServed == "MISSING County" &
                                   ProjectName != "Unsheltered Clients - OUTREACH",
                                 ProjectCounty,
                                 CountyServed),
@@ -239,7 +226,7 @@ county <- active_list %>%
 
 # replacing missings for the Unsheltered Provider with the County of the
 # Default Provider of the person who entered the Enrollment (grrr!)
-test <- county %>%
+active_list <- county %>%
   left_join(Enrollment %>%
               select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
   mutate(
@@ -408,6 +395,23 @@ active_list <- active_list %>%
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
   )
 
+# THIS IS WHERE WE'RE SUMMARISING BY HOUSEHOLD (after all the group_bys)
+
+active_list <- active_list %>%
+  left_join(Adjusted_HoHs,
+            by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
+  mutate(
+    HH_DQ_issue = if_else(
+      correctedhoh == 1 & !is.na(correctedhoh),
+      1,
+      0
+    ),
+    HoH_Adjust = case_when(correctedhoh == 1 ~ 1,
+                           is.na(correctedhoh) ~ hoh)
+  ) %>%
+  filter(HoH_Adjust == 1) %>%
+  select(-correctedhoh, -hoh, -RelationshipToHoH, -HoH_Adjust)
+
 # Add Referral Status -----------------------------------------------------
 
 # thinking maybe it makes the most sense to only look at referrals that have 
@@ -448,28 +452,32 @@ active_list <- active_list %>%
 
 # Fleeing DV --------------------------------------------------------------
 
+
 dv <- active_list %>%
   left_join(
     HealthAndDV %>%
       filter(DataCollectionStage == 1) %>%
-      select(
-        EnrollmentID,
-        PersonalID,
-        CurrentlyFleeing,
-        WhenOccurred
-      ),
+      select(EnrollmentID,
+             PersonalID,
+             CurrentlyFleeing,
+             WhenOccurred),
     by = c("EnrollmentID", "PersonalID")
   ) %>%
-  mutate(CurrentlyFleeing = case_when(
-    CurrentlyFleeing != 1 |
-      is.na(CurrentlyFleeing) |
-      !WhenOccurred %in% c(1:3) ~ "No",
-    CurrentlyFleeing == 1 |
-      WhenOccurred %in% c(1:3) ~ "Yes",
-    CurrentlyFleeing == 99 ~ "Unknown"
-  ))
+  mutate(
+    CurrentlyFleeing = if_else(is.na(CurrentlyFleeing), 99, CurrentlyFleeing),
+    WhenOccurred = if_else(is.na(WhenOccurred), 99, WhenOccurred),
+    CurrentlyFleeing = case_when(
+      CurrentlyFleeing == 0 &
+        WhenOccurred %in% c(4, 8, 9, 99) ~ "No",
+      CurrentlyFleeing == 1 |
+        WhenOccurred %in% c(1:3) ~ "Yes",
+      CurrentlyFleeing %in% c(8, 9, 99) |
+        WhenOccurred %in% c(8, 9, 99) ~ "Unknown"
+    )
+  ) %>%
+  select(-WhenOccurred)
 
-
+active_list <- dv
 
 # Add COVID-19 Status -----------------------------------------------------
 
@@ -479,15 +487,32 @@ dv <- active_list %>%
 
 active_list <- active_list %>%
   mutate(
-    VeteranStatus = if_else(VeteranStatus == 1, "Yes", "No"),
-    DisabilityInHH = if_else(DisabilityInHH == 1, "Yes", "No"),
-    IncomeFromAnySource = if_else(IncomeFromAnySource == 1, "Yes", "No"),
-    TAY = if_else(TAY == 1, "Yes", "No"),
-    ProjectName = if_else(ProjectName == "Unsheltered Clients - OUTREACH",
-                          paste("Unsheltered in",
-                                CountyServed,
-                                "County"),
-                          ProjectName),
+    VeteranStatus = case_when(
+      VeteranStatus == 1 ~ "Yes", 
+      VeteranStatus == 0 ~ "No",
+      VeteranStatus %in% c(8, 9, 99) ~ "Unknown"
+      ),
+    DisabilityInHH = case_when(
+      DisabilityInHH == 1 ~ "Yes", 
+      DisabilityInHH == 0 ~ "No",
+      DisabilityInHH %in% c(8, 9, 99) ~ "Unknown"
+      ),
+    IncomeFromAnySource = case_when(
+      IncomeFromAnySource == 1 ~ "Yes",
+      IncomeFromAnySource == 0 ~ "No",
+      IncomeFromAnySource %in% c(8, 9, 99) ~ "Unknown"
+    ),
+    TAY = case_when(TAY == 1 ~ "Yes",
+                    TAY == 0 ~ "No",
+                    is.na(TAY) ~ "Unknown"), 
+    ProjectName = if_else(
+      ProjectName == "Unsheltered Clients - OUTREACH",
+      paste("Unsheltered in",
+            CountyServed,
+            "County"),
+      ProjectName
+    ),
+    PersonalID = as.character(PersonalID),
     Situation = case_when(
       PTCStatus == "Has Entry into RRH or PSH" ~ PTCStatus,
       PTCStatus == "Currently Has No Entry into RRH or PSH" &
@@ -507,8 +532,7 @@ active_list <- active_list %>%
       PTCStatus == "Currently Has No Entry into RRH or PSH" &
         is.na(ReferredToProvider) &
         is.na(PHTrack) ~ 
-        "Has no current Entry into PSH or RRH, no Accepted Referral in the past
-      2 weeks, and no current Permanent Housing Track"
+        "Has no Entry into PSH or RRH, no recent Accepted Referral into RRH or PSH, and no current Permanent Housing Track"
     )
   ) 
 
