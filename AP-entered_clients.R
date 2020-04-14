@@ -19,6 +19,13 @@ library(janitor)
 
 load("images/COHHIOHMIS.RData")
 
+clients <- Client %>%
+  select(PersonalID)
+
+ees <- Enrollment %>%
+  select(PersonalID)
+
+lone_clients <- anti_join(clients, ees, by = "PersonalID")
 
 
 
