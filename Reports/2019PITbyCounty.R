@@ -16,27 +16,37 @@ library(tidyverse)
 library(here)
 library(usmap)
 
-data <- read_csv(here("Reports/Individuals2019data.csv"))
+ind_data <- read_csv(here("Reports/Individuals2019data.csv"))
+hh_data <- read_csv(here("Reports/HHsPointInTime2019byCountyOH507.csv"))
 
-data <- data %>%
+ind_data <- ind_data %>%
   select(-County) %>%
   rename("County" = 5)
 
-# County, FIPS, Unsheltered Single Count, Sheltered Single Count
+hh_data <- hh_data %>%
+  rename("County" = 3)
 
-unsheltered <- data %>%
+# County, FIPS, Unsheltered Count, Sheltered Singles Count
+
+
+# Unsheltered -------------------------------------------------------------
+
+unsheltered <- hh_data %>%
   filter(`Project Type` == "Unsheltered") %>%
   group_by(County) %>%
-  count(name = "UnshelteredSingles")
+  summarise(Unsheltered = sum(`HH Size`, na.rm = TRUE))
 
-sheltered <- data %>%
+# Sheltered ---------------------------------------------------------------
+
+sheltered <- ind_data %>%
   filter(`Project Type` %in% c("Transitional Housing",
                                "Emergency Shelter",
                                "Safe Haven")) %>%
   group_by(County) %>%
   count(name = "ShelteredSingles")
 
-none <- data %>%
+
+none <- ind_data %>%
   filter(`Project Type` == "None Counted") %>%
   group_by(County) %>%
   count(name = "NoneCounted")
@@ -45,9 +55,9 @@ all <- sheltered %>%
   full_join(unsheltered, by = "County") %>%
   full_join(none, by = "County") %>%
   mutate(FIPS = fips("Ohio", county = County)) %>%
-  select(-NoneCounted) %>%
+  select(County, FIPS, ShelteredSingles, Unsheltered) %>%
   arrange(County)
 
 all[is.na(all)] <- 0
 
-write_csv(all, here("Reports/SinglesPointInTime2019byCountyOH507.csv"))
+write_csv(all, here("Reports/PointInTime2019byCountyOH507.csv"))
