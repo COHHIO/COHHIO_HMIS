@@ -57,19 +57,29 @@ CurrentVeterans <- VeteranHHs %>%
 
 CurrentVeteranCounts <- CurrentVeterans %>%
   filter(ProjectType %in% c(1, 2, 4, 8)) %>%
+  mutate(ProjectRegion = if_else(is.na(ProjectRegion),
+                                 "Balance of State",
+                                 ProjectRegion)) %>%
   group_by(ProjectName, ProjectRegion) %>%
   summarise(Veterans = n()) %>%
   ungroup()
 
 VeteranEngagement <- CurrentVeterans %>%
   filter(ProjectType %in% c(1, 2, 4, 8)) %>%
-  mutate(EngagementStatus = case_when(
-    !is.na(PHTrack) & PHTrack != "None" &
-      ymd(ExpectedPHDate) >= today() ~ "Has Current Housing Plan",
-    is.na(PHTrack) | PHTrack == "None" |
-      (!is.na(PHTrack) & (ymd(ExpectedPHDate) < today() |
-                            is.na(ExpectedPHDate))) ~ "No Current Housing Plan"
-  )) %>%
+  mutate(
+    EngagementStatus = case_when(
+      !is.na(PHTrack) & PHTrack != "None" &
+        ymd(ExpectedPHDate) >= today() ~ "Has Current Housing Plan",
+      is.na(PHTrack) | PHTrack == "None" |
+        (!is.na(PHTrack) & (
+          ymd(ExpectedPHDate) < today() |
+            is.na(ExpectedPHDate)
+        )) ~ "No Current Housing Plan"
+    ),
+    ProjectRegion = if_else(is.na(ProjectRegion),
+                            "Balance of State",
+                            ProjectRegion)
+  ) %>% 
   select(ProjectName, ProjectType, ProjectRegion, PersonalID, PHTrack, 
          ExpectedPHDate, EngagementStatus)
 
