@@ -138,7 +138,7 @@ if (stop == 0) {
   source("07_SPMs.R")
   rm(list = ls())
   
-  print("working on SPMs")
+  print("working on Active List")
   source("08_Active_List.R")
   rm(list = ls())
   
