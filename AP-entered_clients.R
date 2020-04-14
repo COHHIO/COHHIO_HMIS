@@ -19,14 +19,29 @@ library(janitor)
 
 load("images/COHHIOHMIS.RData")
 
-clients <- Client %>%
-  select(PersonalID)
+if(file.exists("data/phtrackclients.zip")) {
+  unzip(zipfile = "./data/phtrackclients.zip", exdir = "./data")
+  
+  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
+              "data/phtrackclients.csv")
+  
+  file.remove("data/phtrackclients.zip")
+}
 
-ees <- Enrollment %>%
-  select(PersonalID)
+ap_entered <- read_csv("data/phtrackclients.csv", col_types = "ncc?") %>%
+  mutate(
+    ExpectedPHDate = mdy(ExpectedPHDate)
+  )
 
-lone_clients <- anti_join(clients, ees, by = "PersonalID")
+ap_entered_prioritize <- ap_entered %>%
+  filter(ymd(ExpectedPHDate) >= today())
 
+ap_entered_no_ee <- ap_entered_prioritize %>%
+  anti_join(Enrollment, by = "PersonalID")
 
+ap_entered_no_ee$ProivderCreating %>% unique()
 
+# ProviderCreating is 1. mispelled and 2. could just indicate who first
+# created that client, which really means nothing. 
 
+# It would be more meaningful to know who entered the PH Track
