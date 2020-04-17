@@ -467,7 +467,7 @@ dv <- active_list %>%
     CurrentlyFleeing = if_else(is.na(CurrentlyFleeing), 99, CurrentlyFleeing),
     WhenOccurred = if_else(is.na(WhenOccurred), 99, WhenOccurred),
     CurrentlyFleeing = case_when(
-      CurrentlyFleeing == 0 &
+      CurrentlyFleeing %in% c(0, 99) &
         WhenOccurred %in% c(4, 8, 9, 99) ~ "No",
       CurrentlyFleeing == 1 |
         WhenOccurred %in% c(1:3) ~ "Yes",
