@@ -28,7 +28,7 @@
 # cocscoring.zip or .csv (during CoC Competition only)
 # offers.zip or .csv
 # referrals.zip or .csv
-# scoresfam.zip or.csv
+# scoresfam.zip or .csv
 # scoresind.zip or .csv
 # scorestay.zip or .csv
 # services1.zip or .csv
@@ -46,11 +46,14 @@ Affiliation <-
 
 # Client ------------------------------------------------------------------
 
+# This script later overwrites the Client.csv, masking Name and SSN PII. So
+# this logic will read in the modified file - or - the raw one straight from SP
+
 if(ncol(read_csv("data/Client.csv")) == 36) {
   Client <-
     read_csv("data/Client.csv",
              col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
-    filter(!PersonalID %in% c(5, 4216))
+    filter(!PersonalID %in% c(5, 4216)) # our fake Client IDs are 5 and 4216
 } else {
   Client <-
     read_csv("data/Client.csv",
