@@ -14,7 +14,6 @@
 
 library(tidyverse)
 library(lubridate)
-library(TSstudio)
 library(plotly)
 
 load("images/cohorts.RData")
