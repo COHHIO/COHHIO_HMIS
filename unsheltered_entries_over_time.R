@@ -66,9 +66,6 @@ df <- df %>%
                names_to = "County", 
                values_to = "Entries")
 
-ggplot(df, aes(x = EntryDate, y = Entries, group = County, color = County)) +
-  geom_line()
-
 plot_ly(df %>% 
           arrange(EntryDate, County) %>%
           group_by(County), 
@@ -76,4 +73,9 @@ plot_ly(df %>%
         y = ~Entries, 
         type = 'scatter', 
         mode = 'lines', 
-        color = ~County)
+        color = ~County,
+        colors = colorRampPalette(c("black",
+                                    "purple",
+                                    "blue",
+                                    "green"))(80)
+        )
