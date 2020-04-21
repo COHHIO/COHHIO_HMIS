@@ -422,13 +422,13 @@ priors <- c(check_exits_to_ph$PriorYear,
             check_recurrence$PriorYear)
 
 if_else(min(priors) == max(priors), 
-        paste("Year Prior = ", min(priors)),
+        paste("Year Prior =", min(priors)),
         "Your Prior Dates do not all match.")
 if_else(min(starts) == max(starts), 
-   paste("Report Starts = ", min(starts)),
+   paste("Report Starts =", min(starts)),
    "Your Start Dates do not all match.")
 if_else(min(ends) == max(ends), 
-        paste("Report Ends = ", min(ends)),
+        paste("Report Ends =", min(ends)),
         "Your End Dates do not all match.")
 
 rm(list = ls(pattern = "check_"))
