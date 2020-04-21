@@ -1,0 +1,87 @@
+---
+title: "Unsheltered Entries"
+author: "Genelle Denzin"
+date: "4/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(lubridate)
+library(plotly)
+
+load("images/cohorts.RData")
+load("images/COHHIOHMIS.RData")
+
+```
+
+## New Entries into the Unsheltered Provider by County
+
+```{r entries}
+
+unsheltered_hhs <- co_clients_served %>%
+  filter(ProjectName == "Unsheltered Clients - OUTREACH" &
+           entered_between(., "10012019", "04152020")) %>%
+  select(HouseholdID, EntryDate, ExitAdjust) %>%
+  left_join(Enrollment %>% 
+              select(HouseholdID, CountyServed, UserCreating),
+            by = "HouseholdID") %>%
+  unique()
+
+# when the CountyServed field is null, we need to guess the County
+county_guesses <- unsheltered_hhs %>%
+  left_join(Users, by = "UserCreating")
+
+counties <- regions$County
+
+df <- county_guesses %>%
+  mutate(County = if_else(is.na(CountyServed),
+                          UserCounty,
+                          CountyServed),
+         EntryDate = paste0(month(EntryDate), "-", year(EntryDate))) %>%
+  select(HouseholdID, EntryDate, County) %>%
+  group_by(EntryDate, County) %>%
+  summarise(Entries = n()) %>%
+  ungroup() %>%
+  mutate(Entries = as.numeric(Entries),
+         EntryDate = factor(
+           EntryDate,
+           levels = c(
+             "10-2019",
+             "11-2019",
+             "12-2019",
+             "1-2020",
+             "2-2020",
+             "3-2020",
+             "4-2020"
+           )
+         ), 
+         County = factor(County, levels = c(counties))) %>%
+  pivot_wider(names_from = County, values_from = Entries)
+
+df[is.na(df)] <- 0
+
+df <- df %>%
+  pivot_longer(cols = !all_of("EntryDate"), 
+               names_to = "County", 
+               values_to = "Entries")
+
+plot_ly(df %>% 
+          arrange(EntryDate, County) %>%
+          group_by(County), 
+        x = ~EntryDate, 
+        y = ~Entries, 
+        type = 'scatter', 
+        mode = 'lines', 
+        color = ~County,
+        colors = colorRampPalette(c("black",
+                                    "purple",
+                                    "blue",
+                                    "green"))(80)
+        )
+```
+
+
+
