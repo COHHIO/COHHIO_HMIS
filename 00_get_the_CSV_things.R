@@ -38,6 +38,12 @@ library(tidyverse)
 library(lubridate)
 library(readxl)
 
+# type "live" or "sample"
+dataset <- "sample" 
+
+directory <- case_when(dataset == "live" ~ "data",
+                       dataset == "sample" ~ "sampledata")
+
 # Affiliation -------------------------------------------------------------
 
 Affiliation <- 
