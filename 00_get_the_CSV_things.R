@@ -39,7 +39,7 @@ library(lubridate)
 library(readxl)
 
 # type "live" or "sample"
-dataset <- "sample" 
+dataset <- if(exists("dataset") == FALSE) "live"
 
 directory <- case_when(dataset == "live" ~ "data",
                        dataset == "sample" ~ "sampledata")
@@ -47,7 +47,7 @@ directory <- case_when(dataset == "live" ~ "data",
 # Affiliation -------------------------------------------------------------
 
 Affiliation <- 
-  read_csv("data/Affiliation.csv", 
+  read_csv(paste0(directory, "/Affiliation.csv"), 
            col_types = "nnnTTnTn") 
 
 # Client ------------------------------------------------------------------
@@ -55,21 +55,21 @@ Affiliation <-
 # This script later overwrites the Client.csv, masking Name and SSN PII. So
 # this logic will read in the modified file - or - the raw one straight from SP
 
-if(ncol(read_csv("data/Client.csv")) == 36) {
+if(ncol(read_csv(paste0(directory, "/Client.csv"))) == 36) {
   Client <-
-    read_csv("data/Client.csv",
+    read_csv(paste0(directory, "/Client.csv"),
              col_types = "nccccncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
     filter(!PersonalID %in% c(5, 4216)) # our fake Client IDs are 5 and 4216
 } else {
   Client <-
-    read_csv("data/Client.csv",
+    read_csv(paste0(directory, "/Client.csv"),
              col_types = "ncncnDnnnnnnnnnnnnnnnnnnnnnnTTcTn") %>%
     filter(!PersonalID %in% c(5, 4216))
 }
 
 # Masking PII in the Client file (but not DOB) 
 
-if(ncol(read_csv("data/Client.csv")) == 36)
+if(ncol(read_csv(paste0(directory, "/Client.csv"))) == 36)
 {Client <- Client %>%
   mutate(
     FirstName = case_when(
@@ -123,38 +123,38 @@ Client <- Client %>%
 # object as a security measure.
 
 if(ncol(Client) == 33)
-{write_csv(Client, "data/Client.csv", append = FALSE)}
+{write_csv(Client, paste0(directory, "/Client.csv"), append = FALSE)}
 
 # CurrentLivingSituation <- 
-#   read_csv("data/CurrentLivingSituation.csv",
+#   read_csv(paste0(directory, "/CurrentLivingSituation.csv"),
 #             col_types = "nnnTncnnnnncTTcTc") DON'T NEED YET
 
 # Disabilities ------------------------------------------------------------
 
 Disabilities <-
-  read_csv("data/Disabilities.csv",
+  read_csv(paste0(directory, "/Disabilities.csv"),
            col_types = "cnnDnnnnnnnnnnTTnTn")
 
 
 # EmploymentEducation -----------------------------------------------------
 
 EmploymentEducation <-
-  read_csv("data/EmploymentEducation.csv",
+  read_csv(paste0(directory, "/EmploymentEducation.csv"),
            col_types = "cnnDnnnnnnTTnTn")
 
 # Exit --------------------------------------------------------------------
 
 Exit <-
-  read_csv("data/Exit.csv",
+  read_csv(paste0(directory, "/Exit.csv"),
            col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 
 # Project -----------------------------------------------------------------
 
 Project <- 
-  read_csv("data/Project.csv",
+  read_csv(paste0(directory, "/Project.csv"),
            col_types = "nnccDDnnnnnnnnTTcTn") 
 
-provider_extras <- read_xlsx("data/RMisc.xlsx",
+provider_extras <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                                 sheet = 4,
                                 range = cell_cols("A:H")) %>%
   mutate(ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
@@ -162,16 +162,17 @@ provider_extras <- read_xlsx("data/RMisc.xlsx",
                                  ProviderRegion),
          ProviderRegion = NULL)
 
-if(file.exists("data/cocscoring.zip")) {
-  unzip(zipfile = "./data/cocscoring.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/cocscoring.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/cocscoring.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/cocscoring.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
+              paste0(directory, "/cocscoring.csv"))
   
-  file.remove("data/cocscoring.zip")
+  file.remove(paste0(directory, "/cocscoring.zip"))
 }
 
-coc_scoring <- read_csv("data/cocscoring.csv",
+coc_scoring <- read_csv(paste0(directory, "/cocscoring.csv"),
                         col_types = "dccd?iiii")
 
 coc_scoring <- coc_scoring %>%
@@ -189,7 +190,7 @@ rm(coc_scoring)
 
 # Regions
 
-regions <- read_csv("data/Regions.csv",
+regions <- read_csv(paste0(directory, "/Regions.csv"),
                     col_types = "cn") %>%
   arrange(Region) %>%
   mutate(RegionName = paste("Homeless Planning Region", Region))
@@ -199,21 +200,23 @@ regions <- read_csv("data/Regions.csv",
 # EnrollmentCoC -----------------------------------------------------------
 
 EnrollmentCoC <- 
-  read_csv("data/EnrollmentCoC.csv", 
+  read_csv(paste0(directory, "/EnrollmentCoC.csv"), 
            col_types = "cncnnDcnTTnTn")
 
 # VeteranCE --------------------------------------------------------------
 
-if(file.exists("data/cevets.zip")) {
-  unzip(zipfile = "./data/cevets.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/cevets.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/cevets.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/cevets.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/cevets.csv"))
   
-  file.remove("data/cevets.zip")
+  file.remove(paste0(directory, "/cevets.zip"))
 }
 
-VeteranCE <- read_csv("data/cevets.csv", col_types = "ii??ic?cccc")
+VeteranCE <- read_csv(paste0(directory, "/cevets.csv"), col_types = "ii??ic?cccc")
 
 VeteranCE <- 
   mutate(
@@ -226,20 +229,20 @@ VeteranCE <-
 # Enrollment --------------------------------------------------------------
 
 Enrollment <-
-  read_csv("data/Enrollment.csv",
+  read_csv(paste0(directory, "/Enrollment.csv"),
            col_types =
              "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 
 # from sheets 1 and 2, getting EE-related data, joining both to En --------
 # will eventually come from aa: ees in ReportWriter, waiting on WS
-counties <- read_xlsx("data/RMisc.xlsx",
+counties <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                                  sheet = 1,
                                  range = cell_cols("A:D"),
                                  col_types = c("numeric", "numeric", "text", "text")) %>%
   select(EnrollmentID, CountyServed, CountyPrior)
   
 
-bowman_entry_exits <- read_xlsx("data/RMisc.xlsx",
+bowman_entry_exits <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                                 sheet = 2,
                                 range = cell_cols("A:D"))
 
@@ -322,64 +325,66 @@ Enrollment <- Enrollment %>%
 rm(y)
 
 # Event <- 
-#   read_csv("data/Event.csv",
+#   read_csv(paste0(directory, "/Event.csv"),
 #            col_types = "nnnDnnncDTTcTc") <- no data
 
 # Export ------------------------------------------------------------------
 
 Export <- 
-  read_csv("data/Export.csv",
+  read_csv(paste0(directory, "/Export.csv"),
            col_types = "nnnccccncTDDccnnn")
 
 # Funder ------------------------------------------------------------------
 
 Funder <- 
-  read_csv("data/Funder.csv",
+  read_csv(paste0(directory, "/Funder.csv"),
            col_types = "nnnccDDTTcTn")
 
 # HealthAndDV -------------------------------------------------------------
 
 HealthAndDV <-
-  read_csv("data/HealthAndDV.csv",
+  read_csv(paste0(directory, "/HealthAndDV.csv"),
            col_types = "cnnDnnnnnnnDnTTnTn")
 
 # IncomeBenefits ----------------------------------------------------------
 
 IncomeBenefits <- 
-  read_csv("data/IncomeBenefits.csv",
+  read_csv(paste0(directory, "/IncomeBenefits.csv"),
            col_types = 
              "cnnDnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnncnnnnnnncnnnnnnnnnnnnnnnnnnnncnnnnnnTTnTn")
 
 # Inventory ---------------------------------------------------------------
 
 Inventory <-
-  read_csv("data/Inventory.csv",
+  read_csv(paste0(directory, "/Inventory.csv"),
            col_types = "nncnnnnnnnnnnnnDDTTcTn")
 
 # Organization ------------------------------------------------------------
 
 Organization <- 
-  read_csv("data/Organization.csv",
+  read_csv(paste0(directory, "/Organization.csv"),
            col_types = "ncncTTnTn")
 
 # ProjectCoC --------------------------------------------------------------
 
 ProjectCoC <- 
-  read_csv("data/ProjectCoC.csv",
+  read_csv(paste0(directory, "/ProjectCoC.csv"),
            col_types = "nncnccccnnTTcTn")
 
 # Case Manager Records ----------------------------------------------------
 
-if(file.exists("data/casemanagers.zip")) {
-  unzip(zipfile = "./data/casemanagers.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/casemanagers.zip"))){
+  unzip(zipfile = paste0("./", directory, "/casemanagers.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/casemanagers.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/casemanagers.csv"))
   
-  file.remove("data/casemanagers.zip")
+  file.remove(paste0(directory, "/casemanagers.zip"))
 }
 
-CaseManagers <- read_csv("data/casemanagers.csv",
+CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
                              col_types = "dccccc")
 
 
@@ -387,7 +392,7 @@ CaseManagers <- read_csv("data/casemanagers.csv",
 # only pulling in contacts made between an Entry Date and an Exit Date
 
 suppressWarnings(Contacts <- read_xlsx(
-  "data/RMisc.xlsx",
+  paste0(directory, "/RMisc.xlsx"),
   sheet = 5,
   range = cell_cols("A:K"),
   col_types = c(
@@ -417,42 +422,50 @@ suppressWarnings(Contacts <- read_xlsx(
 
 # Scores ------------------------------------------------------------------
 
-if(file.exists("data/scoresfam.zip")) {
-  unzip(zipfile = "./data/scoresfam.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/scoresfam.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/scoresfam.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/scores.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/scores.csv"))
   
-  file.remove("data/scoresfam.zip")
+  file.remove(paste0(directory, "/scoresfam.zip"))
 }
 
-if(file.exists("data/scoresind.zip")) {
-  unzip(zipfile = "./data/scoresind.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/scoresind.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/scoresind.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/scoresind.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/scoresind.csv"))
   
-  file.remove("data/scoresind.zip")
+  file.remove(paste0(directory, "/scoresind.zip"))
 }
 
-if(file.exists("data/scorestay.zip")) {
-  unzip(zipfile = "./data/scorestay.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/scorestay.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/scorestay.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/scorestay.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
+              paste0(directory, "/scorestay.csv"))
   
-  file.remove("data/scorestay.zip")
+  file.remove(paste0(directory, "/scorestay.zip"))
 }
 
-file.append("data/scores.csv", "data/scoresind.csv")
+file.append(paste0(directory, "/scores.csv"), paste0(directory, "/scoresind.csv"))
 
-file.append("data/scores.csv", "data/scorestay.csv")
+file.append(paste0(directory, "/scores.csv"), paste0(directory, "/scorestay.csv"))
 
-if(file.exists("data/scoresind.csv")) {
-file.remove(c("data/scoresind.csv", "data/scorestay.csv"))
+if(file.exists(paste0(directory, "/scoresind.csv"))) {
+  file.remove(c(
+    paste0(directory, "/scoresind.csv"),
+    paste0(directory, "/scorestay.csv")
+  ))
 }
 
-Scores <- read_csv("data/scores.csv",
+Scores <- read_csv(paste0(directory, "/scores.csv"),
                    col_types = "ccc") %>%
   filter(Score != "Score") %>%
   mutate(
@@ -463,23 +476,24 @@ Scores <- read_csv("data/scores.csv",
 
 # Offers -----------------------------------------------------------------
 
-if(file.exists("data/offers.zip")) {
-  unzip(zipfile = "./data/offers.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/offers.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/offers.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/offers.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
+              paste0(directory, "/offers.csv"))
   
-  file.remove("data/offers.zip")
+  file.remove(paste0(directory, "/offers.zip"))
 }
 
-Offers <- read_csv("data/offers.csv", col_types = "i?c?c") %>%
+Offers <- read_csv(paste0(directory, "/offers.csv"), col_types = "i?c?c") %>%
   mutate(
     OfferDate = mdy(OfferDate),
     AcceptDeclineDate = mdy(AcceptDeclineDate)
   )
 
 # Users ------------------------------------------------------------------
-Users <- read_xlsx("data/RMisc.xlsx",
+Users <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                    sheet = 3,
                    range = cell_cols("A:G")) %>%
   mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)")) %>%
@@ -506,32 +520,36 @@ rm(provider_extras)
 # this comes from two ReportWriter reports: An Export: Services and 
 # An Export: Services & Funds. Saving them as services1.csv and services2.csv.
 
-if(file.exists("data/services1.zip")) {
-  unzip(zipfile = "./data/services1.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/services1.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/services1.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/services1.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/services1.csv"))
   
-  file.remove("data/services1.zip")
+  file.remove(paste0(directory, "/services1.zip"))
 }
 
-services_1 <- read_csv("data/services1.csv",
+services_1 <- read_csv(paste0(directory, "/services1.csv"),
                       col_types = "nnnn??cccc")
 
 services_1 <- services_1 %>%
   mutate(ServiceStartDate = mdy(ServiceStartDate),
          ServiceEndDate = mdy(ServiceEndDate))
 
-if(file.exists("data/services2.zip")) {
-  unzip(zipfile = "./data/services2.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/services2.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/services2.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/services2.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/services2.csv"))
   
-  file.remove("data/services2.zip")
+  file.remove(paste0(directory, "/services2.zip"))
 }
 
-services_funds <- read_csv("data/services2.csv",
+services_funds <- read_csv(paste0(directory, "/services2.csv"),
                       col_types = "ncd")
 
 Services <- services_1 %>%
@@ -579,16 +597,18 @@ rm(staging_services)
 
 # Referrals ---------------------------------------------------------------
 
-if(file.exists("data/referrals.zip")) {
-  unzip(zipfile = "./data/referrals.zip", exdir = "./data")
+if(file.exists(paste0(directory, "/referrals.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/referrals.zip"), 
+        exdir = paste0("./", directory))
   
-  file.rename(paste0("data/", list.files("./data", pattern = "(report_)")),
-              "data/referrals.csv")
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/referrals.csv"))
   
-  file.remove("data/referrals.zip")
+  file.remove(paste0(directory, "/referrals.zip"))
 }
 
-Referrals <- read_csv("data/referrals.csv",
+Referrals <- read_csv(paste0(directory, "/referrals.csv"),
                       col_types = "nnn?cccccccccc")
 
 Referrals <- Referrals %>%
@@ -805,14 +825,15 @@ project_type <- function(ReferenceNo){
 # not sure what the heck to do about this. :( will have to pull based
 # on UsesSP which is super clunky and will leave out providers
 
-FileEnd <- format.Date(file.info("data/Enrollment.csv")$mtime, "%m-%d-%Y")
+FileEnd <- format.Date(file.info(paste0(directory, "/Enrollment.csv"))$mtime, 
+                       "%m-%d-%Y")
 FileStart <- format.Date(floor_date(mdy(FileEnd), "year") - years(2), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 # Update Date -------------------------------------------------------------
 
-update_date <- file.info("data/Enrollment.csv")$mtime
+update_date <- file.info(paste0(directory, "/Enrollment.csv"))$mtime
 
 # Save it out -------------------------------------------------------------
 save.image(file = "images/COHHIOHMIS.RData")
