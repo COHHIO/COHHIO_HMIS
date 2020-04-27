@@ -39,7 +39,11 @@ library(lubridate)
 library(readxl)
 
 # type "live" or "sample"
-dataset <- if(exists("dataset") == FALSE) "live"
+if(exists("dataset") == FALSE) {
+  dataset <- "live"
+} else{
+    dataset <- dataset
+  }
 
 directory <- case_when(dataset == "live" ~ "data",
                        dataset == "sample" ~ "sampledata")
