@@ -1,0 +1,63 @@
+---
+title: "PIT Comparison"
+author: "Genelle Denzin"
+date: "4/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(here)
+library(readxl)
+library(gt)
+
+lastyear <- read_xlsx(here("data/pitcomparepshrrh20192020.xlsx"),
+                      sheet = 1,
+                      col_types = c("text", "numeric"))
+
+thisyear <- read_xlsx(here("data/pitcomparepshrrh20192020.xlsx"),
+                      sheet = 2,
+                      col_types = c("text", "numeric"))
+
+```
+
+
+```{r compare}
+
+lastyear <- lastyear %>%
+  filter(!is.na(Provider) &
+           Provider != "Total ALL:") 
+
+thisyear <- thisyear %>%
+  filter(!is.na(Provider) &
+           Provider != "Total ALL:") 
+
+compare <- thisyear %>%
+  left_join(lastyear, by = "Provider", suffix = c("2020", "2019"))
+
+compare[is.na(compare)] <- 0
+  
+```
+
+
+```{r differences}
+
+differences <- compare %>%
+  mutate(Difference = Clients2020 - Clients2019) %>%
+  select(Provider, Clients2019, Clients2020, Difference)
+
+```
+
+```{r outliers}
+
+outliers <- differences %>%
+  filter(abs(Difference) > 10)
+
+gt(outliers)
+
+write_csv(outliers, here("Reports/pitcomparepshrrh20192020.csv"))
+```
+
+
+
