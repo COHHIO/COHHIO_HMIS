@@ -152,7 +152,7 @@ if (stop == 0) {
   source("08_Active_List.R")
   rm(list = ls())
   
-  print(paste("Done! All images are updated with", dataset, "data."))
+  print(paste("Done! All images are updated."))
 } else
 {
   print("Check your data folder for errors")
