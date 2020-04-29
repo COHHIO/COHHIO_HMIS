@@ -24,29 +24,32 @@
 # RMisc.xlsx 
 # (all the HUD CSV Export FY2020 .csv files)
 # casemanagers.zip or .csv
-# cevets.zip or .csv
-# cocscoring.zip or .csv (during CoC Competition only)
-# offers.zip or .csv
-# referrals.zip or .csv
+# cevets.zip or .csv **
+# cocscoring.zip or .csv (during CoC Competition only) **
+# offers.zip or .csv **
+# referrals.zip or .csv 
 # scoresfam.zip or .csv
 # scoresind.zip or .csv
 # scorestay.zip or .csv
 # services1.zip or .csv
 # services2.zip or .csv
 
+# ** cannot be obtained from the Youngstown site (maybe move to RMisc?)
+
 library(tidyverse)
 library(lubridate)
 library(readxl)
 
-# type "live" or "sample"
+# type "live" or "sample" or "yo"
 if(exists("dataset") == FALSE) {
-  dataset <- "live"
-} else{
-    dataset <- dataset
-  }
+  dataset <- "yo"
+} else {
+  dataset <- dataset
+}
 
 directory <- case_when(dataset == "live" ~ "data",
-                       dataset == "sample" ~ "sampledata")
+                       dataset == "sample" ~ "sampledata",
+                       dataset == "yo" ~ "youngstowndata")
 
 # Affiliation -------------------------------------------------------------
 
@@ -197,7 +200,10 @@ rm(coc_scoring)
 regions <- read_csv(paste0(directory, "/Regions.csv"),
                     col_types = "cn") %>%
   arrange(Region) %>%
-  mutate(RegionName = paste("Homeless Planning Region", Region))
+  mutate(RegionName = if_else(
+    Region == 0,
+    "Mahoning CoC",
+    paste("Homeless Planning Region", Region)))
 # 
 # Project <- left_join(project_county, regions, by = "County")
 
@@ -251,7 +257,7 @@ bowman_entry_exits <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                                 range = cell_cols("A:D"))
 
 
-Enrollment <- Enrollment %>% #select(-RelationshipToHoH) %>%
+Enrollment <- Enrollment %>% 
   inner_join(bowman_entry_exits, by = "EnrollmentID") %>%
   inner_join(counties, by = "EnrollmentID") %>%
   left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
@@ -840,5 +846,11 @@ FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 update_date <- file.info(paste0(directory, "/Enrollment.csv"))$mtime
 
 # Save it out -------------------------------------------------------------
-save.image(file = "images/COHHIOHMIS.RData")
+
+if(dataset == "yo") {
+  save.image(file = "images/YOHMIS.RData")
+} else{
+  save.image(file = "images/COHHIOHMIS.RData")
+}
+
 
