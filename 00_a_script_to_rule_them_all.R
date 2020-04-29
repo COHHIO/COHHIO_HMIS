@@ -33,7 +33,8 @@ stop <- 0
 dataset <- "live" 
 
 directory <- case_when(dataset == "live" ~ "data",
-                       dataset == "sample" ~ "sampledata")
+                       dataset == "sample" ~ "sampledata",
+                       dataset == "yo" ~ "youngstowndata")
 
 # folder check
 
