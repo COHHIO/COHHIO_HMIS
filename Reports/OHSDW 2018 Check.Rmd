@@ -1,0 +1,129 @@
+---
+title: "OHSDW 2018 Check"
+author: "Genelle Denzin"
+date: "4/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+library(here)
+library(rlang)
+library(gt)
+
+bos <- env()
+yo <- env()
+
+load(here("images/COHHIOHMIS.RData"), envir = bos)
+load(here("images/YOHMIS.RData"), envir = yo)
+
+
+```
+
+## Clients by Program Type
+
+Taking from page 1, both BoS and YO.
+
+```{r ByProgramType}
+
+OHFAPTC <- tribble(
+  ~ProjectType, ~BoS2018, ~YO2018,
+  1, 11470, 701,
+  2, 1989, 28,
+  13, 7694, 488,
+  3, 4129, 578,
+  8, 22, 0
+)
+
+COHHIOPTC <- bos$Enrollment %>%
+  filter(served_between(., "01012018", "12312018") &
+           ProjectID != 1695) %>%
+  group_by(ProjectType) %>%
+  summarise(BoSClients = n())
+
+YOHMISPTC <- yo$Enrollment %>%
+  filter(served_between(., "01012018", "12312018")) %>%
+  group_by(ProjectType) %>%
+  summarise(YOClients = n())
+
+ByPTC <- OHFAPTC %>%
+  left_join(COHHIOPTC, by = "ProjectType") %>%
+  left_join(YOHMISPTC, by = "ProjectType")
+
+gt(ByPTC)
+
+yo_client_total_now <- 601+26+479+589
+yo_client_total_ohfa <- 701+28+488+578
+bos_client_total_now <- 13890+1889+7238+3984+22
+bos_client_total_ohfa <- 11470+1989+7694+4129+22
+
+```
+
+
+## OHFA's data set they're working from
+
+All the other datasets will work from this one. Need to summarise to the client level, taking the first 
+
+```{r dataset}
+
+OHFAPTC_unique <- tribble(
+  ~ProjectType, ~BoS2018, ~YO2018,
+  1, 11470, 701,
+  2, 1281, 9,
+  13, 5089, 425,
+  3, 3708, 528,
+  8, 20, 0
+)
+
+```
+
+
+## Veterans
+
+
+```{r veterans}
+
+OHFAVeterans <- tribble(
+  ~VeteranStatus, ~BoS2018, ~YO2018,
+  1, 1297, 48,
+  0, 19948, 1599,
+  99, 31+292, 16
+)
+
+sum(OHFAVeterans$BoS2018) == bos_client_total_ohfa
+
+COHHIOVeterans <- bos$Enrollment %>%
+  filter(served_between(., "01012018", "12312018") &
+           ProjectID != 1695) %>%
+  left_join(bos$Client, by = "PersonalID") %>%
+  mutate(VeteranStatus = case_when(
+    VeteranStatus %in% c(0, 1) ~ VeteranStatus,
+    is.na(VeteranStatus) | VeteranStatus %in% c(8, 9, 99) ~ 99)) %>%
+  group_by(VeteranStatus) %>%
+  summarise(BoSClients = n())
+
+YOHMISVeterans <- yo$Enrollment %>%
+  filter(served_between(., "01012018", "12312018")) %>%
+  left_join(yo$Client, by = "PersonalID") %>%
+  mutate(VeteranStatus = case_when(
+    VeteranStatus %in% c(0, 1) ~ VeteranStatus,
+    is.na(VeteranStatus) | VeteranStatus %in% c(8, 9, 99) ~ 99)) %>%
+  group_by(VeteranStatus) %>%
+  summarise(YOClients = n())
+
+ByVetStatus <- OHFAVeterans %>%
+  left_join(COHHIOVeterans, by = "VeteranStatus") %>%
+  left_join(YOHMISVeterans, by = "VeteranStatus")
+
+gt(ByVetStatus)
+
+```
+
+
+
+
+
+
+
