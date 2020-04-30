@@ -42,7 +42,7 @@ library(readxl)
 
 # type "live" or "sample" or "yo"
 if(exists("dataset") == FALSE) {
-  dataset <- "yo"
+  dataset <- "live"
 } else {
   dataset <- dataset
 }
@@ -524,6 +524,26 @@ rm(provider_extras)
 
 # some users don't have a County bc their Default Provider doesn't have an 
 # address. 
+
+
+# COVID-19 ----------------------------------------------------------------
+
+if(file.exists(paste0(directory, "/covid19.zip"))) {
+  unzip(zipfile = paste0("./", directory, "/covid19.zip"), 
+        exdir = paste0("./", directory))
+  
+  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+                                                pattern = "(report_)")),
+              paste0(directory, "/covid19.csv"))
+  
+  file.remove(paste0(directory, "/covid19.zip"))
+}
+
+covid19 <- read_csv(paste0(directory, "/covid19.csv"),
+                    col_types = "n?ccccccccccc") %>%
+  mutate(
+    COVID19AssessmentDate = mdy(COVID19AssessmentDate)) 
+
 
 # Services ----------------------------------------------------------------
 
