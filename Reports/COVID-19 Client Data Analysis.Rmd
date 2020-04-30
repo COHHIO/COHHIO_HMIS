@@ -1,0 +1,127 @@
+---
+title: "COVID-19 in Our Populations"
+author: "Genelle Denzin"
+date: "4/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(gt)
+library(here)
+
+load(here("images/COHHIOHMIS.RData"))
+```
+
+## What Data We're Collecting
+
+The Ohio Balance of State CoC is collecting the following data points in relation to clients entering our COordinated Entry process:
+
+ 1. Risks
+
+  a. Aged 60 or older
+  b. History of Respiratory Illness
+  c. Chronic Illness
+  d. Contact With Confirmed COVID 19 Patient
+  e. Contact with person Under Investigation of having COVID-19
+  
+ 2. Symptoms
+
+  a. Fever
+  b. Cough
+  c. Breathing difficulties
+  d. Sore throat
+
+These data are being collected at entry into our system and can be updated throughout each client's stay in a homeless program. Data entry into HMIS of COVID-19 assessments is optional and the HMIS was only capable of receiving this data as of April 27th, 2020.
+
+As such, this data is VERY preliminary, but can be updated over time. We hope this analysis is helpful, but please send inquiries to hmis@cohhio.org.
+
+## Basic Counts
+
+```{r symptoms}
+
+basic <- covid19 %>%
+  mutate(
+    Cough = case_when(
+      Cough == "Yes" ~ 1, 
+      Cough == "No" | 
+        is.na(Cough) ~ 0),
+    BreathingDifficult = case_when(
+      BreathingDifficult == "Yes" ~ 1,
+      BreathingDifficult == "No" |
+        is.na(BreathingDifficult) ~ 0),
+    SoreThroat = case_when(
+      SoreThroat == "Yes" ~ 1,
+      SoreThroat == "No" | 
+        is.na(SoreThroat) ~ 0),
+    Fever = case_when(
+      Fever == "Yes" ~ 1,
+      Fever == "No" | 
+        is.na(Fever) ~ 0),
+    ContactWithConfirmedCOVID19Patient = case_when(
+      ContactWithConfirmedCOVID19Patient == "Yes" ~ 1,
+      ContactWithConfirmedCOVID19Patient == "No" |
+        is.na(ContactWithConfirmedCOVID19Patient) ~ 0
+    ),
+    ContactWithUnderCOVID19Investigation = case_when(
+      ContactWithUnderCOVID19Investigation == "Yes" ~ 1,
+      ContactWithUnderCOVID19Investigation == "No" |
+        is.na(ContactWithUnderCOVID19Investigation) ~ 0
+    ),
+    `60+` = case_when(
+      `60+` == "Yes" ~ 1,
+      `60+` == "No" |
+        is.na(`60+`) ~ 0),
+    HistoryOfRespiratoryIllness = case_when(
+      HistoryOfRespiratoryIllness == "Yes" ~ 1,
+      HistoryOfRespiratoryIllness == "No" |
+        is.na(HistoryOfRespiratoryIllness) ~ 0
+    ),
+    ChronicIllness = case_when(
+      ChronicIllness == "Yes" ~ 1,
+      ChronicIllness == "No" |
+        is.na(ChronicIllness) ~ 0)
+  )
+
+symptomatic <- basic %>%
+  mutate(
+    NumberOfSymptoms = Cough + BreathingDifficult + SoreThroat + Fever
+  ) %>%
+  group_by(NumberOfSymptoms) %>%
+  summarise(Clients = n())
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r risks, echo=FALSE}
+
+risks <- basic %>%
+  mutate(
+    NumberOfSymptoms = Cough + BreathingDifficult + SoreThroat + Fever,
+    HealthRisks = if_else(
+      `60+` + HistoryOfRespiratoryIllness + ChronicIllness > 0, 1, 0),
+    ProximityRisk = if_else(
+      ContactWithUnderCOVID19Investigation +
+        ContactWithConfirmedCOVID19Patient > 0,
+      1,
+      0
+    ),
+    NumberOfRisks = `60+` +
+      HistoryOfRespiratoryIllness + 
+      ChronicIllness +
+      ContactWithUnderCOVID19Investigation +
+      ContactWithConfirmedCOVID19Patient,
+    HighPriority = NumberOfSymptoms > 2 | NumberOfRisks > 1,
+    MediumPriority = NumberOfSymptoms > 0 | NumberOfRisks > 0
+  )
+
+```
+
+
