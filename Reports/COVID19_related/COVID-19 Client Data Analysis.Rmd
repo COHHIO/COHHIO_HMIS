@@ -2,7 +2,7 @@
 title: "COVID-19 in Our Populations"
 author: "Genelle Denzin"
 date: "4/30/2020"
-output: flexdashboard::flex_dashboard
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -10,8 +10,8 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
 library(knitr)
-library(flexdashboard)
-library(htmlwidgets)
+# library(flexdashboard)
+# library(htmlwidgets)
 library(here)
 
 if(exists("dataset") == FALSE) {
@@ -41,9 +41,6 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
     COVID19AssessmentDate = mdy(COVID19AssessmentDate)) 
 ```
 
-Row
--------------------------------------
-
 ## What Data We're Collecting
 
 The Ohio Balance of State CoC is collecting the following data points in relation to clients entering our COordinated Entry process:
@@ -63,9 +60,6 @@ The Ohio Balance of State CoC is collecting the following data points in relatio
 These data are being collected at entry into our system and can be updated throughout each client's stay in a homeless program. Data entry into HMIS of COVID-19 assessments is optional and the HMIS was only capable of receiving this data as of April 27th, 2020.
 
 As such, this data is VERY preliminary, but will be updated over time. We hope this analysis is helpful, but please send inquiries to hmis@cohhio.org.
-
-Row
--------------------------------------
 
 ## Symptoms
 
@@ -125,9 +119,6 @@ symptomatic <- basic %>%
 
 Out of `r nrow(basic)` clients screened for COVID-19, `r symptomatic$Clients[symptomatic$NumberOfSymptoms == 1]` have 1 COVID-19 symptom and `r symptomatic$Clients[symptomatic$NumberOfSymptoms == 2]` have 2 symptoms.
 
-Row
--------------------------------------
-
 ## Risk Factors
 
 ```{r risks, echo=FALSE}
@@ -147,8 +138,12 @@ risks <- basic %>%
       ChronicIllness +
       ContactWithUnderCOVID19Investigation +
       ContactWithConfirmedCOVID19Patient,
-    HighPriority = NumberOfSymptoms > 2 | NumberOfRisks > 1,
-    MediumPriority = NumberOfSymptoms > 0 | NumberOfRisks > 0
+    Priority = case_when(
+      NumberOfSymptoms > 2 | NumberOfRisks > 1 ~ "High",
+      NumberOfSymptoms > 0 | NumberOfRisks > 0 ~ "Medium",
+      TRUE ~ "Low"
+      ),
+    Priority = factor(Priority, levels = c("High", "Medium", "Low"))
   )
 
 number_of_risks <- risks %>%
@@ -162,35 +157,16 @@ health_risks <- risks %>%
 proximity_risks <- risks %>%
   group_by(ProximityRisk) %>%
   summarise(Clients = n())
+
+priority <- risks %>%
+  group_by(Priority) %>%
+  summarise(Clients = n())
+
 ```
 
-### clients with 1 risk factor
+`r number_of_risks$Clients[number_of_risks$NumberOfRisks == 1]` clients have one risk factor.
+`r number_of_risks$Clients[number_of_risks$NumberOfRisks == 2]` clients have 2 risk factors.
+`r number_of_risks$Clients[number_of_risks$NumberOfRisks == 3]` clients have 3 risk factors.
 
-```{r}
-
-valueBox(number_of_risks$Clients[number_of_risks$NumberOfRisks == 1], 
-         icon = "fa-trash",
-         color = "primary")
-```
-
-### clients with 2 risk factors
-
-```{r}
-valueBox(number_of_risks$Clients[number_of_risks$NumberOfRisks == 2], 
-         icon = "fa-trash",
-         color = "warning")
-```
-
-### clients with 3 risk factors
-
-```{r}
-valueBox(number_of_risks$Clients[number_of_risks$NumberOfRisks == 3], 
-         icon = "biohazard",
-         color = "danger")
-```
-
-<!-- `r number_of_risks$Clients[number_of_risks$NumberOfRisks == 1]` clients have one risk factor.  -->
-<!-- `r number_of_risks$Clients[number_of_risks$NumberOfRisks == 2]` clients have 2 risk factors. -->
-<!-- `r number_of_risks$Clients[number_of_risks$NumberOfRisks == 3]` clients have 3 risk factors. -->
-
-
+`r priority$Clients[priority$Priority == "High"]` clients are High Priority.
+`r priority$Clients[priority$Priority == "Medium"]` clients are Medium Priority.
