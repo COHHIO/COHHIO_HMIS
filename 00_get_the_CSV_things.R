@@ -251,11 +251,9 @@ counties <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                                  col_types = c("numeric", "numeric", "text", "text")) %>%
   select(EnrollmentID, CountyServed, CountyPrior)
   
-
 bowman_entry_exits <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
                                 sheet = 2,
                                 range = cell_cols("A:D"))
-
 
 Enrollment <- Enrollment %>% 
   inner_join(bowman_entry_exits, by = "EnrollmentID") %>%
