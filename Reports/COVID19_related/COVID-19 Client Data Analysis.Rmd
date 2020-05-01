@@ -2,7 +2,7 @@
 title: "COVID-19 in Our Populations"
 author: "Genelle Denzin"
 date: "4/30/2020"
-output: html_document
+output: flexdashboard::flex_dashboard
 ---
 
 ```{r setup, include=FALSE}
@@ -10,36 +10,64 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
 library(knitr)
-library(gt)
+library(flexdashboard)
+library(htmlwidgets)
 library(here)
 
-load(here("images/COHHIOHMIS.RData"))
+if(exists("dataset") == FALSE) {
+  dataset <- "live"
+} else {
+  dataset <- dataset
+}
+
+directory <- case_when(dataset == "live" ~ "data",
+                       dataset == "sample" ~ "sampledata",
+                       dataset == "yo" ~ "youngstowndata")
+
+if(file.exists(here(paste0(directory, "/covid19.zip")))) {
+  unzip(zipfile = here(paste0("./", directory, "/covid19.zip")), 
+        exdir = here(paste0("./", directory)))
+  
+  file.rename(here(paste0(directory, "/", list.files(here(paste0("./", directory)), 
+                                                pattern = "(report_)"))),
+              here(paste0(directory, "/covid19.csv")))
+  
+  file.remove(here(paste0(directory, "/covid19.zip")))
+}
+
+covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
+                    col_types = "n?ccccccccccc") %>%
+  mutate(
+    COVID19AssessmentDate = mdy(COVID19AssessmentDate)) 
 ```
+
+Row
+-------------------------------------
 
 ## What Data We're Collecting
 
 The Ohio Balance of State CoC is collecting the following data points in relation to clients entering our COordinated Entry process:
 
- 1. Risks
-
-  a. Aged 60 or older
-  b. History of Respiratory Illness
-  c. Chronic Illness
-  d. Contact With Confirmed COVID 19 Patient
-  e. Contact with person Under Investigation of having COVID-19
-  
- 2. Symptoms
-
-  a. Fever
-  b. Cough
-  c. Breathing difficulties
-  d. Sore throat
+1.  Risks
+    a. Aged 60 or older
+    b. History of Respiratory Illness
+    c. Chronic Illness
+    d. Contact With Confirmed COVID 19 Patient
+    e. Contact with person Under Investigation of having COVID-19
+2.  Symptoms
+    a. Fever
+    b. Cough
+    c. Breathing difficulties
+    d. Sore throat
 
 These data are being collected at entry into our system and can be updated throughout each client's stay in a homeless program. Data entry into HMIS of COVID-19 assessments is optional and the HMIS was only capable of receiving this data as of April 27th, 2020.
 
-As such, this data is VERY preliminary, but can be updated over time. We hope this analysis is helpful, but please send inquiries to hmis@cohhio.org.
+As such, this data is VERY preliminary, but will be updated over time. We hope this analysis is helpful, but please send inquiries to hmis@cohhio.org.
 
-## Basic Counts
+Row
+-------------------------------------
+
+## Symptoms
 
 ```{r symptoms}
 
@@ -93,20 +121,21 @@ symptomatic <- basic %>%
   group_by(NumberOfSymptoms) %>%
   summarise(Clients = n())
 
-
 ```
 
-## Including Plots
+Out of `r nrow(basic)` clients screened for COVID-19, `r symptomatic$Clients[symptomatic$NumberOfSymptoms == 1]` have 1 COVID-19 symptom and `r symptomatic$Clients[symptomatic$NumberOfSymptoms == 2]` have 2 symptoms.
 
-You can also embed plots, for example:
+Row
+-------------------------------------
+
+## Risk Factors
 
 ```{r risks, echo=FALSE}
 
 risks <- basic %>%
   mutate(
     NumberOfSymptoms = Cough + BreathingDifficult + SoreThroat + Fever,
-    HealthRisks = if_else(
-      `60+` + HistoryOfRespiratoryIllness + ChronicIllness > 0, 1, 0),
+    HealthRisks = if_else(`60+` + HistoryOfRespiratoryIllness + ChronicIllness > 0, 1, 0),
     ProximityRisk = if_else(
       ContactWithUnderCOVID19Investigation +
         ContactWithConfirmedCOVID19Patient > 0,
@@ -114,7 +143,7 @@ risks <- basic %>%
       0
     ),
     NumberOfRisks = `60+` +
-      HistoryOfRespiratoryIllness + 
+      HistoryOfRespiratoryIllness +
       ChronicIllness +
       ContactWithUnderCOVID19Investigation +
       ContactWithConfirmedCOVID19Patient,
@@ -122,6 +151,46 @@ risks <- basic %>%
     MediumPriority = NumberOfSymptoms > 0 | NumberOfRisks > 0
   )
 
+number_of_risks <- risks %>%
+  group_by(NumberOfRisks) %>%
+  summarise(Clients = n())
+
+health_risks <- risks %>%
+  group_by(HealthRisks) %>%
+  summarise(Clients = n())
+
+proximity_risks <- risks %>%
+  group_by(ProximityRisk) %>%
+  summarise(Clients = n())
 ```
+
+### clients with 1 risk factor
+
+```{r}
+
+valueBox(number_of_risks$Clients[number_of_risks$NumberOfRisks == 1], 
+         icon = "fa-trash",
+         color = "primary")
+```
+
+### clients with 2 risk factors
+
+```{r}
+valueBox(number_of_risks$Clients[number_of_risks$NumberOfRisks == 2], 
+         icon = "fa-trash",
+         color = "warning")
+```
+
+### clients with 3 risk factors
+
+```{r}
+valueBox(number_of_risks$Clients[number_of_risks$NumberOfRisks == 3], 
+         icon = "biohazard",
+         color = "danger")
+```
+
+<!-- `r number_of_risks$Clients[number_of_risks$NumberOfRisks == 1]` clients have one risk factor.  -->
+<!-- `r number_of_risks$Clients[number_of_risks$NumberOfRisks == 2]` clients have 2 risk factors. -->
+<!-- `r number_of_risks$Clients[number_of_risks$NumberOfRisks == 3]` clients have 3 risk factors. -->
 
 
