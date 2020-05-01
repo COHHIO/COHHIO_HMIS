@@ -45,13 +45,13 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
 
 The Ohio Balance of State CoC is collecting the following data points in relation to clients entering our COordinated Entry process:
 
-1.  Risks
+1. Risks
     a. Aged 60 or older
     b. History of Respiratory Illness
     c. Chronic Illness
     d. Contact With Confirmed COVID 19 Patient
     e. Contact with person Under Investigation of having COVID-19
-2.  Symptoms
+2. Symptoms
     a. Fever
     b. Cough
     c. Breathing difficulties
