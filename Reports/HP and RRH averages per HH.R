@@ -1,4 +1,8 @@
-source(here("02_QPR_EEs.R"))
+library(here)
+library(tidyverse)
+library(lubridate)
+
+load(here("images/COHHIOHMIS.RData"))
 
 # EM asked for the average cost per household in 2019 for HP and RRH each
 
@@ -9,7 +13,7 @@ qpr_spending <- Services %>%
   left_join(Enrollment,
             by = c("EnrollmentID", "PersonalID",
                    "ServiceProvider" = "ProjectName")) %>%
-  left_join(smallProject, by = c("ProjectID", "ProjectType")) %>%
+  left_join(Project, by = c("ProjectID", "ProjectType")) %>%
   select(
     PersonalID,
     OrganizationName,
@@ -27,7 +31,6 @@ qpr_spending <- Services %>%
   filter((ProjectType == 13 & !is.na(MoveInDateAdjust) | 
             ProjectType == 12) &
            RelationshipToHoH == 1 &
-           !PersonalID %in% c(214315, 232008) & # typos in the data
            !is.na(Amount) &
            served_between(., ReportStart, ReportEnd)) %>%
   select(-RelationshipToHoH)
