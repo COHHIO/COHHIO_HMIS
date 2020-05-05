@@ -1,8 +1,7 @@
 ---
 title: "COVID-19 in Our Populations"
-author: "Genelle Denzin"
-date: "4/30/2020"
-output: html_document
+author: "Ohio Balance of State CoC"
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
@@ -10,8 +9,6 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
 library(knitr)
-# library(flexdashboard)
-# library(htmlwidgets)
 library(here)
 
 if(exists("dataset") == FALSE) {
@@ -71,61 +68,140 @@ These data are being collected at entry into our system and can be updated throu
 
 As such, this data is VERY preliminary, but will be updated over time. We hope this analysis is helpful, but please send inquiries to hmis@cohhio.org.
 
-## Symptoms
+## May Have COVID-19 (According to CDC Guidelines)
 
 ```{r symptoms}
 
-basic <- data.frame(lapply(basic, function(x) {
-    gsub("Yes", 1, x)
-}))
-
-basic <- data.frame(lapply(basic, function(x) {
-    gsub("No", 0, x)
-}))
-
 basic <- covid19 %>%
-  # mutate_if(is.factor, as.integer) %>%
-  mutate_at(vars(starts_with(c("Health", "Contact", "Symptom"))),
-            ~coalesce(0L))
-
-symptomatic <- basic %>%
+  as_tibble() %>%
   mutate(
-    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 | Symptom1Cough == 1) |
-      sum(Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-            Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-            Symptom2ShakingChills) > 1) 
-# %>%
-#   group_by(NumberOfSymptoms) %>%
-#   summarise(Clients = n())
+    Symptom1BreathingDifficult = case_when(
+      is.na(Symptom1BreathingDifficult) |
+        Symptom1BreathingDifficult == "No" ~ 0,
+      Symptom1BreathingDifficult == "Yes" ~ 1),
+    Symptom1Cough = case_when(
+      is.na(Symptom1Cough) |
+        Symptom1Cough == "No" ~ 0,
+      Symptom1Cough == "Yes" ~ 1),
+    Symptom2Chills = case_when(
+      is.na(Symptom2Chills) |
+        Symptom2Chills == "No" ~ 0,
+      Symptom2Chills == "Yes" ~ 1),
+    Symptom2Fever = case_when(
+      is.na(Symptom2Fever) |
+        Symptom2Fever == "No" ~ 0,
+      Symptom2Fever == "Yes" ~ 1),
+    Symptom2Headache = case_when(
+      is.na(Symptom2Headache) |
+        Symptom2Headache == "No" ~ 0,
+      Symptom2Headache == "Yes" ~ 1),
+    Symptom2LostTasteSmell = case_when(
+      is.na(Symptom2LostTasteSmell) |
+        Symptom2LostTasteSmell == "No" ~ 0,
+      Symptom2LostTasteSmell == "Yes" ~ 1),
+    Symptom2MusclePain = case_when(
+      is.na(Symptom2MusclePain) |
+        Symptom2MusclePain == "No" ~ 0,
+      Symptom2MusclePain == "Yes" ~ 1),
+    Symptom2ShakingChills = case_when(
+      is.na(Symptom2ShakingChills) |
+        Symptom2ShakingChills == "No" ~ 0,
+      Symptom2ShakingChills == "Yes" ~ 1),
+    Symptom2SoreThroat = case_when(
+      is.na(Symptom2SoreThroat) |
+        Symptom2SoreThroat == "No" ~ 0,
+      Symptom2SoreThroat == "Yes" ~ 1),
+    HealthRiskChronicIllness = case_when(
+      is.na(HealthRiskChronicIllness) |
+        HealthRiskChronicIllness == "No" ~ 0,
+      HealthRiskChronicIllness == "Yes" ~ 1),
+    HealthRiskHistoryOfRespiratoryIllness = case_when(
+      is.na(HealthRiskHistoryOfRespiratoryIllness) |
+        HealthRiskHistoryOfRespiratoryIllness == "No" ~ 0,
+      HealthRiskHistoryOfRespiratoryIllness == "Yes" ~ 1),
+    HealthRiskOver60 = case_when(
+      is.na(HealthRiskOver60) |
+        HealthRiskOver60 == "No" ~ 0,
+      HealthRiskOver60 == "Yes" ~ 1),
+    ContactWithConfirmedCOVID19Patient = case_when(
+      is.na(ContactWithConfirmedCOVID19Patient) |
+        ContactWithConfirmedCOVID19Patient == "No" ~ 0,
+      ContactWithConfirmedCOVID19Patient == "Yes" ~ 1),
+    ContactWithUnderCOVID19Investigation = case_when(
+      is.na(ContactWithUnderCOVID19Investigation) |
+        ContactWithUnderCOVID19Investigation == "No" ~ 0,
+      ContactWithUnderCOVID19Investigation == "Yes" ~ 1))
+
+CDCsymptomatic <- basic %>%
+  mutate(
+    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
+                           Symptom1Cough == 1) |
+      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+      Symptom2ShakingChills
+    > 1
+  ) %>%
+  group_by(MayHaveCOVID19CDC) %>%
+  summarise(Clients = n())
 
 ```
 
-Out of `r nrow(basic)` clients screened for COVID-19, `r symptomatic$Clients[symptomatic$NumberOfSymptoms == 1]` have 1 COVID-19 symptom and `r symptomatic$Clients[symptomatic$NumberOfSymptoms == 2]` have 2 symptoms.
+Out of `r nrow(basic)` clients screened for COVID-19, `r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]` have symptoms that indicate this client "may have COVID-19". This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
 
-## Risk Factors
+```{r fig1, fig.width=5, fig.asp=.62}
+
+plot_a <- basic %>%
+  mutate(
+    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
+                           Symptom1Cough == 1) |
+      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+      Symptom2ShakingChills
+    > 1
+  )
+
+plot_a %>%
+  ggplot(aes(x = COVID19AssessmentDate, y = MayHaveCOVID19CDC,
+             color = MayHaveCOVID19CDC)) +
+  scale_color_brewer(palette = "Dark2") +
+  geom_jitter(show.legend = FALSE) +
+  theme_classic() +
+  ggtitle("Clients who May Have COVID-19 \n(according to CDC guidelines)") +
+  labs(x = "Date of Assessment", y = "Symptomatic")
+
+```
+
+
+## Priority for Immediate Non-congregate Housing
 
 ```{r risks, echo=FALSE}
 
 risks <- basic %>%
   mutate(
-    NumberOfSymptoms = Cough + BreathingDifficult + SoreThroat + Fever,
-    HealthRisks = if_else(`60+` + HistoryOfRespiratoryIllness + ChronicIllness > 0, 1, 0),
-    ProximityRisk = if_else(
-      ContactWithUnderCOVID19Investigation +
-        ContactWithConfirmedCOVID19Patient > 0,
-      1,
-      0
-    ),
-    NumberOfRisks = `60+` +
-      HistoryOfRespiratoryIllness +
-      ChronicIllness +
+    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
+                           Symptom1Cough == 1) |
+      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+      Symptom2ShakingChills > 1,
+    HealthRisks = HealthRiskOver60 +
+      HealthRiskHistoryOfRespiratoryIllness +
+      HealthRiskChronicIllness,
+    ProximityRisks =
       ContactWithUnderCOVID19Investigation +
       ContactWithConfirmedCOVID19Patient,
+    NumberOfRisks = HealthRisks + ProximityRisks,
     Priority = case_when(
-      NumberOfSymptoms > 2 | NumberOfRisks > 1 ~ "High",
-      NumberOfSymptoms > 0 | NumberOfRisks > 0 ~ "Medium",
+      MayHaveCOVID19CDC == TRUE | NumberOfRisks > 1 ~ "High",
+      Symptom2Chills +
+        Symptom2SoreThroat +
+        Symptom2Fever +
+        Symptom2Headache +
+        Symptom2LostTasteSmell +
+        Symptom2MusclePain +
+        Symptom2ShakingChills
+      > 0 | NumberOfRisks > 0 ~ "Medium",
       TRUE ~ "Low"
-      ),
+    ),
     Priority = factor(Priority, levels = c("High", "Medium", "Low"))
   )
 
@@ -138,7 +214,7 @@ health_risks <- risks %>%
   summarise(Clients = n())
 
 proximity_risks <- risks %>%
-  group_by(ProximityRisk) %>%
+  group_by(ProximityRisks) %>%
   summarise(Clients = n())
 
 priority <- risks %>%
@@ -147,9 +223,23 @@ priority <- risks %>%
 
 ```
 
-`r number_of_risks$Clients[number_of_risks$NumberOfRisks == 1]` clients have one risk factor.
-`r number_of_risks$Clients[number_of_risks$NumberOfRisks == 2]` clients have 2 risk factors.
-`r number_of_risks$Clients[number_of_risks$NumberOfRisks == 3]` clients have 3 risk factors.
+**High Priority** clients are those who either may have COVID-19 based on their symptoms or they have more than 1 risk factor. **Medium Priority** clients are those who have at least one symptom or at least one risk factor. **Low Priority** clients have no risk factors or symptoms related to COVID-19 but may be vulnerable in other ways.
 
-`r priority$Clients[priority$Priority == "High"]` clients are High Priority.
-`r priority$Clients[priority$Priority == "Medium"]` clients are Medium Priority.
+```{r fig2, fig.width=5, fig.asp=.62}
+
+plot_b <- risks %>%
+  select(PersonalID, COVID19AssessmentDate, Priority) %>%
+  arrange(Priority)
+
+plot_b %>%
+  ggplot(aes(x = COVID19AssessmentDate, y = Priority,
+             color = Priority)) +
+  scale_color_brewer(palette = "Dark2") +
+  geom_jitter(show.legend = FALSE) +
+  scale_y_discrete(limits = rev(levels(plot_b$Priority))) +
+  theme_classic() +
+  ggtitle("Priority for Immediate Housing") +
+  labs(x = "Date of Assessment", y = "Priority")
+```
+
+
