@@ -147,7 +147,7 @@ CDCsymptomatic <- basic %>%
 
 Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]`** have symptoms that indicate this client "may have COVID-19". This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
 
-```{r fig1, fig.width=6, fig.asp=.62}
+```{r fig1, fig.width=7, fig.asp=.62}
 
 plot_a <- basic %>%
   mutate(
@@ -169,7 +169,7 @@ plot_a %>%
   scale_fill_brewer(palette = "Dark2") +
   theme_classic() +
   ggtitle("Clients who May Have COVID-19 \n(according to CDC guidelines)") +
-  labs(x = "Date of Assessment")
+  labs(x = "Date of Assessment", y = "Clients Assessed")
 
 ```
 
@@ -227,7 +227,7 @@ priority <- risks %>%
 
 **High Priority** clients are those who either may have COVID-19 based on their symptoms or they have more than 1 risk factor. **Medium Priority** clients are those who have at least one symptom or at least one risk factor. **Low Priority** clients have no risk factors or symptoms related to COVID-19 but may be vulnerable in other ways.
 
-```{r fig2, fig.width=6, fig.asp=.62}
+```{r fig2, fig.width=7, fig.asp=.62}
 
 plot_b <- risks %>%
   select(PersonalID, COVID19AssessmentDate, Priority) %>%
@@ -243,7 +243,7 @@ plot_b %>%
   theme_classic() +
   ggtitle("Priority for Immediate Housing") +
   theme(legend.key.size = unit(0.2, "cm")) +
-  labs(x = "Date of Assessment")
+  labs(x = "Date of Assessment", y = "Clients Assessed")
 ```
 
 
