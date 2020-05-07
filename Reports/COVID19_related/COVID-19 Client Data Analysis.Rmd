@@ -1,6 +1,5 @@
 ---
-title: "COVID-19 in Our Populations"
-author: "Ohio Balance of State CoC"
+title: "COVID-19 in Ohio BoS CoC Populations"
 output: word_document
 ---
 
@@ -146,9 +145,9 @@ CDCsymptomatic <- basic %>%
 
 ```
 
-Out of `r nrow(basic)` clients screened for COVID-19, `r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]` have symptoms that indicate this client "may have COVID-19". This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
+Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]`** have symptoms that indicate this client "may have COVID-19". This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
 
-```{r fig1, fig.width=5, fig.asp=.62}
+```{r fig1, fig.width=6, fig.asp=.62}
 
 plot_a <- basic %>%
   mutate(
@@ -161,13 +160,16 @@ plot_a <- basic %>%
   )
 
 plot_a %>%
-  ggplot(aes(x = COVID19AssessmentDate, y = MayHaveCOVID19CDC,
-             color = MayHaveCOVID19CDC)) +
-  scale_color_brewer(palette = "Dark2") +
-  geom_jitter(show.legend = FALSE) +
+  select(PersonalID, COVID19AssessmentDate, MayHaveCOVID19CDC) %>%
+  group_by(COVID19AssessmentDate, MayHaveCOVID19CDC) %>%
+  summarise(Clients = n()) %>%
+  ggplot(aes(x = COVID19AssessmentDate, y = Clients,
+             fill = MayHaveCOVID19CDC)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +  
+  scale_fill_brewer(palette = "Dark2") +
   theme_classic() +
   ggtitle("Clients who May Have COVID-19 \n(according to CDC guidelines)") +
-  labs(x = "Date of Assessment", y = "Symptomatic")
+  labs(x = "Date of Assessment")
 
 ```
 
@@ -225,21 +227,23 @@ priority <- risks %>%
 
 **High Priority** clients are those who either may have COVID-19 based on their symptoms or they have more than 1 risk factor. **Medium Priority** clients are those who have at least one symptom or at least one risk factor. **Low Priority** clients have no risk factors or symptoms related to COVID-19 but may be vulnerable in other ways.
 
-```{r fig2, fig.width=5, fig.asp=.62}
+```{r fig2, fig.width=6, fig.asp=.62}
 
 plot_b <- risks %>%
   select(PersonalID, COVID19AssessmentDate, Priority) %>%
+  group_by(COVID19AssessmentDate, Priority) %>%
+  summarise(Clients = n()) %>%
   arrange(Priority)
 
 plot_b %>%
-  ggplot(aes(x = COVID19AssessmentDate, y = Priority,
-             color = Priority)) +
-  scale_color_brewer(palette = "Dark2") +
-  geom_jitter(show.legend = FALSE) +
-  scale_y_discrete(limits = rev(levels(plot_b$Priority))) +
+  ggplot(aes(x = COVID19AssessmentDate, y = Clients,
+             fill = Priority, label = Clients)) +
+  scale_fill_brewer(palette = "Dark2") +
+  geom_bar(stat = "identity") +
   theme_classic() +
   ggtitle("Priority for Immediate Housing") +
-  labs(x = "Date of Assessment", y = "Priority")
+  theme(legend.key.size = unit(0.2, "cm")) +
+  labs(x = "Date of Assessment")
 ```
 
 
