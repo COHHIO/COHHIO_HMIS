@@ -210,6 +210,121 @@ disability_data <- active_list %>%
 active_list <- disability_data
 
 
+# COVID-19 ----------------------------------------------------------------
+
+covid <- covid19 %>%
+  as_tibble() %>%
+  mutate(
+    Symptom1BreathingDifficult = case_when(
+      is.na(Symptom1BreathingDifficult) |
+        Symptom1BreathingDifficult == "No" ~ 0,
+      Symptom1BreathingDifficult == "Yes" ~ 1
+    ),
+    Symptom1Cough = case_when(
+      is.na(Symptom1Cough) |
+        Symptom1Cough == "No" ~ 0,
+      Symptom1Cough == "Yes" ~ 1
+    ),
+    Symptom2Chills = case_when(
+      is.na(Symptom2Chills) |
+        Symptom2Chills == "No" ~ 0,
+      Symptom2Chills == "Yes" ~ 1
+    ),
+    Symptom2Fever = case_when(
+      is.na(Symptom2Fever) |
+        Symptom2Fever == "No" ~ 0,
+      Symptom2Fever == "Yes" ~ 1
+    ),
+    Symptom2Headache = case_when(
+      is.na(Symptom2Headache) |
+        Symptom2Headache == "No" ~ 0,
+      Symptom2Headache == "Yes" ~ 1
+    ),
+    Symptom2LostTasteSmell = case_when(
+      is.na(Symptom2LostTasteSmell) |
+        Symptom2LostTasteSmell == "No" ~ 0,
+      Symptom2LostTasteSmell == "Yes" ~ 1
+    ),
+    Symptom2MusclePain = case_when(
+      is.na(Symptom2MusclePain) |
+        Symptom2MusclePain == "No" ~ 0,
+      Symptom2MusclePain == "Yes" ~ 1
+    ),
+    Symptom2ShakingChills = case_when(
+      is.na(Symptom2ShakingChills) |
+        Symptom2ShakingChills == "No" ~ 0,
+      Symptom2ShakingChills == "Yes" ~ 1
+    ),
+    Symptom2SoreThroat = case_when(
+      is.na(Symptom2SoreThroat) |
+        Symptom2SoreThroat == "No" ~ 0,
+      Symptom2SoreThroat == "Yes" ~ 1
+    ),
+    HealthRiskChronicIllness = case_when(
+      is.na(HealthRiskChronicIllness) |
+        HealthRiskChronicIllness == "No" ~ 0,
+      HealthRiskChronicIllness == "Yes" ~ 1
+    ),
+    HealthRiskHistoryOfRespiratoryIllness = case_when(
+      is.na(HealthRiskHistoryOfRespiratoryIllness) |
+        HealthRiskHistoryOfRespiratoryIllness == "No" ~ 0,
+      HealthRiskHistoryOfRespiratoryIllness == "Yes" ~ 1
+    ),
+    HealthRiskOver60 = case_when(
+      is.na(HealthRiskOver60) |
+        HealthRiskOver60 == "No" ~ 0,
+      HealthRiskOver60 == "Yes" ~ 1
+    ),
+    ContactWithConfirmedCOVID19Patient = case_when(
+      is.na(ContactWithConfirmedCOVID19Patient) |
+        ContactWithConfirmedCOVID19Patient == "No" ~ 0,
+      ContactWithConfirmedCOVID19Patient == "Yes" ~ 1
+    ),
+    ContactWithUnderCOVID19Investigation = case_when(
+      is.na(ContactWithUnderCOVID19Investigation) |
+        ContactWithUnderCOVID19Investigation == "No" ~ 0,
+      ContactWithUnderCOVID19Investigation == "Yes" ~ 1
+    ),
+    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
+                           Symptom1Cough == 1) |
+      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+      Symptom2ShakingChills > 1,
+    HealthRisks = HealthRiskOver60 +
+      HealthRiskHistoryOfRespiratoryIllness +
+      HealthRiskChronicIllness,
+    ProximityRisks =
+      ContactWithUnderCOVID19Investigation +
+      ContactWithConfirmedCOVID19Patient,
+    NumberOfRisks = HealthRisks + ProximityRisks,
+    Priority = case_when(
+      MayHaveCOVID19CDC == TRUE | NumberOfRisks > 1 ~ "High",
+      Symptom2Chills +
+        Symptom2SoreThroat +
+        Symptom2Fever +
+        Symptom2Headache +
+        Symptom2LostTasteSmell +
+        Symptom2MusclePain +
+        Symptom2ShakingChills
+      > 0 | NumberOfRisks > 0 ~ "Medium",
+      TRUE ~ "Low"
+    )
+  ) %>%
+  filter(COVID19AssessmentDate >= today() - days(6)) %>%
+  select(PersonalID, Priority) 
+
+active_list <- active_list %>%
+  left_join(covid, by = "PersonalID") %>%
+  mutate(Priority = if_else(is.na(Priority), "Not Assessed Recently", Priority),
+         Priority = factor(Priority, levels = c("High", 
+                                                "Medium", 
+                                                "Low", 
+                                                "Not Assessed Recently")),
+         ) %>%
+  rename("COVID19Priority" = Priority)
+
+
+
 # County Guessing ---------------------------------------------------------
 
 # replacing non-Unsheltered-Provider missings with County of the provider
@@ -478,10 +593,6 @@ dv <- active_list %>%
   select(-WhenOccurred)
 
 active_list <- dv
-
-# Add COVID-19 Status -----------------------------------------------------
-
-
 
 # Clean the House ---------------------------------------------------------
 
