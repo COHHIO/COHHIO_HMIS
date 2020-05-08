@@ -34,7 +34,7 @@ small_project <- Project %>%
   filter(ProjectType %in% c(1, 2, 3, 8, 9) &
            operating_between(Project, FileStart, FileEnd) &
            is.na(Project$GrantType) &
-           HMISParticipatingProject == 1) # <- meaningless rn bc of export error
+           HMISParticipatingProject == 1)
 
 small_inventory <- Inventory %>%
   select(
