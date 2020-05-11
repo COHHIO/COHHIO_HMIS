@@ -2015,7 +2015,8 @@ check_eligibility <- served_in_date_range %>%
       providertype = rep("Access Points"),
       total = rep(c(
         nrow(aps_no_referrals) + nrow(aps_with_referrals)
-      ))
+      )),
+      stringsAsFactors = FALSE
     )
     
     data_APs <- data_APs %>%
@@ -2172,6 +2173,17 @@ check_eligibility <- served_in_date_range %>%
           target=\"_blank\">Diversion workflow</a> for more info."
       ) %>%
       select(all_of(vars_we_want))
+
+# Unsheltered New Entries by County by Month ------------------------------
+
+unsheltered_by_month <- unsheltered_enrollments %>%
+      left_join(Users, by = "UserCreating") %>%
+      mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate),
+             County = if_else(is.na(CountyServed), UserCounty, CountyServed),
+             EntryDateDisplay = format.Date(EntryDate, "%b %Y")) %>%
+      select(EntryDate, EntryDateDisplay, HouseholdID, County)
+
+
     
     # Missing End Date on Outreach Contact ------------------------------------
     
@@ -2493,7 +2505,7 @@ check_eligibility <- served_in_date_range %>%
     dq_main <- dq_main %>%
       filter(
         !Issue %in% c(
-          "Missing Length of Stay", # case 873163
+          # "Missing Length of Stay", # case 873163
           "Missing PATH Contact", # waiting on AW comments
           "No Contact End Date (PATH)", # waiting on AW comments
           "No PATH Contact Entered at Entry" # waiting on AW comments
