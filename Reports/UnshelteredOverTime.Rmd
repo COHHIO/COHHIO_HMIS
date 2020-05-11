@@ -9,11 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 
 library(tidyverse)
+library(here)
 library(lubridate)
 library(plotly)
 
-load("images/cohorts.RData")
-load("images/COHHIOHMIS.RData")
+load(here("images/cohorts.RData"))
+load(here("images/COHHIOHMIS.RData"))
 
 ```
 
@@ -23,7 +24,7 @@ load("images/COHHIOHMIS.RData")
 
 unsheltered_hhs <- co_clients_served %>%
   filter(ProjectName == "Unsheltered Clients - OUTREACH" &
-           entered_between(., "10012019", "04152020")) %>%
+           entered_between(., "09012019", ReportEnd)) %>%
   select(HouseholdID, EntryDate, ExitAdjust) %>%
   left_join(Enrollment %>% 
               select(HouseholdID, CountyServed, UserCreating),
@@ -35,43 +36,41 @@ county_guesses <- unsheltered_hhs %>%
   left_join(Users, by = "UserCreating")
 
 counties <- regions$County
+monthyears <- unsheltered_hhs %>%
+  arrange(EntryDate) %>%
+  mutate(EntryDateDisplay = format.Date(EntryDate, "%b %Y")) %>%
+  pull(EntryDateDisplay) %>%
+  unique()
 
 df <- county_guesses %>%
-  mutate(County = if_else(is.na(CountyServed),
-                          UserCounty,
-                          CountyServed),
-         EntryDate = paste0(month(EntryDate), "-", year(EntryDate))) %>%
-  select(HouseholdID, EntryDate, County) %>%
-  group_by(EntryDate, County) %>%
+  mutate(
+    County = if_else(is.na(CountyServed),
+                     UserCounty,
+                     CountyServed),
+    EntryDateDisplay = format.Date(EntryDate, "%b %Y")
+  ) %>%
+  select(HouseholdID, EntryDateDisplay, County) %>%
+  group_by(EntryDateDisplay, County) %>%
   summarise(Entries = n()) %>%
   ungroup() %>%
-  mutate(Entries = as.numeric(Entries),
-         EntryDate = factor(
-           EntryDate,
-           levels = c(
-             "10-2019",
-             "11-2019",
-             "12-2019",
-             "1-2020",
-             "2-2020",
-             "3-2020",
-             "4-2020"
-           )
-         ), 
-         County = factor(County, levels = c(counties))) %>%
+  mutate(
+    Entries = as.numeric(Entries),
+    EntryDateDisplay = factor(EntryDateDisplay, levels = c(monthyears)),
+    County = factor(County, levels = c(counties))
+  ) %>%
   pivot_wider(names_from = County, values_from = Entries)
 
 df[is.na(df)] <- 0
 
 df <- df %>%
-  pivot_longer(cols = !all_of("EntryDate"), 
+  pivot_longer(cols = !all_of("EntryDateDisplay"), 
                names_to = "County", 
                values_to = "Entries")
 
 plot_ly(df %>% 
-          arrange(EntryDate, County) %>%
+          arrange(EntryDateDisplay, County) %>%
           group_by(County), 
-        x = ~EntryDate, 
+        x = ~EntryDateDisplay, 
         y = ~Entries, 
         type = 'scatter', 
         mode = 'lines', 
