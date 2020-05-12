@@ -120,7 +120,11 @@ if (stop == 0) {
   print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
   rm(list = ls())
-
+  
+  print("working on Cohorts")
+  source("00_cohorts.R")
+  rm(list = ls())
+  
   print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
   rm(list = ls())
@@ -135,10 +139,6 @@ if (stop == 0) {
 
   print("working on Data Quality")
   source("04_DataQuality.R")
-  rm(list = ls())
-  
-  print("working on Cohorts")
-  source("05_Cohorts.R")
   rm(list = ls())
   
   print("working on Project Evaluation")
