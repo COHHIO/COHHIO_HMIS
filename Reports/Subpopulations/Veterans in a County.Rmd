@@ -1,0 +1,71 @@
+---
+title: "Veterans Trumbull County"
+author: "Genelle Denzin"
+date: "5/12/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(tidyverse)
+library(lubridate)
+library(here)
+
+load(here("images/cohorts.RData"))
+load(here("images/COHHIOHMIS.RData"))
+
+ReportStart <- "01012019"
+ReportEnd <- "12312019"
+
+ReportCounty <- "Trumbull"
+```
+
+## Veterans in Trumbull County 2019
+
+```{r}
+
+county_filter <- Enrollment %>%
+  filter(served_between(., ReportStart, ReportEnd) &
+           CountyServed == ReportCounty)
+
+veterans_served <- county_filter %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    ProjectName,
+    ProjectType,
+    HouseholdID,
+    RelationshipToHoH,
+    TimesHomelessPastThreeYears,
+    MonthsHomelessPastThreeYears,
+    LivingSituation,
+    Destination,
+    EntryDate,
+    ExitDate,
+    DateToStreetESSH
+  ) %>% 
+  left_join(Client %>%
+              select(PersonalID, VeteranStatus), by = "PersonalID") %>%
+  filter(ProjectType %in% c(1, 2, 3, 4, 8, 13) & VeteranStatus == 1)
+
+total_veterans_served <- length(unique(veterans_served$PersonalID))
+
+first_time_homeless <- veterans_served %>%
+  filter(ProjectType %in% c(1, 2, 3, 4, 8, 13) &
+           MonthsHomelessPastThreeYears == 101 &
+           TimesHomelessPastThreeYears == 1) %>%
+  pull(PersonalID) %>%
+  unique() %>%
+  length()
+
+exited_to_ph <- veterans_served %>%
+  filter(ProjectType %in% c(1, 2, 3, 4, 8, 13) &
+           exited_between(., ReportStart, ReportEnd) &
+           Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36)) %>%
+  pull(PersonalID) %>%
+  unique() %>%
+  length()
+
+```
+
