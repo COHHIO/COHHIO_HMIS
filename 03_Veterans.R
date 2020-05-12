@@ -16,15 +16,18 @@ library(tidyverse)
 library(lubridate)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
 
 rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
    Export, Funder, HealthAndDV, IncomeBenefits, Offers, Organization, 
    ProjectCoC, Scores, Services, Users, stray_services)
+
 # getting all the veterans
 Veterans <- Client %>%
   filter(VeteranStatus == 1) %>%
   select(PersonalID, AmIndAKNative, Asian, BlackAfAmerican, NativeHIOtherPacific,
          White, RaceNone, Ethnicity, Gender)
+
 # getting all the EE data of all the veterans
 VeteranHHs <- Veterans %>%
   left_join(Enrollment, by = "PersonalID") %>%
@@ -34,6 +37,7 @@ VeteranHHs <- Veterans %>%
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement,
          MoveInDate, VAMCStation, CountyServed, CountyPrior, ExitDate, 
          Destination, OtherDestination, ExitAdjust, AgeAtEntry)
+
 # adding in all the provider data 
 VeteranHHs <- Project %>%
   select(ProjectID, OrganizationName, OperatingStartDate, OperatingEndDate,
@@ -42,7 +46,6 @@ VeteranHHs <- Project %>%
 
 VeteranHHs <- VeteranHHs %>%
   left_join(VeteranCE, by = c("PersonalID"))
-
 
 CurrentVeterans <- VeteranHHs %>%
   filter((ProjectType %in% c(1, 2, 4, 8, 12) & (
@@ -121,9 +124,85 @@ veteran_current_in_project <- veteran_current_in_project %>%
   left_join(CurrentVeteranCounts, by = c("ProjectName", "ProjectRegion")) %>%
   ungroup()
 
+current_tay_hohs <- tay %>%
+  filter(RelationshipToHoH == 1 & 
+           is.na(ExitDate) & 
+           ProjectType %in% c(1, 2, 4, 8)) %>%
+  select(PersonalID,
+         EnrollmentID,
+         ProjectName,
+         ProjectType) %>%
+  left_join(
+    VeteranCE %>%
+      select(PersonalID,
+             EnrollmentID,
+             PHTrack,
+             ExpectedPHDate),
+    by = c("PersonalID", "EnrollmentID")
+  ) %>%
+  mutate(EngagementStatus = case_when(
+    !is.na(PHTrack) & PHTrack != "None" &
+      ymd(ExpectedPHDate) >= today() ~ "Has Current Housing Plan",
+    is.na(PHTrack) | PHTrack == "None" |
+      (!is.na(PHTrack) & (
+        ymd(ExpectedPHDate) < today() |
+          is.na(ExpectedPHDate)
+      )) ~ "No Current Housing Plan"
+  )) %>%
+  group_by(ProjectName, ProjectType, EngagementStatus) %>%
+  summarise(CurrentTAYCount = n()) %>%
+  spread(key = EngagementStatus, value = CurrentTAYCount) %>%
+  rename(HasCurrentHousingPlan = `Has Current Housing Plan`,
+         NoCurrentHousingPlan = `No Current Housing Plan`) %>%
+  ungroup()
+
+current_tay_hohs[is.na(current_tay_hohs)] <- 0
+
+CurrentTAYHHs <- tay %>%
+  filter(is.na(ExitDate) & 
+           ProjectType %in% c(1, 2, 4, 8) & 
+           RelationshipToHoH == 1) %>%
+  group_by(ProjectName) %>%
+  summarise(TAYHHs = n()) %>%
+  ungroup()
+
+current_tay_hohs <- current_tay_hohs %>%
+  left_join(CurrentTAYHHs, by = "ProjectName") %>%
+  mutate(
+    Summary =
+      case_when(
+        HasCurrentHousingPlan == 0 &
+          NoCurrentHousingPlan == 1 ~
+          "This Transition Aged Youth household has no current Housing Plan",
+        HasCurrentHousingPlan == 0 &
+          NoCurrentHousingPlan > 1  ~
+          "None of these Transition Aged Youth households have current Housing Plans",
+        HasCurrentHousingPlan == 1 &
+          NoCurrentHousingPlan == 0 ~
+          "This Transition Aged Youth household has a current Housing Plan!",
+        HasCurrentHousingPlan > 1 &
+          NoCurrentHousingPlan == 0  ~
+          "All Transition Aged Youth households in this project have current Housing Plans!",
+        HasCurrentHousingPlan == 1 &
+          NoCurrentHousingPlan > 0 ~
+          paste(
+            HasCurrentHousingPlan,
+            "of these Transition Aged Youth households has a current Housing Plan"
+          ),
+        HasCurrentHousingPlan > 1 &
+          NoCurrentHousingPlan > 0 ~
+          paste(
+            HasCurrentHousingPlan,
+            "of these Transition Aged Youth households have current Housing Plans"
+          )
+      )
+  )
+
 rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 
    Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, 
-   Referrals, CurrentVeteranCounts)
+   Referrals, CurrentVeteranCounts, CurrentTAYHHs, Contacts, covid19, HUD_specs)
+
+rm(list = ls(pattern = "co_"))
 
 save.image("images/Veterans.RData")
 
