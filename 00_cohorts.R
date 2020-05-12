@@ -55,6 +55,18 @@ vars_we_want <- c(
   "Destination"
 )
 
+# Transition Aged Youth
+
+tay <- Enrollment %>%
+  left_join(Client, by = "PersonalID") %>%
+  select(all_of(vars_we_want)) %>%
+  group_by(HouseholdID) %>%
+  mutate(
+    TAY = if_else(max(AgeAtEntry) < 25, 1, 0)
+  ) %>%
+  ungroup() %>%
+  filter(TAY == 1, !is.na(ProjectName))
+
 # Leaver and Stayer HoHs who were served during the reporting period
 co_hohs_served <-  Enrollment %>%
   filter(served_between(., ReportStart, ReportEnd) &
@@ -214,6 +226,8 @@ rm(
   Affiliation,
   CaseManagers,
   Client,
+  Contacts,
+  covid19,
   Disabilities,
   EmploymentEducation,
   Enrollment,
@@ -241,3 +255,4 @@ rm(
 rm(list = ls(pattern = "summary_"))
 
 save.image("images/cohorts.RData")
+
