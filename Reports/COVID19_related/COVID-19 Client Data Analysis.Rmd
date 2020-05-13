@@ -32,9 +32,11 @@ if(file.exists(here(paste0(directory, "/covid19.zip")))) {
 }
 
 covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
-                    col_types = "n?cccccccccccccccc") %>%
+                    col_types = "nccccccccccccccccccccc") %>%
   mutate(
-    COVID19AssessmentDate = mdy(COVID19AssessmentDate)) 
+    COVID19AssessmentDate = mdy(COVID19AssessmentDate),
+    DateDiagnosis = mdy(DateDiagnosis),
+    DateUnderInvestigation = mdy(DateUnderInvestigation)) 
 ```
 
 ## What Data We're Collecting
@@ -129,7 +131,15 @@ basic <- covid19 %>%
     ContactWithUnderCOVID19Investigation = case_when(
       is.na(ContactWithUnderCOVID19Investigation) |
         ContactWithUnderCOVID19Investigation == "No" ~ 0,
-      ContactWithUnderCOVID19Investigation == "Yes" ~ 1))
+      ContactWithUnderCOVID19Investigation == "Yes" ~ 1),
+    DiagnosisPositive = case_when(
+      is.na(DiagnosisPositive) |
+        DiagnosisPositive == "No" ~ 0,
+      DiagnosisPositive == "Yes" ~ 1),
+    DiagnosisUnderInvestigation = case_when(
+      is.na(DiagnosisUnderInvestigation) |
+        DiagnosisUnderInvestigation == "No" ~ 0,
+      DiagnosisUnderInvestigation == "Yes" ~ 1))
 
 CDCsymptomatic <- basic %>%
   mutate(
