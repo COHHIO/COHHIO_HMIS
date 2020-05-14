@@ -538,10 +538,14 @@ if(file.exists(paste0(directory, "/covid19.zip"))) {
 }
 
 covid19 <- read_csv(paste0(directory, "/covid19.csv"),
-                    col_types = "n?cccccccccccccccc") %>%
+                    col_types = "n?ccccccccccccccccccccccc") %>%
   mutate(
-    COVID19AssessmentDate = mdy(COVID19AssessmentDate)) 
-
+    COVID19AssessmentDate = mdy(COVID19AssessmentDate),
+    ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
+    ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
+    TestDate = mdy(TestDate),
+    DateUnderInvestigation = mdy(DateUnderInvestigation)
+  ) 
 
 # Services ----------------------------------------------------------------
 
