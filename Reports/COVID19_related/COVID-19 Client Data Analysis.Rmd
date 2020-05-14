@@ -32,11 +32,14 @@ if(file.exists(here(paste0(directory, "/covid19.zip")))) {
 }
 
 covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
-                    col_types = "nccccccccccccccccccccc") %>%
+                    col_types = "ncccccccccccccccccccccccc") %>%
   mutate(
     COVID19AssessmentDate = mdy(COVID19AssessmentDate),
-    DateDiagnosis = mdy(DateDiagnosis),
-    DateUnderInvestigation = mdy(DateUnderInvestigation)) 
+    ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
+    ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
+    TestDate = mdy(TestDate),
+    DateUnderInvestigation = mdy(DateUnderInvestigation)
+  ) 
 ```
 
 ## What Data We're Collecting
@@ -47,8 +50,8 @@ The Ohio Balance of State CoC is collecting the following data points in relatio
     a. Aged 60 or older
     b. History of Respiratory Illness
     c. Chronic Illness
-    d. Contact With Confirmed COVID 19 Patient
-    e. Contact with person Under Investigation of having COVID-19
+    d. Contact With Confirmed COVID 19 Patient (and Date of Contact)
+    e. Contact with person Under Investigation of having COVID-19 (and Date of Contact)
 2. Symptoms
     a. Primary (1 of these indicates the client may have COVID-19)
         * Cough
@@ -62,8 +65,8 @@ The Ohio Balance of State CoC is collecting the following data points in relatio
         * Muscle pain
         * Sore throat
 3. Diagnosis
-    a. Diagnosed
-    b. Under Investigation
+    a. Tested (plus Results and Test Date)
+    b. Under Investigation (plus Date Notified)
 
 These data are being collected at entry into our system and can be updated throughout each client's stay in a homeless program. Data entry into HMIS of COVID-19 assessments is optional and the HMIS was only capable of receiving this data as of April 27th, 2020.
 
@@ -132,14 +135,14 @@ basic <- covid19 %>%
       is.na(ContactWithUnderCOVID19Investigation) |
         ContactWithUnderCOVID19Investigation == "No" ~ 0,
       ContactWithUnderCOVID19Investigation == "Yes" ~ 1),
-    DiagnosisPositive = case_when(
-      is.na(DiagnosisPositive) |
-        DiagnosisPositive == "No" ~ 0,
-      DiagnosisPositive == "Yes" ~ 1),
-    DiagnosisUnderInvestigation = case_when(
-      is.na(DiagnosisUnderInvestigation) |
-        DiagnosisUnderInvestigation == "No" ~ 0,
-      DiagnosisUnderInvestigation == "Yes" ~ 1))
+    Tested = case_when(
+      is.na(Tested) |
+        Tested == "No" ~ 0,
+      Tested == "Yes" ~ 1),
+    UnderInvestigation = case_when(
+      is.na(UnderInvestigation) |
+        UnderInvestigation == "No" ~ 0,
+      UnderInvestigation == "Yes" ~ 1))
 
 CDCsymptomatic <- basic %>%
   mutate(
@@ -155,7 +158,7 @@ CDCsymptomatic <- basic %>%
 
 ```
 
-Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]`** have symptoms that indicate this client "may have COVID-19". This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
+Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]`** have symptoms that indicate this client "may have COVID-19" at the time of their assessment. This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
 
 ```{r fig1, fig.width=7, fig.asp=.62}
 
@@ -205,35 +208,20 @@ risks <- basic %>%
       ContactWithConfirmedCOVID19Patient,
     NumberOfRisks = HealthRisks + ProximityRisks,
     Priority = case_when(
-      MayHaveCOVID19CDC == TRUE | NumberOfRisks > 1 ~ "High",
+      MayHaveCOVID19CDC == TRUE | 
+        NumberOfRisks > 1 ~ "High",
       Symptom2Chills +
         Symptom2SoreThroat +
         Symptom2Fever +
         Symptom2Headache +
         Symptom2LostTasteSmell +
         Symptom2MusclePain +
-        Symptom2ShakingChills
-      > 0 | NumberOfRisks > 0 ~ "Medium",
+        Symptom2ShakingChills > 0 |
+        NumberOfRisks > 0 ~ "Medium",
       TRUE ~ "Low"
     ),
     Priority = factor(Priority, levels = c("High", "Medium", "Low"))
   )
-
-number_of_risks <- risks %>%
-  group_by(NumberOfRisks) %>%
-  summarise(Clients = n())
-
-health_risks <- risks %>%
-  group_by(HealthRisks) %>%
-  summarise(Clients = n())
-
-proximity_risks <- risks %>%
-  group_by(ProximityRisks) %>%
-  summarise(Clients = n())
-
-priority <- risks %>%
-  group_by(Priority) %>%
-  summarise(Clients = n())
 
 ```
 
