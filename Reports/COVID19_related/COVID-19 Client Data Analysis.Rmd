@@ -195,20 +195,43 @@ plot_a %>%
 
 risks <- basic %>%
   mutate(
-    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
-                           Symptom1Cough == 1) |
-      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-      Symptom2ShakingChills > 1,
+    MayHaveCOVID19CDC = (
+      COVID19AssessmentDate > today() - days(14) &
+        (Symptom1BreathingDifficult == 1 |
+           Symptom1Cough == 1)
+    ) |
+      (
+        ContactWithConfirmedCOVID19Patient == 1 &
+          ymd(ContactWithConfirmedDate) > today() - days(14)
+      ) |
+      (
+        ContactWithUnderCOVID19Investigation == 1 &
+          ymd(ContactWithUnderInvestigationDate > today() - days(14))
+      ) |
+      (
+        COVID19AssessmentDate > today() - days(14) &
+          Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+          Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+          Symptom2ShakingChills > 1
+      ),
     HealthRisks = HealthRiskOver60 +
       HealthRiskHistoryOfRespiratoryIllness +
       HealthRiskChronicIllness,
     ProximityRisks =
-      ContactWithUnderCOVID19Investigation +
-      ContactWithConfirmedCOVID19Patient,
+      if_else(
+        ContactWithUnderInvestigationDate > today() - days(14),
+        ContactWithUnderCOVID19Investigation,
+        0
+      ) +
+      if_else(
+        ContactWithConfirmedDate > today() - days(14) |
+          is.na(ContactWithConfirmedDate),
+        ContactWithConfirmedCOVID19Patient,
+        0
+      ),
     NumberOfRisks = HealthRisks + ProximityRisks,
     Priority = case_when(
-      MayHaveCOVID19CDC == TRUE | 
+      MayHaveCOVID19CDC == TRUE |
         NumberOfRisks > 1 ~ "High",
       Symptom2Chills +
         Symptom2SoreThroat +
