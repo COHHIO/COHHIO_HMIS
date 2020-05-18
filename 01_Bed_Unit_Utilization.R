@@ -788,8 +788,8 @@ utilization <-
   left_join(., Households, 
             by = c("ProjectID", "ProjectName")) %>%
   filter(ProjectType %in% c(1, 2, 3, 8, 9)) %>%
-  mutate(BedUtilization = percent(Clients/BedCount),
-         UnitUtilization = percent(Households/UnitCount))
+  mutate(BedUtilization = percent(Clients/BedCount, accuracy = 1),
+         UnitUtilization = percent(Households/UnitCount, accuracy = 1))
 
 names(utilizers_clients) <-
   c(
@@ -866,6 +866,7 @@ possible bed nights (330), which is: 91%!"
 
 # removing all the Value objects we created as those are not used in the apps
 rm(list = ls(all.names = TRUE, pattern = "Month$"))
+rm(Contacts, covid19, regions)
 
 save.image("images/Utilization.RData")
 
