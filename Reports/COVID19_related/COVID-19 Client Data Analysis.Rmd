@@ -39,7 +39,8 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
     ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
     TestDate = mdy(TestDate),
     DateUnderInvestigation = mdy(DateUnderInvestigation)
-  ) 
+  ) %>%
+  filter(ymd(COVID19AssessmentDate) > ymd("20200301"))
 ```
 
 ## What Data We're Collecting
@@ -146,12 +147,27 @@ basic <- covid19 %>%
 
 CDCsymptomatic <- basic %>%
   mutate(
-    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
-                           Symptom1Cough == 1) |
-      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-      Symptom2ShakingChills
-    > 1
+    MayHaveCOVID19CDC = (
+      COVID19AssessmentDate > today() - days(14) &
+        (Symptom1BreathingDifficult == 1 |
+           Symptom1Cough == 1)
+    ) |
+      (
+        ContactWithConfirmedCOVID19Patient == 1 &
+          (ymd(ContactWithConfirmedDate) > today() - days(14) |
+          is.na(ContactWithConfirmedDate))
+      ) |
+      (
+        ContactWithUnderCOVID19Investigation == 1 &
+          (ymd(ContactWithUnderInvestigationDate) > today() - days(14) |
+          is.na(ContactWithUnderInvestigationDate))
+      ) |
+      (
+        COVID19AssessmentDate > today() - days(14) &
+          Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+          Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+          Symptom2ShakingChills > 1
+      )
   ) %>%
   group_by(MayHaveCOVID19CDC) %>%
   summarise(Clients = n())
@@ -162,29 +178,70 @@ Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Cl
 
 ```{r fig1, fig.width=7, fig.asp=.62}
 
+
 plot_a <- basic %>%
   mutate(
-    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
-                           Symptom1Cough == 1) |
-      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-      Symptom2ShakingChills
-    > 1
+    COVID19Status = case_when(
+      Tested == 1 & TestResults == "Positive" &
+        ymd(TestDate) > ymd(COVID19AssessmentDate) - days(14) &
+        !is.na(TestDate) ~ "Positive",
+      (Symptom1BreathingDifficult == 1 |
+         Symptom1Cough == 1)
+      |
+        (
+          ContactWithConfirmedCOVID19Patient == 1 &
+            (
+              ymd(ContactWithConfirmedDate) >
+                ymd(COVID19AssessmentDate) - days(14) |
+                is.na(ContactWithConfirmedDate)
+            )
+        ) |
+        (
+          ContactWithUnderCOVID19Investigation == 1 &
+            (
+              ymd(ContactWithUnderInvestigationDate) >
+                ymd(COVID19AssessmentDate) - days(14) |
+                is.na(ContactWithUnderInvestigationDate)
+            )
+        ) |
+        (
+          Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+            Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
+            Symptom2ShakingChills > 1
+        ) |
+        (
+          UnderInvestigation == 1 &
+            ymd(DateUnderInvestigation) > ymd(COVID19AssessmentDate) - days(14)
+        ) ~
+        "May Have COVID-19",
+      
+      TRUE ~ "No Current Indications"
+    ),
+    COVID19Status = factor(
+      COVID19Status,
+      levels = c("No Current Indications",
+                 "May Have COVID-19",
+                 "Positive")
+    )
   )
 
 plot_a %>%
-  select(PersonalID, COVID19AssessmentDate, MayHaveCOVID19CDC) %>%
-  group_by(COVID19AssessmentDate, MayHaveCOVID19CDC) %>%
+  select(PersonalID, COVID19AssessmentDate, COVID19Status) %>%
+  group_by(COVID19AssessmentDate, COVID19Status) %>%
   summarise(Clients = n()) %>%
   ggplot(aes(x = COVID19AssessmentDate, y = Clients,
-             fill = MayHaveCOVID19CDC)) +
+             fill = COVID19Status)) +
   geom_bar(stat = "identity", 
-           show.legend = FALSE,
+           # show.legend = FALSE,
            position = position_stack(reverse = TRUE)) +  
   scale_fill_brewer(palette = "Dark2") +
   theme_classic() +
-  ggtitle("Clients who May Have COVID-19 According to CDC Guidelines") +
-  labs(x = "Date of Assessment", y = "Clients Assessed")
+  ggtitle("Clients COVID-19 Assessments in the Ohio Balance of State CoC") +
+  labs(x = "Date of Assessment", y = "Clients Assessed") +
+  theme(legend.title=element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(0.1, "cm"),
+        legend.key.width = unit(0.3, "cm"))
 
 ```
 
@@ -202,11 +259,13 @@ risks <- basic %>%
     ) |
       (
         ContactWithConfirmedCOVID19Patient == 1 &
-          ymd(ContactWithConfirmedDate) > today() - days(14)
+          (ymd(ContactWithConfirmedDate) > today() - days(14) |
+          is.na(ContactWithConfirmedDate))
       ) |
       (
         ContactWithUnderCOVID19Investigation == 1 &
-          ymd(ContactWithUnderInvestigationDate > today() - days(14))
+          (ymd(ContactWithUnderInvestigationDate) > today() - days(14) |
+          is.na(ContactWithUnderInvestigationDate))
       ) |
       (
         COVID19AssessmentDate > today() - days(14) &
@@ -219,7 +278,8 @@ risks <- basic %>%
       HealthRiskChronicIllness,
     ProximityRisks =
       if_else(
-        ContactWithUnderInvestigationDate > today() - days(14),
+        ContactWithUnderInvestigationDate > today() - days(14) |
+          is.na(ContactWithUnderInvestigationDate),
         ContactWithUnderCOVID19Investigation,
         0
       ) +
@@ -231,8 +291,16 @@ risks <- basic %>%
       ),
     NumberOfRisks = HealthRisks + ProximityRisks,
     Priority = case_when(
-      MayHaveCOVID19CDC == TRUE |
-        NumberOfRisks > 1 ~ "High",
+      (
+        Tested == 1 &
+          TestResults == "Positive" & ymd(TestDate) > today() - days(14)
+      ) |
+        (UnderInvestigation == 1 & 
+           (ymd(DateUnderInvestigation) > today() - days(14) |
+           is.na(DateUnderInvestigation))) |
+        MayHaveCOVID19CDC == TRUE |
+        ProximityRisks > 0 |
+        HealthRisks > 1 ~ "High",
       Symptom2Chills +
         Symptom2SoreThroat +
         Symptom2Fever +
@@ -242,7 +310,7 @@ risks <- basic %>%
         Symptom2ShakingChills > 0 |
         NumberOfRisks > 0 ~ "Medium",
       TRUE ~ "Low"
-    ),
+    ), 
     Priority = factor(Priority, levels = c("High", "Medium", "Low"))
   )
 
