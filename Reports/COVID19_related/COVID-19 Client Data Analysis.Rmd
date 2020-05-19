@@ -177,7 +177,7 @@ CDCsymptomatic <- basic %>%
 Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]`** have symptoms that indicate this client "may have COVID-19" at the time of their assessment. This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
 
 ```{r fig1, fig.width=7, fig.asp=.62}
-
+# since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out time-dependent data based on the AssessmentDate, not based on its distance from "today".
 
 plot_a <- basic %>%
   mutate(
