@@ -795,7 +795,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
           "exits to permanent housing or retention in PSH /",
           HoHsServed,
           "heads of household =",
-          percent(ExitsToPHPercent)
+          percent(ExitsToPHPercent, accuracy = 1)
         ),
       ProjectType != 3 & HoHsServedLeavers != 0 ~
         paste(
@@ -803,7 +803,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
           "exits to permanent housing /",
           HoHsServedLeavers,
           "heads of household leavers =",
-          percent(ExitsToPHPercent)
+          percent(ExitsToPHPercent, accuracy = 1)
         )
     ), 
     ExitsToPHPoints = if_else(
@@ -883,7 +883,7 @@ summary_pe_own_housing <- pe_own_housing %>%
         "exited to their own permanent housing /",
         HoHsMovedInLeavers,
         "heads of household leavers who moved into housing =",
-        percent(OwnHousingPercent)
+        percent(OwnHousingPercent, accuracy = 1)
       )
     ), 
     OwnHousingPoints = if_else(
@@ -975,7 +975,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
         "exited with benefits or health insurance /",
         AdultMovedInLeavers,
         "adult leavers who moved into the project's housing =",
-        percent(BenefitsAtExitPercent)
+        percent(BenefitsAtExitPercent, accuracy = 1)
       )
     ), 
     BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
@@ -1090,7 +1090,7 @@ summary_pe_increase_income <- pe_increase_income %>%
         "increased income during their stay /",
         AdultsMovedIn,
         "adults who moved into the project's housing =",
-        percent(IncreasedIncomePercent)
+        percent(IncreasedIncomePercent, accuracy = 1)
       ),
       "All points granted because 0 adults moved into the project's housing"
     ), 
@@ -1209,7 +1209,7 @@ summary_pe_res_prior <- pe_res_prior %>%
         "coming from an appropriate living situation /",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
-        percent(LHResPriorPercent)
+        percent(LHResPriorPercent, accuracy = 1)
       )
     ), 
     LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
@@ -1276,7 +1276,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
         "had no income at entry /",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
-        percent(NoIncomeAtEntryPercent)
+        percent(NoIncomeAtEntryPercent, accuracy = 1)
       )
     ), 
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
@@ -1487,7 +1487,7 @@ summary_pe_dq <- summary_pe_dq %>%
                       "errors /",
                       ClientsServed,
                       "clients served =",
-                      percent(DQPercent)), 
+                      percent(DQPercent, accuracy = 1)), 
          DQPoints = case_when(
            n == 0 ~ 5,
            DQPercent > 0 & DQPercent <= .02 ~ 4,
@@ -1553,7 +1553,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
         "considered to be long-term homeless /",
         AdultsEntered,
         "adults entered the project during the reporting period =",
-        percent(LongTermHomelessPercent)
+        percent(LongTermHomelessPercent, accuracy = 1)
       )
     ), 
     LongTermHomelessPoints = if_else(AdultsEntered == 0 &
@@ -1626,7 +1626,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
         "had a VI-SPDAT score at entry /",
         HoHsEntered,
         "heads of household who entered the project during the reporting period =",
-        percent(ScoredAtEntryPercent)
+        percent(ScoredAtEntryPercent, accuracy = 1)
       )
     ), 
     ScoredAtEntryPoints = case_when(
@@ -1759,17 +1759,12 @@ rm(list = ls()[!(ls() %in% c(
 
 next_thing_due <- tribble(
   ~ DueDate, ~ Event,
-  "3/18/2020", "2019 CoC Competition Training",
-  "3/23/2020", "COHHIO makes Project Evaluation 2020 Report available in R minor",
-  "4/11/2020", "All HMIS Data in the Project Evaluation report finalized",
-  "4/1/2020", "All Policies and Procedures documents submitted by Recipients",
-  "4/15/2020", "COHHIO saves out Final Project Evaluation Report data",
-  "4/8/2020", "Project Conversion and New CoC Project Proposals due to ODSA/COHHIO",
-  "4/19/2020", "Written project Proposal Feedback Provided to Project Conversion 
-  and New CoC Project Applicants",
-  "5/10/2020", "COHHIO releases Project Evaluation results and preliminary CoC project 
-  ranking (renewals only)",
-  "5/17/2020", "Appeals Submission Due Date"
+  "6/12/2020", "All HMIS Data in the Project Evaluation report corrected and finalized",
+  "6/19/2020", "COHHIO makes Project Evaluation 2020 Report (summary data only) available in R minor",
+  "6/26/2020", "COHHIO releases preliminary CoC project ranking (renewals only)",
+  "7/8/2020", "Recipients submit appeals of project evaluation results and ranking to ohioboscoc@cohhio.org.",
+  "7/24/2020", "Ohio BoSCoC Steering COmmittee will communicate decisions about all received appeals",
+  "7/31/2020", "Final CoC project ranking released"
 ) %>%
   mutate(
     DueDate = mdy(DueDate),
