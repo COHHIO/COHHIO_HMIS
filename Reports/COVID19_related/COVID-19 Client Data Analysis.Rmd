@@ -40,40 +40,16 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
     TestDate = mdy(TestDate),
     DateUnderInvestigation = mdy(DateUnderInvestigation)
   ) %>%
-  filter(ymd(COVID19AssessmentDate) > ymd("20200301"))
+  filter(ymd(COVID19AssessmentDate) > ymd("20200401"))
 ```
 
 ## What Data We're Collecting
 
-The Ohio Balance of State CoC is collecting the following data points in relation to clients entering our COordinated Entry process:
+The Ohio Balance of State CoC is collecting COVID-19 data based on the CDC's guidelines, listed [here](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html). We began collecting this data in April 2020.
 
-1. Risks
-    a. Aged 60 or older
-    b. History of Respiratory Illness
-    c. Chronic Illness
-    d. Contact With Confirmed COVID 19 Patient (and Date of Contact)
-    e. Contact with person Under Investigation of having COVID-19 (and Date of Contact)
-2. Symptoms
-    a. Primary (1 of these indicates the client may have COVID-19)
-        * Cough
-        * Shortness of breath or difficulty breathing
-    b. Secondary (2+ of these indicates the client may have COVID-19)
-        * Fever
-        * Headache
-        * Chills
-        * Repeated shaking with chills
-        * Loss of taste or smell
-        * Muscle pain
-        * Sore throat
-3. Diagnosis
-    a. Tested (plus Results and Test Date)
-    b. Under Investigation (plus Date Notified)
+Please send inquiries to hmis@cohhio.org.
 
-These data are being collected at entry into our system and can be updated throughout each client's stay in a homeless program. Data entry into HMIS of COVID-19 assessments is optional and the HMIS was only capable of receiving this data as of April 27th, 2020.
-
-As such, this data is VERY preliminary, but will be updated over time. We hope this analysis is helpful, but please send inquiries to hmis@cohhio.org.
-
-## May Have COVID-19 (According to CDC Guidelines)
+## COVID-19 Status of Clients Over Time
 
 ```{r symptoms}
 
@@ -174,7 +150,7 @@ CDCsymptomatic <- basic %>%
 
 ```
 
-Out of **`r nrow(basic)`** clients screened for COVID-19, **`r CDCsymptomatic$Clients[CDCsymptomatic$MayHaveCOVID19CDC == TRUE]`** have symptoms that indicate this client "may have COVID-19" at the time of their assessment. This is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as having at least one Primary Symptom or at least 2 Secondary Symptoms.
+Since April 1, **`r nrow(basic)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they have COVID-19 and they have not tested positive. "May Have COVID-19" means the client has not tested positive for COVID-19 but is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having at least one Primary Symptom or at least 2 Secondary Symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional and the test was positive.
 
 ```{r fig1, fig.width=7, fig.asp=.62}
 # since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out time-dependent data based on the AssessmentDate, not based on its distance from "today".
@@ -232,7 +208,6 @@ plot_a %>%
   ggplot(aes(x = COVID19AssessmentDate, y = Clients,
              fill = COVID19Status)) +
   geom_bar(stat = "identity", 
-           # show.legend = FALSE,
            position = position_stack(reverse = TRUE)) +  
   scale_fill_brewer(palette = "Dark2") +
   theme_classic() +
@@ -245,6 +220,7 @@ plot_a %>%
 
 ```
 
+\pagebreak
 
 ## Priority for Immediate Non-congregate Housing
 
@@ -316,7 +292,7 @@ risks <- basic %>%
 
 ```
 
-**High Priority** clients are those who either may have COVID-19 based on their symptoms or they have more than 1 risk factor. **Medium Priority** clients are those who have at least one symptom or at least one risk factor. **Low Priority** clients have no risk factors or symptoms related to COVID-19 but may be vulnerable in other ways.
+Our Coordinated Entry process will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, contact with others, and test results. This will be made available in our Prioritization report, which is used to help communities with moving households into permanent housing. High Priority would mean the household should quarantine immediately, as they either have the right mix of symptoms, a lot of risk factors, or other strong indicators that they have COVID-19.
 
 ```{r fig2, fig.width=7, fig.asp=.62}
 
@@ -333,7 +309,10 @@ plot_b %>%
   geom_bar(stat = "identity") +
   theme_classic() +
   ggtitle("Priority for Immediate Housing Based on Symptoms and Risk Factors") +
-  theme(legend.key.size = unit(0.2, "cm")) +
+  theme(legend.title=element_blank(),
+        legend.position = "top",
+        legend.key.height = unit(0.1, "cm"),
+        legend.key.width = unit(0.3, "cm"))+
   labs(x = "Date of Assessment", y = "Clients Assessed")
 ```
 
