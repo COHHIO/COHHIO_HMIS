@@ -10,6 +10,8 @@ library(lubridate)
 library(knitr)
 library(here)
 
+load(here("images/COHHIOHMIS.RData"))
+
 if(exists("dataset") == FALSE) {
   dataset <- "live"
 } else {
@@ -31,6 +33,12 @@ if(file.exists(here(paste0(directory, "/covid19.zip")))) {
   file.remove(here(paste0(directory, "/covid19.zip")))
 }
 
+get_res_prior <- Enrollment %>%
+  select(PersonalID, EntryDate, ExitDate, LivingSituation) %>%
+  group_by(PersonalID) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L)
+
 covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
                     col_types = "ncccccccccccccccccccccccc") %>%
   mutate(
@@ -40,7 +48,17 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
     TestDate = mdy(TestDate),
     DateUnderInvestigation = mdy(DateUnderInvestigation)
   ) %>%
-  filter(ymd(COVID19AssessmentDate) > ymd("20200401"))
+  filter(ymd(COVID19AssessmentDate) > ymd("20200401")) %>%
+  left_join(get_res_prior, by = "PersonalID") %>%
+  mutate(LivingSituationDescr = living_situation(LivingSituation))
+
+# living_situation() is a custom function I wrote that comes in with the COHHIO_HMIS data. (see line 13) It just translates the number assigned to the various responses to the descriptions acc. to the HUD Data Standards.
+
+rm(list = ls()[!(ls() %in% c('covid19',
+                             'entered_between',
+                             'exited_between',
+                             'served_between',
+                             'stayed_between'))])
 ```
 
 ## What Data We're Collecting
