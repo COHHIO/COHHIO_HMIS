@@ -93,59 +93,30 @@ basic <- covid19 %>%
     ContactWithConfirmedCOVID19Patient = replace_yes_no(ContactWithConfirmedCOVID19Patient),
     ContactWithUnderCOVID19Investigation = replace_yes_no(ContactWithUnderCOVID19Investigation),
     Tested = replace_yes_no(Tested),
-    UnderInvestigation = replace_yes_no(UnderInvestigation))
-
-CurrentSymptoms <- basic %>%
-  mutate(
-    MayHaveCOVID19CDC = (
-      COVID19AssessmentDate > today() - days(14) &
-        (Symptom1BreathingDifficult == 1 |
-           Symptom1Cough == 1)
-    ) |
-      (
-        ContactWithConfirmedCOVID19Patient == 1 &
-          (ymd(ContactWithConfirmedDate) > today() - days(14) |
-          is.na(ContactWithConfirmedDate))
-      ) |
-      (
-        ContactWithUnderCOVID19Investigation == 1 &
-          (ymd(ContactWithUnderInvestigationDate) > today() - days(14) |
-          is.na(ContactWithUnderInvestigationDate))
-      ) |
-      (
-        COVID19AssessmentDate > today() - days(14) &
-          Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-          Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-          Symptom2ShakingChills > 1
-      )
-  ) %>%
-  group_by(MayHaveCOVID19CDC) %>%
-  summarise(Clients = n())
+    UnderInvestigation = replace_yes_no(UnderInvestigation)
+  )
 
 ```
 
-Since April 1, **`r nrow(basic)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they have COVID-19 and they have not tested positive. "May Have COVID-19" means the client has not tested positive for COVID-19 but is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having at least one Primary Symptom or at least 2 Secondary Symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional and the test was positive.
+Since April 1, **`r nrow(basic)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they may have COVID-19 and they have not tested positive. "May Have COVID-19" means the client has not tested positive for COVID-19 but is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional within the last 14 days and the test was positive.
 
 ```{r fig1, fig.width=7, fig.asp=.62}
-# since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out time-dependent data based on the AssessmentDate, not based on its distance from "today".
+# since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out symptom data based on the AssessmentDate, not based on its distance from "today".
 
-plot_a <- basic %>%
+assessments_over_time_plot <- basic %>%
   mutate(
     COVID19Status = case_when(
       Tested == 1 & TestResults == "Positive" &
         ymd(TestDate) > ymd(COVID19AssessmentDate) - days(14) &
         !is.na(TestDate) ~ "Positive",
-      (Symptom1BreathingDifficult == 1 |
-         Symptom1Cough == 1)
-      |
-        (
-          ContactWithConfirmedCOVID19Patient == 1 &
-            (
-              ymd(ContactWithConfirmedDate) >
-                ymd(COVID19AssessmentDate) - days(14) |
-                is.na(ContactWithConfirmedDate)
-            )
-        ) |
+      (
+        ContactWithConfirmedCOVID19Patient == 1 &
+          (
+            ymd(ContactWithConfirmedDate) >
+              ymd(COVID19AssessmentDate) - days(14) |
+              is.na(ContactWithConfirmedDate)
+          )
+      ) |
         (
           ContactWithUnderCOVID19Investigation == 1 &
             (
@@ -155,7 +126,7 @@ plot_a <- basic %>%
             )
         ) |
         (
-          Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
+          Symptom1BreathingDifficult + Symptom1Cough + Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
             Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
             Symptom2ShakingChills > 1
         ) |
@@ -164,7 +135,6 @@ plot_a <- basic %>%
             ymd(DateUnderInvestigation) > ymd(COVID19AssessmentDate) - days(14)
         ) ~
         "May Have COVID-19",
-      
       TRUE ~ "No Current Indications"
     ),
     COVID19Status = factor(
@@ -175,7 +145,7 @@ plot_a <- basic %>%
     )
   )
 
-plot_a %>%
+assessments_over_time_plot %>%
   select(PersonalID, COVID19AssessmentDate, COVID19Status) %>%
   group_by(COVID19AssessmentDate, COVID19Status) %>%
   summarise(Clients = n()) %>%
