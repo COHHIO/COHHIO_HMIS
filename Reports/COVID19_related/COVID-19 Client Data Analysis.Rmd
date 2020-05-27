@@ -69,7 +69,7 @@ Please send inquiries to hmis@cohhio.org.
 
 ## COVID-19 Status of Clients Over Time
 
-```{r symptoms}
+```{r shaping_data}
 
 replace_yes_no <- function(column_name){
     if_else(column_name == "No" | is.na(column_name), 0, 1)
@@ -106,9 +106,11 @@ Since April 1, **`r nrow(basic)`** clients have been screened for COVID-19. "No 
 assessments_over_time_plot <- basic %>%
   mutate(
     COVID19Status = case_when(
-      Tested == 1 & TestResults == "Positive" &
+      Tested == 1 &
+        TestResults == "Positive" &
         ymd(TestDate) > ymd(COVID19AssessmentDate) - days(14) &
         !is.na(TestDate) ~ "Positive",
+      # testing positive in the past 2 wks is the only way to land in this bucket
       (
         ContactWithConfirmedCOVID19Patient == 1 &
           (
@@ -116,6 +118,7 @@ assessments_over_time_plot <- basic %>%
               ymd(COVID19AssessmentDate) - days(14) |
               is.na(ContactWithConfirmedDate)
           )
+        # compares contact date to date of the assessment
       ) |
         (
           ContactWithUnderCOVID19Investigation == 1 &
@@ -125,17 +128,25 @@ assessments_over_time_plot <- basic %>%
                 is.na(ContactWithUnderInvestigationDate)
             )
         ) |
-        (
-          Symptom1BreathingDifficult + Symptom1Cough + Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-            Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-            Symptom2ShakingChills > 1
-        ) |
+        (Symptom1BreathingDifficult + 
+        Symptom1Cough + 
+        Symptom2Chills +
+        Symptom2SoreThroat + 
+        Symptom2Fever + 
+        Symptom2Headache +
+        Symptom2LostTasteSmell + 
+        Symptom2MusclePain + 
+        Symptom2ShakingChills) > 0
+      |
         (
           UnderInvestigation == 1 &
             ymd(DateUnderInvestigation) > ymd(COVID19AssessmentDate) - days(14)
         ) ~
         "May Have COVID-19",
+      # being Under Investigation (past 14 days), any Symptom, or any Contact
+      # in the past 14 days will land you here ^
       TRUE ~ "No Current Indications"
+      # everyone else lands here ^
     ),
     COVID19Status = factor(
       COVID19Status,
