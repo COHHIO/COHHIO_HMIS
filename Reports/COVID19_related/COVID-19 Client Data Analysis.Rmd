@@ -12,6 +12,10 @@ library(here)
 
 load(here("images/COHHIOHMIS.RData"))
 
+replace_yes_no <- function(column_name){
+    if_else(column_name == "No" | is.na(column_name), 0, 1)
+}
+
 if(exists("dataset") == FALSE) {
   dataset <- "live"
 } else {
@@ -23,12 +27,14 @@ directory <- case_when(dataset == "live" ~ "data",
                        dataset == "yo" ~ "youngstowndata")
 
 if(file.exists(here(paste0(directory, "/covid19.zip")))) {
-  unzip(zipfile = here(paste0("./", directory, "/covid19.zip")), 
+  unzip(zipfile = here(paste0("./", directory, "/covid19.zip")),
         exdir = here(paste0("./", directory)))
   
-  file.rename(here(paste0(directory, "/", list.files(here(paste0("./", directory)), 
-                                                pattern = "(report_)"))),
-              here(paste0(directory, "/covid19.csv")))
+  file.rename(here(paste0(
+    directory, "/", list.files(here(paste0("./", directory)),
+                               pattern = "(report_)")
+  )),
+  here(paste0(directory, "/covid19.csv")))
   
   file.remove(here(paste0(directory, "/covid19.zip")))
 }
@@ -50,32 +56,7 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
   ) %>%
   filter(ymd(COVID19AssessmentDate) > ymd("20200401")) %>%
   left_join(get_res_prior, by = "PersonalID") %>%
-  mutate(LivingSituationDescr = living_situation(LivingSituation))
-
-# living_situation() is a custom function I wrote that comes in with the COHHIO_HMIS data. (see line 13) It just translates the number assigned to the various responses to the descriptions acc. to the HUD Data Standards.
-
-rm(list = ls()[!(ls() %in% c('covid19',
-                             'entered_between',
-                             'exited_between',
-                             'served_between',
-                             'stayed_between'))])
-```
-
-## What Data We're Collecting
-
-The Ohio Balance of State CoC is collecting COVID-19 data based on the CDC's guidelines, listed [here](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html). We began collecting this data in April 2020.
-
-Please send inquiries to hmis@cohhio.org.
-
-## COVID-19 Status of Clients Over Time
-
-```{r shaping_data}
-
-replace_yes_no <- function(column_name){
-    if_else(column_name == "No" | is.na(column_name), 0, 1)
-}
-
-basic <- covid19 %>%
+  mutate(LivingSituationDescr = living_situation(LivingSituation)) %>%
   as_tibble() %>%
   mutate(
     Symptom1BreathingDifficult = replace_yes_no(Symptom1BreathingDifficult),
@@ -96,21 +77,37 @@ basic <- covid19 %>%
     UnderInvestigation = replace_yes_no(UnderInvestigation)
   )
 
+# living_situation() is a custom function I wrote that comes in with the COHHIO_HMIS data. (see line 13) It just translates the number assigned to the various responses to the descriptions acc. to the HUD Data Standards.
+
+rm(list = ls()[!(ls() %in% c('covid19',
+                             'entered_between',
+                             'exited_between',
+                             'served_between',
+                             'stayed_between'))])
 ```
 
-Since April 1, **`r nrow(basic)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they may have COVID-19 and they have not tested positive. "May Have COVID-19" means the client has not tested positive for COVID-19 but is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional within the last 14 days and the test was positive.
+## What Data We're Collecting
+
+The Ohio Balance of State CoC is collecting COVID-19 data based on the CDC's guidelines, listed [here](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html). We began collecting this data in April 2020.
+
+Please send inquiries to hmis@cohhio.org.
+
+## COVID-19 Status of Clients Over Time
+
+Since April 1, **`r nrow(covid19)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they may have COVID-19 and they have not tested positive. "May Have COVID-19" means the client has not tested positive for COVID-19 but is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional within the last 14 days and the test was positive. This plot does not include data about risk factors.
 
 ```{r fig1, fig.width=7, fig.asp=.62}
 # since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out symptom data based on the AssessmentDate, not based on its distance from "today".
 
-assessments_over_time_plot <- basic %>%
+assessments_over_time_plot <- covid19 %>%
   mutate(
     COVID19Status = case_when(
       Tested == 1 &
         TestResults == "Positive" &
         ymd(TestDate) > ymd(COVID19AssessmentDate) - days(14) &
         !is.na(TestDate) ~ "Positive",
-      # testing positive in the past 2 wks is the only way to land in this bucket
+      # testing positive in the 14 days prior to assessment is the only way to 
+      # land in this bucket
       (
         ContactWithConfirmedCOVID19Patient == 1 &
           (
@@ -144,7 +141,7 @@ assessments_over_time_plot <- basic %>%
         ) ~
         "May Have COVID-19",
       # being Under Investigation (past 14 days), any Symptom, or any Contact
-      # in the past 14 days will land you here ^
+      # in the 14 days prior to the assessment date will land you here ^
       TRUE ~ "No Current Indications"
       # everyone else lands here ^
     ),
@@ -179,70 +176,72 @@ assessments_over_time_plot %>%
 
 ## Priority for Immediate Non-congregate Housing
 
-```{r risks, echo=FALSE}
+```{r priority, echo=FALSE}
 
-risks <- basic %>%
+priority <- covid19 %>%
   mutate(
-    MayHaveCOVID19CDC = (
-      COVID19AssessmentDate > today() - days(14) &
-        (Symptom1BreathingDifficult == 1 |
-           Symptom1Cough == 1)
-    ) |
-      (
-        ContactWithConfirmedCOVID19Patient == 1 &
-          (ymd(ContactWithConfirmedDate) > today() - days(14) |
-          is.na(ContactWithConfirmedDate))
-      ) |
-      (
-        ContactWithUnderCOVID19Investigation == 1 &
-          (ymd(ContactWithUnderInvestigationDate) > today() - days(14) |
-          is.na(ContactWithUnderInvestigationDate))
-      ) |
-      (
-        COVID19AssessmentDate > today() - days(14) &
-          Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-          Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-          Symptom2ShakingChills > 1
-      ),
-    HealthRisks = HealthRiskOver60 +
-      HealthRiskHistoryOfRespiratoryIllness +
-      HealthRiskChronicIllness,
-    ProximityRisks =
-      if_else(
-        ContactWithUnderInvestigationDate > today() - days(14) |
-          is.na(ContactWithUnderInvestigationDate),
-        ContactWithUnderCOVID19Investigation,
-        0
-      ) +
-      if_else(
-        ContactWithConfirmedDate > today() - days(14) |
-          is.na(ContactWithConfirmedDate),
-        ContactWithConfirmedCOVID19Patient,
-        0
-      ),
-    NumberOfRisks = HealthRisks + ProximityRisks,
     Priority = case_when(
+      # if tested positive
       (
         Tested == 1 &
-          TestResults == "Positive" & ymd(TestDate) > today() - days(14)
+          TestResults == "Positive" &
+          ymd(TestDate) > ymd(COVID19AssessmentDate) - days(14) &
+          !is.na(TestDate)
       ) |
-        (UnderInvestigation == 1 & 
-           (ymd(DateUnderInvestigation) > today() - days(14) |
-           is.na(DateUnderInvestigation))) |
-        MayHaveCOVID19CDC == TRUE |
-        ProximityRisks > 0 |
-        HealthRisks > 1 ~ "High",
-      Symptom2Chills +
-        Symptom2SoreThroat +
-        Symptom2Fever +
-        Symptom2Headache +
-        Symptom2LostTasteSmell +
-        Symptom2MusclePain +
-        Symptom2ShakingChills > 0 |
-        NumberOfRisks > 0 ~ "Medium",
+        # if under investigation
+        (
+          UnderInvestigation == 1 &
+            ymd(DateUnderInvestigation) > ymd(COVID19AssessmentDate) - days(14)
+        ) |
+        # contact with COVID-19
+        (
+          ContactWithConfirmedCOVID19Patient == 1 &
+            (
+              ymd(ContactWithConfirmedDate) >
+                ymd(COVID19AssessmentDate) - days(14) |
+                is.na(ContactWithConfirmedDate)
+            )
+          # compares contact date to the assessment date too since we want to
+          # see severity at the time of assessment
+        ) |
+        (
+          ContactWithUnderCOVID19Investigation == 1 &
+            (
+              ymd(ContactWithUnderInvestigationDate) >
+                ymd(COVID19AssessmentDate) - days(14) |
+                is.na(ContactWithUnderInvestigationDate)
+            )
+        ) |
+        # if the client came from jail or nursing home
+        (
+          LivingSituation %in% c(7, 25) &
+            EntryDate > ymd(COVID19AssessmentDate) - days(14) &
+            EntryDate <= ymd(COVID19AssessmentDate)
+        ) |
+        # if the client has any symptoms at all
+        (
+          Symptom1BreathingDifficult +
+            Symptom1Cough +
+            Symptom2Chills +
+            Symptom2SoreThroat +
+            Symptom2Fever +
+            Symptom2Headache +
+            Symptom2LostTasteSmell +
+            Symptom2MusclePain +
+            Symptom2ShakingChills
+        ) > 0
+      |
+        # if the client has any symptoms at all
+        (
+          HealthRiskHistoryOfRespiratoryIllness +
+            HealthRiskChronicIllness +
+            HealthRiskOver60 > 0
+        )  ~ "High",
       TRUE ~ "Low"
-    ), 
-    Priority = factor(Priority, levels = c("High", "Medium", "Low"))
+      # everyone else lands here ^
+      # in the report, there will be a third level: "Not Assessed Recently"
+    ),
+    Priority = factor(Priority, levels = c("High", "Low"))
   )
 
 ```
@@ -251,7 +250,7 @@ Our Coordinated Entry process will use this metric to determine whether a client
 
 ```{r fig2, fig.width=7, fig.asp=.62}
 
-plot_b <- risks %>%
+plot_b <- priority %>%
   select(PersonalID, COVID19AssessmentDate, Priority) %>%
   group_by(COVID19AssessmentDate, Priority) %>%
   summarise(Clients = n()) %>%
@@ -260,7 +259,7 @@ plot_b <- risks %>%
 plot_b %>%
   ggplot(aes(x = COVID19AssessmentDate, y = Clients,
              fill = Priority, label = Clients)) +
-  scale_fill_brewer(palette = "GnBu", direction = -1) +
+  scale_fill_manual(values = c("#43a2ca", "#bae4bc")) +
   geom_bar(stat = "identity") +
   theme_classic() +
   ggtitle("Priority for Immediate Housing Based on Symptoms and Risk Factors") +
