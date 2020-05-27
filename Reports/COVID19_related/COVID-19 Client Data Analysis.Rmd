@@ -250,13 +250,13 @@ Our Coordinated Entry process will use this metric to determine whether a client
 
 ```{r fig2, fig.width=7, fig.asp=.62}
 
-plot_b <- priority %>%
+priority_plot <- priority %>%
   select(PersonalID, COVID19AssessmentDate, Priority) %>%
   group_by(COVID19AssessmentDate, Priority) %>%
   summarise(Clients = n()) %>%
   arrange(Priority)
 
-plot_b %>%
+priority_plot %>%
   ggplot(aes(x = COVID19AssessmentDate, y = Clients,
              fill = Priority, label = Clients)) +
   scale_fill_manual(values = c("#43a2ca", "#bae4bc")) +
