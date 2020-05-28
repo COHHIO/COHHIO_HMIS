@@ -231,7 +231,7 @@ priority <- covid19 %>%
             Symptom2ShakingChills
         ) > 0
       |
-        # if the client has any symptoms at all
+        # if the client has any risks at all
         (
           HealthRiskHistoryOfRespiratoryIllness +
             HealthRiskChronicIllness +
@@ -246,7 +246,7 @@ priority <- covid19 %>%
 
 ```
 
-Our Prioritization report for Coordinated Entry will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, contact with others, and test results. This report is used to help communities with moving households into permanent housing. High Priority would mean the household should be moved out of a shelter immediately for quarantine due to a suspected or unconfirmed infection, isolation because the person has tested positive, or non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19.
+Our Prioritization report for Coordinated Entry will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, test results, and contact with others. This report is used to help communities with moving households into permanent housing. The Isolation/Quarantine category indicates the household should be moved out of any congregate space immediately for quarantine due to a suspected or unconfirmed infection. The High-Risk category indicates the household needs non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19. Although everyone is at risk of contracting this virus when exposed, the Low-Risk category means the household has no known risk factors, and no suspected or known exposure.
 
 ```{r fig2, fig.width=7, fig.asp=.62}
 
