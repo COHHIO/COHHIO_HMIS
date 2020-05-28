@@ -94,7 +94,7 @@ Please send inquiries to hmis@cohhio.org.
 
 ## COVID-19 Status of Clients Over Time
 
-Since April 1, **`r nrow(covid19)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they may have COVID-19 and they have not tested positive. "May Have COVID-19" means the client has not tested positive for COVID-19 but is defined in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional within the last 14 days and the test was positive. This plot does not include data about risk factors.
+Since April 1, **`r nrow(covid19)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they may have COVID-19, they haven't reported any recent contact with an infected person, and they have not tested positive. "May Have COVID-19" means the client fits what is listed in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional within the last 14 days and the test was positive. This plot does not include data about risk factors.
 
 ```{r fig1, fig.width=7, fig.asp=.62}
 # since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out symptom data based on the AssessmentDate, not based on its distance from "today".
@@ -246,7 +246,7 @@ priority <- covid19 %>%
 
 ```
 
-Our Coordinated Entry process will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, contact with others, and test results. This will be made available in our Prioritization report, which is used to help communities with moving households into permanent housing. High Priority would mean the household should quarantine immediately, as they either have the right mix of symptoms, a lot of risk factors, or other strong indicators that they have COVID-19.
+Our Prioritization report for Coordinated Entry will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, contact with others, and test results. This report is used to help communities with moving households into permanent housing. High Priority would mean the household should be moved out of a shelter immediately for quarantine due to a suspected or unconfirmed infection, isolation because the person has tested positive, or non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19.
 
 ```{r fig2, fig.width=7, fig.asp=.62}
 
