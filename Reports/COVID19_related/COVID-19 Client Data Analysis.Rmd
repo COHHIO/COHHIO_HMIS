@@ -229,24 +229,29 @@ priority <- covid19 %>%
             Symptom2LostTasteSmell +
             Symptom2MusclePain +
             Symptom2ShakingChills
-        ) > 0
-      |
+        ) > 0 ~ "Isolation/Quarantine",
         # if the client has any risks at all
         (
           HealthRiskHistoryOfRespiratoryIllness +
             HealthRiskChronicIllness +
             HealthRiskOver60 > 0
-        )  ~ "High",
-      TRUE ~ "Low"
+        )  ~ "High Risk",
+      TRUE ~ "No Known Risks or Exposure"
       # everyone else lands here ^
       # in the report, there will be a third level: "Not Assessed Recently"
     ),
-    Priority = factor(Priority, levels = c("High", "Low"))
+    Priority = factor(Priority, levels = c("Isolation/Quarantine", 
+                                           "High Risk", 
+                                           "No Known Risks or Exposure"))
   )
 
 ```
 
-Our Prioritization report for Coordinated Entry will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, test results, and contact with others. This report is used to help communities with moving households into permanent housing. The Isolation/Quarantine category indicates the household should be moved out of any congregate space immediately for quarantine due to a suspected or unconfirmed infection. The High-Risk category indicates the household needs non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19. Although everyone is at risk of contracting this virus when exposed, the Low-Risk category means the household has no known risk factors, and no suspected or known exposure.
+Our Prioritization report for Coordinated Entry will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, test results, and contact with others. This report is used to help communities with moving households into permanent housing. 
+
+- The **Isolation/Quarantine** category indicates the household should be moved out of any congregate space immediately for quarantine due to a suspected or confirmed infection or likely exposure. Likely exposure could include having come into the system directly from prison or a nursing home.
+- The **High Risk** category indicates the household needs non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19. 
+- Although everyone is at risk of contracting this virus when exposed, the **No Known Risks or Exposure** category means the household has no known risk factors, and no suspected or known exposure.
 
 ```{r fig2, fig.width=7, fig.asp=.62}
 
@@ -259,7 +264,7 @@ priority_plot <- priority %>%
 priority_plot %>%
   ggplot(aes(x = COVID19AssessmentDate, y = Clients,
              fill = Priority, label = Clients)) +
-  scale_fill_manual(values = c("#43a2ca", "#bae4bc")) +
+  scale_fill_brewer(palette = "GnBu", direction = -1) +
   geom_bar(stat = "identity") +
   theme_classic() +
   ggtitle("Priority for Immediate Housing Based on Symptoms and Risk Factors") +
@@ -268,6 +273,7 @@ priority_plot %>%
         legend.key.height = unit(0.1, "cm"),
         legend.key.width = unit(0.3, "cm"))+
   labs(x = "Date of Assessment", y = "Clients Assessed")
+
 ```
 
 
