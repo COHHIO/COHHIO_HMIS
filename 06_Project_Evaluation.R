@@ -30,6 +30,18 @@ load("images/Data_Quality.RData")
 
 pe_score <- function(structure, value) {
   case_when(
+    structure == "24_30_11" & value >= .3 ~ 11,
+    structure == "24_30_11" & value >= .27 & value < .3 ~ 8,
+    structure == "24_30_11" & value >= .24 & value < .27 ~ 5,
+    structure == "24_30_11" & value < .24 ~ 0,
+    structure == "75_85_12" & value >= .85 ~ 12,
+    structure == "75_85_12" & value >= .8 & value < .85 ~ 9,
+    structure == "75_85_12" & value >= .75 & value < .8 ~ 5,
+    structure == "75_85_12" & value < .75 ~ 0,
+    structure == "80_90_12" & value >= .9 ~ 12,
+    structure == "80_90_12" & value >= .85 & value < .9 ~ 9,
+    structure == "80_90_12" & value >= .8 & value < .85 ~ 5,
+    structure == "80_90_12" & value < .8 ~ 0,
     structure == "0_730_10" & value <= 730 ~ 10,
     structure == "0_730_10" & value > 730 ~ 0,
     structure == "75_85_10" & value >= .85 ~ 10,
@@ -180,7 +192,7 @@ consolidations <- pe_coc_funded %>%
       ProjectID %in% c(1323, 208) ~ 3006
     ),
     AltProjectName = case_when(
-      ProjectID %in% c(718, 719, 721) ~ "PSH Butler County Combined",
+      ProjectID %in% c(718, 719, 721) ~ "Butler County PSH Combined",
       ProjectID %in% c(1353, 1354) ~ "Springfield SPC 1 Combined",
       ProjectID %in% c(746, 747) ~ "Jefferson County SPC Combined",
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined",
