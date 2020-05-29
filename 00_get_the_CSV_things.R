@@ -767,7 +767,7 @@ living_situation <- function(ReferenceNo) {
     ReferenceNo == 1 ~ "Emergency shelter/ h/motel paid for by a third party/Host Home shelter",
     ReferenceNo == 18 ~ "Safe Haven",
     ReferenceNo == 15 ~ "Foster care home of foster care group home",
-    ReferenceNo == 6 ~ " Hospital or other residential non-psychiatric medical facility",
+    ReferenceNo == 6 ~ "Hospital or other residential non-psychiatric medical facility",
     ReferenceNo == 7 ~ "Jail/prison/juvenile detention",
     ReferenceNo == 25 ~ "Long-term care facility or nursing home",
     ReferenceNo == 4 ~ "Psychiatric hospital/ other psychiatric facility",
