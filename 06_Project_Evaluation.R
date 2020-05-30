@@ -791,7 +791,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
     Structure = case_when(
-      ProjectType == 3 ~ "80_90_10",
+      ProjectType == 3 ~ "80_90_12",
       ProjectType %in% c(2, 13) ~ "75_83_10",
       ProjectType == 8 ~ "67_75_10"
     ),
@@ -977,7 +977,10 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
-    Structure = if_else(ProjectType != 8, "75_85_10", "67_75_10"),
+    Structure = case_when(
+      ProjectType == 8 ~ "67_75_10",
+      ProjectType == 3 ~ "75_85_12", 
+      TRUE ~ "75_85_10"),
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
     BenefitsAtExitMath = if_else(
       AdultMovedInLeavers == 0,
@@ -1089,7 +1092,7 @@ summary_pe_increase_income <- pe_increase_income %>%
   mutate(
     IncreasedIncome = if_else(is.na(IncreasedIncome), 0, IncreasedIncome),
     Structure = case_when(
-      ProjectType == 3 ~ "24_30_10",
+      ProjectType == 3 ~ "24_30_11",
       ProjectType == 2 ~ "22_28_10",
       ProjectType == 8 ~ "16_20_10",
       ProjectType == 13 ~ "14_18_10"
