@@ -651,6 +651,8 @@ upper_psh_sh <- 12000
 lower_rrh <- 5000
 upper_rrh <- 9000
 
+
+
 summary_pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName", "ProjectID")) %>%
   select(
@@ -673,7 +675,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         (ProjectType %in% c(3, 8) &
            CostPerExit <= lower_psh_sh) |
         (ProjectType == 13 &
-           CostPerExit <= lower_rrh) ~ 5,
+           CostPerExit <= lower_rrh) ~ 0, # would be 5 but covid19
       (ProjectType == 2 &
          CostPerExit > lower_th &
          CostPerExit <= upper_th) |
@@ -686,21 +688,21 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
           ProjectType == 13 &
             CostPerExit > lower_rrh &
             CostPerExit <= upper_rrh
-        ) ~ 2,
+        ) ~ 0, # would be 2 but covid19
       (ProjectType == 2 &
          CostPerExit > upper_th) |
         (ProjectType %in% c(3, 8) &
            CostPerExit > upper_psh_sh) |
         (ProjectType == 13 &
-           CostPerExit > upper_rrh) ~ 0
+           CostPerExit > upper_rrh) ~ 0 # <- naturally zero!
     ),
-    CostPerExitPossible = 5,
-    CostPerExitMath = "This item is scored by the CoC team.",
-    OnTrackSpendingPossible = 5,
-    OnTrackSpendingMath = "This item is scored by the CoC team.",
-    UnspentFundsPossible = 5,
-    UnspentFundsMath = "This item is scored by the CoC team.",
-    HousingFirstPossible = 15,
+    CostPerExitPossible = 0, # would be 5, but virus
+    CostPerExitMath = "Not scored in 2020 due to COVID-19.",
+    OnTrackSpendingPossible = 0, # would be 5, but virus
+    OnTrackSpendingMath = "Not scored in 2020 due to COVID-19.",
+    UnspentFundsPossible = 0, # would be 5, but virus
+    UnspentFundsMath = "Not scored in 2020 due to COVID-19.",
+    HousingFirstPossible = 0, # would be 15, but virus
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         is.na(HousingFirstScore) ~ 3,
@@ -710,14 +712,15 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         !is.na(HousingFirstScore) ~ 4,
       ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
     ),
-    HousingFirstScore = case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
-        !is.na(HousingFirstScore) ~ HousingFirstScore,
-      is.na(DateReceivedPPDocs) &
-        is.na(HousingFirstScore) ~ -10L,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10L
-    ),
-    HousingFirstMath = "This item is scored by the CoC team.",
+    HousingFirstScore = 0, 
+    #   case_when(
+    #   ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+    #     !is.na(HousingFirstScore) ~ HousingFirstScore,
+    #   is.na(DateReceivedPPDocs) &
+    #     is.na(HousingFirstScore) ~ -10L,
+    #   ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10L
+    # ),  # commented out due to covid19
+    HousingFirstMath = "Not scored in 2020 due to COVID-19.",
     ChronicPrioritizationDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
@@ -727,18 +730,20 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         !is.na(ChronicPrioritizationScore) ~ 4,
       ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
     ),
-    ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL),
-    ChronicPrioritizationScore = case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
-        ProjectType == 3 &
-        !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
-      is.na(DateReceivedPPDocs) &
-        ProjectType == 3 &
-        is.na(ChronicPrioritizationScore) ~ -5L,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) &
-        ProjectType == 3 ~ -5L
-    ),
-    ChronicPrioritizationMath = "This item is scored by the CoC team."
+    ChronicPrioritizationPossible = if_else(ProjectType == 3, 0, NULL), 
+    # true would be 10, but virus
+    ChronicPrioritizationScore = if_else(ProjectType == 3, 0, NULL), 
+    #   case_when(
+    #   ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+    #     ProjectType == 3 &
+    #     !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
+    #   is.na(DateReceivedPPDocs) &
+    #     ProjectType == 3 &
+    #     is.na(ChronicPrioritizationScore) ~ -5L,
+    #   ymd(DateReceivedPPDocs) > ymd(docs_due) &
+    #     ProjectType == 3 ~ -5L
+    # ), # commented out due to covid19
+    ChronicPrioritizationMath = "Not scored in 2020 due to COVID-19."
   ) 
 
 # 2 = Documents not yet received
