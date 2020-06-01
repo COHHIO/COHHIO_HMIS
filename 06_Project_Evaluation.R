@@ -697,11 +697,11 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
            CostPerExit > upper_rrh) ~ 0 # <- naturally zero!
     ),
     CostPerExitPossible = 0, # would be 5, but virus
-    CostPerExitMath = "Not scored in 2020 due to COVID-19.",
+    CostPerExitMath = "NOT SCORED in 2020 due to COVID-19.",
     OnTrackSpendingPossible = 0, # would be 5, but virus
-    OnTrackSpendingMath = "Not scored in 2020 due to COVID-19.",
+    OnTrackSpendingMath = "NOT SCORED in 2020 due to COVID-19.",
     UnspentFundsPossible = 0, # would be 5, but virus
-    UnspentFundsMath = "Not scored in 2020 due to COVID-19.",
+    UnspentFundsMath = "NOT SCORED in 2020 due to COVID-19.",
     HousingFirstPossible = 0, # would be 15, but virus
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
@@ -720,7 +720,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     #     is.na(HousingFirstScore) ~ -10L,
     #   ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10L
     # ),  # commented out due to covid19
-    HousingFirstMath = "Not scored in 2020 due to COVID-19.",
+    HousingFirstMath = "NOT SCORED in 2020 due to COVID-19.",
     ChronicPrioritizationDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
@@ -743,7 +743,7 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     #   ymd(DateReceivedPPDocs) > ymd(docs_due) &
     #     ProjectType == 3 ~ -5L
     # ), # commented out due to covid19
-    ChronicPrioritizationMath = "Not scored in 2020 due to COVID-19."
+    ChronicPrioritizationMath = "NOT SCORED in 2020 due to COVID-19."
   ) 
 
 # 2 = Documents not yet received
@@ -828,10 +828,10 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
          HoHsServed == 0) |
         (ProjectType != 3 &
            HoHsServedLeavers == 0),
-      10,
+      if_else(ProjectType == 3, 12, 10),
       pe_score(Structure, ExitsToPHPercent)
     ),
-    ExitsToPHPossible = 10,
+    ExitsToPHPossible = if_else(ProjectType == 3, 12, 10),
     ExitsToPHPoints = if_else(
       ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
       ExitsToPHPoints,
@@ -1000,9 +1000,9 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     ), 
     BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
     BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
-                               10,
+                               if_else(ProjectType == 3, 12, 10),
                                pe_score(Structure, BenefitsAtExit)),
-    BenefitsAtExitPossible = 10,
+    BenefitsAtExitPossible = if_else(ProjectType == 3, 12, 10),
     BenefitsAtExitPoints = case_when(
       BenefitsAtExitDQ == 1 ~ 0,
       is.na(BenefitsAtExitDQ) |
@@ -1117,10 +1117,14 @@ summary_pe_increase_income <- pe_increase_income %>%
     IncreasedIncomePoints = case_when(
       IncreasedIncomeDQ == 1 ~ 0,
       AdultsMovedIn > 0 ~ pe_score(Structure, IncreasedIncomePercent),
+      ProjectType == 3 &
       AdultsMovedIn == 0 &
+        (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 11,
+      ProjectType != 3 &
+        AdultsMovedIn == 0 &
         (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 10
     ), 
-    IncreasedIncomePossible = 10,
+    IncreasedIncomePossible = if_else(ProjectType == 3, 11, 10),
     IncreasedIncomeCohort = "AdultsMovedIn"
   ) %>%
   select(
@@ -1577,14 +1581,14 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
       )
     ), 
     LongTermHomelessPoints = if_else(AdultsEntered == 0 &
-                                       ProjectType == 3, 5,
+                                       ProjectType == 3, 10,
                      pe_score(Structure, LongTermHomelessPercent)), 
     LongTermHomelessPoints = case_when(LTHomelessDQ == 0 |
                                          is.na(LTHomelessDQ) ~ LongTermHomelessPoints,
                                        LTHomelessDQ == 1 ~ 0), 
     LongTermHomelessPoints = if_else(is.na(LongTermHomelessPoints), 0, 
                                      LongTermHomelessPoints),
-    LongTermHomelessPossible = if_else(ProjectType == 3, 5, NULL),
+    LongTermHomelessPossible = if_else(ProjectType == 3, 10, NULL),
     LongTermhomelessCohort = "AdultsEntered"
   ) %>%
   select(
