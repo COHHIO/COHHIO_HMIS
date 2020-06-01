@@ -462,7 +462,10 @@ missing_LoS <- served_in_date_range %>%
            (is.na(LengthOfStay) | LengthOfStay == 99)) %>%
   mutate(Issue = "Missing Length of Stay",
          Type = "Error",
-         Guidance = guidance_missing_at_entry) %>%
+         Guidance = "This data element may be answered with an old value or it 
+         may simply be missing. If the value selected is \"One week or less (HUD)\",
+         you will need to change that value to either \"One night or less (HUD)\" 
+         or \"Two to six nights (HUD)\".") %>%
   select(all_of(vars_we_want))
 
 dkr_LoS <- served_in_date_range %>%
