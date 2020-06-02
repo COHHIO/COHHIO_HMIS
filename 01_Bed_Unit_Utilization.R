@@ -237,7 +237,8 @@ BedNights <- utilizers_clients %>%
     BN22 = sum(Month22, na.rm = TRUE),
     BN23 = sum(Month23, na.rm = TRUE),
     BN24 = sum(Month24, na.rm = TRUE)
-  )
+  ) %>%
+  ungroup()
 
 # Bed Capacity ------------------------------------------------------------
 
@@ -343,7 +344,9 @@ BedCapacity <- BedCapacity %>%
     BC22 = sum(Month22, na.rm = TRUE),
     BC23 = sum(Month23, na.rm = TRUE),
     BC24 = sum(Month24, na.rm = TRUE)
-  )
+  ) %>%
+  ungroup()
+
 # Bed Utilization ---------------------------------------------------------
 
 utilization_bed <- 
@@ -508,7 +511,8 @@ HHNights <- HHUtilizers %>%
     HN22 = sum(Month22, na.rm = TRUE),
     HN23 = sum(Month23, na.rm = TRUE),
     HN24 = sum(Month24, na.rm = TRUE)
-  )
+  ) %>%
+  ungroup()
     
 # leaving this one ^^ because the client-level 
 # detail should be good enough for R minor elevated
@@ -620,7 +624,8 @@ UnitCapacity <- UnitCapacity %>%
     UC22 = sum(Month22, na.rm = TRUE),
     UC23 = sum(Month23, na.rm = TRUE),
     UC24 = sum(Month24, na.rm = TRUE)
-  )
+  ) %>%
+  ungroup()
 
 # Unit Utilization --------------------------------------------------------
 
