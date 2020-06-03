@@ -19,11 +19,9 @@ reportyear <- 2019
 load(here("images/YOHMIS.RData"))
 ```
 
-## Total Transition Aged Youth Inflow `r year`
 
-Transition Aged Youth includes households where the oldest person in the household is between the age of 18 and 24. `r deduplicated_clients` total unique clients in transition aged youth households entered a project in the Mahoning CoC during `r year`.
 
-```{r tay_inflow}
+```{r tay_inflow, include=FALSE}
  
  inflow <- Enrollment %>%
    filter(RelationshipToHoH == 1 &
@@ -52,4 +50,55 @@ Transition Aged Youth includes households where the oldest person in the househo
    count() %>%
    pull()
 ```
+
+## Total Transition Aged Youth Inflow January `r reportyear` to December `r reportyear`
+
+Transition Aged Youth includes households where the oldest person in the household is between the age of 18 and 24. **`r deduplicated_clients`** total unique clients in transition aged youth households entered a project in the Mahoning CoC during `r reportyear`.
+
+## Household Types
+
+A household is a unit of people presenting for services to be housed together. Here we will refer to a household with more than one person in it as Families (regardless of relations) and households with a single person in it as Individuals. 
+
+```{r hh_types}
+
+family_units <- inflow %>%
+   filter(str_detect(HouseholdID, fixed("h_"))) %>%
+   select(HouseholdID) %>%
+   unique() %>%
+   count() %>%
+   pull()
+
+clients_in_families <- inflow %>%
+   filter(str_detect(HouseholdID, fixed("h_"))) %>%
+   select(PersonalID) %>%
+   unique() %>% 
+   count() %>%
+   pull()
+
+individuals <- inflow %>%
+   filter(str_detect(HouseholdID, fixed("s_"))) %>%
+   select(PersonalID) %>%
+   unique() %>%
+   count() %>%
+   pull()
+
+```
+
+During `r reportyear`: 
+
+- `r clients_in_families` clients make up `r family_units` families headed by a transition aged youth entered a project in the Mahoning County CoC.
+- `r individuals` transition aged youth individuals entered a project in the Mahoning County CoC.
+
+*Some clients may have presented for housing as both an individual and as part of a multi-person household. Those clients are being counted in both types.*
+
+## Fleeing Domestic Violence
+
+```{r}
+
+```
+
+
+
+
+
 
