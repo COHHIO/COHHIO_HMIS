@@ -1,0 +1,55 @@
+---
+title: "Transition Aged Youth Inflow"
+author: "Genelle Denzin"
+date: "6/3/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(lubridate)
+library(here)
+
+reportyear <- 2019
+# BEFORE KNITTING THIS, be sure you're running 00_get_the_CSV_things.R with the
+# correct directory
+
+load(here("images/YOHMIS.RData"))
+```
+
+## Total Transition Aged Youth Inflow `r year`
+
+Transition Aged Youth includes households where the oldest person in the household is between the age of 18 and 24. `r deduplicated_clients` total unique clients in transition aged youth households entered a project in the Mahoning CoC during `r year`.
+
+```{r tay_inflow}
+ 
+ inflow <- Enrollment %>%
+   filter(RelationshipToHoH == 1 &
+            entered_between(., paste("0101", reportyear),
+                            paste("1231", reportyear))) %>%
+   select(HouseholdID) %>%
+   left_join(Enrollment,
+             by = c("HouseholdID")) %>%
+   group_by(HouseholdID) %>%
+   summarise(oldest = max(AgeAtEntry)) %>%
+   ungroup() %>%
+   filter(oldest > 17 & oldest < 25) %>%
+   left_join(Enrollment, by = c("HouseholdID")) %>%
+   select(
+     HouseholdID,
+     PersonalID,
+     RelationshipToHoH,
+     EntryDate,
+     ExitDate,
+     ProjectName,
+     AgeAtEntry
+   )
+ deduplicated_clients <- inflow %>%
+   select(PersonalID) %>%
+   unique() %>%
+   count() %>%
+   pull()
+```
+
