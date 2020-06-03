@@ -86,19 +86,53 @@ individuals <- inflow %>%
 
 During `r reportyear`: 
 
-- `r clients_in_families` clients make up `r family_units` families headed by a transition aged youth entered a project in the Mahoning County CoC.
-- `r individuals` transition aged youth individuals entered a project in the Mahoning County CoC.
+- `r clients_in_families` clients in `r family_units` Families headed by a transition aged youth entered a project in the Mahoning County CoC.
+- `r individuals` transition aged youth Individuals entered a project in the Mahoning County CoC.
 
-*Some clients may have presented for housing as both an individual and as part of a multi-person household. Those clients are being counted in both types.*
+*Some clients may have presented for housing as an Individual and, in another episode, as part of a Family. Those clients are being counted in both household types.*
 
 ## Fleeing Domestic Violence
 
 ```{r}
 
+dv <- inflow %>%
+   left_join(
+      HealthAndDV %>%
+         filter(DataCollectionStage == 1) %>%
+         select(PersonalID,
+                CurrentlyFleeing,
+                WhenOccurred),
+      by = c("PersonalID")
+   ) %>%
+   mutate(
+      CurrentlyFleeing = if_else(is.na(CurrentlyFleeing), 99, CurrentlyFleeing),
+      WhenOccurred = if_else(is.na(WhenOccurred), 99, WhenOccurred),
+      CurrentlyFleeing = case_when(
+         CurrentlyFleeing %in% c(0, 99) &
+            WhenOccurred %in% c(4, 8, 9, 99) ~ "No",
+         CurrentlyFleeing == 1 |
+            WhenOccurred %in% c(1:3) ~ "Yes",
+         CurrentlyFleeing %in% c(8, 9, 99) |
+            WhenOccurred %in% c(8, 9, 99) ~ "Unknown"
+      )
+   ) %>%
+   select(HouseholdID,
+          PersonalID,
+          EntryDate,
+          RelationshipToHoH,
+          AgeAtEntry,
+          CurrentlyFleeing)
+
+households_dv <- dv %>%
+   filter(CurrentlyFleeing == "Yes") %>%
+   select(HouseholdID) %>%
+   unique() %>%
+   count() %>%
+   pull()
+
 ```
 
-
-
+During `r reportyear`, `r households_dv` households of one or more who were fleeing domestic violence and headed by a transition aged youth entered a project in the Mahoning County CoC.
 
 
 
