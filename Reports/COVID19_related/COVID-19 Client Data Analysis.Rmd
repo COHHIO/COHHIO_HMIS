@@ -54,7 +54,8 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
     TestDate = mdy(TestDate),
     DateUnderInvestigation = mdy(DateUnderInvestigation)
   ) %>%
-  filter(ymd(COVID19AssessmentDate) > ymd("20200401")) %>%
+  filter(ymd(COVID19AssessmentDate) > ymd("20200401") &
+           ymd(COVID19AssessmentDate) <= today()) %>%
   left_join(get_res_prior, by = "PersonalID") %>%
   mutate(LivingSituationDescr = living_situation(LivingSituation)) %>%
   as_tibble() %>%
@@ -96,7 +97,7 @@ Please send inquiries to hmis@cohhio.org.
 
 Since April 1, **`r nrow(covid19)`** clients have been screened for COVID-19. "No Current Indications" means the client does not have symptoms that would indicate they may have COVID-19, they haven't reported any recent contact with an infected person, and they have not tested positive. "May Have COVID-19" means the client fits what is listed in the [CDC's guidelines](https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html) as either having symptoms or has had contact with a person who is confirmed to have or is under investigation for COVID-19. "Positive" means the client has self-reported that they were tested for COVID-19 by a medical professional within the last 14 days and the test was positive. This plot does not include data about risk factors.
 
-```{r fig1, fig.width=7, fig.asp=.62}
+```{r fig1, fig.asp=.62, fig.width=8, message=FALSE}
 # since this is meant to show the state of clients over time and at the point of their most recent assessment, this logic is a little different from the logic for the Prioritization report in that we are throwing out symptom data based on the AssessmentDate, not based on its distance from "today".
 
 assessments_over_time_plot <- covid19 %>%
@@ -176,7 +177,7 @@ assessments_over_time_plot %>%
 
 ## Priority for Immediate Non-congregate Housing
 
-```{r priority, echo=FALSE}
+```{r priority, message=FALSE}
 
 priority <- covid19 %>%
   mutate(
@@ -253,7 +254,7 @@ Our Prioritization report for Coordinated Entry will use this metric to determin
 - The **High Risk** category indicates the household needs non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19. 
 - Although everyone is at risk of contracting this virus when exposed, the **No Known Risks or Exposure** category means the household has no known risk factors, and no suspected or known exposure.
 
-```{r fig2, fig.width=7, fig.asp=.62}
+```{r fig2, fig.asp=.62, fig.width=8, message=FALSE}
 
 priority_plot <- priority %>%
   select(PersonalID, COVID19AssessmentDate, Priority) %>%
