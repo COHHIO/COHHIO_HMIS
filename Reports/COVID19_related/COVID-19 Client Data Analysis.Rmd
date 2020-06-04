@@ -46,7 +46,7 @@ get_res_prior <- Enrollment %>%
   slice(1L)
 
 covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
-                    col_types = "ncccccccccccccccccccccccc") %>%
+                    col_types = "ncccccccccccccccccccccccccccccc") %>%
   mutate(
     COVID19AssessmentDate = mdy(COVID19AssessmentDate),
     ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
@@ -60,18 +60,24 @@ covid19 <- read_csv(here(paste0(directory, "/covid19.csv")),
   mutate(LivingSituationDescr = living_situation(LivingSituation)) %>%
   as_tibble() %>%
   mutate(
-    Symptom1BreathingDifficult = replace_yes_no(Symptom1BreathingDifficult),
     Symptom1Cough = replace_yes_no(Symptom1Cough),
-    Symptom2Chills = replace_yes_no(Symptom2Chills),
-    Symptom2Fever = replace_yes_no(Symptom2Fever),
-    Symptom2Headache = replace_yes_no(Symptom2Headache),
-    Symptom2LostTasteSmell = replace_yes_no(Symptom2LostTasteSmell),
-    Symptom2MusclePain = replace_yes_no(Symptom2MusclePain),
-    Symptom2ShakingChills = replace_yes_no(Symptom2ShakingChills),
+    Symptom1BreathingDifficult = replace_yes_no(Symptom1BreathingDifficult),
     Symptom2SoreThroat = replace_yes_no(Symptom2SoreThroat),
+    Symptom2Fever = replace_yes_no(Symptom2Fever),
+    Symptom2Chills = replace_yes_no(Symptom2Chills),
+    Symptom2Headache = replace_yes_no(Symptom2Headache),
+    Symptom2MusclePain = replace_yes_no(Symptom2MusclePain),
+    Symptom2LostTasteSmell = replace_yes_no(Symptom2LostTasteSmell),
+    Symptom2Congestion = replace_yes_no(Symptom2Congestion),
+    Symptom2Nausea = replace_yes_no(Symptom2Nausea),
+    Symptom2Diarrhea = replace_yes_no(Symptom2Diarrhea),
+    Symptom2Weak = replace_yes_no(Symptom2Weak),
     HealthRiskChronicIllness = replace_yes_no(HealthRiskChronicIllness),
     HealthRiskHistoryOfRespiratoryIllness = replace_yes_no(HealthRiskHistoryOfRespiratoryIllness),
-    HealthRiskOver60 = replace_yes_no(HealthRiskOver60),
+    HealthRiskOver65 = replace_yes_no(HealthRiskOver65),
+    HealthRiskKidneyDisease = replace_yes_no(HealthRiskKidneyDisease),
+    HealthRiskImmunocompromised = replace_yes_no(HealthRiskImmunocompromised),
+    HealthRiskSmoke = replace_yes_no(HealthRiskSmoke),
     ContactWithConfirmedCOVID19Patient = replace_yes_no(ContactWithConfirmedCOVID19Patient),
     ContactWithUnderCOVID19Investigation = replace_yes_no(ContactWithUnderCOVID19Investigation),
     Tested = replace_yes_no(Tested),
@@ -107,7 +113,7 @@ assessments_over_time_plot <- covid19 %>%
         TestResults == "Positive" &
         ymd(TestDate) > ymd(COVID19AssessmentDate) - days(14) &
         !is.na(TestDate) ~ "Positive",
-      # testing positive in the 14 days prior to assessment is the only way to 
+      # testing positive in the 14 days prior to assessment is the only way to
       # land in this bucket
       (
         ContactWithConfirmedCOVID19Patient == 1 &
@@ -126,15 +132,20 @@ assessments_over_time_plot <- covid19 %>%
                 is.na(ContactWithUnderInvestigationDate)
             )
         ) |
-        (Symptom1BreathingDifficult + 
-        Symptom1Cough + 
-        Symptom2Chills +
-        Symptom2SoreThroat + 
-        Symptom2Fever + 
-        Symptom2Headache +
-        Symptom2LostTasteSmell + 
-        Symptom2MusclePain + 
-        Symptom2ShakingChills) > 0
+        (
+          Symptom1BreathingDifficult +
+            Symptom1Cough +
+            Symptom2Chills +
+            Symptom2SoreThroat +
+            Symptom2Fever +
+            Symptom2Headache +
+            Symptom2LostTasteSmell +
+            Symptom2MusclePain +
+            Symptom2Congestion +
+            Symptom2Nausea +
+            Symptom2Diarrhea +
+            Symptom2Weak
+        ) > 0
       |
         (
           UnderInvestigation == 1 &
@@ -229,20 +240,26 @@ priority <- covid19 %>%
             Symptom2Headache +
             Symptom2LostTasteSmell +
             Symptom2MusclePain +
-            Symptom2ShakingChills
-        ) > 0 ~ "Isolation/Quarantine",
+            Symptom2Congestion +
+            Symptom2Nausea +
+            Symptom2Diarrhea +
+            Symptom2Weak
+        ) > 0 ~ "Needs Isolation/Quarantine",
         # if the client has any risks at all
         (
           HealthRiskHistoryOfRespiratoryIllness +
             HealthRiskChronicIllness +
-            HealthRiskOver60 > 0
-        )  ~ "High Risk",
+            HealthRiskOver65 +
+            HealthRiskKidneyDisease +
+            HealthRiskImmunocompromised +
+            HealthRiskSmoke > 0
+        )  ~ "Has Health Risk(s)",
       TRUE ~ "No Known Risks or Exposure"
       # everyone else lands here ^
       # in the report, there will be a third level: "Not Assessed Recently"
     ),
-    Priority = factor(Priority, levels = c("Isolation/Quarantine", 
-                                           "High Risk", 
+    Priority = factor(Priority, levels = c("Needs Isolation/Quarantine", 
+                                           "Has Health Risk(s)", 
                                            "No Known Risks or Exposure"))
   )
 
@@ -250,8 +267,8 @@ priority <- covid19 %>%
 
 Our Prioritization report for Coordinated Entry will use this metric to determine whether a client should be prioritized for immediate non-congregate housing based on their risks, symptoms, test results, and contact with others. This report is used to help communities with moving households into permanent housing. 
 
-- The **Isolation/Quarantine** category indicates the household should be moved out of any congregate space immediately for quarantine due to a suspected or confirmed infection or likely exposure. Likely exposure could include having come into the system directly from prison or a nursing home.
-- The **High Risk** category indicates the household needs non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19. 
+- The **Needs Isolation/Quarantine** category indicates the household should be moved out of any congregate space immediately for quarantine due to a suspected or confirmed infection or likely exposure. Likely exposure could include having come into the system directly from prison or a nursing home.
+- The **Has Health Risk(s)** category indicates the household needs non-congregate sheltering as the person is at high risk of poor outcomes if infected with COVID-19 due to health risks that match with CDC's guidelines. 
 - Although everyone is at risk of contracting this virus when exposed, the **No Known Risks or Exposure** category means the household has no known risk factors, and no suspected or known exposure.
 
 ```{r fig2, fig.asp=.62, fig.width=8, message=FALSE}
