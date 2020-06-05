@@ -170,10 +170,13 @@ Adjusted_HoHs <- HHIDs_with_bad_dq %>%
 hohs <- active_list %>%
   left_join(Adjusted_HoHs,
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
-  mutate(RelationshipToHoH = if_else(correctedhoh == 1, 1, RelationshipToHoH))
+  mutate(RelationshipToHoH = if_else(correctedhoh == 1, 1, RelationshipToHoH)) %>%
+  select(PersonalID, HouseholdID, correctedhoh)
+  
 
 active_list <- active_list %>%
-  left_join(hohs, by = "HouseholdID") 
+  left_join(hohs, by = c("HouseholdID", "PersonalID")) %>%
+  select(-hoh)
 
 # COVID-19 ----------------------------------------------------------------
 
@@ -280,12 +283,12 @@ covid_clients <- covid19 %>%
       # if the client has any risks at all ^^
       TRUE ~ 4 # "No Known Risks or Exposure"
       # everyone else lands here ^
-      # in the report, there will be a fourth level: "Not Assessed Recently"
+      # in the report, there will be another level: "Not Assessed Recently"
     )
   ) %>%
   select(PersonalID, COVID19Priority)
 
-covid_hhs <- hohs %>%
+covid_hhs <- active_list %>%
   left_join(covid_clients, by = "PersonalID") %>%
   mutate(
     COVID19Priority = if_else(
@@ -296,12 +299,8 @@ covid_hhs <- hohs %>%
   ) %>%
   group_by(HouseholdID) %>%
   mutate(COVID19Priority_hh = max(COVID19Priority)) %>%
-  ungroup()
-
-covid_priority <- active_list %>%
-  left_join(covid_hhs %>%
-              select(PersonalID, HouseholdID, COVID19Priority_hh), 
-            by = c("PersonalID", "HouseholdID")) %>%
+  ungroup() %>%
+  select(PersonalID, HouseholdID, COVID19Priority_hh) %>%
   mutate(
     COVID19Priority = case_when(
       COVID19Priority_hh == 1 ~ "Needs Isolation/Quarantine",
@@ -323,13 +322,17 @@ covid_priority <- active_list %>%
 
 # adding COVID19Priority to active list
 active_list <- active_list %>%
-  left_join(covid_priority, by = "HouseholdID")
+  left_join(covid_hhs, by = c("PersonalID", "HouseholdID"))
 
 # time to collapse from clients to hohs!
-active_list <- active_list %>%
+hh_size <- active_list %>%
   group_by(HouseholdID) %>%
   summarise(HouseholdSize = n()) %>%
   ungroup() 
+
+active_list <- active_list %>%
+  right_join(hh_size, by = "HouseholdID") %>%
+  filter(RelationshipToHoH == 1)
 
 # Adding in Disability Status of HH, County, PHTrack ----------------------
 
