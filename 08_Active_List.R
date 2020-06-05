@@ -175,8 +175,7 @@ hohs <- active_list %>%
   
 
 active_list <- active_list %>%
-  left_join(hohs, by = c("HouseholdID", "PersonalID")) %>%
-  select(-hoh)
+  left_join(hohs, by = c("HouseholdID", "PersonalID"))
 
 # COVID-19 ----------------------------------------------------------------
 
@@ -331,8 +330,7 @@ hh_size <- active_list %>%
   ungroup() 
 
 active_list <- active_list %>%
-  right_join(hh_size, by = "HouseholdID") %>%
-  filter(RelationshipToHoH == 1)
+  right_join(hh_size, by = "HouseholdID")
 
 # Adding in Disability Status of HH, County, PHTrack ----------------------
 
@@ -564,8 +562,6 @@ active_list <- active_list %>%
 # THIS IS WHERE WE'RE SUMMARISING BY HOUSEHOLD (after all the group_bys)
 
 active_list <- active_list %>%
-  left_join(Adjusted_HoHs,
-            by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
   mutate(
     HH_DQ_issue = if_else(
       correctedhoh == 1 & !is.na(correctedhoh),
@@ -576,7 +572,7 @@ active_list <- active_list %>%
                            is.na(correctedhoh) ~ hoh)
   ) %>%
   filter(HoH_Adjust == 1) %>%
-  select(-correctedhoh, -hoh, -RelationshipToHoH, -HoH_Adjust)
+  select(-correctedhoh, -RelationshipToHoH, -hoh, -HoH_Adjust)
 
 # Add Referral Status -----------------------------------------------------
 
