@@ -165,16 +165,171 @@ Adjusted_HoHs <- HHIDs_with_bad_dq %>%
   select(HouseholdID, PersonalID, EnrollmentID, correctedhoh) %>%
   ungroup()
 
-# merging the "corrected" hohs back into the main dataset with a flag
-hh_size <- active_list %>%
+# merging the "corrected" hohs back into the main dataset with a flag, then
+# correcting the RelationshipToHoH
+hohs <- active_list %>%
   left_join(Adjusted_HoHs,
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
+  mutate(RelationshipToHoH = if_else(correctedhoh == 1, 1, RelationshipToHoH))
+
+active_list <- active_list %>%
+  left_join(hohs, by = "HouseholdID") 
+
+# COVID-19 ----------------------------------------------------------------
+
+get_res_prior <- Enrollment %>%
+  select(PersonalID, EntryDate, ExitDate, LivingSituation) %>%
+  group_by(PersonalID) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L)
+
+covid_clients <- covid19 %>%
+  mutate(
+    COVID19AssessmentDate = ymd(COVID19AssessmentDate),
+    ContactWithConfirmedDate = ymd(ContactWithConfirmedDate),
+    ContactWithUnderInvestigationDate = ymd(ContactWithUnderInvestigationDate),
+    TestDate = ymd(TestDate),
+    DateUnderInvestigation = ymd(DateUnderInvestigation)
+  ) %>%
+  filter(ymd(COVID19AssessmentDate) > ymd("20200401") &
+           ymd(COVID19AssessmentDate) <= today()) %>%
+  left_join(get_res_prior, by = "PersonalID") %>%
+  mutate(LivingSituationDescr = living_situation(LivingSituation)) %>%
+  as_tibble() %>%
+  mutate(
+    Symptom1Cough = replace_yes_no(Symptom1Cough),
+    Symptom1BreathingDifficult = replace_yes_no(Symptom1BreathingDifficult),
+    Symptom2SoreThroat = replace_yes_no(Symptom2SoreThroat),
+    Symptom2Fever = replace_yes_no(Symptom2Fever),
+    Symptom2Chills = replace_yes_no(Symptom2Chills),
+    Symptom2Headache = replace_yes_no(Symptom2Headache),
+    Symptom2MusclePain = replace_yes_no(Symptom2MusclePain),
+    Symptom2LostTasteSmell = replace_yes_no(Symptom2LostTasteSmell),
+    Symptom2Congestion = replace_yes_no(Symptom2Congestion),
+    Symptom2Nausea = replace_yes_no(Symptom2Nausea),
+    Symptom2Diarrhea = replace_yes_no(Symptom2Diarrhea),
+    Symptom2Weak = replace_yes_no(Symptom2Weak),
+    HealthRiskChronicIllness = replace_yes_no(HealthRiskChronicIllness),
+    HealthRiskHistoryOfRespiratoryIllness = replace_yes_no(HealthRiskHistoryOfRespiratoryIllness),
+    HealthRiskOver65 = replace_yes_no(HealthRiskOver65),
+    HealthRiskKidneyDisease = replace_yes_no(HealthRiskKidneyDisease),
+    HealthRiskImmunocompromised = replace_yes_no(HealthRiskImmunocompromised),
+    HealthRiskSmoke = replace_yes_no(HealthRiskSmoke),
+    ContactWithConfirmedCOVID19Patient = replace_yes_no(ContactWithConfirmedCOVID19Patient),
+    ContactWithUnderCOVID19Investigation = replace_yes_no(ContactWithUnderCOVID19Investigation),
+    Tested = replace_yes_no(Tested),
+    UnderInvestigation = replace_yes_no(UnderInvestigation),
+    COVID19Priority = case_when(
+      (
+        Tested == 1 &
+          TestResults == "Positive" &
+          ymd(TestDate) > today() - days(14) &
+          !is.na(TestDate)
+      ) |
+        # if tested positive in the past 14 days ^^
+        (
+          UnderInvestigation == 1 &
+            ymd(DateUnderInvestigation) > today() - days(14)
+        ) |
+        (
+          ContactWithConfirmedCOVID19Patient == 1 &
+            (
+              ymd(ContactWithConfirmedDate) >
+                today() - days(14) |
+                is.na(ContactWithConfirmedDate)
+              # contact with definite COVID-19 in the past 14 days ^^
+            )
+        ) |
+        (
+          ContactWithUnderCOVID19Investigation == 1 &
+            (
+              ymd(ContactWithUnderInvestigationDate) >
+                today() - days(14) |
+                is.na(ContactWithUnderInvestigationDate)
+            )
+          # contact date with maybe COVID-19 was within the past 14 days ^^
+        ) |
+        (
+          LivingSituation %in% c(7, 25) &
+            EntryDate > today() - days(14) &
+            EntryDate <= today()
+        ) |
+        # if the client came from jail or nursing home ^^
+        (
+          Symptom1BreathingDifficult +
+            Symptom1Cough +
+            Symptom2Chills +
+            Symptom2SoreThroat +
+            Symptom2Fever +
+            Symptom2Headache +
+            Symptom2LostTasteSmell +
+            Symptom2MusclePain +
+            Symptom2Congestion +
+            Symptom2Nausea +
+            Symptom2Diarrhea +
+            Symptom2Weak) > 0 ~ 1, # "Needs Isolation/Quarantine"
+      # if the client has any symptoms at all ^^
+      (
+        HealthRiskHistoryOfRespiratoryIllness +
+          HealthRiskChronicIllness +
+          HealthRiskOver65 +
+          HealthRiskKidneyDisease +
+          HealthRiskImmunocompromised +
+          HealthRiskSmoke > 0
+      )  ~ 2, # "Has Health Risk(s)",
+      # if the client has any risks at all ^^
+      TRUE ~ 4 # "No Known Risks or Exposure"
+      # everyone else lands here ^
+      # in the report, there will be a fourth level: "Not Assessed Recently"
+    )
+  ) %>%
+  select(PersonalID, COVID19Priority)
+
+covid_hhs <- hohs %>%
+  left_join(covid_clients, by = "PersonalID") %>%
+  mutate(
+    COVID19Priority = if_else(
+      is.na(COVID19Priority),
+      3, # "Not Assessed Recently"
+      COVID19Priority
+    )
+  ) %>%
+  group_by(HouseholdID) %>%
+  mutate(COVID19Priority_hh = max(COVID19Priority)) %>%
+  ungroup()
+
+covid_priority <- active_list %>%
+  left_join(covid_hhs %>%
+              select(PersonalID, HouseholdID, COVID19Priority_hh), 
+            by = c("PersonalID", "HouseholdID")) %>%
+  mutate(
+    COVID19Priority = case_when(
+      COVID19Priority_hh == 1 ~ "Needs Isolation/Quarantine",
+      COVID19Priority_hh == 2 ~ "Has Health Risk(s)",
+      COVID19Priority_hh == 3 ~ "Not Assessed Recently",
+      COVID19Priority_hh == 4 ~ "No Known Risks or Exposure"
+    ),
+    COVID19Priority = factor(
+      COVID19Priority,
+      levels = c(
+        "Needs Isolation/Quarantine",
+        "Has Health Risk(s)",
+        "Not Assessed Recently",
+        "No Known Risks or Exposure"
+      )
+    )
+  ) %>%
+  select(-COVID19Priority_hh)
+
+# adding COVID19Priority to active list
+active_list <- active_list %>%
+  left_join(covid_priority, by = "HouseholdID")
+
+# time to collapse from clients to hohs!
+active_list <- active_list %>%
   group_by(HouseholdID) %>%
   summarise(HouseholdSize = n()) %>%
   ungroup() 
-
-active_list <- active_list %>%
-  left_join(hh_size, by = "HouseholdID")
 
 # Adding in Disability Status of HH, County, PHTrack ----------------------
 
@@ -214,69 +369,6 @@ disability_data <- active_list %>%
 active_list <- disability_data
 
 
-# COVID-19 ----------------------------------------------------------------
-
-covid <- covid19 %>%
-  as_tibble() %>%
-  mutate(
-    Symptom1BreathingDifficult = replace_yes_no(Symptom1BreathingDifficult),
-    Symptom1Cough = replace_yes_no(Symptom1Cough),
-    Symptom2Chills = replace_yes_no(Symptom2Chills),
-    Symptom2Fever = replace_yes_no(Symptom2Fever),
-    Symptom2Headache = replace_yes_no(Symptom2Headache),
-    Symptom2LostTasteSmell = replace_yes_no(Symptom2LostTasteSmell),
-    Symptom2MusclePain = replace_yes_no(Symptom2MusclePain),
-    Symptom2ShakingChills = replace_yes_no(Symptom2ShakingChills),
-    Symptom2SoreThroat = replace_yes_no(Symptom2SoreThroat),
-    HealthRiskChronicIllness = replace_yes_no(HealthRiskChronicIllness),
-    HealthRiskHistoryOfRespiratoryIllness = 
-      replace_yes_no(HealthRiskHistoryOfRespiratoryIllness),
-    HealthRiskOver60 = replace_yes_no(HealthRiskOver60),
-    ContactWithConfirmedCOVID19Patient = 
-      replace_yes_no(ContactWithConfirmedCOVID19Patient),
-    ContactWithUnderCOVID19Investigation = 
-      replace_yes_no(ContactWithUnderCOVID19Investigation),
-    Tested = replace_yes_no(Tested),
-    UnderInvestigation = replace_yes_no(UnderInvestigation),
-    MayHaveCOVID19CDC = (Symptom1BreathingDifficult == 1 |
-                           Symptom1Cough == 1) |
-      Symptom2Chills + Symptom2SoreThroat + Symptom2Fever +
-      Symptom2Headache + Symptom2LostTasteSmell + Symptom2MusclePain +
-      Symptom2ShakingChills > 1,
-    HealthRisks = HealthRiskOver60 +
-      HealthRiskHistoryOfRespiratoryIllness +
-      HealthRiskChronicIllness,
-    ProximityRisks =
-      ContactWithUnderCOVID19Investigation +
-      ContactWithConfirmedCOVID19Patient,
-    NumberOfRisks = HealthRisks + ProximityRisks,
-    Priority = case_when(
-      MayHaveCOVID19CDC == TRUE | NumberOfRisks > 1 ~ "Isolate/Quarantine",
-      Symptom2Chills +
-        Symptom2SoreThroat +
-        Symptom2Fever +
-        Symptom2Headache +
-        Symptom2LostTasteSmell +
-        Symptom2MusclePain +
-        Symptom2ShakingChills
-      > 0 | NumberOfRisks > 0 ~ "High Risk",
-      TRUE ~ "No Known Risks or Exposure"
-    )
-  ) %>%
-  filter(COVID19AssessmentDate >= today() - days(6)) %>%
-  select(PersonalID, Priority) 
-
-active_list <- active_list %>%
-  left_join(covid, by = "PersonalID") %>%
-  mutate(Priority = if_else(is.na(Priority), "Not Assessed Recently", Priority),
-         Priority = factor(Priority, levels = c("Isolate/Quarantine", 
-                                                "High Risk", 
-                                                "No Known Risks or Exposure", 
-                                                "Not Assessed Recently")),
-         ) %>%
-  rename("COVID19Priority" = Priority)
-
-
 
 # County Guessing ---------------------------------------------------------
 
@@ -286,11 +378,14 @@ county <- active_list %>%
               select(ProjectName, ProjectCounty), by = "ProjectName") %>%
   mutate(
     CountyGuessed = if_else(CountyServed == "MISSING County", 1, 0),
-    CountyServed = if_else(CountyServed == "MISSING County" &
-                                  ProjectName != "Unsheltered Clients - OUTREACH",
-                                ProjectCounty,
-                                CountyServed),
-         ProjectCounty = NULL)
+    CountyServed = if_else(
+      CountyServed == "MISSING County" &
+        ProjectName != "Unsheltered Clients - OUTREACH",
+      ProjectCounty,
+      CountyServed
+    ),
+    ProjectCounty = NULL
+  )
 
 # replacing missings for the Unsheltered Provider with the County of the
 # Default Provider of the person who entered the Enrollment (grrr!)
