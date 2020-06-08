@@ -690,7 +690,7 @@ active_list <- active_list %>%
       PTCStatus == "Currently Has No Entry into RRH or PSH" &
         is.na(ReferredToProvider) &
         is.na(PHTrack) ~ 
-        "Has no Entry into PSH or RRH, no recent Accepted Referral into RRH or PSH, and no current Permanent Housing Track"
+        "No Entry or accepted Referral into PSH/RRH, and no current Permanent Housing Track"
     )
   ) 
 
