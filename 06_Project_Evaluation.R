@@ -155,16 +155,20 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 # Staging -----------------------------------------------------------------
 
 pe_coc_funded <- Funder %>%
-  filter(ProjectID %in% c(718, 721, 1323, 1354, 1774) | # consolidated in 2019
-           (Funder %in% c(1:7) &
-              ymd(StartDate) <= mdy(ReportEnd) &
-              (is.na(EndDate) |
-                 ymd(EndDate) >= mdy(ReportEnd)) &
-              ProjectID != 2069)) %>%
+  filter(
+    ProjectID %in% c(718, 721, 1323, 1354, 1774) |# consolidated in 2019
+      (
+        Funder %in% c(1:7) &
+          ymd(StartDate) <= mdy(ReportEnd) &
+          (is.na(EndDate) |
+             ymd(EndDate) >= mdy(ReportEnd)) &
+          ProjectID != 2069
+      )
+  ) %>%
   select(ProjectID, Funder, StartDate, EndDate) %>%
-  left_join(Project[c("ProjectID", 
-                      "ProjectName", 
-                      "ProjectType", 
+  left_join(Project[c("ProjectID",
+                      "ProjectName",
+                      "ProjectType",
                       "HMISParticipatingProject")], by = "ProjectID") %>%
   filter(HMISParticipatingProject == 1) %>%
   select(ProjectType,
@@ -294,14 +298,13 @@ hoh_exits_to_deceased[is.na(hoh_exits_to_deceased)] <- 0
 
 # Adults who entered during date range
 
-pe_adults_entered <-  co_adults_entered %>%
-  filter(entered_between(., ReportStart, ReportEnd)) %>%
+pe_adults_entered <-  co_adults_served %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(
     Enrollment %>%
-      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+      select(-UserID, -DateCreated, -DateUpdated, -DateDeleted, -ExportID),
     by = c(
       "PersonalID",
       "EnrollmentID",
@@ -310,6 +313,11 @@ pe_adults_entered <-  co_adults_entered %>%
       "ProjectName"
     )
   ) %>%
+  group_by(HouseholdID) %>%
+  mutate(HHEntryDate = min(EntryDate)) %>%
+  ungroup() %>%
+  filter(entered_between(., ReportStart, ReportEnd) & 
+           EntryDate == HHEntryDate) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate))
 
@@ -1230,7 +1238,7 @@ summary_pe_res_prior <- pe_res_prior %>%
       "All points granted because this project has 0 adults who entered the project",
       paste(
         LHResPrior,
-        "coming from an appropriate living situation /",
+        "coming from shelter or streets (unsheltered) /",
         AdultsEntered,
         "adults who entered the project during the reporting period =",
         percent(LHResPriorPercent, accuracy = 1)
