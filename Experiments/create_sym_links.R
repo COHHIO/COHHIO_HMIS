@@ -12,43 +12,32 @@
 # GNU Affero General Public License for more details at
 #<https://www.gnu.org/licenses/>.
 
-# PLEASE NOTE: FOR THESE SCRIPTS TO WORK YOU HAVE TO:
-# 1. RIGHT-CLICK R STUDIO AND OPEN IT BY CLICKING "RUN AS ADMINISTRATOR"
-# 2. REPLACE r_directory WITH YOUR OWN
-# 3. REPLACE YOUR DOCUMENT AND PATH NAMES AS APPROPRIATE
+# PLEASE NOTE:
+# This script BUILDS the script you need, then you run that script in your
+# command prompt. Slashes for Macs will likely be different.
 
-# "original" means where the data you're wanting to link to is located
-# "link" means where the link is located
+# 1. Modify the text to fit what your paths and filenames are
+# 2. Copy the resulting command from this script
+# 3. Right-click the cmd executable and open it by selecting "Run as Administrator"
+# 4. Paste the command in and press Enter.
 
-r_directory <- "C:\\Users\\HMIS\\Documents\\R\\"
+directory_where_all_your_projects_live <-
+  "C:\\Users\\HMIS\\Documents\\R\\"
 
-originating_project_name <- "COHHIO_HMIS"
+project_and_folder_that_contains_image <- "COHHIO_HMIS\\images\\"
 
-originating_path <- "images"
+image_filename <- "Data_Quality.RData"
 
-originating_file_name <- "Data_Quality.RData"
+project_and_folder_you_wish_had_the_image <- "Rminor\\data\\"
 
-linking_project_name <- "Rminor"
-
-linking_project_path <- "data"
-
-link_name <- "Data_Quality.RData"
-
-original <- paste0(r_directory,
-                  originating_project_name,
-                  "\\",
-                  originating_path,
-                  "\\",
-                  originating_file_name)
-
-new_link <- paste0(r_directory,
-                   linking_project_name,
-                   "\\",
-                   linking_project_path,
-                   "\\",
-                   link_name)
-
-shell(sprintf("mklink %s %s", 
-              normalizePath(new_link, mustWork = FALSE),
-              normalizePath(original)
-))
+command_to_copy_into_command_prompt <-
+  cat(paste0(
+    "mklink \"",
+    directory_where_all_your_projects_live,
+    project_and_folder_you_wish_had_the_image,
+    image_filename,
+    "\" \"",
+    directory_where_all_your_projects_live,
+    project_and_folder_that_contains_image,
+    image_filename
+  ))
