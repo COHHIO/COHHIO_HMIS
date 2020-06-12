@@ -31,7 +31,7 @@ Veterans <- Client %>%
 # getting all the EE data of all the veterans
 VeteranHHs <- Veterans %>%
   left_join(Enrollment, by = "PersonalID") %>%
-  select(PersonalID, ProjectID, EntryDate, HouseholdID, 
+  select(PersonalID, ProjectID, EnrollmentID, EntryDate, HouseholdID, 
          RelationshipToHoH, LivingSituation, LengthOfStay, LOSUnderThreshold,
          PreviousStreetESSH, DateToStreetESSH, TimesHomelessPastThreeYears,
          MonthsHomelessPastThreeYears, DisablingCondition, DateOfEngagement,
@@ -45,7 +45,7 @@ VeteranHHs <- Project %>%
   right_join(VeteranHHs, by = "ProjectID")
 
 VeteranHHs <- VeteranHHs %>%
-  left_join(VeteranCE, by = c("PersonalID"))
+  left_join(VeteranCE, by = c("PersonalID", "EnrollmentID"))
 
 CurrentVeterans <- VeteranHHs %>%
   filter((ProjectType %in% c(1, 2, 4, 8, 12) & (
