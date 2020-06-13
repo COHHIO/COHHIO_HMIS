@@ -39,5 +39,6 @@ command_to_copy_into_command_prompt <-
     "\" \"",
     directory_where_all_your_projects_live,
     project_and_folder_that_contains_image,
-    image_filename
+    image_filename,
+    "\""
   ))
