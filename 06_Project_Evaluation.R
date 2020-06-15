@@ -1792,7 +1792,7 @@ rm(list = ls()[!(ls() %in% c(
 next_thing_due <- tribble(
   ~ DueDate, ~ Event,
   "6/12/2020", "All HMIS Data in the Project Evaluation report corrected and finalized",
-  "6/19/2020", "COHHIO makes Project Evaluation 2020 Report (summary data only) available in R minor",
+  "6/19/2020", "COHHIO takes final snapshot of Project Evaluation data for final scoring",
   "6/26/2020", "COHHIO releases preliminary CoC project ranking (renewals only)",
   "7/8/2020", "Recipients submit appeals of project evaluation results and ranking to ohioboscoc@cohhio.org.",
   "7/24/2020", "Ohio BoSCoC Steering COmmittee will communicate decisions about all received appeals",
