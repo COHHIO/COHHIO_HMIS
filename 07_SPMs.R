@@ -16,6 +16,12 @@ library(tidyverse)
 library(lubridate)
 library(readxl)
 
+coc <- "OH-504: Mahoning CoC"
+
+how_many_worksheets_in_the_701 <- 4
+how_many_worksheets_in_the_703 <- 5
+what_sheet_is_701_data_on <- 1
+
 
 # Renaming all the files to reasonable things -----------------------------
 
@@ -169,7 +175,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -206,7 +212,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -217,7 +223,7 @@ if(nrow(
 # Checking that the 701 was run correctly -CURRENT-------------------------
 
 check_recurrence <- read_xls("SPM_data/Current/0701.xls",
-                         sheet = 5,
+                         sheet = how_many_worksheets_in_the_701,
                          range = cell_cols("B2:C9")) %>%
   select("Prompt" = 2, "Selection" = 3) %>%
   head(n = 7L) %>%
@@ -243,7 +249,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(2) != PriorYear |
     ReportEnd - years(3) != Prior2Year
   )
@@ -279,7 +285,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -290,7 +296,7 @@ if(nrow(
 # Checking the 703 report was run correctly -CURRENT-----------------------
 
 check_income <- read_xls("SPM_data/Current/0703.xls",
-                         sheet = 6,
+                         sheet = how_many_worksheets_in_the_703,
                          range = cell_cols("B2:e9")) %>%
   select("Prompt" = 2, "Selection" = 5) %>%
   head(n = 7L) %>%
@@ -316,7 +322,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -352,7 +358,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -388,7 +394,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -485,7 +491,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -522,7 +528,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -533,7 +539,7 @@ if(nrow(
 # Checking that the 701 was run correctly -PRIOR---------------------------
 
 check_recurrence <- read_xls("SPM_data/Prior/0701.xls",
-                             sheet = 5,
+                             sheet = how_many_worksheets_in_the_701,
                              range = cell_cols("B2:C9")) %>%
   select("Prompt" = 2, "Selection" = 3) %>%
   head(n = 7L) %>%
@@ -559,7 +565,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(2) != PriorYear |
     ReportEnd - years(3) != Prior2Year
   )
@@ -595,7 +601,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -606,7 +612,7 @@ if(nrow(
 # Checking the 703 report was run correctly -PRIOR-------------------------
 
 check_income <- read_xls("SPM_data/Prior/0703.xls",
-                         sheet = 6,
+                         sheet = how_many_worksheets_in_the_703,
                          range = cell_cols("B2:e9")) %>%
   select("Prompt" = 2, "Selection" = 5) %>%
   head(n = 7L) %>%
@@ -632,7 +638,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -668,7 +674,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -704,7 +710,7 @@ if(nrow(
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != "OH-507: Balance of State" |
+    CoC != coc |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
@@ -783,7 +789,7 @@ loth_self_report_current <-
 # PLEASE NOTE SHEET 2 IS A CUSTOM MODIFICATION TO THE ART REPORT THAT BREAKS 
 # OUT PSH AND RRH. CONTACT GD FOR INFO ON HOW TO MAKE THIS MODIFICATION.
 recurrence_current <- read_xls("SPM_data/Current/0701.xls",
-                             sheet = 2,
+                             sheet = what_sheet_is_701_data_on,
                              range = cell_cols("B4:F10"))
 
 recurrence_current <- recurrence_current[-1, ]
@@ -878,7 +884,7 @@ spm_1b_loth_self_report <- loth_self_report_current %>%
 # PLEASE NOTE SHEET 2 IS A CUSTOM MODIFICATION TO THE ART REPORT THAT BREAKS 
 # OUT PSH AND RRH. CONTACT GD FOR INFO ON HOW TO MAKE THIS MODIFICATION.
 recurrence_prior <- read_xls("SPM_data/Prior/0701.xls",
-                               sheet = 2,
+                               sheet = what_sheet_is_701_data_on,
                                range = cell_cols("B4:F10"))
 
 recurrence_prior <- recurrence_prior[-1, ]
