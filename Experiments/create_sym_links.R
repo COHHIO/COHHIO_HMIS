@@ -17,16 +17,18 @@
 # command prompt. Slashes for Macs will likely be different.
 
 # 1. Modify the text to fit what your paths and filenames are
-# 2. Copy the resulting command from this script
-# 3. Right-click the cmd executable and open it by selecting "Run as Administrator"
-# 4. Paste the command in and press Enter.
+# 2. Run script by clicking Source, 
+# 3. Copy the resulting command from this script
+# 4. Right-click the cmd executable (your computer's command prompt) and open it 
+#    by selecting "Run as Administrator"
+# 5. Paste the command in and press Enter.
 
 directory_where_all_your_projects_live <-
   "C:\\Users\\HMIS\\Documents\\R\\"
 
 project_and_folder_that_contains_image <- "COHHIO_HMIS\\images\\"
 
-image_filename <- "Data_Quality.RData"
+image_filename <- "Veterans.RData"
 
 project_and_folder_you_wish_had_the_image <- "Rminor\\data\\"
 
