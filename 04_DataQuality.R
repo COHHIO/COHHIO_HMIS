@@ -2503,12 +2503,34 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                                             "Error",
                                             "Warning")))  
     
-    # UNTIL WELLSKY FIXES THEIR EXPORT: ---------------------------------------
+    # filtering out AP errors that are irrlevant to APs
     
+    dq_main <- dq_main %>%
+      filter(ProjectType != 14 |
+               (
+                 ProjectType == 14 &
+                   Issue %in% c(
+                     "Access Point with Entry Exits",
+                     "Missing Date of Birth Data Quality",
+                     "Don't Know/Refused or Approx. Date of Birth",
+                     "Missing DOB",
+                     "Missing Name Data Quality",
+                     "Incomplete or Don't Know/Refused Name",
+                     "Invalid SSN",
+                     "Don't Know/Refused SSN",
+                     "Missing SSN",
+                     "Missing Veteran Status",
+                     "Don't Know/Refused Veteran Status",
+                     "Old Outstanding Referral",
+                     "Missing County Served"
+                   )
+               ))
+
+# Waiting on Something ----------------------------------------------------
+
     dq_main <- dq_main %>%
       filter(
         !Issue %in% c(
-          # "Missing Length of Stay", # case 873163
           "Missing PATH Contact", # waiting on AW comments
           "No Contact End Date (PATH)", # waiting on AW comments
           "No PATH Contact Entered at Entry" # waiting on AW comments
