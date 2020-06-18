@@ -588,6 +588,7 @@ dq_flags_staging <- dq_2019 %>%
       if_else(
         Issue %in% c(
           "Duplicate Entry Exits",
+          # "Incorrect Entry Exit Type", (should have been included in 2020 but wasn't)
           "Children Only Household",
           "No Head of Household",
           "Too Many Heads of Household"
