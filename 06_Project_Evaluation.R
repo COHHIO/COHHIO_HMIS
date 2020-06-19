@@ -1540,8 +1540,10 @@ summary_pe_dq <- summary_pe_dq %>%
 # Decided in Feb meeting that we're going to use Adults Entered for this one
 
 pe_long_term_homeless <- pe_adults_entered %>%
-  right_join(pe_coc_funded,
-             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
+  # left_join(pe_coc_funded %>%
+  #             select("AltProjectName", "ProjectType", "AltProjectID") %>%
+  #             unique(), 
+  #           by = c("ProjectType", "AltProjectID", "AltProjectName")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
@@ -1796,13 +1798,13 @@ next_thing_due <- tribble(
   "6/19/2020", "COHHIO takes final snapshot of Project Evaluation data for final scoring",
   "6/26/2020", "COHHIO releases preliminary CoC project ranking (renewals only)",
   "7/8/2020", "Recipients submit appeals of project evaluation results and ranking to ohioboscoc@cohhio.org.",
-  "7/24/2020", "Ohio BoSCoC Steering COmmittee will communicate decisions about all received appeals",
+  "7/24/2020", "Ohio BoSCoC Steering Committee will communicate decisions about all received appeals",
   "7/31/2020", "Final CoC project ranking released"
 ) %>%
   mutate(
     DueDate = mdy(DueDate),
     ShowStart = lag(ymd(DueDate), n = 1L, order_by = DueDate),
-    ShowStart = if_else(is.na(ShowStart), today(), ShowStart),
+    ShowStart = if_else(is.na(ShowStart), today(), ShowStart + days(1)),
     ShowEnd = ymd(DueDate),
     DateRange = interval(ShowStart, ShowEnd)
   ) %>%
