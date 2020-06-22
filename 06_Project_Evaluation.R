@@ -1792,24 +1792,24 @@ rm(list = ls()[!(ls() %in% c(
   'living_situation'
 ))])
 
-next_thing_due <- tribble(
-  ~ DueDate, ~ Event,
-  "6/12/2020", "All HMIS Data in the Project Evaluation report corrected and finalized",
-  "6/19/2020", "COHHIO takes final snapshot of Project Evaluation data for final scoring",
-  "6/26/2020", "COHHIO releases preliminary CoC project ranking (renewals only)",
-  "7/8/2020", "Recipients submit appeals of project evaluation results and ranking to ohioboscoc@cohhio.org.",
-  "7/24/2020", "Ohio BoSCoC Steering Committee will communicate decisions about all received appeals",
-  "7/31/2020", "Final CoC project ranking released"
-) %>%
-  mutate(
-    DueDate = mdy(DueDate),
-    ShowStart = lag(ymd(DueDate), n = 1L, order_by = DueDate),
-    ShowStart = if_else(is.na(ShowStart), today(), ShowStart + days(1)),
-    ShowEnd = ymd(DueDate),
-    DateRange = interval(ShowStart, ShowEnd)
-  ) %>%
-  filter(today() %within% DateRange) %>%
-  select(Event, DueDate)
+# next_thing_due <- tribble(
+#   ~ DueDate, ~ Event,
+#   "6/12/2020", "All HMIS Data in the Project Evaluation report corrected and finalized",
+#   "6/19/2020", "COHHIO takes final snapshot of Project Evaluation data for final scoring",
+#   "6/26/2020", "COHHIO releases preliminary CoC project ranking (renewals only)",
+#   "7/8/2020", "Recipients submit appeals of project evaluation results and ranking to ohioboscoc@cohhio.org.",
+#   "7/24/2020", "Ohio BoSCoC Steering Committee will communicate decisions about all received appeals",
+#   "7/31/2020", "Final CoC project ranking released"
+# ) %>%
+#   mutate(
+#     DueDate = mdy(DueDate),
+#     ShowStart = lag(ymd(DueDate), n = 1L, order_by = DueDate),
+#     ShowStart = if_else(is.na(ShowStart), today(), ShowStart + days(1)),
+#     ShowEnd = ymd(DueDate),
+#     DateRange = interval(ShowStart, ShowEnd)
+#   ) %>%
+#   filter(today() %within% DateRange) %>%
+#   select(Event, DueDate)
 
 zero_divisors <- pe_validation_summary %>%
   filter(ClientsServed == 0 |
