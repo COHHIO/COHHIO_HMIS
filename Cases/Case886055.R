@@ -26,7 +26,7 @@ Users <-
            col_types = "ncccncTTTn")
 
 if(nrow(Users %>%
-        !is.na(DateDeleted)) > 0){
+        filter(!is.na(DateDeleted))) > 0){
   print("It's fixed")
 } else{
   print("It's not fixed")
