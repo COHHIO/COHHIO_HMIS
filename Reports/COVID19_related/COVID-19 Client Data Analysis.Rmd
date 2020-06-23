@@ -294,4 +294,15 @@ priority_plot %>%
 
 ```
 
+## Geography
+
+Where are clients being assessed?
+
+```{r geo}
+
+covid19 %>%
+  group_by(CountyServed) %>%
+  summarise(n())
+
+```
 
