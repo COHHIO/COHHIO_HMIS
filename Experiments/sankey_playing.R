@@ -6,7 +6,7 @@ library(hrbrthemes)
 library(circlize)
 library(networkD3)
 
-source("get_SPM_data.R")
+source("07_SPMs.R")
 source("02_QPR_EEs.R")
 
 destinations <- validation %>%
