@@ -163,7 +163,7 @@ Ohio <- map('county', 'ohio', fill = TRUE, col = palette("default"))
 The following compares the Average VI-SPDAT Score of those who have entered a project that would mean they are literally homeless within a County to the Average VI-SPDAT Score of those who have an Entry into a Permanent Housing project type (RRH or PSH).
 
 ```{r compare}
-Regions <- read_csv("data/Regions.csv") %>%
+Regions <- read_csv("public_data/Regions.csv") %>%
   mutate(RegionName = paste0("Homeless Planning Region ", Region))
 
 Compare <- 

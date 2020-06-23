@@ -835,7 +835,7 @@ counties <- read_xlsx(
   col_types = c("numeric", "numeric", "text", "text")
 )
 
-regions <- read_csv(here("data/Regions.csv"), col_types = "cd") 
+regions <- read_csv(here("public_data/Regions.csv"), col_types = "cd") 
 
 countiesYear3 <- left_join(smallEnrollment, smallClient, by = "PersonalID") %>%
   left_join(., smallExit, by = "EnrollmentID") %>%

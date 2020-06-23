@@ -77,7 +77,7 @@ entitlements <- tribble(
 )
 
 # padding region nos with 0 so they sort well
-regions <- read_csv(here("data/Regions.csv")) %>%
+regions <- read_csv(here("public_data/Regions.csv")) %>%
   mutate(Region = if_else(
     nchar(Region) == 1,
     paste0("Balance of State CoC Region 0", Region),

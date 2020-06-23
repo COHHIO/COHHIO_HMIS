@@ -142,7 +142,7 @@ entitlements <- tribble(
   "Stark", "Canton, Massillon, Alliance/Stark County CoC"
 )
 
-regions <- read_csv(here("data/Regions.csv")) %>%
+regions <- read_csv(here("public_data/Regions.csv")) %>%
   mutate(Region = paste("Balance of State CoC Region", Region))
 
 regions <- rbind(entitlements, regions)
