@@ -6,7 +6,7 @@ library(here)
 #https://www.census.gov/data/tables/2017/demo/popest/counties-detail.html#ds
 
 x <-
-  read_csv(here("data/cc-est2016-alldata-39.csv"),
+  read_csv(here("public_data/cc-est2016-alldata-39.csv"),
            col_types =
              "cncccnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
 
@@ -85,9 +85,11 @@ AllAges2016 <- getData(AllAges, 2016)
 ohio <- map_data("county") %>%
   filter(region == "ohio")
 
-z <- left_join(AllAges2017, ohio, 
+z <- left_join(AllAges2016, ohio, 
                          by = c("CTYNAME" = "subregion")) 
 ohio2 <- get_map(ohio, maptype = "roadmap")
+
+ohio2
 
 
 
