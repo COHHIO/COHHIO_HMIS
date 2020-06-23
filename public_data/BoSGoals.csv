@@ -1,0 +1,15 @@
+SummaryMeasure,Measure,Operator,1,2,8,4,3,13,12,9
+Obtaining and Maintaining Permanent Housing,Exits to Permanent Housing,>=,0.40,0.83,0.75,0.30,,0.83,,
+Obtaining and Maintaining Permanent Housing,Remain in or Exit To Permanent Housing,>=,,,,,0.90,,0.90,0.90
+Obtaining and Maintaining Permanent Housing,Exits to Temporary or Permanent Housing,>=,,,,0.60,,,,
+Accessing Mainstream Resources and Employment Income,Gain or Increase Income,>=,0.18,0.28,0.20,,0.30,0.18,,0.30
+Accessing Mainstream Resources and Employment Income,Non-cash Benefits,>=,0.50,0.75,0.75,,0.75,0.70,,0.75
+Accessing Mainstream Resources and Employment Income,Health Insurance at Exit,>=,0.75,0.85,0.85,,0.85,0.85,,0.85
+Length of Stay,Average Length of Stay,<=,40.00,240.00,300.00,,,150.00,,
+Length of Stay,Median Length of Stay,<=,40.00,240.00,300.00,,,150.00,,
+Rapid Placement,Days from Project Entry to Move In Date,<=,,,,,,21.00,,
+Entries into the Homeless System,Recurrence from Prevention,<=,,,,,,,0.25,
+Returns to Homelessness,Recurrence from Exits to Permanent Destinations within 6 mo,<=,0.15,0.07,0.15,,0.02,0.07,,0.02
+Returns to Homelessness,Recurrence from Exits to Permanent Destinations within 2 yrs,<=,0.20,0.12,0.20,,0.05,0.12,,0.05
+Average VI SPDAT Scores,County-level Literally Homeless VISPDAT Scores Compared to Average PH Entries,,,,,,,,,
+Provision of HP Assistance and RRH Assistance,RRH Spending vs HP Spending Ratio,>=,,,,,,0.75,,
