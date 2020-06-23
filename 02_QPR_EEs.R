@@ -26,7 +26,7 @@ rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC,
 
 # decided to continue to use a separate file for Goals (instead of building it
 # in a tribble) because this way the CoC team can review it more easily.
-goals <- read_csv("data/Goals.csv", col_types = "cccdddddddd")
+goals <- read_csv("public_data/BoSGoals.csv", col_types = "cccdddddddd")
 
 goals <- goals %>%
   gather(key = "ProjectType", 

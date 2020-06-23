@@ -197,7 +197,7 @@ rm(coc_scoring)
 
 # Regions
 
-regions <- read_csv(paste0(directory, "/Regions.csv"),
+regions <- read_csv("public_data/Regions.csv",
                     col_types = "cn") %>%
   arrange(Region) %>%
   mutate(RegionName = if_else(
@@ -653,7 +653,7 @@ Referrals <- Referrals %>%
 
 # HUD CSV Specs -----------------------------------------------------------
 
-HUD_specs <- read_csv("HUD/HUDSpecs.csv",
+HUD_specs <- read_csv("public_data/HUDSpecs.csv",
                       col_types = "ccnc") %>%
   as.data.frame()
 
