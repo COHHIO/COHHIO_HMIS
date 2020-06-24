@@ -10,6 +10,10 @@ library(lubridate)
 library(knitr)
 library(here)
 
+#mapping library
+library(tmap)
+library(raster)
+
 # FUNCTIONS
 replace_yes_no <- function(column_name){
     if_else(column_name == "No" | is.na(column_name), 0, 1)
@@ -79,7 +83,7 @@ Exit <-
   read_csv(here(paste0(directory, "/Exit.csv")),
            col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
 
-small_exit <- Exit %>% select(EnrollmentID, 
+small_exit <- Exit %>% dplyr::select(EnrollmentID, 
                               ExitDate, 
                               Destination, 
                               OtherDestination)
@@ -103,7 +107,7 @@ if(file.exists(here(paste0(directory, "/covid19.zip")))) {
 }
 
 get_res_prior <- Enrollment %>%
-  select(PersonalID, EntryDate, ExitDate, LivingSituation) %>%
+  dplyr::select(PersonalID, EntryDate, ExitDate, LivingSituation) %>%
   group_by(PersonalID) %>%
   arrange(desc(EntryDate)) %>%
   slice(1L)
@@ -229,7 +233,7 @@ assessments_over_time_plot <- covid19 %>%
   )
 
 assessments_over_time_plot %>%
-  select(PersonalID, COVID19AssessmentDate, COVID19Status) %>%
+  dplyr::select(PersonalID, COVID19AssessmentDate, COVID19Status) %>%
   group_by(COVID19AssessmentDate, COVID19Status) %>%
   summarise(Clients = n()) %>%
   ggplot(aes(x = COVID19AssessmentDate, y = Clients,
@@ -337,7 +341,7 @@ Our Prioritization report for Coordinated Entry will use this metric to determin
 ```{r fig2, fig.asp=.62, fig.width=8, message=FALSE}
 
 priority_plot <- priority %>%
-  select(PersonalID, COVID19AssessmentDate, Priority) %>%
+  dplyr::select(PersonalID, COVID19AssessmentDate, Priority) %>%
   group_by(COVID19AssessmentDate, Priority) %>%
   summarise(Clients = n()) %>%
   arrange(Priority)
@@ -357,15 +361,39 @@ priority_plot %>%
 
 ```
 
+\pagebreak
+
 ## Geography
 
-Where are clients being assessed?
+### Where are clients being assessed?
+This map shows the total number of COVID Screening Tools reported in HMIS by county.
 
-```{r geo}
+```{r geo, dpi=300, echo=FALSE, message=FALSE}
 
-covid19 %>%
+covid19_county_summary <- covid19 %>%
   group_by(CountyServed) %>%
   summarise(n())
 
-```
+names(covid19_county_summary)[1] <- "NAME_2"
+names(covid19_county_summary)[2] <- "Number of Screenings"
 
+# Get polygon data
+us <- getData('GADM', country='USA', level=2)
+ohio_shp <- subset(us, NAME_1 == "Ohio")
+counties_shp <- subset(ohio_shp, NAME_2 != "Lake Erie")
+
+
+counties_covid_shp <- merge(counties_shp, covid19_county_summary, 
+                            by = "NAME_2")
+
+tmap_mode("plot")
+qtm(counties_covid_shp,
+    fill = "Number of Screenings",
+    fill.palette = "Blues",
+    frame = FALSE,
+    text = "NAME_2", 
+    text.size = .35,
+    legend.outside = TRUE
+    )
+
+```
