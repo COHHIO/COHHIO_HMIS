@@ -367,7 +367,7 @@ priority_plot %>%
 ## Geography
 
 ### Where are clients being assessed?
-This map shows the total number of COVID Screening Tools reported in HMIS by county.
+This map shows the total number of clients assessed with the COVID Screening Tool  and reported in HMIS by county.
 
 ```{r geo, dpi=300, echo=FALSE, message=FALSE}
 
