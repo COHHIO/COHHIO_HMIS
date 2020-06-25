@@ -18,7 +18,7 @@ library(scales)
 
 load("images/COHHIOHMIS.RData")
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
-   Export, HealthAndDV, Inventory, Offers, Organization, ProjectCoC, Referrals, 
+   Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
 load("images/cohorts.RData")
@@ -1753,6 +1753,30 @@ pe_final_scores <- pe_final_scores %>%
          ends_with("Scoring"),
          TotalScore)
 
+project_and_orgs <- Project %>%
+  select(ProjectID, ProjectName, OrganizationID)  %>%
+  left_join(Organization %>%
+              select(OrganizationID, OrganizationName), by = "OrganizationID")
+
+project_and_alt_project <- project_and_orgs %>%
+  left_join(consolidations, by = c("ProjectID", "ProjectName"))
+
+final_scores <- pe_final_scores %>%
+  select(AltProjectName, TotalScore) %>%
+  left_join(project_and_alt_project, by = c("AltProjectName" = "ProjectName")) %>%
+  select(OrganizationName, AltProjectName, TotalScore) %>%
+  mutate(OrganizationName = case_when(
+    AltProjectName == "Butler County PSH Combined" ~ "Butler County Board of Commissioners",
+    AltProjectName == "GLCAP PSH Combined" ~ "Great Lakes Community Action Partnership",
+    AltProjectName == "Jefferson County SPC Combined" ~ "Coleman Professional Services",
+    AltProjectName == "Lake SPC Combined" ~ "Lake County ADAMHS Board",
+    AltProjectName == "Springfield SPC 1 Combined" ~ "City of Springfield Ohio",
+    AltProjectName == "Trumbull SPC Vouchers Combined" ~ "Trumbull County Mental Health and Recovery Board",
+    AltProjectName == "Warren SPC Combined" ~ "Warren Metropolitan Housing Authority", 
+    TRUE ~ OrganizationName
+  )) %>%
+  arrange(desc(TotalScore))
+
 # Clean the House ---------------------------------------------------------
 
 rm(list = ls()[!(ls() %in% c(
@@ -1789,7 +1813,8 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_final_scoring',
   'ReportStart',
   'ReportEnd',
-  'living_situation'
+  'living_situation',
+  'final_scores'
 ))])
 
 # next_thing_due <- tribble(
@@ -1825,7 +1850,12 @@ zero_divisors <- pe_validation_summary %>%
 
 write_csv(zero_divisors, "Reports/zero_divisors.csv")
 
-save.image("images/ProjectEvaluation.RData")
+write_csv(final_scores %>%
+            select(OrganizationName,
+                   AltProjectName,
+                   TotalScore), "Reports/pe_final.csv")
+
+# save.image("images/ProjectEvaluation.RData") # not saving this bc window is closed
 
 ## EXPERIMENTAL -----
 
