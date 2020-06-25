@@ -9,10 +9,8 @@ library(tidyverse)
 library(lubridate)
 library(knitr)
 library(here)
-
-#mapping library
-library(tmap)
-library(raster)
+library(tmap)    #for mapping
+library(raster)  #for mapping
 
 # FUNCTIONS
 replace_yes_no <- function(column_name){
