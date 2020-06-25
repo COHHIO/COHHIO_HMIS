@@ -9,8 +9,11 @@ library(tidyverse)
 library(lubridate)
 library(knitr)
 library(here)
-library(tmap)    #for mapping
-library(raster)  #for mapping
+
+#mapping library
+library(tmap)
+library(raster)
+library(rgeos)
 
 # FUNCTIONS
 replace_yes_no <- function(column_name){
@@ -364,16 +367,14 @@ priority_plot %>%
 ## Geography
 
 ### Where are clients being assessed?
-This map shows the total number of COVID Screening Tools reported in HMIS by county.
+This map shows the total number of clients assessed with the COVID Screening Tool  and reported in HMIS by county.
 
 ```{r geo, dpi=300, echo=FALSE, message=FALSE}
 
 covid19_county_summary <- covid19 %>%
   group_by(CountyServed) %>%
-  summarise(n())
-
-names(covid19_county_summary)[1] <- "NAME_2"
-names(covid19_county_summary)[2] <- "Number of Screenings"
+  summarise(ClientCount = n()) %>%
+  dplyr::select("NAME_2" = CountyServed, "Clients Screened" = ClientCount)
 
 # Get polygon data
 us <- getData('GADM', country='USA', level=2)
@@ -381,15 +382,15 @@ ohio_shp <- subset(us, NAME_1 == "Ohio")
 counties_shp <- subset(ohio_shp, NAME_2 != "Lake Erie")
 
 
-counties_covid_shp <- merge(counties_shp, covid19_county_summary, 
+counties_covid_shp <- merge(counties_shp, covid19_county_summary,
                             by = "NAME_2")
 
 tmap_mode("plot")
 qtm(counties_covid_shp,
-    fill = "Number of Screenings",
+    fill = "Clients Screened",
     fill.palette = "Blues",
     frame = FALSE,
-    text = "NAME_2", 
+    text = "NAME_2",
     text.size = .35,
     legend.outside = TRUE
     )
