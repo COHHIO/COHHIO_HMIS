@@ -16,15 +16,15 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 
-load("images/COHHIOHMIS.RData")
+load("images/20200619COHHIOHMIS.RData")
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
-load("images/cohorts.RData")
+load("images/20200619cohorts.RData")
 rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
-load("images/Data_Quality.RData")
+load("images/20200619DQ.RData")
 
 # Points function ---------------------------------------------------------
 
@@ -184,7 +184,8 @@ consolidations <- pe_coc_funded %>%
                           1774, 15,
                           737, 738, 739,
                           548, 763, 764, 774,
-                          1323, 208)) %>%
+                          1323, 208,
+                          1566, 1579)) %>%
   mutate(
     AltProjectID = case_when(
       ProjectID %in% c(718, 719, 721) ~ 3000,
@@ -193,7 +194,8 @@ consolidations <- pe_coc_funded %>%
       ProjectID %in% c(1774, 15) ~ 3003,
       ProjectID %in% c(737, 738, 739) ~ 3004,
       ProjectID %in% c(548, 763, 764, 774) ~ 3005,
-      ProjectID %in% c(1323, 208) ~ 3006
+      ProjectID %in% c(1323, 208) ~ 3006,
+      ProjectID %in% c(1566, 1579) ~ 3007
     ),
     AltProjectName = case_when(
       ProjectID %in% c(718, 719, 721) ~ "Butler County PSH Combined",
@@ -202,13 +204,28 @@ consolidations <- pe_coc_funded %>%
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined",
       ProjectID %in% c(737, 738, 739) ~ "Lake SPC Combined",
       ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull SPC Vouchers Combined",
-      ProjectID %in% c(1323, 208) ~ "Warren SPC Combined"
+      ProjectID %in% c(1323, 208) ~ "Warren SPC Combined",
+      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined"
     )
   ) %>%
   select(ProjectID, ProjectName, AltProjectID, AltProjectName)
 
-keepers <- c(746, 15, 1353, 719, 737, 774, 208)
-retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323)
+keepers <- c(746, 15, 1353, 719, 737, 774, 208, 1566) 
+retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579)
+
+# I messed up the way the cocscoring data was coming in so I'm fixing that here
+# this should not be needed for 2021
+
+Project <- Project %>%
+  mutate(
+    CostPerExit = NA,
+    DateReceivedPPDocs = NA,
+    HousingFirstScore = NA,
+    ChronicPrioritizationScore = NA,
+    OnTrackSpendingScoring = NA,
+    UnspentFundsScoring = NA,
+    CostPerExit = NA
+  ) 
 
 # filter to only CoC-funded projects (leaving out the SSO)
 
@@ -1773,6 +1790,7 @@ final_scores <- pe_final_scores %>%
     AltProjectName == "Springfield SPC 1 Combined" ~ "City of Springfield Ohio",
     AltProjectName == "Trumbull SPC Vouchers Combined" ~ "Trumbull County Mental Health and Recovery Board",
     AltProjectName == "Warren SPC Combined" ~ "Warren Metropolitan Housing Authority", 
+    AltProjectName == "One Eighty PSH Plus Care Combined" ~ "OneEighty Inc.",
     TRUE ~ OrganizationName
   )) %>%
   arrange(desc(TotalScore))
@@ -1855,7 +1873,7 @@ write_csv(final_scores %>%
                    AltProjectName,
                    TotalScore), "Reports/pe_final.csv")
 
-# save.image("images/ProjectEvaluation.RData") # not saving this bc window is closed
+save.image("images/20200619ProjectEvaluation.RData") 
 
 ## EXPERIMENTAL -----
 
