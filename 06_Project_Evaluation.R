@@ -893,13 +893,14 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       TRUE ~ 0
     ),
     DestinationGroup = case_when(
+      is.na(Destination) | ymd(ExitAdjust) > mdy(ReportEnd) ~ 
+        "Still in Program at Report End Date",
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
       Destination %in% c(22:23) ~ "Shared Housing",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
-      Destination == 24 ~ "Deceased",
-      is.na(Destination) ~ "Still in Program"
+      Destination == 24 ~ "Deceased"
     )
   ) %>% 
   select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
