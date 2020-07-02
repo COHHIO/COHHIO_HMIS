@@ -16,15 +16,15 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 
-load("images/20200619COHHIOHMIS.RData")
+load("images/COHHIOHMIS.RData")
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
-load("images/20200619cohorts.RData")
+load("images/cohorts.RData")
 rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
-load("images/20200619DQ.RData")
+load("images/Data_Quality.RData")
 
 # Points function ---------------------------------------------------------
 
@@ -1854,7 +1854,7 @@ write_csv(final_scores %>%
                    AltProjectName,
                    TotalScore), "Reports/pe_final.csv")
 
-save.image("images/20200619ProjectEvaluation.RData") 
+save.image("images/ProjectEvaluation.RData") 
 
 ## EXPERIMENTAL -----
 
