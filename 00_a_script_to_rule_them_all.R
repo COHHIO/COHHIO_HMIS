@@ -141,9 +141,9 @@ if (stop == 0) {
   source("04_DataQuality.R")
   rm(list = ls())
   
-  # print("working on Project Evaluation")
-  # source("06_Project_Evaluation.R")
-  # rm(list = ls())
+  print("working on Project Evaluation")
+  source("06_Project_Evaluation.R")
+  rm(list = ls())
   
   print("working on SPMs")
   source("07_SPMs.R")
