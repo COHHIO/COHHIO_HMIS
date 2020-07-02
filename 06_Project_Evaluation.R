@@ -784,12 +784,13 @@ pe_exits_to_ph <- pe_hohs_served %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   mutate(
     DestinationGroup = case_when(
+      is.na(Destination) | ymd(ExitAdjust) > mdy(ReportEnd) ~ 
+        "Still in Program at Report End Date",
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
       Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36) ~ "Permanent",
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 30, 99) ~ "Other",
-      Destination == 24 ~ "Deceased",
-      is.na(Destination) ~ "Still in Program"
+      Destination == 24 ~ "Deceased (not counted)"
     ),
     ExitsToPHDQ = case_when(
       General_DQ == 1 ~ 1,
@@ -798,9 +799,9 @@ pe_exits_to_ph <- pe_hohs_served %>%
     MeetsObjective =
       case_when(
         ProjectType %in% c(3, 9) &
-          DestinationGroup %in% c("Permanent", "Still in Program") ~ 1,
+          DestinationGroup %in% c("Permanent", "Still in Program at Report End Date") ~ 1,
         ProjectType %in% c(3, 9) &
-          (!DestinationGroup %in% c("Permanent", "Still in Program")) ~ 0,
+          (!DestinationGroup %in% c("Permanent", "Still in Program at Report End Date")) ~ 0,
         ProjectType %in% c(2, 8, 13) &
           DestinationGroup == "Permanent" ~ 1,
         ProjectType %in% c(2, 8, 13) &
