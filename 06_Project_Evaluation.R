@@ -154,9 +154,12 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 
 # Staging -----------------------------------------------------------------
 
+keepers <- c(746, 15, 1353, 719, 737, 774, 208, 1566) 
+retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579)
+
 pe_coc_funded <- Funder %>%
   filter(
-    ProjectID %in% c(718, 721, 1323, 1354, 1774) |# consolidated in 2019
+    ProjectID %in% c(keepers, retired) |# consolidated in 2019
       (
         Funder %in% c(1:7) &
           ymd(StartDate) <= mdy(ReportEnd) &
@@ -178,14 +181,7 @@ pe_coc_funded <- Funder %>%
 # consolidated projects
 
 consolidations <- pe_coc_funded %>%
-  filter(ProjectID %in% c(718, 719, 721, 
-                          1353, 1354, 
-                          746, 747, 
-                          1774, 15,
-                          737, 738, 739,
-                          548, 763, 764, 774,
-                          1323, 208,
-                          1566, 1579)) %>%
+  filter(ProjectID %in% c(keepers, retired)) %>%
   mutate(
     AltProjectID = case_when(
       ProjectID %in% c(718, 719, 721) ~ 3000,
@@ -209,23 +205,6 @@ consolidations <- pe_coc_funded %>%
     )
   ) %>%
   select(ProjectID, ProjectName, AltProjectID, AltProjectName)
-
-keepers <- c(746, 15, 1353, 719, 737, 774, 208, 1566) 
-retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579)
-
-# I messed up the way the cocscoring data was coming in so I'm fixing that here
-# this should not be needed for 2021
-
-Project <- Project %>%
-  mutate(
-    CostPerExit = NA,
-    DateReceivedPPDocs = NA,
-    HousingFirstScore = NA,
-    ChronicPrioritizationScore = NA,
-    OnTrackSpendingScoring = NA,
-    UnspentFundsScoring = NA,
-    CostPerExit = NA
-  ) 
 
 # filter to only CoC-funded projects (leaving out the SSO)
 
