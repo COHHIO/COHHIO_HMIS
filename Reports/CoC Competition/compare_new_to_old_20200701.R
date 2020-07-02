@@ -1,6 +1,10 @@
+library(tidyverse)
+library(lubridate)
+library(here)
 
-new_scores <- read_csv("newscores.csv")
-old_scores <- read_csv("oldscores.csv")
+
+new_scores <- read_csv(here("Reports/CoC Competition/newscores.csv"))
+old_scores <- read_csv(here("Reports/CoC Competition/oldscores.csv"))
 
 in_old_but_not_in_new <- anti_join(old_scores, new_scores, by = "AltProjectName")
 
