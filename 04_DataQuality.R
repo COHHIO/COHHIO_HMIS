@@ -41,16 +41,11 @@ rm(
 
 projects_current_hmis <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(
-    ProjectID == 1695 | (
-      HMISParticipatingProject == 1 &
-        str_detect(ProjectName, "zz", negate = TRUE) &
-        # <- since we can't trust projects_current_hmis
-        operating_between(., FileStart, FileEnd) &
-        (GrantType != "HOPWA" |
-           is.na(GrantType)) # excluding HOPWA
-    )
-  ) %>%
+  filter(ProjectID == 1695 | (
+    HMISParticipatingProject == 1 &
+      operating_between(., FileStart, FileEnd) &
+      (GrantType != "HOPWA" | is.na(GrantType))) 
+  ) %>% 
   select(
     ProjectID,
     OrganizationID,
