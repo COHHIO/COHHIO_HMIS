@@ -158,16 +158,14 @@ keepers <- c(746, 15, 1353, 719, 737, 774, 208, 1566)
 retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579)
 
 pe_coc_funded <- Funder %>%
-  filter(
-    ProjectID %in% c(keepers, retired) |# consolidated in 2019
-      (
-        Funder %in% c(1:7) &
-          ymd(StartDate) <= mdy(ReportEnd) &
-          (is.na(EndDate) |
-             ymd(EndDate) >= mdy(ReportEnd)) &
-          ProjectID != 2069
-      )
-  ) %>%
+  filter(Funder %in% c(1:7) &
+           ProjectID != 2069 &
+           (ProjectID %in% c(keepers, retired) |
+              (
+                ymd(StartDate) <= mdy(ReportEnd) &
+                  (is.na(EndDate) |
+                     ymd(EndDate) >= mdy(ReportEnd))
+              ))) %>% 
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID",
                       "ProjectName",
