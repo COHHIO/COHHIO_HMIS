@@ -582,7 +582,7 @@ dq_flags_staging <- dq_2019 %>%
       if_else(
         Issue %in% c(
           "Duplicate Entry Exits",
-          # "Incorrect Entry Exit Type", (should have been included in 2020 but wasn't)
+          "Incorrect Entry Exit Type", 
           "Children Only Household",
           "No Head of Household",
           "Too Many Heads of Household"
@@ -1762,14 +1762,14 @@ final_scores <- pe_final_scores %>%
   left_join(project_and_alt_project, by = c("AltProjectName" = "ProjectName")) %>%
   select(OrganizationName, AltProjectName, TotalScore) %>%
   mutate(OrganizationName = case_when(
-    AltProjectName == "Butler County PSH Combined" ~ "Butler County Board of Commissioners",
-    AltProjectName == "GLCAP PSH Combined" ~ "Great Lakes Community Action Partnership",
+    AltProjectName == "Butler County PSH Combined (718, 719, 721)" ~ "Butler County Board of Commissioners",
+    AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ "Great Lakes Community Action Partnership",
     AltProjectName == "Jefferson County SPC Combined" ~ "Coleman Professional Services",
-    AltProjectName == "Lake SPC Combined" ~ "Lake County ADAMHS Board",
+    AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ "Lake County ADAMHS Board",
     AltProjectName == "Springfield SPC 1 Combined" ~ "City of Springfield Ohio",
-    AltProjectName == "Trumbull SPC Vouchers Combined" ~ "Trumbull County Mental Health and Recovery Board",
-    AltProjectName == "Warren SPC Combined" ~ "Warren Metropolitan Housing Authority", 
-    AltProjectName == "One Eighty PSH Plus Care Combined" ~ "OneEighty Inc.",
+    AltProjectName == "Trumbull SPC Vouchers Combined (548, 763, 764, 774)" ~ "Trumbull County Mental Health and Recovery Board",
+    AltProjectName == "Warren SPC Combined (1323, 208)" ~ "Warren Metropolitan Housing Authority", 
+    AltProjectName == "One Eighty PSH Plus Care Combined (1566, 1579)" ~ "OneEighty Inc.",
     TRUE ~ OrganizationName
   )) %>%
   arrange(desc(TotalScore))
