@@ -194,14 +194,14 @@ consolidations <- pe_coc_funded %>%
       ProjectID %in% c(1566, 1579) ~ 3007
     ),
     AltProjectName = case_when(
-      ProjectID %in% c(718, 719, 721) ~ "Butler County PSH Combined",
-      ProjectID %in% c(1353, 1354) ~ "Springfield SPC 1 Combined",
-      ProjectID %in% c(746, 747) ~ "Jefferson County SPC Combined",
-      ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined",
-      ProjectID %in% c(737, 738, 739) ~ "Lake SPC Combined",
-      ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull SPC Vouchers Combined",
-      ProjectID %in% c(1323, 208) ~ "Warren SPC Combined",
-      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined"
+      ProjectID %in% c(718, 719, 721) ~ "Butler County PSH Combined (718, 719, 721)",
+      ProjectID %in% c(1353, 1354) ~ "Springfield SPC 1 Combined (1353, 1354)",
+      ProjectID %in% c(746, 747) ~ "Jefferson County SPC Combined (746, 747)",
+      ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined (1774, 15)",
+      ProjectID %in% c(737, 738, 739) ~ "Lake SPC Combined (737, 738, 739)",
+      ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull SPC Vouchers Combined (548, 763, 764, 774)",
+      ProjectID %in% c(1323, 208) ~ "Warren SPC Combined (1323, 208)",
+      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined (1566, 1579)"
     )
   ) %>%
   select(ProjectID, ProjectName, AltProjectID, AltProjectName)
