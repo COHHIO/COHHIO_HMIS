@@ -783,7 +783,8 @@ pe_exits_to_ph <- pe_hohs_served %>%
           DestinationGroup == "Permanent" ~ 1,
         ProjectType %in% c(2, 8, 13) &
           (DestinationGroup != "Permanent") ~ 0
-      )
+      ),
+    PersonalID = as.character(PersonalID)
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & 
             exited_between(., ReportStart, ReportEnd)) |
@@ -879,7 +880,8 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
       Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
       Destination == 24 ~ "Deceased"
-    )
+    ),
+    PersonalID = as.character(PersonalID)
   ) %>% 
   select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
 
@@ -972,7 +974,8 @@ pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
         )
       ),
     BenefitsAtExitDQ = if_else(General_DQ == 1 |
-                                 Benefits_DQ == 1, 1, 0)
+                                 Benefits_DQ == 1, 1, 0),
+    PersonalID = as.character(PersonalID)
   ) %>% 
   select(
     all_of(vars_to_the_apps),
@@ -1084,7 +1087,8 @@ pe_increase_income <- income_staging %>%
       IncomeMostRecent > IncomeAtEntry ~ 1,
       IncomeMostRecent <= IncomeAtEntry ~ 0),
     IncreasedIncomeDQ = if_else(General_DQ == 1 |
-                                  Income_DQ == 1, 1, 0)
+                                  Income_DQ == 1, 1, 0),
+    PersonalID = as.character(PersonalID)
   ) %>%  
   select(
     all_of(vars_to_the_apps),
@@ -1150,7 +1154,8 @@ summary_pe_increase_income <- pe_increase_income %>%
 
 pe_length_of_stay <- pe_clients_moved_in_leavers %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
-  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate))) %>%
+  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate)),
+         PersonalID = as.character(PersonalID)) %>%
   select(ProjectType,
          AltProjectName,
          General_DQ,
@@ -1213,7 +1218,8 @@ pe_res_prior <- pe_adults_entered %>%
                 LivingSituation == 16),
            1,
            0
-         )) %>% 
+         ),
+         PersonalID = as.character(PersonalID)) %>% 
   select(all_of(vars_to_the_apps), LivingSituation, LHResPriorDQ)
 
 summary_pe_res_prior <- pe_res_prior %>%
@@ -1277,6 +1283,7 @@ pe_entries_no_income <- pe_adults_entered %>%
               unique(), 
             by = c("EnrollmentID", "EntryDate" = "InformationDate")) %>%
   mutate(
+    PersonalID = as.character(PersonalID),
     IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
                                   99,
                                   IncomeFromAnySource),
@@ -1459,7 +1466,8 @@ pe_homeless_history_index <- pe_adults_entered %>%
           )
         ) ~ 0,
       TRUE ~ 0
-    )
+    ),
+    PersonalID = as.character(PersonalID)
   )
 
 summary_pe_homeless_history_index <- pe_homeless_history_index %>%
@@ -1558,7 +1566,8 @@ pe_long_term_homeless <- pe_adults_entered %>%
     1,
     0
     ),
-    LTHomelessDQ = if_else(ProjectType == 3 & General_DQ == 1, 1, 0)
+    LTHomelessDQ = if_else(ProjectType == 3 & General_DQ == 1, 1, 0),
+    PersonalID = as.character(PersonalID)
   ) %>%
   select(all_of(vars_to_the_apps), DateToStreetESSH, 
          CurrentHomelessDuration, MonthsHomelessPastThreeYears, 
@@ -1633,7 +1642,8 @@ pe_scored_at_ph_entry <- pe_hohs_entered %>%
       is.na(PersonalID) & is.na(Issue) & ProjectType %in% c(2, 3, 13) ~ 1),
     ScoredAtEntryDQ = case_when(
       ProjectType %in% c(2, 3, 13) & General_DQ == 1 ~ 1, 
-      ProjectType %in% c(2, 3, 13) & General_DQ == 0 ~ 0)
+      ProjectType %in% c(2, 3, 13) & General_DQ == 0 ~ 0),
+    PersonalID = as.character(PersonalID)
   ) %>%
   select(all_of(vars_to_the_apps), ScoredAtEntryDQ)
 
@@ -1778,11 +1788,11 @@ final_scores <- pe_final_scores %>%
 # Clean the House ---------------------------------------------------------
 
 rm(list = ls()[!(ls() %in% c(
-  'pe_adults_entered',
-  'pe_adults_moved_in_leavers',
+  # 'pe_adults_entered',
+  # 'pe_adults_moved_in_leavers',
   'pe_benefits_at_exit',
-  'pe_clients_served',
-  'pe_coc_funded',
+  # 'pe_clients_served',
+  # 'pe_coc_funded',
   'pe_coc_scoring',
   'pe_dq_by_provider',
   'pe_entries_no_income',
@@ -1811,7 +1821,7 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_final_scoring',
   'ReportStart',
   'ReportEnd',
-  'living_situation',
+  # 'living_situation',
   'final_scores'
 ))])
 
