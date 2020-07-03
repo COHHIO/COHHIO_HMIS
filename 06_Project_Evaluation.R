@@ -435,7 +435,7 @@ pe_hohs_served <- co_hohs_served %>%
   distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 pe_hohs_served_leavers <- pe_hohs_served %>%
-  filter(!is.na(ExitDate))
+  filter(exited_between(., ReportStart, ReportEnd))
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
@@ -785,7 +785,8 @@ pe_exits_to_ph <- pe_hohs_served %>%
           (DestinationGroup != "Permanent") ~ 0
       )
   ) %>%
-  filter((ProjectType %in% c(2, 8, 13) & !is.na(ExitDate)) |
+  filter((ProjectType %in% c(2, 8, 13) & 
+            exited_between(., ReportStart, ReportEnd)) |
            ProjectType == 3) %>% # filtering out non-PSH stayers
   select(all_of(vars_to_the_apps), ExitsToPHDQ, Destination, DestinationGroup)
 
@@ -795,7 +796,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
-    ExitsToPHCohort = "HoHsServedLeavers",
+    ExitsToPHCohort = if_else(ProjectType == 3, "HoHsServed", "HoHsServedLeavers"),
     HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
     HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
