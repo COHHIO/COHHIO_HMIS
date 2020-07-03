@@ -282,7 +282,8 @@ pe_clients_served <-  co_clients_served %>%
 
 hoh_exits_to_deceased <- pe_clients_served %>%
   filter(Destination == 24 &
-           RelationshipToHoH == 1) %>%
+           RelationshipToHoH == 1 &
+           exited_between(., ReportStart, ReportEnd)) %>%
   group_by(AltProjectID) %>%
   summarise(HoHDeaths = n()) %>%
   ungroup() %>%
