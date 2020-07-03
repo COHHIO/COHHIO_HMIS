@@ -155,7 +155,7 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 # Staging -----------------------------------------------------------------
 
 keepers <- c(746, 15, 1353, 719, 737, 774, 208, 1566) 
-retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579)
+retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579, 390)
 
 pe_coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
@@ -183,7 +183,7 @@ consolidations <- pe_coc_funded %>%
   mutate(
     AltProjectID = case_when(
       ProjectID %in% c(718, 719, 721) ~ 3000,
-      ProjectID %in% c(1353, 1354) ~ 3001,
+      ProjectID %in% c(1353, 1354, 390) ~ 3001,
       ProjectID %in% c(746, 747) ~ 3002,
       ProjectID %in% c(1774, 15) ~ 3003,
       ProjectID %in% c(737, 738, 739) ~ 3004,
@@ -193,7 +193,7 @@ consolidations <- pe_coc_funded %>%
     ),
     AltProjectName = case_when(
       ProjectID %in% c(718, 719, 721) ~ "Butler County PSH Combined (718, 719, 721)",
-      ProjectID %in% c(1353, 1354) ~ "Springfield SPC 1 Combined (1353, 1354)",
+      ProjectID %in% c(1353, 1354, 390) ~ "Springfield SPC 1 Combined (1353, 1354, 390)",
       ProjectID %in% c(746, 747) ~ "Jefferson County SPC Combined (746, 747)",
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined (1774, 15)",
       ProjectID %in% c(737, 738, 739) ~ "Lake SPC Combined (737, 738, 739)",
@@ -1766,7 +1766,7 @@ final_scores <- pe_final_scores %>%
     AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ "Great Lakes Community Action Partnership",
     AltProjectName == "Jefferson County SPC Combined" ~ "Coleman Professional Services",
     AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ "Lake County ADAMHS Board",
-    AltProjectName == "Springfield SPC 1 Combined" ~ "City of Springfield Ohio",
+    AltProjectName == "Springfield SPC 1 Combined (1353, 1354, 390)" ~ "City of Springfield Ohio",
     AltProjectName == "Trumbull SPC Vouchers Combined (548, 763, 764, 774)" ~ "Trumbull County Mental Health and Recovery Board",
     AltProjectName == "Warren SPC Combined (1323, 208)" ~ "Warren Metropolitan Housing Authority", 
     AltProjectName == "One Eighty PSH Plus Care Combined (1566, 1579)" ~ "OneEighty Inc.",
