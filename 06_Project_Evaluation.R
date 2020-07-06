@@ -784,6 +784,10 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
 # PSH (includes stayers tho), TH, SH, RRH
 
 pe_exits_to_ph <- pe_hohs_served %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   mutate(
     DestinationGroup = case_when(
@@ -886,6 +890,10 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
 # TH, SH, RRH
 
 pe_own_housing <- pe_hohs_moved_in_leavers %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   filter(ProjectType != 3) %>%
   mutate(
@@ -965,6 +973,10 @@ summary_pe_own_housing <- pe_own_housing %>%
 # PSH, TH, SH, RRH
 
 pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(
@@ -1061,6 +1073,10 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
 # PSH, TH, SH, RRH
 
 income_staging2 <-  pe_adults_moved_in %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
   select(PersonalID,
          EnrollmentID,
@@ -1179,6 +1195,10 @@ summary_pe_increase_income <- pe_increase_income %>%
 # TH, SH, RRH
 
 pe_length_of_stay <- pe_clients_moved_in_leavers %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate)),
          PersonalID = as.character(PersonalID)) %>%
@@ -1234,6 +1254,10 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
 # PSH, TH, SH (Street only), RRH
 
 pe_res_prior <- pe_adults_entered %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
   mutate(LHResPriorDQ = if_else(General_DQ == 1, 1, 0),
@@ -1300,6 +1324,10 @@ summary_pe_res_prior <- pe_res_prior %>%
 # PSH, TH, SH, RRH
 
 pe_entries_no_income <- pe_adults_entered %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   filter(ProjectType %in% c(2, 3, 13, 8)) %>%
   left_join(IncomeBenefits %>%
@@ -1571,10 +1599,10 @@ summary_pe_dq <- summary_pe_dq %>%
 # Decided in Feb meeting that we're going to use Adults Entered for this one
 
 pe_long_term_homeless <- pe_adults_entered %>%
-  # left_join(pe_coc_funded %>%
-  #             select("AltProjectName", "ProjectType", "AltProjectID") %>%
-  #             unique(), 
-  #           by = c("ProjectType", "AltProjectID", "AltProjectName")) %>%
+  right_join(pe_coc_funded %>% 
+               select(ProjectType, AltProjectID, AltProjectName) %>%
+               unique(), 
+             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
