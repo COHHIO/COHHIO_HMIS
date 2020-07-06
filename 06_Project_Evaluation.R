@@ -255,6 +255,10 @@ vars_to_the_apps <- c(
 
 # Project Evaluation cohorts ----------------------------------------------
 
+# pe_[cohort]: uses cohort objects to narrow down data to coc-funded projects'
+# data to the 'vars_we_want', then dedupes in case there are multiple stays in 
+# that project during the date range.
+
 # clients served during date range
 
 pe_clients_served <-  co_clients_served %>%
@@ -464,6 +468,9 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
 
 # Create Validation Summary -----------------------------------------------
 
+# summary_pe_[cohort] - takes client-level pe_[cohort], calculates # of total
+# clients in the cohort at the alt-project level
+
 summary_pe_hohs_moved_in_leavers <- pe_hohs_moved_in_leavers %>%
   group_by(AltProjectID) %>%
   summarise(HoHsMovedInLeavers = n()) %>%
@@ -544,6 +551,9 @@ summary_pe_hohs_entered <- pe_hohs_entered %>%
                                as.integer(0),
                                HoHsEntered))
 
+# joins all summary_pe_[cohort]s into one object so now you have all the cohort 
+# totals at the alt-project level
+
 pe_validation_summary <- summary_pe_adults_entered %>%
   full_join(summary_pe_adults_moved_in, by = "AltProjectID") %>%
   full_join(summary_pe_hohs_served_leavers, by = "AltProjectID") %>%
@@ -576,6 +586,10 @@ pe_validation_summary <- summary_pe_adults_entered %>%
 rm(list = ls(pattern = "summary_"))
 
 # Finalizing DQ Flags -----------------------------------------------------
+
+# calculates how many clients have a qualifying error of whatever type. only
+# returns the providers with any qualifying errors.
+
 dq_flags_staging <- dq_2019 %>%
   right_join(pe_coc_funded, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
   mutate(
@@ -631,6 +645,9 @@ dq_flags_staging <- dq_2019 %>%
             IncomeFlagTotal = sum(IncomeFlag),
             LoTHFlagTotal = sum(LoTHFlag))
 
+# calculates whether the # of errors of whatever type actually throws a flag.
+# includes all alt-projects regardless of if they have errors
+
 data_quality_flags_detail <- pe_validation_summary %>%
   left_join(dq_flags_staging, by = "AltProjectName") %>%
   mutate(General_DQ = if_else(GeneralFlagTotal/ClientsServed >= .02, 1, 0),
@@ -639,6 +656,8 @@ data_quality_flags_detail <- pe_validation_summary %>%
          LoTH_DQ = if_else(LoTHFlagTotal/HoHsServed >= .02, 1, 0))
 
 data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
+
+# displays flags thrown at the alt-project level
 
 data_quality_flags <- data_quality_flags_detail %>%
   select(AltProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
@@ -756,6 +775,12 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
 # 5 = Docs received past the due date
 
 # Housing Stability: Exits to PH ------------------------------------------
+
+# pe_[measure] - client-level dataset of all clients counted in the measure 
+# along with whether each one meets the objective
+# summary_pe_[measure] - uses pe_[measure] to smush to alt-project level and 
+# adds a score
+
 # PSH (includes stayers tho), TH, SH, RRH
 
 pe_exits_to_ph <- pe_hohs_served %>%
@@ -1701,6 +1726,8 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
 
 # Final Scoring -----------------------------------------------------------
 
+# all the alt-projects & score details & totals
+
 summary_pe_final_scoring <-
   pe_coc_funded[c("ProjectType", "AltProjectName")] %>%
   unique() %>%
@@ -1761,6 +1788,9 @@ pe_final_scores <- pe_final_scores %>%
          ends_with("Scoring"),
          TotalScore)
 
+# adding in Organization Name for publishing the final ranking
+# Org Names for the combined projects have to be done manually
+
 project_and_orgs <- Project %>%
   select(ProjectID, ProjectName, OrganizationID)  %>%
   left_join(Organization %>%
@@ -1774,14 +1804,22 @@ final_scores <- pe_final_scores %>%
   left_join(project_and_alt_project, by = c("AltProjectName" = "ProjectName")) %>%
   select(OrganizationName, AltProjectName, TotalScore) %>%
   mutate(OrganizationName = case_when(
-    AltProjectName == "Butler County PSH Combined (718, 719, 721)" ~ "Butler County Board of Commissioners",
-    AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ "Great Lakes Community Action Partnership",
-    AltProjectName == "Jefferson County SPC Combined" ~ "Coleman Professional Services",
-    AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ "Lake County ADAMHS Board",
-    AltProjectName == "Springfield SPC 1 Combined (1353, 1354, 390)" ~ "City of Springfield Ohio",
-    AltProjectName == "Trumbull SPC Vouchers Combined (548, 763, 764, 774)" ~ "Trumbull County Mental Health and Recovery Board",
-    AltProjectName == "Warren SPC Combined (1323, 208)" ~ "Warren Metropolitan Housing Authority", 
-    AltProjectName == "One Eighty PSH Plus Care Combined (1566, 1579)" ~ "OneEighty Inc.",
+    AltProjectName == "Butler County PSH Combined (718, 719, 721)" ~ 
+      "Butler County Board of Commissioners",
+    AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ 
+      "Great Lakes Community Action Partnership",
+    AltProjectName == "Jefferson County SPC Combined" ~ 
+      "Coleman Professional Services",
+    AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ 
+      "Lake County ADAMHS Board",
+    AltProjectName == "Springfield SPC 1 Combined (1353, 1354, 390)" ~ 
+      "City of Springfield Ohio",
+    AltProjectName == "Trumbull SPC Vouchers Combined (548, 763, 764, 774)" ~ 
+      "Trumbull County Mental Health and Recovery Board",
+    AltProjectName == "Warren SPC Combined (1323, 208)" ~ 
+      "Warren Metropolitan Housing Authority", 
+    AltProjectName == "One Eighty PSH Plus Care Combined (1566, 1579)" ~ 
+      "OneEighty Inc.",
     TRUE ~ OrganizationName
   )) %>%
   arrange(desc(TotalScore))
@@ -1865,47 +1903,4 @@ write_csv(final_scores %>%
                    TotalScore), "Reports/pe_final.csv")
 
 save.image("images/ProjectEvaluation.RData") 
-
-## EXPERIMENTAL -----
-
-# Housing Stability: 6 mo Recurrence --------------------------------------
-# PSH, TH, SH, RRH
-
-# library(funneljoin)
-# 
-# perm_destinations <- c(3, 10:11, 19:23, 26, 28, 31, 33:34)
-# 
-# leavers_psh_to_ph <- co_clients_served %>%
-#   filter(Destination %in% perm_destinations &
-#            ProjectType == 3)
-# 
-# leavers_rrh_to_ph <- co_clients_served %>%
-#   filter(Destination %in% perm_destinations &
-#            ProjectType == 13)
-# 
-# leavers_th_to_ph <- co_clients_served %>%
-#   filter(Destination %in% perm_destinations &
-#            ProjectType == 2)
-# 
-# leavers_es_to_ph <- co_clients_served %>%
-#   filter(Destination %in% perm_destinations &
-#            ProjectType == 1)
-# 
-# leavers_sso_to_ph <- co_clients_served %>%
-#   filter(Destination %in% perm_destinations &
-#            ProjectType == 6)
-# 
-# leavers_sh_to_ph <- co_clients_served %>%
-#   filter(Destination %in% perm_destinations &
-#            ProjectType == 8)
-# 
-# returners <- co_clients_served
-# 
-
-
-# Housing Stability: 6-24 mo Recurrence -----------------------------------
-# PSH, TH, SH, RRH
-
-
-
 
