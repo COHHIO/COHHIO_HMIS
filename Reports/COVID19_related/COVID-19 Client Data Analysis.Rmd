@@ -326,7 +326,7 @@ priority_plot %>%
 ### Where are clients being assessed?
 This map shows the total number of clients assessed with the COVID Screening Tool  and reported in HMIS by county.
 
-```{r geo, dpi=300, echo=FALSE, message=FALSE}
+```{r geo, echo=FALSE, fig.height=9, fig.width=10, message=FALSE, dpi=300}
 
 covid19_county_summary <- covid19 %>%
   group_by(CountyServed) %>%
@@ -346,10 +346,11 @@ tmap_mode("plot")
 qtm(counties_covid_shp,
     fill = "Clients Screened",
     fill.palette = "Blues",
+    format = "World",
+    fill.n = 8,
     frame = FALSE,
     text = "NAME_2",
-    text.size = .35,
-    legend.outside = TRUE
-    )
+    legend.text.size = 1.2) +
+  tm_legend(position = c("right", "bottom"))
 
 ```
