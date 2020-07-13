@@ -657,6 +657,34 @@ data_quality_flags_detail <- pe_validation_summary %>%
 
 data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
 
+# writing out a file to help notify flagged projects toward end of process
+
+users_eda_groups <- read_xlsx("data/UsersProviders.xlsx", 
+                             sheet = 3) %>%
+  select(UserID, UserEmail, EDAGroupID)
+
+eda_groups_providers <- read_xlsx("data/UsersProviders.xlsx",
+                                  sheet = 4) %>%
+  select(ProviderID, EDAGroupID)
+
+providers_users <- users_eda_groups %>%
+  left_join(eda_groups_providers, by = "EDAGroupID") %>%
+  filter(!is.na(ProviderID) &
+           !UserID %in% c(641, 835, 1041, 1239, 1563, 1624, 1628, 1868, 1698))
+
+notify_about_dq <- data_quality_flags_detail %>%
+  filter(GeneralFlagTotal > 0 |
+           BenefitsFlagTotal > 0 |
+           IncomeFlagTotal > 0 |
+           LoTHFlagTotal > 0) %>%
+  left_join(consolidations %>%
+              select(ProjectID, AltProjectID), by = "AltProjectID") %>%
+  mutate(ProjectID = if_else(is.na(ProjectID), AltProjectID, ProjectID)) %>%
+  left_join(providers_users, by = c("ProjectID" = "ProviderID")) 
+ 
+
+write_csv(notify_about_dq, "Reports/notify.csv")
+
 # displays flags thrown at the alt-project level
 
 data_quality_flags <- data_quality_flags_detail %>%
@@ -1929,6 +1957,8 @@ write_csv(final_scores %>%
             select(OrganizationName,
                    AltProjectName,
                    TotalScore), "Reports/pe_final.csv")
+
+
 
 save.image("images/ProjectEvaluation.RData") 
 
