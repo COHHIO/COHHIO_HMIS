@@ -1,7 +1,5 @@
 ---
-title: "Notify Users CoC Competition"
-author: "Genelle Denzin"
-date: "7/13/2020"
+
 output: word_document
 ---
 
@@ -14,7 +12,9 @@ library(gt)
 
 notify <- read_csv(here("Reports/notify.csv"))
 
-user <- notify$UserEmail[36]
+user_list <- notify$UserEmail %>% unique() %>% sort()
+
+user <- user_list[37]
 
 how_many_providers <- notify %>%
   filter(UserEmail == user) %>%
@@ -29,7 +29,7 @@ has_combined <- notify %>%
 
 Hi!
 
-You are receiving this email because your HMIS login has permissions to enter data for `r if_else(nrow(how_many_providers) > 1, "some providers that are", "a provider that is")` participating in the [Ohio Balance of State CoC Competition](https://cohhio.org/boscoc/coc-program/#gsc.tab=0) this year and `r if_else(nrow(how_many_providers) > 1, "are", "is")` losing points in the project ranking due to HMIS Data Quality.
+You are receiving this email because your HMIS login has permissions to enter data for `r if_else(nrow(how_many_providers) > 1, "providers that are", "a provider that is")` participating in the [Ohio Balance of State CoC Competition](https://cohhio.org/boscoc/coc-program/#gsc.tab=0) this year and losing points in the project ranking due to HMIS Data Quality.
 
 Please check [R minor elevated](https://ohiobalanceofstatecoc.shinyapps.io/Rminor_elevated/) > Data Quality > Provider-level to correct all Errors and High Priority issues. You do NOT need to resolve any of your Warnings for purposes of the CoC Competition Project Evaluation as those are not considered in the scoring.
 
@@ -41,10 +41,16 @@ cat(pull(how_many_providers %>% unique()), sep = "\n")
 
 ```
 
-`r if_else(has_combined == TRUE, "For your combined project, be sure you check the data quality on each provider that was combined to be sure they are all clear. The Provider IDs for which projects have been combined for the CoC Competition are in parentheses.", "")`
+`r if_else(has_combined == TRUE, "For your combined project, be sure to check the data quality on each provider that was combined. The Provider IDs for which projects have been combined for the CoC Competition are in parentheses.", "")`
 
-**This is the only notice** that will be sent about your Data Quality issues in relation to the CoC Competition this year. It is your responsibility to participate in the CoC Competition process by reading the [Ohio BoSCoC Competition Plan and Timeline](https://cohhio.org/boscoc/coc-program/#gsc.tab=0), the Ohio Balance of State CoC listserv and Ohio Balance of State HMIS listserv messages, attending the [training](https://attendee.gotowebinar.com/recording/3115011406815475468), and maintaining your HMIS data.
+**This is the only notice** that will be sent about your Data Quality issues in relation to the CoC Competition this year. It is your responsibility to participate in the CoC Competition process by reading the [Ohio BoSCoC Competition Plan and Timeline](https://cohhio.org/boscoc/coc-program/#gsc.tab=0), reading the Ohio Balance of State CoC listserv and Ohio Balance of State HMIS listserv messages, attending the [training](https://attendee.gotowebinar.com/recording/3115011406815475468), and maintaining your HMIS data.
 
 If you need help with making corrections to your HMIS data, please email us at hmis@cohhio.org.
 
+--  
+Genelle Denzin  
+She/her pronouns  
+HMIS Data Analyst  
+Coalition on Homelessness and Housing in Ohio (COHHIO)  
+Phone: (it is best to arrange online meeting as I am currently away from my phone)
 
