@@ -1626,6 +1626,9 @@ summary_pe_dq <- summary_pe_dq %>%
 # PSH
 # Decided in Feb meeting that we're going to use Adults Entered for this one
 
+# EM informed on 7/13/2020 that Project 1352 should get full points on this 
+# measure
+
 pe_long_term_homeless <- pe_adults_entered %>%
   right_join(pe_coc_funded %>% 
                select(ProjectType, AltProjectID, AltProjectName) %>%
@@ -1635,19 +1638,20 @@ pe_long_term_homeless <- pe_adults_entered %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
                                        units = "days"),
-    MeetsObjective = if_else((
-      CurrentHomelessDuration >= 365 &
-        !is.na(CurrentHomelessDuration)
-    ) |
-      (
-        TimesHomelessPastThreeYears == 4 &
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-          !is.na(TimesHomelessPastThreeYears) &
-          !is.na(MonthsHomelessPastThreeYears)
-      ),
-    1,
-    0
-    ),
+    MeetsObjective = if_else(
+      AltProjectID == 1352 | (
+        CurrentHomelessDuration >= 365 &
+          !is.na(CurrentHomelessDuration)
+      ) |
+        (
+          TimesHomelessPastThreeYears == 4 &
+            MonthsHomelessPastThreeYears %in% c(112, 113) &
+            !is.na(TimesHomelessPastThreeYears) &
+            !is.na(MonthsHomelessPastThreeYears)
+        ),
+      1,
+      0
+    ), 
     LTHomelessDQ = if_else(ProjectType == 3 & General_DQ == 1, 1, 0),
     PersonalID = as.character(PersonalID)
   ) %>%
