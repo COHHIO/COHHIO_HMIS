@@ -21,7 +21,9 @@ how_many_providers <- notify %>%
   select(AltProjectName) %>%
   unique()
 
-has_combined <- notify %>% filter(UserEmail == user & AltProjectID > 2999) %>% nrow() > 0
+has_combined <- notify %>% 
+  filter(UserEmail == user & AltProjectID > 2999) %>% 
+  nrow() > 0
 ```
 `r user`
 
