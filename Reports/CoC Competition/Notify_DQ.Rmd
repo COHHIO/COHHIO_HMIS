@@ -33,7 +33,7 @@ You are receiving this email because your HMIS login has permissions to enter da
 
 Please check [R minor elevated](https://ohiobalanceofstatecoc.shinyapps.io/Rminor_elevated/) > Data Quality > Provider-level to correct all Errors and High Priority issues. You do NOT need to resolve any of your Warnings for purposes of the CoC Competition Project Evaluation as those are not considered in the scoring.
 
-The `r if_else(nrow(how_many_providers) > 1, "providers", "provider")` that will need to be corrected by July 20th at 11:59pm `r if_else(nrow(how_many_providers) > 1, "are", "is")`:
+The `r if_else(nrow(how_many_providers) > 1, "providers", "provider")` that will need to be corrected by **July 20th at 11:59pm** `r if_else(nrow(how_many_providers) > 1, "are", "is")`:
 
 ```{r echo=FALSE}
 
