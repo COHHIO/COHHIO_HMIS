@@ -1868,7 +1868,7 @@ final_scores <- pe_final_scores %>%
       "Butler County Board of Commissioners",
     AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ 
       "Great Lakes Community Action Partnership",
-    AltProjectName == "Jefferson County SPC Combined" ~ 
+    AltProjectName == "Jefferson County SPC Combined (746, 747)" ~ 
       "Coleman Professional Services",
     AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ 
       "Lake County ADAMHS Board",
