@@ -8,6 +8,7 @@
 *.xls
 *.html
 *.docx
+*.pdf
 *.png
 Reports/*.pdf
 Reports/*.csv
