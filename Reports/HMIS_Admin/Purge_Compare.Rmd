@@ -1,0 +1,50 @@
+---
+title: "Purge Compare"
+author: "Genelle Denzin"
+date: "7/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(tidyverse)
+library(lubridate)
+library(gt)
+library(knitr)
+library(here)
+library(readxl)
+
+live_services <- read_xlsx(here("data/LIVEARTCompare.xlsx"), sheet = 2)
+live_ees <- read_xlsx(here("data/LIVEARTCompare.xlsx"), sheet = 1)
+
+demo_services <- read_xlsx(here("data/DEMOARTCompare.xlsx"), sheet = 2)
+demo_ees <- read_xlsx(here("data/DEMOARTCompare.xlsx"), sheet = 1)
+
+```
+
+The live site has `r live_ees %>% nrow()` Entry Exits.  
+The demo site has `r demo_ees %>% nrow()` Entry Exits.
+
+The live site has `r live_services %>% nrow()` Services/Referrals.
+The demo site has `r demo_services %>% nrow()` Services/Referrals.
+
+```{r}
+
+ees_missing_from_demo <- live_ees %>% anti_join(demo_ees)
+
+services_missing_from_demo <- live_services %>% anti_join(demo_services)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
