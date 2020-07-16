@@ -1,16 +1,20 @@
 library(testthat)
+library(here)
 
 source(here("Purge_Compare.R"))
 
-ees_missing_from_demo <- live_ees %>% anti_join(demo_ees)
+test_that("Live datasets should have more rows than the demo datasets",{
+  expect_gt(raw_ees_live %>% nrow(), raw_ees_demo %>% nrow())
+  expect_gt(raw_services_live %>% nrow(), raw_services_demo %>% nrow())
+  expect_gt(ees_live %>% nrow(), ees_demo %>% nrow())
+  expect_gt(services_live %>% nrow(), services_demo %>% nrow())
+})
 
-services_missing_from_demo <- live_services %>% anti_join(demo_services)
+test_that("Based on EE requirements (A), all needed clients are in Demo", {
+  expect_true(length(base::setdiff(a_group, demo_client_ids)) == 0)
+})
 
-# Check that demo has no clients who exited earlier than the cutoff date.
 
-if_else(demo_ees %>% filter(ymd(Exit) > cutoff_date) %>% nrow() > 0,
-        "at least one client on the demo site exited after the cutoff date (ng)",
-        "no client exited after the cutoff date (ok)")
 
 
 
