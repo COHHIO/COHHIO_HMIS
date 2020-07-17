@@ -17,6 +17,8 @@ raw_services_live <- read_xlsx(here("data/LIVEARTCompare.xlsx"), sheet = 2)
 
 projects <- read_csv("data/Project.csv")
 
+# for some reason all the date/times were ahead 1 hour on the demo site
+
 services_live <- raw_services_live %>%
   filter(ServiceID <= highest_serviceid_on_demo) %>%
   mutate(ServiceStart = ymd_hms(ServiceStart) - hours(1),
@@ -67,9 +69,7 @@ a_group <- c(
 
 demo_client_ids <- ees_demo$ClientID %>% unique()
 
-
-
-# Building B --------------------------------------------------------------
+# Checking Blanks ---------------------------------------------------------
 
 clients_who_have_no_real_ees <- ees_live %>%
   filter(ClientInactive == "No") %>%
@@ -79,6 +79,42 @@ clients_who_have_no_real_ees <- ees_live %>%
   ungroup() %>%
   filter(RealEEs == 0)
 
+clients_who_have_no_svcs <- ees_live %>%
+  anti_join(services_live %>%
+              filter(ServiceInactive == "No"), by = "ClientID")
+
+blank_clients <- clients_who_have_no_real_ees %>%
+  semi_join(clients_who_have_no_svcs, by = "ClientID")
+
+blank_clients_still_on_demo <- ees_demo %>%
+  filter(EEInactive == "No") %>%
+  semi_join(blank_clients, by = "ClientID")
+
+# these are generally EEs that were inactivated between the time the demo
+# site was created and the live data was drawn down
+
+# Building B --------------------------------------------------------------
+
+clients_with_real_open_svcs <- services_live %>%
+  filter(is.na(ServiceEnd) &
+           ServiceInactive == "No")
+
+most_recent_svc_by_client_live <- services_live %>%
+  filter(ServiceInactive == "No") %>%
+  group_by(ClientID) %>%
+  summarise(MostRecentSvc = format(max(ServiceStart), '%Y-%m-%d')) %>%
+  ungroup() %>%
+  filter(ymd(MostRecentSvc) > ymd(cutoff_date))
+
+b_group <- c(
+  clients_with_real_open_svcs$ClientID,
+  most_recent_svc_by_client_live$ClientID
+) %>% unique()
+
+services_demo %>%
+  anti_join(b_group, by = "ClientID")
+
+length(base::setdiff(b_group, demo_client_ids)) == 0
 
 
 

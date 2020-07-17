@@ -14,6 +14,9 @@ test_that("Based on EE requirements (A), all needed clients are in Demo", {
   expect_true(length(base::setdiff(a_group, demo_client_ids)) == 0)
 })
 
+test_that("Based on Svc requirements (B), all needed clients are in Demo", {
+  expect_true(length(base::setdiff(b_group, demo_client_ids)) == 0)
+})
 
 
 
