@@ -117,12 +117,13 @@ if(ymd(FileActualStart) > mdy(FileStart)){
 # scripts 
 if (stop == 0) {
   rm(list = ls())
-  print("working on Bed_Unit_Utilization")
-  source("01_Bed_Unit_Utilization.R")
-  rm(list = ls())
   
   print("working on Cohorts")
   source("00_cohorts.R")
+  rm(list = ls())  
+  
+  print("working on Bed_Unit_Utilization")
+  source("01_Bed_Unit_Utilization.R")
   rm(list = ls())
   
   print("working on QPR_SPDATs")
