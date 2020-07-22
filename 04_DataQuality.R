@@ -1192,6 +1192,7 @@ check_eligibility <- served_in_date_range %>%
     ees_with_spdats <- served_in_date_range %>%
       anti_join(va_funded, by = "ProjectID") %>%
       left_join(Scores, by = "PersonalID") %>% 
+      ungroup() %>%
       select(PersonalID,
              EnrollmentID,
              RelationshipToHoH,
@@ -1199,7 +1200,7 @@ check_eligibility <- served_in_date_range %>%
              ExitAdjust,
              ScoreDate,
              Score) %>%
-      filter(ymd(ScoreDate) + years(1) > ymd(EntryDate) &
+      filter(ymd(ScoreDate) + days(365) > ymd(EntryDate) &
                # score is < 1 yr old
                ymd(ScoreDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
       group_by(EnrollmentID) %>%
