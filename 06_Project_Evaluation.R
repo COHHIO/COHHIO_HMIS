@@ -16,15 +16,16 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 
-load("images/COHHIOHMIS.RData")
+# loading old data to freeze data as of the deadline
+load("images/July_21_2020_Project_Evaluation_(Take_2)/20200721COHHIOHMIS.RData")
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
-load("images/cohorts.RData")
+load("images/July_21_2020_Project_Evaluation_(Take_2)/20200721cohorts.RData")
 rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
-load("images/Data_Quality.RData")
+load("images/July_21_2020_Project_Evaluation_(Take_2)/20200721Data_Quality.RData")
 
 # Points function ---------------------------------------------------------
 
@@ -1887,11 +1888,7 @@ final_scores <- pe_final_scores %>%
 # Clean the House ---------------------------------------------------------
 
 rm(list = ls()[!(ls() %in% c(
-  # 'pe_adults_entered',
-  # 'pe_adults_moved_in_leavers',
   'pe_benefits_at_exit',
-  # 'pe_clients_served',
-  # 'pe_coc_funded',
   'pe_coc_scoring',
   'pe_dq_by_provider',
   'pe_entries_no_income',
@@ -1920,49 +1917,31 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_final_scoring',
   'ReportStart',
   'ReportEnd',
-  # 'living_situation',
   'final_scores'
 ))])
+# commenting all this out since we don't want to overwrite these files after
+# the deadline
 
-# next_thing_due <- tribble(
-#   ~ DueDate, ~ Event,
-#   "6/12/2020", "All HMIS Data in the Project Evaluation report corrected and finalized",
-#   "6/19/2020", "COHHIO takes final snapshot of Project Evaluation data for final scoring",
-#   "6/26/2020", "COHHIO releases preliminary CoC project ranking (renewals only)",
-#   "7/8/2020", "Recipients submit appeals of project evaluation results and ranking to ohioboscoc@cohhio.org.",
-#   "7/24/2020", "Ohio BoSCoC Steering Committee will communicate decisions about all received appeals",
-#   "7/31/2020", "Final CoC project ranking released"
-# ) %>%
-#   mutate(
-#     DueDate = mdy(DueDate),
-#     ShowStart = lag(ymd(DueDate), n = 1L, order_by = DueDate),
-#     ShowStart = if_else(is.na(ShowStart), today(), ShowStart + days(1)),
-#     ShowEnd = ymd(DueDate),
-#     DateRange = interval(ShowStart, ShowEnd)
-#   ) %>%
-#   filter(today() %within% DateRange) %>%
-#   select(Event, DueDate)
+# zero_divisors <- pe_validation_summary %>%
+#   filter(ClientsServed == 0 |
+#            HoHsEntered == 0 |
+#            HoHsServed == 0 |
+#            HoHsServedLeavers == 0 |
+#            AdultsMovedIn == 0 |
+#            AdultsEntered == 0 |
+#            ClientsMovedInLeavers == 0 |
+#            AdultMovedInLeavers == 0 |
+#            HoHsMovedInLeavers == 0) %>%
+#   select(-HoHDeaths)
 
-zero_divisors <- pe_validation_summary %>%
-  filter(ClientsServed == 0 |
-           HoHsEntered == 0 |
-           HoHsServed == 0 |
-           HoHsServedLeavers == 0 |
-           AdultsMovedIn == 0 |
-           AdultsEntered == 0 |
-           ClientsMovedInLeavers == 0 |
-           AdultMovedInLeavers == 0 |
-           HoHsMovedInLeavers == 0) %>%
-  select(-HoHDeaths)
+# write_csv(zero_divisors, "Reports/zero_divisors.csv")
+# 
+# write_csv(final_scores %>%
+#             select(OrganizationName,
+#                    AltProjectName,
+#                    TotalScore), "Reports/pe_final.csv")
 
-write_csv(zero_divisors, "Reports/zero_divisors.csv")
-
-write_csv(final_scores %>%
-            select(OrganizationName,
-                   AltProjectName,
-                   TotalScore), "Reports/pe_final.csv")
-
-
+# saving old data to "current" image so it all carries to the apps
 
 save.image("images/ProjectEvaluation.RData") 
 
