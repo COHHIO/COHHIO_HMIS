@@ -106,7 +106,7 @@ if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) >
 
 if(stop == 0){
   source("00_get_the_CSV_things.R")
-}
+} else {"Something went wrong"}
 
 if(ymd(FileActualStart) > mdy(FileStart)){
   stop <- 1
