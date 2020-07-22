@@ -667,6 +667,7 @@ Enrollment <- Enrollment %>%
   left_join(small_client, by = "PersonalID") %>%
   mutate(AgeAtEntry = age_years(DOB, EntryDate)) %>%
   select(-DOB)
+
 rm(small_client)
 
 # Metadata ----------------------------------------------------------------
