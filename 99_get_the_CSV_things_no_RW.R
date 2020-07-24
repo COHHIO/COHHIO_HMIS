@@ -338,54 +338,25 @@ ProjectCoC <-
 
 # Case Manager Records ----------------------------------------------------
 
-# ***************
-if(file.exists(paste0(directory, "/casemanagers.zip"))){
-  unzip(zipfile = paste0("./", directory, "/casemanagers.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/casemanagers.csv"))
-  
-  file.remove(paste0(directory, "/casemanagers.zip"))
-}
-
-CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
-                             col_types = "dccccc")
-# ***************
-
+CaseManagers <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 5) %>%
+  mutate(
+    CMStartDate = as.Date(CMStartDate, origin = "1899-12-30"),
+    CMEndDate = as.Date(CMEndDate, origin = "1899-12-30")
+  )
 
 # Contacts ----------------------------------------------------------------
 # only pulling in contacts made between an Entry Date and an Exit Date
 
-suppressWarnings(Contacts <- read_xlsx(
+Contacts <- read_xlsx(
   paste0(directory, "/RMisc2.xlsx"),
-  sheet = 4,#
-  range = cell_cols("A:K"),
-  col_types = c(
-    "numeric",
-    "text",
-    "date",
-    "date",
-    "numeric",
-    "text",
-    "date",
-    "date",
-    "date",
-    "text",
-    "text"
-  )
-) %>%
+  sheet = 4) %>%
   mutate(
-    EntryDate = ymd(format.Date(EntryDate, "%Y-%m-%d")),
-    ExitDate = ymd(format.Date(ExitDate, "%Y-%m-%d")),
-    ContactDate = ymd(format.Date(ContactDate, "%Y-%m-%d")),
-    ContactStartDate = ymd(format.Date(ContactStartDate, "%Y-%m-%d")),
-    ContactEndDate = ymd(format.Date(ContactEndDate, "%Y-%m-%d")),
-    ProjectName = str_remove(ProjectName, "\\(.*\\)")
-  ) %>%
-  filter(ContactDate >= EntryDate &
-           ContactDate <= ExitDate))
+    ContactDate = ymd(as.Date(ContactDate, origin = "1899-12-30")),
+    ContactStartDate = ymd(as.Date(ContactStartDate, origin = "1899-12-30")),
+    ContactEndDate = ymd(as.Date(ContactEndDate, origin = "1899-12-30")),
+    ContactProvider = str_remove(ContactProvider, "\\(.*\\)")
+  )
 
 # Scores ------------------------------------------------------------------
 
