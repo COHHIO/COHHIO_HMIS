@@ -16,17 +16,29 @@ library(tidyverse)
 library(lubridate)
 
 load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
 
+# Projects ----------------------------------------------------------------
 
-# Providers ---------------------------------------------------------------
-
+vet_projects <- Project %>%
+  filter(ProjectType %in% c(1, 2, 3, 4, 8, 9, 13) &
+           operating_between(., format(today() - months(3), "%m%d%Y"),
+                               format(today(), "%m%d%Y")))
 
 # Responsible Providers ---------------------------------------------------
 
 
+
 # Get all veterans and associated hh members ------------------------------
 
+vet_ees <- Enrollment %>%
+  left_join(Client %>% select(PersonalID, VeteranStatus), by = "PersonalID") %>%
+  mutate(VeteranStatus = if_else(VeteranStatus == 1, 1, 0)) %>%
+  group_by(HouseholdID) %>%
+  summarise(VetCount = sum(VeteranStatus)) %>%
+  ungroup() %>%
+  filter(VetCount > 0) %>%
+  left_join(Enrollment, by = "HouseholdID") %>%
+  left_join(Client %>% select(PersonalID, VeteranStatus), by = "PersonalID")
 
 # Currently in PSH/RRH ----------------------------------------------------
 
