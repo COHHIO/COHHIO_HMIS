@@ -348,9 +348,7 @@ CaseManagers <-
 # Contacts ----------------------------------------------------------------
 # only pulling in contacts made between an Entry Date and an Exit Date
 
-Contacts <- read_xlsx(
-  paste0(directory, "/RMisc2.xlsx"),
-  sheet = 4) %>%
+Contacts <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 4) %>%
   mutate(
     ContactDate = ymd(as.Date(ContactDate, origin = "1899-12-30")),
     ContactStartDate = ymd(as.Date(ContactStartDate, origin = "1899-12-30")),
@@ -360,63 +358,9 @@ Contacts <- read_xlsx(
 
 # Scores ------------------------------------------------------------------
 
-# ***************
-if(file.exists(paste0(directory, "/scoresfam.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/scoresfam.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/scores.csv"))
-  
-  file.remove(paste0(directory, "/scoresfam.zip"))
-}
-
-if(file.exists(paste0(directory, "/scoresind.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/scoresind.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/scoresind.csv"))
-  
-  file.remove(paste0(directory, "/scoresind.zip"))
-}
-
-if(file.exists(paste0(directory, "/scorestay.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/scorestay.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
-              paste0(directory, "/scorestay.csv"))
-  
-  file.remove(paste0(directory, "/scorestay.zip"))
-}
-
-file.append(paste0(directory, "/scores.csv"), paste0(directory, "/scoresind.csv"))
-
-file.append(paste0(directory, "/scores.csv"), paste0(directory, "/scorestay.csv"))
-
-if(file.exists(paste0(directory, "/scoresind.csv"))) {
-  file.remove(c(
-    paste0(directory, "/scoresind.csv"),
-    paste0(directory, "/scorestay.csv")
-  ))
-}
-
-Scores <- read_csv(paste0(directory, "/scores.csv"),
-                   col_types = "ccc") %>%
-  filter(Score != "Score") %>%
-  mutate(
-    ScoreDate = mdy(ScoreDate),
-    PersonalID = as.double(PersonalID),
-    Score = as.double(Score)
-  )
-# ***************
-spdat_scores_art <-  read_xlsx(paste0(directory, "/RMisc2.xlsx"),
-                               sheet = 12)#
-# ***************
-
+Scores <-  read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                               sheet = 12) %>%
+  mutate(ScoreDate = as.Date(ScoreDate, origin = "1899-12-30"))
 
 # Offers -----------------------------------------------------------------
 
