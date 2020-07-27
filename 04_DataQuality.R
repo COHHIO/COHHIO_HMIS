@@ -2401,15 +2401,16 @@ unsheltered_by_month <- unsheltered_enrollments %>%
              Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
-    ssvf_hp_screen <- ssvf_served_in_date_range %>%
-      filter(ProjectType == 12 &
-               RelationshipToHoH == 1 &
-               (is.na(HPScreeningScore) |
-                  is.na(ThresholdScore))) %>%
-      mutate(Issue = "Missing HP Screening or Threshold Score",
-             Type = "Error",
-             Guidance = guidance_missing_at_entry) %>%
-      select(all_of(vars_we_want))
+# TEMPORARILY NOT REQUIRED FOR COVID-19 REASONS  
+    # ssvf_hp_screen <- ssvf_served_in_date_range %>%
+    #   filter(ProjectType == 12 &
+    #            RelationshipToHoH == 1 &
+    #            (is.na(HPScreeningScore) |
+    #               is.na(ThresholdScore))) %>%
+    #   mutate(Issue = "Missing HP Screening or Threshold Score",
+    #          Type = "Error",
+    #          Guidance = guidance_missing_at_entry) %>%
+    #   select(all_of(vars_we_want))
     
     
     # All together now --------------------------------------------------------
@@ -2480,7 +2481,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_address,
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
-      ssvf_hp_screen,      
+      # ssvf_hp_screen,      
       unlikely_ncbs_entry,
       veteran_missing_year_entered,
       veteran_missing_year_separated,
@@ -2953,7 +2954,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_address,
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
-      ssvf_hp_screen,
+      # ssvf_hp_screen,
       ssvf_served_in_date_range,      
       staging_outstanding_referrals,
       stop,
