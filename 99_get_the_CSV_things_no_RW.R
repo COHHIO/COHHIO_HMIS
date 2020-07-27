@@ -364,23 +364,13 @@ Scores <-  read_xlsx(paste0(directory, "/RMisc2.xlsx"),
 
 # Offers -----------------------------------------------------------------
 
-# ***************
-if(file.exists(paste0(directory, "/offers.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/offers.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
-              paste0(directory, "/offers.csv"))
-  
-  file.remove(paste0(directory, "/offers.zip"))
-}
 
-Offers <- read_csv(paste0(directory, "/offers.csv"), col_types = "i?c?c") %>%
-  mutate(
-    OfferDate = mdy(OfferDate),
-    AcceptDeclineDate = mdy(AcceptDeclineDate)
-  )
-# ***************
+Offers <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 7) %>%
+  mutate(AcceptDeclineDate = ymd(as.Date(AcceptDeclineDate, origin = "1899-12-30")),
+         OfferDate = ymd(as.Date(OfferDate, origin = "1899-12-30")))
+
+
 
 # Users ------------------------------------------------------------------
 Users <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
