@@ -105,6 +105,7 @@ if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) >
 } else {"OK"}
 
 if(stop == 0){
+  print("Everything's good!")
   source("00_get_the_CSV_things.R")
 } else {"Something went wrong"}
 
