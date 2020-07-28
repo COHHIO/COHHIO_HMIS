@@ -479,13 +479,13 @@ if(file.exists(paste0(directory, "/services2.zip"))) {
 services_funds <- read_csv(paste0(directory, "/services2.csv"),
                       col_types = "ncd")
 
-Services <- services_1 %>%
+Services_rw <- services_1 %>%
   left_join(services_funds, by = "ServiceID") %>%
   rename("ServiceHHID" = HouseholdID)
 
 rm(services_1, services_funds)
 
-staging_services <- Services[c("PersonalID",
+staging_services <- Services_rw[c("PersonalID",
                               "ServiceProvider",
                               "ServiceID",
                               "ServiceStartDate",
