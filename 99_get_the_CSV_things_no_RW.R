@@ -364,13 +364,10 @@ Scores <-  read_xlsx(paste0(directory, "/RMisc2.xlsx"),
 
 # Offers -----------------------------------------------------------------
 
-
 Offers <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 7) %>%
   mutate(AcceptDeclineDate = ymd(as.Date(AcceptDeclineDate, origin = "1899-12-30")),
          OfferDate = ymd(as.Date(OfferDate, origin = "1899-12-30")))
-
-
 
 # Users ------------------------------------------------------------------
 Users <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
@@ -398,33 +395,56 @@ rm(provider_extras)
 
 # COVID-19 ----------------------------------------------------------------
 
-# ***************
-if(file.exists(paste0(directory, "/covid19.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/covid19.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/covid19.csv"))
-  
-  file.remove(paste0(directory, "/covid19.zip"))
-}
+# can't use this one yet til we can get the dates out of ART
+covid19 <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 6) %>%
+  mutate(COVID19AssessmentDate = ymd(as.Date(COVID19AssessmentDate, 
+                                             origin = "1899-12-30")),
+         ContactWithConfirmedDate = ymd(as.Date(ContactWithConfirmedDate, 
+                                                origin = "1899-12-30")),
+         ContactWithUnderInvestigationDate = ymd(as.Date(ContactWithUnderInvestigationDate, 
+                                                origin = "1899-12-30")),
+         TestDate = ymd(as.Date(TestDate, 
+                                                origin = "1899-12-30")),
+         DateUnderInvestigation = ymd(as.Date(DateUnderInvestigation, 
+                                                origin = "1899-12-30")))
 
-covid19 <- read_csv(paste0(directory, "/covid19.csv"),
-                    col_types = "ncccccccccccccccccccccccccccccc") %>%
-  mutate(
-    COVID19AssessmentDate = mdy(COVID19AssessmentDate),
-    ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
-    ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
-    TestDate = mdy(TestDate),
-    DateUnderInvestigation = mdy(DateUnderInvestigation)
-  ) 
-# ***************
+# # ***************
+# if(file.exists(paste0(directory, "/covid19.zip"))) {
+#   unzip(zipfile = paste0("./", directory, "/covid19.zip"), 
+#         exdir = paste0("./", directory))
+#   
+#   file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+#                                                 pattern = "(report_)")),
+#               paste0(directory, "/covid19.csv"))
+#   
+#   file.remove(paste0(directory, "/covid19.zip"))
+# }
+# 
+# covid19_rw <- read_csv(paste0(directory, "/covid19.csv"),
+#                     col_types = "ncccccccccccccccccccccccccccccc") %>%
+#   mutate(
+#     COVID19AssessmentDate = mdy(COVID19AssessmentDate),
+#     ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
+#     ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
+#     TestDate = mdy(TestDate),
+#     DateUnderInvestigation = mdy(DateUnderInvestigation)
+#   ) 
+# # ***************
 
 # Services ----------------------------------------------------------------
 
 # this comes from two ReportWriter reports: An Export: Services and 
 # An Export: Services & Funds. Saving them as services1.csv and services2.csv.
+
+services_art <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 8) %>%
+  mutate(ServiceStartDate = ymd(as.Date(ServiceStartDate, 
+                                             origin = "1899-12-30")),
+         ServiceEndDate = ymd(as.Date(ServiceEndDate, 
+                                                origin = "1899-12-30")))
+
+services_funds_art <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
 # ***************
 if(file.exists(paste0(directory, "/services1.zip"))) {
@@ -485,7 +505,7 @@ staging_services <- Services[c("PersonalID",
   ) 
 
 stray_services <- staging_services %>%
-  filter(is.na(Valid))
+  filter(is.na(Valid) | Valid == FALSE)
 
 staging_services <- staging_services %>%
   filter(Valid == TRUE) %>%
@@ -494,7 +514,7 @@ staging_services <- staging_services %>%
          EnrollmentID,
          ServiceProvider)
 
-Services <- staging_services %>%
+Services_rw <- staging_services %>%
   left_join(Services, by = c("ServiceID", "PersonalID", "ServiceProvider"))
 
 # the code above does not pull in Services that cannot be associated to an EE. 
