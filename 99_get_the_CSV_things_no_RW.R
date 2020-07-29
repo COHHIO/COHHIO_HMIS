@@ -447,10 +447,10 @@ services_art <-
 services_funds_art <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
 Services <- services_art %>%
-  left_join(services_funds_art, by = "ServiceID") %>%
-  rename("ServiceHHID" = HouseholdID)
+  left_join(services_funds_art, by = "ServiceID")
 
 staging_services_art <- Services[c("PersonalID",
+                                   "ServiceHHID",
                                      "ServiceProvider",
                                      "ServiceID",
                                      "ServiceStartDate",
@@ -468,6 +468,16 @@ staging_services_art <- Services[c("PersonalID",
     Valid = if_else(int_overlaps(ServiceRange, EERange) &
                       ServiceProvider == ProjectName, TRUE, FALSE)
   ) 
+
+stray_services_art <- staging_services_art %>%
+  filter(is.na(Valid) | Valid == FALSE)
+
+staging_services <- staging_services %>%
+  filter(Valid == TRUE) %>%
+  select(PersonalID,
+         ServiceID,
+         EnrollmentID,
+         ServiceProvider)
 
 # ***************
 if(file.exists(paste0(directory, "/services1.zip"))) {
