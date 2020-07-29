@@ -446,6 +446,29 @@ services_art <-
 
 services_funds_art <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
+Services <- services_art %>%
+  left_join(services_funds_art, by = "ServiceID") %>%
+  rename("ServiceHHID" = HouseholdID)
+
+staging_services_art <- Services[c("PersonalID",
+                                     "ServiceProvider",
+                                     "ServiceID",
+                                     "ServiceStartDate",
+                                     "ServiceEndDate")] %>%
+  left_join(Enrollment[c("EnrollmentID",
+                         "PersonalID",
+                         "ProjectName",
+                         "EntryDate",
+                         "ExitAdjust")],
+            by = "PersonalID") %>%
+  mutate(
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
+    ServiceRange = interval(ymd(ServiceStartDate), ymd(ServiceEndAdjust)),
+    EERange = interval(ymd(EntryDate), ymd(ExitAdjust)),
+    Valid = if_else(int_overlaps(ServiceRange, EERange) &
+                      ServiceProvider == ProjectName, TRUE, FALSE)
+  ) 
+
 # ***************
 if(file.exists(paste0(directory, "/services1.zip"))) {
   unzip(zipfile = paste0("./", directory, "/services1.zip"), 
@@ -485,7 +508,7 @@ Services_rw <- services_1 %>%
 
 rm(services_1, services_funds)
 
-staging_services <- Services_rw[c("PersonalID",
+staging_services_rw <- Services_rw[c("PersonalID",
                               "ServiceProvider",
                               "ServiceID",
                               "ServiceStartDate",
