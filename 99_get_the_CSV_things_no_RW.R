@@ -434,153 +434,44 @@ covid19 <-
 
 # Services ----------------------------------------------------------------
 
-# this comes from two ReportWriter reports: An Export: Services and 
-# An Export: Services & Funds. Saving them as services1.csv and services2.csv.
-
-services_art <-
+raw_services <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 8) %>%
   mutate(ServiceStartDate = ymd(as.Date(ServiceStartDate, 
                                              origin = "1899-12-30")),
          ServiceEndDate = ymd(as.Date(ServiceEndDate, 
                                                 origin = "1899-12-30")))
 
-services_funds_art <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
+services_funds <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
-Services <- services_art %>%
-  left_join(services_funds_art, by = "ServiceID")
-
-staging_services_art <- Services[c("PersonalID",
-                                   "ServiceHHID",
-                                     "ServiceProvider",
-                                     "ServiceID",
-                                     "ServiceStartDate",
-                                     "ServiceEndDate")] %>%
-  left_join(Enrollment[c("EnrollmentID",
-                         "PersonalID",
-                         "ProjectName",
-                         "EntryDate",
-                         "ExitAdjust")],
-            by = "PersonalID") %>%
-  mutate(
-    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
-    ServiceRange = interval(ymd(ServiceStartDate), ymd(ServiceEndAdjust)),
-    EERange = interval(ymd(EntryDate), ymd(ExitAdjust)),
-    Valid = if_else(int_overlaps(ServiceRange, EERange) &
-                      ServiceProvider == ProjectName, TRUE, FALSE)
-  ) 
-
-stray_services_art <- staging_services_art %>%
-  filter(is.na(Valid) | Valid == FALSE)
-
-staging_services <- staging_services %>%
-  filter(Valid == TRUE) %>%
-  select(PersonalID,
-         ServiceID,
-         EnrollmentID,
-         ServiceProvider)
-
-# ***************
-if(file.exists(paste0(directory, "/services1.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/services1.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/services1.csv"))
-  
-  file.remove(paste0(directory, "/services1.zip"))
-}
-
-services_1 <- read_csv(paste0(directory, "/services1.csv"),
-                      col_types = "nnnn??cccc")
-
-services_1 <- services_1 %>%
-  mutate(ServiceStartDate = mdy(ServiceStartDate),
-         ServiceEndDate = mdy(ServiceEndDate))
-
-if(file.exists(paste0(directory, "/services2.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/services2.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/services2.csv"))
-  
-  file.remove(paste0(directory, "/services2.zip"))
-}
-
-services_funds <- read_csv(paste0(directory, "/services2.csv"),
-                      col_types = "ncd")
-
-Services_rw <- services_1 %>%
+Services <- raw_services %>%
   left_join(services_funds, by = "ServiceID") %>%
-  rename("ServiceHHID" = HouseholdID)
-
-rm(services_1, services_funds)
-
-staging_services_rw <- Services_rw[c("PersonalID",
-                              "ServiceProvider",
-                              "ServiceID",
-                              "ServiceStartDate",
-                              "ServiceEndDate")] %>%
   left_join(Enrollment[c("EnrollmentID",
                          "PersonalID",
                          "ProjectName",
                          "EntryDate",
                          "ExitAdjust")],
-            by = "PersonalID") %>%
-  mutate(
-    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
-    ServiceRange = interval(ymd(ServiceStartDate), ymd(ServiceEndAdjust)),
-    EERange = interval(ymd(EntryDate), ymd(ExitAdjust)),
-    Valid = if_else(int_overlaps(ServiceRange, EERange) &
-                      ServiceProvider == ProjectName, TRUE, FALSE)
-  ) 
+            by = c("PersonalID", "EnrollmentID")) 
 
-stray_services <- staging_services %>%
-  filter(is.na(Valid) | Valid == FALSE)
+stray_services <- Services %>%
+  filter(is.na(EnrollmentID)) %>%
+  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
+         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
+         Fund, Amount)
 
-staging_services <- staging_services %>%
-  filter(Valid == TRUE) %>%
-  select(PersonalID,
-         ServiceID,
-         EnrollmentID,
-         ServiceProvider)
+Services <- Services %>%
+  filter(!is.na(EntryDate)) %>%
+  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
+         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
+         Fund, Amount)
 
-Services_rw <- staging_services %>%
-  left_join(Services, by = c("ServiceID", "PersonalID", "ServiceProvider"))
-
-# the code above does not pull in Services that cannot be associated to an EE. 
-# Any Services that don't align with an EE can be found in stray_services
-
-rm(staging_services)
-# ***************
+rm(raw_services, services_funds)
 
 # Referrals ---------------------------------------------------------------
 
-# ***************
-if(file.exists(paste0(directory, "/referrals.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/referrals.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/referrals.csv"))
-  
-  file.remove(paste0(directory, "/referrals.zip"))
-}
-
-Referrals <- read_csv(paste0(directory, "/referrals.csv"),
-                      col_types = "nnn?cccccccccc")
-
-Referrals <- Referrals %>%
-  mutate(ReferralDate = mdy(ReferralDate),
-         ReferralHHID = HouseholdID,
-         HouseholdID = NULL,
-         UserCreatingReferral = UserCreating,
-         UserCreating = NULL)
-# ***************
-
+Referrals <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 10) %>%
+  mutate(ReferralDate = ymd(as.Date(ReferralDate, 
+                                        origin = "1899-12-30")))
 
 # HUD CSV Specs -----------------------------------------------------------
 
