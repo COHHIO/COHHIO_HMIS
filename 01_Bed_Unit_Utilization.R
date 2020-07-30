@@ -95,8 +95,8 @@ Utilizers <- left_join(Utilizers, small_project, by = "ProjectID") %>%
 rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
    Export, Funder, HealthAndDV, IncomeBenefits, Organization, 
    ProjectCoC, Scores, Services, small_enrollment, small_inventory, small_project, 
-   Users, Offers, VeteranCE, CaseManagers, Referrals, HUD_specs,
-   stray_services)
+   Users, Offers, VeteranCE, CaseManagers, Referrals, HUD_specs, stray_services)
+
 # Client Utilization of Beds ----------------------------------------------
 
 # filtering out any PSH or RRH records without a proper Move-In Date plus the 
