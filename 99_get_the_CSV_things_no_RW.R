@@ -19,7 +19,7 @@
 # Currently, this file is expecting the following files in your data/ directory:
 
 # RMisc2.xlsx 
-# All the HUD CSV Export FY2020 .csv files
+# All the HUD CSV Export FY2020 .csv files.
 
 library(tidyverse)
 library(lubridate)
