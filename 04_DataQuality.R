@@ -1135,9 +1135,10 @@ check_eligibility <- served_in_date_range %>%
     
     future_ees <- served_in_date_range %>%
       filter(ymd(EntryDate) > ymd_hms(DateCreated) &
-               (ProjectType %in% c(1, 2, 4, 8) |
+               (ProjectType %in% c(1, 2, 4, 8, 13) |
                   (
-                    ProjectType %in% c(3, 9) & ymd(EntryDate) >= mdy("10012017")
+                    ProjectType %in% c(3, 9) & 
+                      ymd(EntryDate) >= mdy("10012017")
                   )))  %>%
       mutate(
         Issue = "Future Entry Date",
