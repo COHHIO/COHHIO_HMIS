@@ -21,7 +21,7 @@ agencies <- Project %>%
            !is.na(OperatingStartDate) &
            is.na(OperatingEndDate)) %>%
   left_join(Organization, by = "OrganizationID") %>%
-  select(OrganizationName) %>%
+  select(OrganizationID, OrganizationName) %>%
   unique()
 
 # agency agreements currently in effect
@@ -29,19 +29,20 @@ agencies <- Project %>%
 raw_agreements <- read_csv(here("Reports/HMIS_Admin/agency_agreements.csv"))
 
 current_agreements <- raw_agreements %>%
-  mutate(DateSubmitted = mdy(DateSubmitted),
+  mutate(DateSubmitted = NULL,
          AgreementStartDate = mdy(AgreementStartDate),
          AgreementEndDate = mdy(AgreementEndDate)) %>%
-  filter(ymd(AgreementStartDate) < today() &
+  filter(!is.na(AgreementStartDate) &
            (ymd(AgreementEndDate) >= today() |
            is.na(AgreementEndDate)))
 
 # agencies with no current agency agreement
 
 all_agencies <- agencies %>%
-  left_join(current_agreements, by = c("OrganizationName" = "Name")) %>%
-  arrange(OrganizationName) %>%
-  select(1, 3, 4)
+  left_join(current_agreements, by = "OrganizationID") %>%
+  filter(OrganizationID != 1) %>%
+  arrange(OrganizationID) %>%
+  select(1, "OrganizationName" = 2, 4, 5)
 
 # write it out
 
