@@ -19,7 +19,7 @@
 # Currently, this file is expecting the following files in your data/ directory:
 
 # RMisc2.xlsx 
-# All the HUD CSV Export FY2020 .csv files.
+# HUD CSV Export FY2020, unzipped.
 
 library(tidyverse)
 library(lubridate)
@@ -351,8 +351,6 @@ CaseManagers <-
 Contacts <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 4) %>%
   mutate(
     ContactDate = ymd(as.Date(ContactDate, origin = "1899-12-30")),
-    ContactStartDate = ymd(as.Date(ContactStartDate, origin = "1899-12-30")),
-    ContactEndDate = ymd(as.Date(ContactEndDate, origin = "1899-12-30")),
     ContactProvider = str_remove(ContactProvider, "\\(.*\\)")
   )
 
