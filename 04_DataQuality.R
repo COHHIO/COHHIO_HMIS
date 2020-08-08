@@ -1068,6 +1068,8 @@ check_eligibility <- served_in_date_range %>%
     ## does not equal the Entry Date ->  error
     
     x <- Contacts %>%
+      filter(ContactDate >= EntryDate &
+               ContactDate <= ExitDate) %>%
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
       arrange(ContactStartDate) %>%
       slice(1L)
@@ -2521,21 +2523,20 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                      "Missing SSN",
                      "Missing Veteran Status",
                      "Don't Know/Refused Veteran Status",
-                     "Old Outstanding Referral",
                      "Missing County Served"
                    )
                ))
 
-# Waiting on Something ----------------------------------------------------
-
-    dq_main <- dq_main %>%
-      filter(
-        !Issue %in% c(
-          "Missing PATH Contact", # waiting on AW comments
-          "No Contact End Date (PATH)", # waiting on AW comments
-          "No PATH Contact Entered at Entry" # waiting on AW comments
-        )
-      ) 
+# # Waiting on Something ----------------------------------------------------
+# 
+#     dq_main <- dq_main %>%
+#       filter(
+#         !Issue %in% c(
+#           "Missing PATH Contact", # waiting on AW comments
+#           "No Contact End Date (PATH)", # waiting on AW comments
+#           "No PATH Contact Entered at Entry" # waiting on AW comments
+#         )
+#       ) 
     
     # Unsheltered DQ ----------------------------------------------------------
     

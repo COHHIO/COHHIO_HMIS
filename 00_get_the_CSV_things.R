@@ -427,9 +427,7 @@ suppressWarnings(Contacts <- read_xlsx(
     ContactStartDate = ymd(format.Date(ContactStartDate, "%Y-%m-%d")),
     ContactEndDate = ymd(format.Date(ContactEndDate, "%Y-%m-%d")),
     ProjectName = str_remove(ProjectName, "\\(.*\\)")
- ) # %>%
-  # filter(ContactDate >= EntryDate &
-  #          ContactDate <= ExitDate)
+ )
 )
 
 # Scores ------------------------------------------------------------------
