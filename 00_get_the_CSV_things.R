@@ -401,7 +401,6 @@ CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
 
 
 # Contacts ----------------------------------------------------------------
-# only pulling in contacts made between an Entry Date and an Exit Date
 
 suppressWarnings(Contacts <- read_xlsx(
   paste0(directory, "/RMisc.xlsx"),
@@ -428,9 +427,10 @@ suppressWarnings(Contacts <- read_xlsx(
     ContactStartDate = ymd(format.Date(ContactStartDate, "%Y-%m-%d")),
     ContactEndDate = ymd(format.Date(ContactEndDate, "%Y-%m-%d")),
     ProjectName = str_remove(ProjectName, "\\(.*\\)")
-  ) %>%
-  filter(ContactDate >= EntryDate &
-           ContactDate <= ExitDate))
+ ) # %>%
+  # filter(ContactDate >= EntryDate &
+  #          ContactDate <= ExitDate)
+)
 
 # Scores ------------------------------------------------------------------
 

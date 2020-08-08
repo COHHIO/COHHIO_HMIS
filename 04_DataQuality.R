@@ -1037,6 +1037,8 @@ check_eligibility <- served_in_date_range %>%
     ## this is a high priority data quality issue
     
     small_contacts <- Contacts %>%
+      filter(ContactDate >= EntryDate &
+               ContactDate <= ExitDate) %>%
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
       summarise(ContactCount = n()) %>%
       ungroup()
