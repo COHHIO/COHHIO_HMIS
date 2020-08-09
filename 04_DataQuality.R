@@ -1037,8 +1037,9 @@ check_eligibility <- served_in_date_range %>%
     ## this is a high priority data quality issue
     
     small_contacts <- Contacts %>%
-      filter(ContactDate >= EntryDate &
-               ContactDate <= ExitDate) %>%
+      left_join(served_in_date_range, by = "PersonalID") %>%
+      filter(ymd(ContactDate) >= ymd(EntryDate) &
+               ymd(ContactDate) <= ymd(ExitAdjust)) %>%
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
       summarise(ContactCount = n()) %>%
       ungroup()
@@ -1067,11 +1068,14 @@ check_eligibility <- served_in_date_range %>%
     ## client is adult/hoh, has a contact record, and the first record in the EE
     ## does not equal the Entry Date ->  error
     
-    x <- Contacts %>%
-      filter(ContactDate >= EntryDate &
-               ContactDate <= ExitDate) %>%
+    first_contact <- Contacts %>%
+      left_join(served_in_date_range, by = "PersonalID") %>%
+      select(PersonalID, EntryDate, ExitAdjust, ExitDate, ContactDate, ProjectName, 
+             EntryDate, ExitAdjust) %>%
+      filter(ymd(ContactDate) >= ymd(EntryDate) &
+               ymd(ContactDate) <= ymd(ExitAdjust)) %>%
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
-      arrange(ContactStartDate) %>%
+      arrange(ContactDate) %>%
       slice(1L)
     
     incorrect_path_contact_date <- served_in_date_range %>%
@@ -1079,7 +1083,7 @@ check_eligibility <- served_in_date_range %>%
                (AgeAtEntry > 17 |
                   RelationshipToHoH == 1)) %>%
       select(all_of(vars_prep)) %>%
-      inner_join(x, by = c("PersonalID",
+      inner_join(first_contact, by = c("PersonalID",
                            "ProjectName",
                            "EntryDate",
                            "ExitDate")) %>%
@@ -1094,7 +1098,7 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(x)
+    rm(first_contact)
     
     # Missing PATH Contact End Date
     ## client is adult/hoh, has a contact record, and the End Date is null
