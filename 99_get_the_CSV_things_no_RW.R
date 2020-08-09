@@ -442,22 +442,35 @@ raw_services <-
 services_funds <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
 Services <- raw_services %>%
-  left_join(services_funds, by = "ServiceID") %>%
   left_join(Enrollment[c("EnrollmentID",
                          "PersonalID",
                          "ProjectName",
                          "EntryDate",
                          "ExitAdjust")],
-            by = c("PersonalID", "EnrollmentID")) 
+            by = c("PersonalID")) %>%
+  unique() %>%
+  left_join(services_funds, by = "ServiceID")
 
 stray_services <- Services %>%
-  filter(is.na(EnrollmentID)) %>%
+  mutate(
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
+    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
+    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
+    intersect_tf = int_overlaps(service_interval, ee_interval)
+  ) %>%
+  filter(is.na(intersect_tf) | intersect_tf == FALSE) %>%  
   select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
          ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
          Fund, Amount)
 
 Services <- Services %>%
-  filter(!is.na(EntryDate)) %>%
+  mutate(
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
+    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
+    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
+    intersect_tf = int_overlaps(service_interval, ee_interval)
+  ) %>%
+  filter(intersect_tf == TRUE) %>%  
   select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
          ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
          Fund, Amount)
