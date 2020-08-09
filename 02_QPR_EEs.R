@@ -207,9 +207,8 @@ qpr_income <- smallProject %>%
 
 qpr_spending <- Services %>%
   left_join(Enrollment,
-            by = c("EnrollmentID", "PersonalID",
-                   "ServiceProvider" = "ProjectName")) %>%
-  left_join(smallProject, by = c("ProjectID", "ProjectType")) %>%
+            by = c("EnrollmentID", "PersonalID")) %>%
+  left_join(smallProject, by = c("ProjectID", "ProjectType", "ProjectName")) %>%
   select(
     PersonalID,
     OrganizationName,
@@ -224,8 +223,7 @@ qpr_spending <- Services %>%
     MoveInDateAdjust,
     ExitDate
   ) %>% 
-  filter((ProjectType == 13 & !is.na(MoveInDateAdjust) | 
-           ProjectType == 12) &
+  filter(ProjectType %in% c(13, 12) &
            RelationshipToHoH == 1 &
            !is.na(Amount)) %>%
   select(-RelationshipToHoH)
