@@ -417,7 +417,7 @@ suppressWarnings(Contacts <- read_xlsx(
 ) %>%
   mutate(
     ContactDate = ymd(format.Date(ContactDate, "%Y-%m-%d")),
-    ProjectName = str_remove(ProjectName, "\\(.*\\)")
+    ContactProvider = str_remove(ContactProvider, "\\(.*\\)")
  )
 )
 
