@@ -1035,11 +1035,20 @@ check_eligibility <- served_in_date_range %>%
     # Missing PATH Contacts
     ## client is adult/hoh and has no contact record in the EE -> error
     ## this is a high priority data quality issue
+    ## if the contact was an "Outreach" record after 10/1/2019, it is being
+    ## filtered out because they should be using CLS subs past that date.
     
     small_contacts <- Contacts %>%
       left_join(served_in_date_range, by = "PersonalID") %>%
-      filter(ymd(ContactDate) >= ymd(EntryDate) &
-               ymd(ContactDate) <= ymd(ExitAdjust)) %>%
+      filter(
+        ymd(ContactDate) >= ymd(EntryDate) &
+          ymd(ContactDate) <= ymd(ExitAdjust) &
+          ((
+            RecordType == "Outreach" &
+              ymd(ContactDate) < mdy("10012019")
+          ) |
+            RecordType == "CLS")
+      ) %>% 
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
       summarise(ContactCount = n()) %>%
       ungroup()
@@ -1062,13 +1071,16 @@ check_eligibility <- served_in_date_range %>%
              Situation contact record.") %>%
       select(all_of(vars_we_want))
     
-    rm(small_contacts)
-    
     # Incorrect PATH Contact Date
     ## client is adult/hoh, has a contact record, and the first record in the EE
     ## does not equal the Entry Date ->  error
+    ## if the contact was an "Outreach" record after 10/1/2019, it is being
+    ## filtered out because they should be using CLS subs past that date.
     
     first_contact <- Contacts %>%
+      filter((RecordType == "Outreach" &
+                ymd(ContactDate) < mdy("10012019")) |
+               RecordType == "CLS") %>%
       left_join(served_in_date_range, by = "PersonalID") %>%
       select(PersonalID, EntryDate, ExitAdjust, ExitDate, ContactDate, ProjectName, 
              EntryDate, ExitAdjust) %>%
@@ -1098,26 +1110,7 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(first_contact)
-    
-    # Missing PATH Contact End Date
-    ## client is adult/hoh, has a contact record, and the End Date is null
-    
-    missing_path_contact_end_date <- served_in_date_range %>%
-      filter(GrantType == "PATH" &
-               (AgeAtEntry > 17 |
-                  RelationshipToHoH == 1)) %>%
-      select(all_of(vars_prep)) %>%
-      inner_join(Contacts, by = c("PersonalID",
-                           "ProjectName",
-                           "EntryDate",
-                           "ExitDate")) %>%
-      filter(is.na(ContactEndDate)) %>%
-      mutate(Issue = "No Contact End Date (PATH)",
-             Type = "Error",
-             Guidance = "All Contact records should have a Start and End Date. 
-             The End Date should = the Start Date.") %>%
-      select(all_of(vars_we_want))
+    rm(first_contact, small_contacts)
     
     # Duplicate EEs -----------------------------------------------------------
     # this could be more nuanced but it's ok to leave it since we are also
@@ -2471,7 +2464,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_LoS,
       missing_months_times_homeless,
       missing_path_contact,
-      missing_path_contact_end_date,
       missing_previous_street_ESSH,
       missing_ncbs_entry,
       missing_ncbs_exit,
@@ -2924,7 +2916,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       incorrect_ee_type,
       incorrect_path_contact_date,
       missing_path_contact,
-      missing_path_contact_end_date,
       internal_old_outstanding_referrals,
       lh_without_spdat,
       missing_approx_date_homeless,
