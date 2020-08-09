@@ -402,24 +402,12 @@ CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
 
 # Contacts ----------------------------------------------------------------
 
-suppressWarnings(Contacts <- read_xlsx(
-  paste0(directory, "/RMisc.xlsx"),
-  sheet = 5,
-  range = cell_cols("A:F"),
-  col_types = c(
-    "numeric",
-    "text",
-    "text",
-    "date",
-    "text",
-    "text"
-  )
-) %>%
+Contacts <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
+                      sheet = 5) %>%
   mutate(
-    ContactDate = ymd(format.Date(ContactDate, "%Y-%m-%d")),
+    ContactDate = ymd(as.Date(ContactDate, origin = "1899-12-30")),
     ContactProvider = str_remove(ContactProvider, "\\(.*\\)")
- )
-)
+  )
 
 # Scores ------------------------------------------------------------------
 
