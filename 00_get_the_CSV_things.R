@@ -405,27 +405,18 @@ CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
 suppressWarnings(Contacts <- read_xlsx(
   paste0(directory, "/RMisc.xlsx"),
   sheet = 5,
-  range = cell_cols("A:K"),
+  range = cell_cols("A:F"),
   col_types = c(
     "numeric",
     "text",
-    "date",
-    "date",
-    "numeric",
     "text",
-    "date",
-    "date",
     "date",
     "text",
     "text"
   )
 ) %>%
   mutate(
-    EntryDate = ymd(format.Date(EntryDate, "%Y-%m-%d")),
-    ExitDate = ymd(format.Date(ExitDate, "%Y-%m-%d")),
     ContactDate = ymd(format.Date(ContactDate, "%Y-%m-%d")),
-    ContactStartDate = ymd(format.Date(ContactStartDate, "%Y-%m-%d")),
-    ContactEndDate = ymd(format.Date(ContactEndDate, "%Y-%m-%d")),
     ProjectName = str_remove(ProjectName, "\\(.*\\)")
  )
 )
