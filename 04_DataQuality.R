@@ -1068,7 +1068,9 @@ check_eligibility <- served_in_date_range %>%
       mutate(Issue = "Missing PATH Contact",
              Type = "High Priority",
              Guidance = "Every adult or Head of Household must have a Living
-             Situation contact record.") %>%
+             Situation contact record. If you see a record there but there is
+             no Date of Contact, saving the Date of Contact will correct this
+             issue.") %>%
       select(all_of(vars_we_want))
     
     # Incorrect PATH Contact Date
