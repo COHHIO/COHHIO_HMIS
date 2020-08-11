@@ -397,7 +397,11 @@ if(file.exists(paste0(directory, "/casemanagers.zip"))){
 }
 
 CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
-                             col_types = "dccccc")
+                             col_types = "dccccc") %>%
+  mutate(
+    CMStartDate = mdy(CMStartDate),
+    CMEndDate = mdy(CMEndDate)
+  )
 
 
 # Contacts ----------------------------------------------------------------
