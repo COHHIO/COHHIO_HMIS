@@ -470,7 +470,7 @@ Services <- Services %>%
     ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
     intersect_tf = int_overlaps(service_interval, ee_interval)
   ) %>%
-  filter(intersect_tf == TRUE) %>%  
+  filter(intersect_tf == TRUE & ServiceProvider == ProjectName) %>%  
   select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
          ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
          Fund, Amount)
@@ -482,7 +482,9 @@ rm(raw_services, services_funds)
 Referrals <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 10) %>%
   mutate(ReferralDate = ymd(as.Date(ReferralDate, 
-                                        origin = "1899-12-30")))
+                                        origin = "1899-12-30")),
+         ProviderCreating = str_remove(ProviderCreating, "\\(.*\\)"),
+         `Referred-ToProvider` = str_remove(`Referred-ToProvider`, "\\(.*\\)"))
 
 # HUD CSV Specs -----------------------------------------------------------
 
