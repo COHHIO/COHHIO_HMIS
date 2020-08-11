@@ -89,6 +89,7 @@ VeteranEngagement <- CurrentVeterans %>%
 veteran_current_in_project <- VeteranEngagement %>%
   group_by(ProjectName, ProjectType, ProjectRegion, EngagementStatus) %>%
   summarise(CurrentVeteranCount = n()) %>%
+  ungroup() %>%
   spread(key = EngagementStatus, value = CurrentVeteranCount) %>%
   rename(HasCurrentHousingPlan = `Has Current Housing Plan`,
          NoCurrentHousingPlan = `No Current Housing Plan`) 
