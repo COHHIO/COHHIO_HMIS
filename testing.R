@@ -80,10 +80,10 @@ in_current_not_in_new <- anti_join(spdats_county_current, spdats_county_new)
 # new section
 
 load("images/QPR_EEs.RData")
-write_csv(qpr_spdats_county, "qpr_spending_new.csv")
+write_csv(qpr_spending, "qpr_spending_new.csv")
 # rerun everything
 load("images/QPR_EEs.RData")
-write_csv(qpr_spdats_county, "qpr_spending_current.csv")
+write_csv(qpr_spending, "qpr_spending_current.csv")
 
 spending_current <- read_csv("qpr_spending_current.csv")
 
@@ -93,6 +93,8 @@ in_new_not_in_current <- anti_join(spending_new, spending_current)
 
 in_current_not_in_new <- anti_join(spending_current, spending_new)
 
-
+# this is all about that one service where a source was voided and then two
+# more that added up to the original amount added. an outlier and "new" is
+# doing the right thing.
 
 
