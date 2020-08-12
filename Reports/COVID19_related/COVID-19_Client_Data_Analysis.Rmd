@@ -325,11 +325,8 @@ priority_plot %>%
 ### Where are clients being assessed?
 This map shows the total number of clients assessed with the COVID Screening Tool  and reported in HMIS by county.
 
-<<<<<<< HEAD:Reports/COVID19_related/COVID-19-Client-Data-Analysis.Rmd
-```{r screenings map, dpi=300, echo=FALSE, message=FALSE}
-=======
+
 ```{r geo, echo=FALSE, fig.height=9, fig.width=10, message=FALSE, dpi=300}
->>>>>>> 51a61c9d698a8f7dad92f5e3f1223662a2f09619:Reports/COVID19_related/COVID-19_Client_Data_Analysis.Rmd
 
 covid19_county_summary <- covid19 %>%
   group_by(CountyServed) %>%
