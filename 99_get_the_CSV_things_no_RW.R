@@ -437,7 +437,9 @@ raw_services <-
   mutate(ServiceStartDate = ymd(as.Date(ServiceStartDate, 
                                              origin = "1899-12-30")),
          ServiceEndDate = ymd(as.Date(ServiceEndDate, 
-                                                origin = "1899-12-30")))
+                                                origin = "1899-12-30")),
+         ServiceProvider = str_remove(ServiceProvider, "\\(.*\\)"),
+         ProviderCreating = str_remove(ProviderCreating, "\\(.*\\)"))
 
 services_funds <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
@@ -458,7 +460,7 @@ stray_services <- Services %>%
     ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
     intersect_tf = int_overlaps(service_interval, ee_interval)
   ) %>%
-  filter(is.na(intersect_tf) | intersect_tf == FALSE) %>%  
+  filter(is.na(intersect_tf) | intersect_tf == FALSE | ServiceProvider != ProjectName) %>%  
   select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
          ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
          Fund, Amount)
