@@ -465,7 +465,8 @@ Scores <- read_csv(paste0(directory, "/scores.csv"),
     ScoreDate = mdy(ScoreDate),
     PersonalID = as.double(PersonalID),
     Score = as.double(Score)
-  )
+  ) %>%
+  unique()
 
 # Offers -----------------------------------------------------------------
 
@@ -567,7 +568,10 @@ if(file.exists(paste0(directory, "/services2.zip"))) {
 }
 
 services_funds <- read_csv(paste0(directory, "/services2.csv"),
-                      col_types = "ncd")
+                      col_types = "ncd") %>% 
+  group_by(ServiceID, Fund) %>%
+  summarise(Amount = sum(Amount)) %>%
+  ungroup()
 
 Services <- services_1 %>%
   left_join(services_funds, by = "ServiceID") %>%
