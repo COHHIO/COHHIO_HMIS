@@ -2156,24 +2156,7 @@ check_eligibility <- served_in_date_range %>%
           for more info.",
       ) %>%
       select(all_of(vars_we_want))
-    
-    # Unsheltered Incorrect Provider in CM Record -----------------------------
-    
-    unsh_incorrect_cmprovider <- CaseManagers %>%
-      left_join(unsheltered_enrollments %>%
-                  filter(EntryDate > mdy("01012019")),
-                by = c("PersonalID")) %>%
-      filter(
-        CMProvider == "Unsheltered Clients - OUTREACH"
-      ) %>%
-      mutate(
-        Type = "Error",
-        Issue = "Incorrect Provider in Case Manager record",
-        Guidance = "When you save a Case Manager record for an unsheltered
-        household, select the Access Point that is working with the household
-        to get them into permanent housing."
-      ) %>%
-      select(all_of(vars_we_want))
+
 
 # Unsheltered New Entries by County by Month ------------------------------
 
@@ -2217,24 +2200,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       select(all_of(vars_we_want))
     
     rm(long_unsheltered, unsheltered_referred, Referrals)
-    # Unsheltered No Case Manager ---------------------------------------------
-    
-    unsh_missing_cm <- unsheltered_enrollments %>%
-      filter(EntryDate > mdy("01012019")) %>%
-      anti_join(
-        CaseManagers %>%
-          filter(EEProvider == "Unsheltered Clients - OUTREACH"),
-        by = c("PersonalID")
-      ) %>%
-      mutate(
-        Type = "Error",
-        Issue = "Missing Case Manager record",
-        Guidance = "Each client entered into the Diversion Provider should have a Case
-          Manager record. See Step 4 in the
-          <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
-          target=\"_blank\">Diversion workflow</a> for more info."
-      ) %>%
-      select(all_of(vars_we_want))
     
     # SSVF --------------------------------------------------------------------
     
@@ -2560,8 +2525,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       referrals_on_hh_members,
       spdat_on_non_hoh,
       unsheltered_not_unsheltered,
-      unsh_incorrect_cmprovider,
-      unsh_missing_cm,
       unsheltered_long_not_referred
     ) %>%
       filter(ProjectName == "Unsheltered Clients - OUTREACH") %>%
