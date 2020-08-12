@@ -11,7 +11,6 @@ library(knitr)
 library(here)
 library(tmap)    #for mapping
 library(raster)  #for mapping
-library(rgeos)   #for mapping
 
 # FUNCTIONS
 replace_yes_no <- function(column_name){
@@ -326,6 +325,7 @@ priority_plot %>%
 ### Where are clients being assessed?
 This map shows the total number of clients assessed with the COVID Screening Tool  and reported in HMIS by county.
 
+
 ```{r geo, echo=FALSE, fig.height=9, fig.width=10, message=FALSE, dpi=300}
 
 covid19_county_summary <- covid19 %>%
@@ -352,5 +352,40 @@ qtm(counties_covid_shp,
     text = "NAME_2",
     legend.text.size = 1.2) +
   tm_legend(position = c("right", "bottom"))
+
+```
+
+\pagebreak
+
+### Where are clients that need isolation or quarantine?
+
+This map shows the total number of clients in each county that, with the use of the Screening Tool, have been identified as needing isolation or quarantine.
+
+```{r priority map, dpi=300, echo=FALSE, message=FALSE}
+
+priority_county_summary <- priority %>%
+  subset(Priority == 'Needs Isolation/Quarantine') %>%
+  group_by(CountyServed) %>%
+  summarise(Total = n()) %>%
+  dplyr::select("NAME_2" = CountyServed, "Total Clients Needing Quarantine/Isolation" = Total)
+
+# Get polygon data
+us <- getData('GADM', country='USA', level=2)
+ohio_shp <- subset(us, NAME_1 == "Ohio")
+counties_shp <- subset(ohio_shp, NAME_2 != "Lake Erie")
+
+
+priority_county_shp <- merge(counties_shp, priority_county_summary,
+                            by = "NAME_2")
+
+tmap_mode("plot")
+qtm(priority_county_shp,
+    fill = "Total Clients Needing Quarantine/Isolation",
+    fill.palette = "Reds",
+    frame = FALSE,
+    text = "NAME_2",
+    text.size = .35,
+    legend.outside = TRUE
+    )
 
 ```
