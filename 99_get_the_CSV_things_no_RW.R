@@ -16,25 +16,10 @@
 # IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
 # IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
 
-# Save your ReportWriter export zip files directly to the data folder. This 
-# script will unzip and rename them appropriately.
-
 # Currently, this file is expecting the following files in your data/ directory:
 
-# RMisc.xlsx 
-# (all the HUD CSV Export FY2020 .csv files)
-# casemanagers.zip or .csv
-# cevets.zip or .csv **
-# cocscoring.zip or .csv (during CoC Competition only) **
-# offers.zip or .csv **
-# referrals.zip or .csv 
-# scoresfam.zip or .csv
-# scoresind.zip or .csv
-# scorestay.zip or .csv
-# services1.zip or .csv
-# services2.zip or .csv
-
-# ** cannot be obtained from the Youngstown site (maybe move to RMisc?)
+# RMisc2.xlsx 
+# HUD CSV Export FY2020, unzipped.
 
 library(tidyverse)
 library(lubridate)
@@ -101,8 +86,6 @@ if(ncol(read_csv(paste0(directory, "/Client.csv"))) == 36)
       (is.na(SSN) & !SSNDataQuality %in% c(8, 9)) |
         is.na(SSNDataQuality) | SSNDataQuality == 99 ~ "Missing",
       SSNDataQuality %in% c(8, 9) ~ "DKR",
-      # substr(SSN, 1, 1) == 0 |
-      # substr(SSN, 1, 2) == "00" |
       (nchar(SSN) != 9 & SSNDataQuality != 2) |
         substr(SSN, 1, 3) %in% c("000", "666") |
         substr(SSN, 1, 1) == 9 |
@@ -165,30 +148,19 @@ Project <-
   read_csv(paste0(directory, "/Project.csv"),
            col_types = "nnccDDnnnnnnnnTTcTn") 
 
-provider_extras <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
-                                sheet = 4,
+provider_extras <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                                sheet = 3,#
                                 range = cell_cols("A:H")) %>%
   mutate(ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
                                  str_remove(ProviderRegion, "0"),
                                  ProviderRegion),
          ProviderRegion = NULL)
 
-if(file.exists(paste0(directory, "/cocscoring.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/cocscoring.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
-              paste0(directory, "/cocscoring.csv"))
-  
-  file.remove(paste0(directory, "/cocscoring.zip"))
-}
-
-coc_scoring <- read_csv(paste0(directory, "/cocscoring.csv"),
-                        col_types = "dccd?iiii")
+coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                              sheet = 13)#
 
 coc_scoring <- coc_scoring %>%
-  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs)) %>%
-  select(1, 4:9)
+  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs))
 
 Project <- Project %>%
   select(-ProjectName) %>%
@@ -219,25 +191,15 @@ EnrollmentCoC <-
 
 # VeteranCE --------------------------------------------------------------
 
-if(file.exists(paste0(directory, "/cevets.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/cevets.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/cevets.csv"))
-  
-  file.remove(paste0(directory, "/cevets.zip"))
-}
-
-VeteranCE <- read_csv(paste0(directory, "/cevets.csv"), col_types = "ii??ic?cccc")
+VeteranCE <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                         sheet = 14)#
 
 VeteranCE <- 
   mutate(
     VeteranCE,
-    DateVeteranIdentified = mdy(DateVeteranIdentified),
-    ExpectedPHDate = mdy(ExpectedPHDate),
-    MostRecentOfferDate = mdy(MostRecentOfferDate)
+    DateVeteranIdentified = as.Date(DateVeteranIdentified, origin = "1899-12-30"),
+    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30"),
+    MostRecentOfferDate = as.Date(MostRecentOfferDate, origin = "1899-12-30")
   )
 
 # Enrollment --------------------------------------------------------------
@@ -248,24 +210,15 @@ Enrollment <-
              "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
 
 # from sheets 1 and 2, getting EE-related data, joining both to En --------
-# will eventually come from aa: ees in ReportWriter, waiting on WS
-counties <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
-                                 sheet = 1,
-                                 range = cell_cols("A:D"),
-                                 col_types = c("numeric", "numeric", "text", "text")) %>%
-  select(EnrollmentID, CountyServed, CountyPrior)
-  
-bowman_entry_exits <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
-                                sheet = 2,
-                                range = cell_cols("A:D"))
+
+counties <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 1)#
 
 Enrollment <- Enrollment %>% 
-  inner_join(bowman_entry_exits, by = "EnrollmentID") %>%
   inner_join(counties, by = "EnrollmentID") %>%
   left_join(VeteranCE %>% select(EnrollmentID, PHTrack, ExpectedPHDate), 
             by = "EnrollmentID")
 
-rm(bowman_entry_exits, counties)
+rm(counties)
 
 # Adding Exit Data to Enrollment because I'm not tryin to have one-to-one 
 # relationships in this!
@@ -385,29 +338,17 @@ ProjectCoC <-
 
 # Case Manager Records ----------------------------------------------------
 
-if(file.exists(paste0(directory, "/casemanagers.zip"))){
-  unzip(zipfile = paste0("./", directory, "/casemanagers.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/casemanagers.csv"))
-  
-  file.remove(paste0(directory, "/casemanagers.zip"))
-}
-
-CaseManagers <- read_csv(paste0(directory, "/casemanagers.csv"),
-                             col_types = "dccccc") %>%
+CaseManagers <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 5) %>%
   mutate(
-    CMStartDate = mdy(CMStartDate),
-    CMEndDate = mdy(CMEndDate)
+    CMStartDate = as.Date(CMStartDate, origin = "1899-12-30"),
+    CMEndDate = as.Date(CMEndDate, origin = "1899-12-30")
   )
 
-
 # Contacts ----------------------------------------------------------------
+# only pulling in contacts made between an Entry Date and an Exit Date
 
-Contacts <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
-                      sheet = 5) %>%
+Contacts <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 4) %>%
   mutate(
     ContactDate = ymd(as.Date(ContactDate, origin = "1899-12-30")),
     ContactProvider = str_remove(ContactProvider, "\\(.*\\)")
@@ -415,79 +356,20 @@ Contacts <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
 
 # Scores ------------------------------------------------------------------
 
-if(file.exists(paste0(directory, "/scoresfam.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/scoresfam.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/scores.csv"))
-  
-  file.remove(paste0(directory, "/scoresfam.zip"))
-}
-
-if(file.exists(paste0(directory, "/scoresind.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/scoresind.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/scoresind.csv"))
-  
-  file.remove(paste0(directory, "/scoresind.zip"))
-}
-
-if(file.exists(paste0(directory, "/scorestay.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/scorestay.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
-              paste0(directory, "/scorestay.csv"))
-  
-  file.remove(paste0(directory, "/scorestay.zip"))
-}
-
-file.append(paste0(directory, "/scores.csv"), paste0(directory, "/scoresind.csv"))
-
-file.append(paste0(directory, "/scores.csv"), paste0(directory, "/scorestay.csv"))
-
-if(file.exists(paste0(directory, "/scoresind.csv"))) {
-  file.remove(c(
-    paste0(directory, "/scoresind.csv"),
-    paste0(directory, "/scorestay.csv")
-  ))
-}
-
-Scores <- read_csv(paste0(directory, "/scores.csv"),
-                   col_types = "ccc") %>%
-  filter(Score != "Score") %>%
-  mutate(
-    ScoreDate = mdy(ScoreDate),
-    PersonalID = as.double(PersonalID),
-    Score = as.double(Score)
-  )
+Scores <-  read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                               sheet = 12) %>%
+  mutate(ScoreDate = as.Date(ScoreDate, origin = "1899-12-30"))
 
 # Offers -----------------------------------------------------------------
 
-if(file.exists(paste0(directory, "/offers.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/offers.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), pattern = "(report_)")),
-              paste0(directory, "/offers.csv"))
-  
-  file.remove(paste0(directory, "/offers.zip"))
-}
-
-Offers <- read_csv(paste0(directory, "/offers.csv"), col_types = "i?c?c") %>%
-  mutate(
-    OfferDate = mdy(OfferDate),
-    AcceptDeclineDate = mdy(AcceptDeclineDate)
-  )
+Offers <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 7) %>%
+  mutate(AcceptDeclineDate = ymd(as.Date(AcceptDeclineDate, origin = "1899-12-30")),
+         OfferDate = ymd(as.Date(OfferDate, origin = "1899-12-30")))
 
 # Users ------------------------------------------------------------------
-Users <- read_xlsx(paste0(directory, "/RMisc.xlsx"),
-                   sheet = 3,
+Users <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                   sheet = 2,#
                    range = cell_cols("A:G")) %>%
   mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)")) %>%
   left_join(provider_extras, by = c("DefaultProvider" = "ProjectName")) %>%
@@ -511,130 +393,100 @@ rm(provider_extras)
 
 # COVID-19 ----------------------------------------------------------------
 
-if(file.exists(paste0(directory, "/covid19.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/covid19.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/covid19.csv"))
-  
-  file.remove(paste0(directory, "/covid19.zip"))
-}
+# can't use this one yet til we can get the dates out of ART
+covid19 <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 6) %>%
+  mutate(COVID19AssessmentDate = ymd(as.Date(COVID19AssessmentDate, 
+                                             origin = "1899-12-30")),
+         ContactWithConfirmedDate = ymd(as.Date(ContactWithConfirmedDate, 
+                                                origin = "1899-12-30")),
+         ContactWithUnderInvestigationDate = ymd(as.Date(ContactWithUnderInvestigationDate, 
+                                                origin = "1899-12-30")),
+         TestDate = ymd(as.Date(TestDate, 
+                                                origin = "1899-12-30")),
+         DateUnderInvestigation = ymd(as.Date(DateUnderInvestigation, 
+                                                origin = "1899-12-30")))
 
-covid19 <- read_csv(paste0(directory, "/covid19.csv"),
-                    col_types = "ncccccccccccccccccccccccccccccc") %>%
-  mutate(
-    COVID19AssessmentDate = mdy(COVID19AssessmentDate),
-    ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
-    ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
-    TestDate = mdy(TestDate),
-    DateUnderInvestigation = mdy(DateUnderInvestigation)
-  ) 
+# # ***************
+# if(file.exists(paste0(directory, "/covid19.zip"))) {
+#   unzip(zipfile = paste0("./", directory, "/covid19.zip"), 
+#         exdir = paste0("./", directory))
+#   
+#   file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
+#                                                 pattern = "(report_)")),
+#               paste0(directory, "/covid19.csv"))
+#   
+#   file.remove(paste0(directory, "/covid19.zip"))
+# }
+# 
+# covid19_rw <- read_csv(paste0(directory, "/covid19.csv"),
+#                     col_types = "ncccccccccccccccccccccccccccccc") %>%
+#   mutate(
+#     COVID19AssessmentDate = mdy(COVID19AssessmentDate),
+#     ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
+#     ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
+#     TestDate = mdy(TestDate),
+#     DateUnderInvestigation = mdy(DateUnderInvestigation)
+#   ) 
+# # ***************
 
 # Services ----------------------------------------------------------------
 
-# this comes from two ReportWriter reports: An Export: Services and 
-# An Export: Services & Funds. Saving them as services1.csv and services2.csv.
+raw_services <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 8) %>%
+  mutate(ServiceStartDate = ymd(as.Date(ServiceStartDate, 
+                                             origin = "1899-12-30")),
+         ServiceEndDate = ymd(as.Date(ServiceEndDate, 
+                                                origin = "1899-12-30")),
+         ServiceProvider = str_remove(ServiceProvider, "\\(.*\\)"),
+         ProviderCreating = str_remove(ProviderCreating, "\\(.*\\)"))
 
-if(file.exists(paste0(directory, "/services1.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/services1.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/services1.csv"))
-  
-  file.remove(paste0(directory, "/services1.zip"))
-}
+services_funds <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 9) 
 
-services_1 <- read_csv(paste0(directory, "/services1.csv"),
-                      col_types = "nnnn??cccc")
-
-services_1 <- services_1 %>%
-  mutate(ServiceStartDate = mdy(ServiceStartDate),
-         ServiceEndDate = mdy(ServiceEndDate))
-
-if(file.exists(paste0(directory, "/services2.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/services2.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/services2.csv"))
-  
-  file.remove(paste0(directory, "/services2.zip"))
-}
-
-services_funds <- read_csv(paste0(directory, "/services2.csv"),
-                      col_types = "ncd")
-
-Services <- services_1 %>%
-  left_join(services_funds, by = "ServiceID") %>%
-  rename("ServiceHHID" = HouseholdID)
-
-rm(services_1, services_funds)
-
-staging_services <- Services[c("PersonalID",
-                              "ServiceProvider",
-                              "ServiceID",
-                              "ServiceStartDate",
-                              "ServiceEndDate")] %>%
+Services <- raw_services %>%
   left_join(Enrollment[c("EnrollmentID",
                          "PersonalID",
                          "ProjectName",
                          "EntryDate",
                          "ExitAdjust")],
-            by = "PersonalID") %>%
+            by = c("PersonalID")) %>%
+  unique() %>%
+  left_join(services_funds, by = "ServiceID")
+
+stray_services <- Services %>%
   mutate(
     ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
-    ServiceRange = interval(ymd(ServiceStartDate), ymd(ServiceEndAdjust)),
-    EERange = interval(ymd(EntryDate), ymd(ExitAdjust)),
-    Valid = if_else(int_overlaps(ServiceRange, EERange) &
-                      ServiceProvider == ProjectName, TRUE, FALSE)
-  ) 
+    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
+    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
+    intersect_tf = int_overlaps(service_interval, ee_interval)
+  ) %>%
+  filter(is.na(intersect_tf) | intersect_tf == FALSE | ServiceProvider != ProjectName) %>%  
+  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
+         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
+         Fund, Amount)
 
-stray_services <- staging_services %>%
-  filter(is.na(Valid))
+Services <- Services %>%
+  mutate(
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
+    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
+    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
+    intersect_tf = int_overlaps(service_interval, ee_interval)
+  ) %>%
+  filter(intersect_tf == TRUE & ServiceProvider == ProjectName) %>%  
+  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
+         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
+         Fund, Amount)
 
-staging_services <- staging_services %>%
-  filter(Valid == TRUE) %>%
-  select(PersonalID,
-         ServiceID,
-         EnrollmentID,
-         ServiceProvider)
-
-Services <- staging_services %>%
-  left_join(Services, by = c("ServiceID", "PersonalID", "ServiceProvider"))
-
-# the code above does not pull in Services that cannot be associated to an EE. 
-# Any Services that don't align with an EE can be found in stray_services
-
-rm(staging_services)
+rm(raw_services, services_funds)
 
 # Referrals ---------------------------------------------------------------
 
-if(file.exists(paste0(directory, "/referrals.zip"))) {
-  unzip(zipfile = paste0("./", directory, "/referrals.zip"), 
-        exdir = paste0("./", directory))
-  
-  file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-                                                pattern = "(report_)")),
-              paste0(directory, "/referrals.csv"))
-  
-  file.remove(paste0(directory, "/referrals.zip"))
-}
-
-Referrals <- read_csv(paste0(directory, "/referrals.csv"),
-                      col_types = "nnn?cccccccccc")
-
-Referrals <- Referrals %>%
-  mutate(ReferralDate = mdy(ReferralDate),
-         ReferralHHID = HouseholdID,
-         HouseholdID = NULL,
-         UserCreatingReferral = UserCreating,
-         UserCreating = NULL)
-
+Referrals <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 10) %>%
+  mutate(ReferralDate = ymd(as.Date(ReferralDate, 
+                                        origin = "1899-12-30")),
+         ProviderCreating = str_remove(ProviderCreating, "\\(.*\\)"),
+         `Referred-ToProvider` = str_remove(`Referred-ToProvider`, "\\(.*\\)"))
 
 # HUD CSV Specs -----------------------------------------------------------
 

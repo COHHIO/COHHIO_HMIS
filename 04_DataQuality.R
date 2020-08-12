@@ -41,16 +41,11 @@ rm(
 
 projects_current_hmis <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(
-    ProjectID == 1695 | (
-      HMISParticipatingProject == 1 &
-        str_detect(ProjectName, "zz", negate = TRUE) &
-        # <- since we can't trust projects_current_hmis
-        operating_between(., FileStart, FileEnd) &
-        (GrantType != "HOPWA" |
-           is.na(GrantType)) # excluding HOPWA
-    )
-  ) %>%
+  filter(ProjectID == 1695 | (
+    HMISParticipatingProject == 1 &
+      operating_between(., FileStart, FileEnd) &
+      (GrantType != "HOPWA" | is.na(GrantType))) 
+  ) %>% 
   select(
     ProjectID,
     OrganizationID,
@@ -1040,8 +1035,20 @@ check_eligibility <- served_in_date_range %>%
     # Missing PATH Contacts
     ## client is adult/hoh and has no contact record in the EE -> error
     ## this is a high priority data quality issue
+    ## if the contact was an "Outreach" record after 10/1/2019, it is being
+    ## filtered out because they should be using CLS subs past that date.
     
     small_contacts <- Contacts %>%
+      left_join(served_in_date_range, by = "PersonalID") %>%
+      filter(
+        ymd(ContactDate) >= ymd(EntryDate) &
+          ymd(ContactDate) <= ymd(ExitAdjust) &
+          ((
+            RecordType == "Outreach" &
+              ymd(ContactDate) < mdy("10012019")
+          ) |
+            RecordType == "CLS")
+      ) %>% 
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
       summarise(ContactCount = n()) %>%
       ungroup()
@@ -1061,18 +1068,28 @@ check_eligibility <- served_in_date_range %>%
       mutate(Issue = "Missing PATH Contact",
              Type = "High Priority",
              Guidance = "Every adult or Head of Household must have a Living
-             Situation contact record.") %>%
+             Situation contact record. If you see a record there but there is
+             no Date of Contact, saving the Date of Contact will correct this
+             issue.") %>%
       select(all_of(vars_we_want))
-    
-    rm(small_contacts)
     
     # Incorrect PATH Contact Date
     ## client is adult/hoh, has a contact record, and the first record in the EE
     ## does not equal the Entry Date ->  error
+    ## if the contact was an "Outreach" record after 10/1/2019, it is being
+    ## filtered out because they should be using CLS subs past that date.
     
-    x <- Contacts %>%
+    first_contact <- Contacts %>%
+      filter((RecordType == "Outreach" &
+                ymd(ContactDate) < mdy("10012019")) |
+               RecordType == "CLS") %>%
+      left_join(served_in_date_range, by = "PersonalID") %>%
+      select(PersonalID, EntryDate, ExitAdjust, ExitDate, ContactDate, ProjectName, 
+             EntryDate, ExitAdjust) %>%
+      filter(ymd(ContactDate) >= ymd(EntryDate) &
+               ymd(ContactDate) <= ymd(ExitAdjust)) %>%
       group_by(PersonalID, ProjectName, EntryDate, ExitDate) %>%
-      arrange(ContactStartDate) %>%
+      arrange(ContactDate) %>%
       slice(1L)
     
     incorrect_path_contact_date <- served_in_date_range %>%
@@ -1080,7 +1097,7 @@ check_eligibility <- served_in_date_range %>%
                (AgeAtEntry > 17 |
                   RelationshipToHoH == 1)) %>%
       select(all_of(vars_prep)) %>%
-      inner_join(x, by = c("PersonalID",
+      inner_join(first_contact, by = c("PersonalID",
                            "ProjectName",
                            "EntryDate",
                            "ExitDate")) %>%
@@ -1095,26 +1112,7 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(x)
-    
-    # Missing PATH Contact End Date
-    ## client is adult/hoh, has a contact record, and the End Date is null
-    
-    missing_path_contact_end_date <- served_in_date_range %>%
-      filter(GrantType == "PATH" &
-               (AgeAtEntry > 17 |
-                  RelationshipToHoH == 1)) %>%
-      select(all_of(vars_prep)) %>%
-      inner_join(Contacts, by = c("PersonalID",
-                           "ProjectName",
-                           "EntryDate",
-                           "ExitDate")) %>%
-      filter(is.na(ContactEndDate)) %>%
-      mutate(Issue = "No Contact End Date (PATH)",
-             Type = "Error",
-             Guidance = "All Contact records should have a Start and End Date. 
-             The End Date should = the Start Date.") %>%
-      select(all_of(vars_we_want))
+    rm(first_contact, small_contacts)
     
     # Duplicate EEs -----------------------------------------------------------
     # this could be more nuanced but it's ok to leave it since we are also
@@ -1140,9 +1138,10 @@ check_eligibility <- served_in_date_range %>%
     
     future_ees <- served_in_date_range %>%
       filter(ymd(EntryDate) > ymd_hms(DateCreated) &
-               (ProjectType %in% c(1, 2, 4, 8) |
+               (ProjectType %in% c(1, 2, 4, 8, 13) |
                   (
-                    ProjectType %in% c(3, 9) & ymd(EntryDate) >= mdy("10012017")
+                    ProjectType %in% c(3, 9) & 
+                      ymd(EntryDate) >= mdy("10012017")
                   )))  %>%
       mutate(
         Issue = "Future Entry Date",
@@ -1197,6 +1196,7 @@ check_eligibility <- served_in_date_range %>%
     ees_with_spdats <- served_in_date_range %>%
       anti_join(va_funded, by = "ProjectID") %>%
       left_join(Scores, by = "PersonalID") %>% 
+      ungroup() %>%
       select(PersonalID,
              EnrollmentID,
              RelationshipToHoH,
@@ -1204,7 +1204,7 @@ check_eligibility <- served_in_date_range %>%
              ExitAdjust,
              ScoreDate,
              Score) %>%
-      filter(ymd(ScoreDate) + years(1) > ymd(EntryDate) &
+      filter(ymd(ScoreDate) + days(365) > ymd(EntryDate) &
                # score is < 1 yr old
                ymd(ScoreDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
       group_by(EnrollmentID) %>%
@@ -2164,16 +2164,14 @@ check_eligibility <- served_in_date_range %>%
                   filter(EntryDate > mdy("01012019")),
                 by = c("PersonalID")) %>%
       filter(
-        EEProvider == "Unsheltered Clients - OUTREACH" &
-          CMProvider == "Unsheltered Clients - OUTREACH"
+        CMProvider == "Unsheltered Clients - OUTREACH"
       ) %>%
       mutate(
         Type = "Error",
         Issue = "Incorrect Provider in Case Manager record",
-        Guidance = "When you save a Case Manager record, select the Access Point provider
-          that diverted the household in the provider picklist. See Step 4
-          in the <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
-          target=\"_blank\">Diversion workflow</a> for more info."
+        Guidance = "When you save a Case Manager record for an unsheltered
+        household, select the Access Point that is working with the household
+        to get them into permanent housing."
       ) %>%
       select(all_of(vars_we_want))
 
@@ -2185,8 +2183,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
              County = if_else(is.na(CountyServed), UserCounty, CountyServed),
              EntryDateDisplay = format.Date(EntryDate, "%b %Y")) %>%
       select(EntryDate, EntryDateDisplay, HouseholdID, County)
-
-
     
     # Missing End Date on Outreach Contact ------------------------------------
     
@@ -2405,15 +2401,16 @@ unsheltered_by_month <- unsheltered_enrollments %>%
              Guidance = guidance_missing_at_entry) %>%
       select(all_of(vars_we_want))
     
-    ssvf_hp_screen <- ssvf_served_in_date_range %>%
-      filter(ProjectType == 12 &
-               RelationshipToHoH == 1 &
-               (is.na(HPScreeningScore) |
-                  is.na(ThresholdScore))) %>%
-      mutate(Issue = "Missing HP Screening or Threshold Score",
-             Type = "Error",
-             Guidance = guidance_missing_at_entry) %>%
-      select(all_of(vars_we_want))
+# TEMPORARILY NOT REQUIRED FOR COVID-19 REASONS  
+    # ssvf_hp_screen <- ssvf_served_in_date_range %>%
+    #   filter(ProjectType == 12 &
+    #            RelationshipToHoH == 1 &
+    #            (is.na(HPScreeningScore) |
+    #               is.na(ThresholdScore))) %>%
+    #   mutate(Issue = "Missing HP Screening or Threshold Score",
+    #          Type = "Error",
+    #          Guidance = guidance_missing_at_entry) %>%
+    #   select(all_of(vars_we_want))
     
     
     # All together now --------------------------------------------------------
@@ -2465,7 +2462,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_LoS,
       missing_months_times_homeless,
       missing_path_contact,
-      missing_path_contact_end_date,
       missing_previous_street_ESSH,
       missing_ncbs_entry,
       missing_ncbs_exit,
@@ -2484,7 +2480,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_address,
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
-      ssvf_hp_screen,      
+      # ssvf_hp_screen,      
       unlikely_ncbs_entry,
       veteran_missing_year_entered,
       veteran_missing_year_separated,
@@ -2521,21 +2517,20 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                      "Missing SSN",
                      "Missing Veteran Status",
                      "Don't Know/Refused Veteran Status",
-                     "Old Outstanding Referral",
                      "Missing County Served"
                    )
                ))
 
-# Waiting on Something ----------------------------------------------------
-
-    dq_main <- dq_main %>%
-      filter(
-        !Issue %in% c(
-          "Missing PATH Contact", # waiting on AW comments
-          "No Contact End Date (PATH)", # waiting on AW comments
-          "No PATH Contact Entered at Entry" # waiting on AW comments
-        )
-      ) 
+# # Waiting on Something ----------------------------------------------------
+# 
+#     dq_main <- dq_main %>%
+#       filter(
+#         !Issue %in% c(
+#           "Missing PATH Contact", # waiting on AW comments
+#           "No Contact End Date (PATH)", # waiting on AW comments
+#           "No PATH Contact Entered at Entry" # waiting on AW comments
+#         )
+#       ) 
     
     # Unsheltered DQ ----------------------------------------------------------
     
@@ -2919,7 +2914,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       incorrect_ee_type,
       incorrect_path_contact_date,
       missing_path_contact,
-      missing_path_contact_end_date,
       internal_old_outstanding_referrals,
       lh_without_spdat,
       missing_approx_date_homeless,
@@ -2957,7 +2951,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_address,
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
-      ssvf_hp_screen,
+      # ssvf_hp_screen,
       ssvf_served_in_date_range,      
       staging_outstanding_referrals,
       stop,
