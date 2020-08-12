@@ -2922,8 +2922,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       unlikely_ncbs_entry,
       unsheltered_enrollments,
       unsheltered_not_unsheltered,
-      unsh_missing_cm,
-      unsh_incorrect_cmprovider,
       unsheltered_long_not_referred,
       update_date,
       va_funded,
