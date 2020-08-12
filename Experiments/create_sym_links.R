@@ -12,6 +12,8 @@
 # GNU Affero General Public License for more details at
 #<https://www.gnu.org/licenses/>.
 
+# Windows -----------------------------------------------------------------
+
 # PLEASE NOTE:
 # This script BUILDS the script you need, then you run that script in your
 # command prompt. Slashes for Macs will likely be different.
@@ -28,7 +30,7 @@ directory_where_all_your_projects_live <-
 
 project_and_folder_that_contains_image <- "COHHIO_HMIS\\images\\"
 
-image_filename <- "Veterans.RData"
+image_filename <- "ProjectEvaluation.RData"
 
 project_and_folder_you_wish_had_the_image <- "Rminor\\data\\"
 
@@ -44,3 +46,7 @@ command_to_copy_into_command_prompt <-
     image_filename,
     "\""
   ))
+
+# Mac ---------------------------------------------------------------------
+
+
