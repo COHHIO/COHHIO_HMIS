@@ -2164,16 +2164,14 @@ check_eligibility <- served_in_date_range %>%
                   filter(EntryDate > mdy("01012019")),
                 by = c("PersonalID")) %>%
       filter(
-        EEProvider == "Unsheltered Clients - OUTREACH" &
-          CMProvider == "Unsheltered Clients - OUTREACH"
+        CMProvider == "Unsheltered Clients - OUTREACH"
       ) %>%
       mutate(
         Type = "Error",
         Issue = "Incorrect Provider in Case Manager record",
-        Guidance = "When you save a Case Manager record, select the Access Point provider
-          that diverted the household in the provider picklist. See Step 4
-          in the <a href=\"http://hmis.cohhio.org/admin.php?pg=kb.page&page=168\"
-          target=\"_blank\">Diversion workflow</a> for more info."
+        Guidance = "When you save a Case Manager record for an unsheltered
+        household, select the Access Point that is working with the household
+        to get them into permanent housing."
       ) %>%
       select(all_of(vars_we_want))
 
@@ -2185,8 +2183,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
              County = if_else(is.na(CountyServed), UserCounty, CountyServed),
              EntryDateDisplay = format.Date(EntryDate, "%b %Y")) %>%
       select(EntryDate, EntryDateDisplay, HouseholdID, County)
-
-
     
     # Missing End Date on Outreach Contact ------------------------------------
     
