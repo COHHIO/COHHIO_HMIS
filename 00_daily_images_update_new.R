@@ -37,12 +37,23 @@ directory <- case_when(dataset == "live" ~ "data",
                        dataset == "yo" ~ "youngstowndata")
 
 # folder check
+including_data_back_to <- mdy("01012018")
 
-if(format.Date(file.info(paste0(directory, "/Enrollment.csv"))$mtime, 
-               "%F") != today()) {
+export_meta <- read_csv("data/Export.csv")
+
+if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
   stop <- 1
   "The HUD CSV Export files are not up to date. Please be sure you unzipped the
   export."
+} else{
+  "OK"
+}
+
+if(floor_date(ymd(export_meta$ExportStartDate), unit = "days") != 
+   including_data_back_to &
+   floor_date(ymd(export_meta$ExportEndDate), unit = "days") != today()) {
+  stop <- 1
+  "The HUD CSV Export files was not run on the correct date range. Please rerun."
 } else{
   "OK"
 }
@@ -58,55 +69,58 @@ if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) >
   "Don't forget to delete the .7z file in your /data folder. It has PII in it!"
 } else {"OK"}
 
-if(stop == 0){
-  print("Everything's good!")
-  source("00_get_Export_and_ART.R")
-} else {"Something went wrong"}
-
-if(ymd(FileActualStart) > mdy(FileStart)){
-  stop <- 1
-  "Check that you ran your HUD CSV Export on the correct dates."
-} else{"OK"}
-
-# if the data folder passes all the tests above, let's run the rest of the 
-# scripts 
+# if the data folder passes all the tests above, let's run the scripts 
 if (stop == 0) {
+  rm(list = ls())
+  
+  print("Importing raw HMIS data..")
+  source("00_get_Export_and_ART.R")
+
   rm(list = ls())
   
   print("working on Cohorts")
   source("00_cohorts.R")
+
   rm(list = ls())  
   
   print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
+  
   rm(list = ls())
   
   print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
+  
   rm(list = ls())
 
   print("working on QPR_EEs")
   source("02_QPR_EEs.R")
+  
   rm(list = ls())
 
   print("working on Veterans")
   source("03_Veterans.R")
+  
   rm(list = ls())
 
   print("working on Data Quality")
   source("04_DataQuality.R")
+  
   rm(list = ls())
   
   print("working on Project Evaluation")
   source("06_Project_Evaluation.R")
+  
   rm(list = ls())
   
   print("working on SPMs")
   source("07_SPMs.R")
+  
   rm(list = ls())
   
   print("working on Active List")
   source("08_Active_List.R")
+  
   rm(list = ls())
   
   print(paste("Done! All images are updated."))
