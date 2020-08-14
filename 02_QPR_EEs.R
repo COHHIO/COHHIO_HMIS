@@ -72,6 +72,7 @@ smallEnrollment <- Enrollment %>%
     EntryAdjust,
     MoveInDateAdjust,
     ExitAdjust,
+    LivingSituation,
     Destination,
     DateCreated
   ) 
@@ -92,6 +93,7 @@ validation <- smallProject %>%
     MoveInDate,
     MoveInDateAdjust,
     ExitDate,
+    LivingSituation,
     Destination,
     DateCreated
   ) %>%
