@@ -392,43 +392,34 @@ rm(provider_extras)
 
 
 # COVID-19 ----------------------------------------------------------------
-
+  
 # can't use this one yet til we can get the dates out of ART
 covid19 <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 6) %>%
-  mutate(COVID19AssessmentDate = ymd(as.Date(COVID19AssessmentDate, 
-                                             origin = "1899-12-30")),
-         ContactWithConfirmedDate = ymd(as.Date(ContactWithConfirmedDate, 
-                                                origin = "1899-12-30")),
-         ContactWithUnderInvestigationDate = ymd(as.Date(ContactWithUnderInvestigationDate, 
-                                                origin = "1899-12-30")),
-         TestDate = ymd(as.Date(TestDate, 
-                                                origin = "1899-12-30")),
-         DateUnderInvestigation = ymd(as.Date(DateUnderInvestigation, 
-                                                origin = "1899-12-30")))
-
-# # ***************
-# if(file.exists(paste0(directory, "/covid19.zip"))) {
-#   unzip(zipfile = paste0("./", directory, "/covid19.zip"), 
-#         exdir = paste0("./", directory))
-#   
-#   file.rename(paste0(directory, "/", list.files(paste0("./", directory), 
-#                                                 pattern = "(report_)")),
-#               paste0(directory, "/covid19.csv"))
-#   
-#   file.remove(paste0(directory, "/covid19.zip"))
-# }
-# 
-# covid19_rw <- read_csv(paste0(directory, "/covid19.csv"),
-#                     col_types = "ncccccccccccccccccccccccccccccc") %>%
-#   mutate(
-#     COVID19AssessmentDate = mdy(COVID19AssessmentDate),
-#     ContactWithConfirmedDate = mdy(ContactWithConfirmedDate),
-#     ContactWithUnderInvestigationDate = mdy(ContactWithUnderInvestigationDate),
-#     TestDate = mdy(TestDate),
-#     DateUnderInvestigation = mdy(DateUnderInvestigation)
-#   ) 
-# # ***************
+  mutate(
+    COVID19AssessmentDate = ymd(as.Date(COVID19AssessmentDate,
+                                        origin = "1899-12-30")),
+    ContactWithConfirmedDate = ymd(as.Date(ContactWithConfirmedDate,
+                                           origin = "1899-12-30")),
+    ContactWithUnderInvestigationDate = ymd(
+      as.Date(ContactWithUnderInvestigationDate,
+              origin = "1899-12-30")
+    ),
+    TestDate = ymd(as.Date(TestDate,
+                           origin = "1899-12-30")),
+    DateUnderInvestigation = ymd(as.Date(DateUnderInvestigation,
+                                         origin = "1899-12-30")),
+    Tested = replace_yes_no(Tested),
+    UnderInvestigation = replace_yes_no(UnderInvestigation),
+    ContactWithConfirmedCOVID19Patient = replace_yes_no(
+      ContactWithConfirmedCOVID19Patient
+    ),
+    ContactWithUnderCOVID19Investigation = replace_yes_no(
+      ContactWithUnderCOVID19Investigation
+    )
+  ) %>%
+  mutate_at(vars(matches("Symptom")), replace_yes_no) %>%
+  mutate_at(vars(matches("HealthRisk")), replace_yes_no)
 
 # Services ----------------------------------------------------------------
 
