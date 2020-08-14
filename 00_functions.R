@@ -165,6 +165,10 @@ project_type <- function(ReferenceNo){
   )
 }
 
+replace_yes_no <- function(column_name) {
+  if_else(column_name == "No" | is.na(column_name), 0, 1)
+}
+
 # Experimental ------------------------------------------------------------
 
 # HUD_value_to_description <-
