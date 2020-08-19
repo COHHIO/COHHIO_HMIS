@@ -19,6 +19,7 @@ yo <- env()
 load(here("images/COHHIOHMIS.RData"), envir = bos)
 load(here("images/YOHMIS.RData"), envir = yo)
 
+source(here("00_functions.R"))
 
 ```
 
@@ -31,9 +32,9 @@ Taking from page 1, both BoS and YO.
 OHFAPTC <- tribble(
   ~ProjectType, ~BoS2018, ~YO2018,
   1, 11470, 701,
-  2, 1989, 28,
-  13, 7694, 488,
-  3, 4129, 578,
+  2, 1989, 9,
+  13, 7694, 425,
+  3, 4129, 528,
   8, 22, 0
 )
 
