@@ -40,6 +40,12 @@ directory <- case_when(dataset == "live" ~ "data",
                        dataset == "sample" ~ "sampledata",
                        dataset == "yo" ~ "youngstowndata")
 
+
+# Service Areas -----------------------------------------------------------
+
+ServiceAreas <- read_csv("public_data/ServiceAreas.csv",
+                         col_types = "cccccccccc")
+
 # Affiliation -------------------------------------------------------------
 
 Affiliation <- 
