@@ -54,31 +54,46 @@ currently_housed_in_psh_rrh <- vet_ees %>%
   filter(stayed_between(., start = format(today(), "%m%d%Y"), 
                         end = format(today(), "%m%d%Y")) &
            ProjectType %in% c(3, 9, 13)) %>%
-  pull(HouseholdID)
+  pull(PersonalID)
 
 # Active List -------------------------------------------------------------
 
 # stayers & people who exited in the past 90 days to a temp destination
 
 active_list <- vet_ees %>%
-  filter(!HouseholdID %in% c(currently_housed_in_psh_rrh) &
+  filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
            (is.na(ExitDate) |
               (!Destination %in% c(3, 10, 11, 19:23, 28, 31, 33, 34, 36) &
                  ymd(ExitDate) >= today() - days(90))))
 
 # Currently Homeless Vets -------------------------------------------------
 
+# same as Active List except it only includes stayers and leaves out households 
+# that have exited to a temporary destination. Not sure we'll need this actually
+# because we can just make it a widget on the report, to exclude those.
 
 # Entered in Past 90 Days -------------------------------------------------
 
+entered_past_90 <- vet_ees %>%
+  filter(entered_between(., format(today() - days(90), "%m%d%Y"),
+                         format(today(), "%m%d%Y")))
 
 # Declined  ---------------------------------------------------------------
 
+declined <- vet_ees %>%
+  left_join(VeteranCE, by = c("PersonalID", "EnrollmentID")) %>%
+  filter(MostRecentOfferStatus == "Declined" &
+           ymd(MostRecentOfferDate) >= today() - days(90))
 
 # Data Quality ------------------------------------------------------------
 
+# this is just an intersection of currently homeless vets and currently housed
+# in rrh and psh that would indicate a data quality issue, but these would 
+# already be on the Data Quality report as an Overlap, so why do we need this
+# here? We could flag any households with overlaps in the report.
 
 # Current Long Term -------------------------------------------------------
+
 
 
 # Active Long Term --------------------------------------------------------
