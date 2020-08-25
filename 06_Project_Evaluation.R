@@ -17,15 +17,15 @@ library(lubridate)
 library(scales)
 
 # loading old data to freeze data as of the deadline
-load("images/July_21_2020_Project_Evaluation_(Take_2)/20200721COHHIOHMIS.RData")
+load("images/COHHIOHMIS.RData")
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
-load("images/July_21_2020_Project_Evaluation_(Take_2)/20200721cohorts.RData")
+load("images/cohorts.RData")
 rm(FileActualStart, FileStart, FileEnd, update_date, summary)
 
-load("images/July_21_2020_Project_Evaluation_(Take_2)/20200721Data_Quality.RData")
+load("images/Data_Quality.RData")
 
 # Points function ---------------------------------------------------------
 
@@ -660,17 +660,17 @@ data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
 
 # writing out a file to help notify flagged projects toward end of process
 
-users_eda_groups <- read_xlsx("data/UsersProviders.xlsx", 
-                             sheet = 3) %>%
+users_eda_groups <- read_xlsx("data/RMisc2.xlsx", 
+                             sheet = 15) %>%
   select(UserID, UserEmail, EDAGroupID)
 
-eda_groups_providers <- read_xlsx("data/UsersProviders.xlsx",
-                                  sheet = 4) %>%
-  select(ProviderID, EDAGroupID)
+eda_groups_providers <- read_xlsx("data/RMisc2.xlsx",
+                                  sheet = 16) %>%
+  select(ProjectID, EDAGroupID)
 
 providers_users <- users_eda_groups %>%
   left_join(eda_groups_providers, by = "EDAGroupID") %>%
-  filter(!is.na(ProviderID) &
+  filter(!is.na(ProjectID) &
            !UserID %in% c(641, 835, 1041, 1239, 1563, 1624, 1628, 1868, 1698))
 
 notify_about_dq <- data_quality_flags_detail %>%
@@ -681,7 +681,7 @@ notify_about_dq <- data_quality_flags_detail %>%
   left_join(consolidations %>%
               select(ProjectID, AltProjectID), by = "AltProjectID") %>%
   mutate(ProjectID = if_else(is.na(ProjectID), AltProjectID, ProjectID)) %>%
-  left_join(providers_users, by = c("ProjectID" = "ProviderID")) 
+  left_join(providers_users, by = "ProjectID") 
  
 
 write_csv(notify_about_dq, "Reports/notify.csv")
@@ -822,11 +822,11 @@ pe_exits_to_ph <- pe_hohs_served %>%
     DestinationGroup = case_when(
       is.na(Destination) | ymd(ExitAdjust) > mdy(ReportEnd) ~ 
         "Still in Program at Report End Date",
-      Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:23, 28, 31, 33:34, 36) ~ "Permanent",
-      Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 30, 99) ~ "Other",
-      Destination == 24 ~ "Deceased (not counted)"
+      Destination %in% c(temp_destinations) ~ "Temporary",
+      Destination %in% c(perm_destinations) ~ "Permanent",
+      Destination %in% c(institutional_destinations) ~ "Institutional",
+      Destination == 24 ~ "Deceased (not counted)",
+      Destination %in% c(other_destinations) ~ "Other"
     ),
     ExitsToPHDQ = case_when(
       General_DQ == 1 ~ 1,
