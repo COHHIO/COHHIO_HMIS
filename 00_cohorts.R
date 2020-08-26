@@ -284,8 +284,6 @@ coc_funded_project_types <- c(2, 3, 13)
 
 project_types_w_beds <- c(1, 2, 3, 8, 9)
 
-move_in_date_project_types <- c(3, 9, 13)
-
 # Save it out -------------------------------------------------------------
 
 save.image("images/cohorts.RData")
