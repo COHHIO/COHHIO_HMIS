@@ -61,7 +61,7 @@ currently_housed_in_psh_rrh <- vet_ees %>%
 
 # stayers & people who exited in the past 90 days to a temp destination
 
-active_list <- vet_ees %>%
+veteran_active_list <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
            (is.na(ExitDate) |
               (!Destination %in% c(perm_destinations) &
@@ -81,10 +81,14 @@ entered_past_90 <- vet_ees %>%
 
 # Declined  ---------------------------------------------------------------
 
+most_recent_offer <- Offers %>%
+  group_by(PersonalID) %>%
+  slice_max(ymd(OfferDate))
+
 declined <- vet_ees %>%
-  left_join(VeteranCE, by = c("PersonalID", "EnrollmentID")) %>%
-  filter(MostRecentOfferStatus == "Declined" &
-           ymd(MostRecentOfferDate) >= today() - days(90))
+  left_join(most_recent_offer, by = "PersonalID") %>%
+  filter(OfferAccepted == "No" &
+           ymd(OfferDate) >= today() - days(14))
 
 # Data Quality ------------------------------------------------------------
 
