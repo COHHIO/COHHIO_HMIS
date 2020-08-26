@@ -270,6 +270,8 @@ GPD_project_ids <- c(751, 776, 749, 1229, 127, 550)
 
 fake_projects <- c(1027, 1849, 1028, 1033, 1032, 1029, 1931, 1030, 1031, 1317)
 
+unsheltered_projects <- c(1695, 1680)
+
 # Project Type Groupings --------------------------------------------------
 
 lh_project_types <- c(1, 2, 8)
