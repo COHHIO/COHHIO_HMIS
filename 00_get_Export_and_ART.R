@@ -512,16 +512,6 @@ FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 update_date <- file.info(paste0(directory, "/Enrollment.csv"))$mtime
 
-# Destinations Groups (FY2020) --------------------------------------------
-
-perm_destinations <- c(3, 10, 11, 19:23, 28, 31, 33, 34, 36)
-
-temp_destinations <-  c(1, 2, 12, 13, 14, 16, 18, 27, 32, 35) 
-
-institutional_destinations <- c(4:7, 15, 25:27, 29)
-
-other_destinations <- c(8, 9, 17, 24, 30, 37, 99)
-
 # Save it out -------------------------------------------------------------
 
 if(dataset == "yo") {
