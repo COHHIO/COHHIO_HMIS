@@ -54,7 +54,7 @@ vet_ees <- Enrollment %>%
 currently_housed_in_psh_rrh <- vet_ees %>%
   filter(stayed_between(., start = format(today(), "%m%d%Y"), 
                         end = format(today(), "%m%d%Y")) &
-           ProjectType %in% c(3, 9, 13)) %>%
+           ProjectType %in% c(lh_project_types)) %>%
   pull(PersonalID)
 
 # Active List -------------------------------------------------------------
@@ -95,11 +95,15 @@ declined <- vet_ees %>%
 
 # Long Term -------------------------------------------------------
 
-
+# thinking of moving the code I already wrote for this in the Active List
+# up to cohorts.R so I can get this easily from there instead of having to
+# copy that code to here
 
 # Chronic ---------------------------------------------------------
 
-
+# thinking of moving the code I already wrote for this in the Active List
+# up to cohorts.R so I can get this easily from there instead of having to
+# copy that code to here
 
 # New GPD -----------------------------------------------------------------
 
@@ -108,7 +112,9 @@ new_gpd <- entered_past_90 %>%
 
 # Offers ------------------------------------------------------------------
 
-
+# checking to be sure I'm not using "Most Recent Offer ..." data anywhere
+# since I should be able to just use the subs in Rm/Rme and eliminate those
+# redundant data elements once this is all done.
 
 # Exited to PH ------------------------------------------------------------
 
