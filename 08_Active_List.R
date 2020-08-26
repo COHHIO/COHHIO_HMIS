@@ -27,9 +27,9 @@ replace_yes_no <- function(column_name){
 
 co_currently_homeless <- co_clients_served %>%
   filter(is.na(ExitDate) &
-           (ProjectType %in% c(1, 2, 4, 8) |
+           (ProjectType %in% c(4, lh_project_types) |
               (
-                ProjectType %in% c(3, 9, 13) &
+                ProjectType %in% c(ph_project_types) &
                   is.na(MoveInDateAdjust)
               ))) %>%
   select(
@@ -51,8 +51,8 @@ active_list <- co_currently_homeless
 # bucket the ptc's
 ptc_status <- active_list %>%
   mutate(PTCStatus = case_when(
-    ProjectType %in% c(1, 2, 4, 8) ~ "LH",
-    ProjectType %in% c(3, 9, 13) ~ "PH"
+    ProjectType %in% c(lh_project_types, 4) ~ "LH",
+    ProjectType %in% c(ph_project_types) ~ "PH"
   )) 
 
 # split out the clients with ph entries
@@ -98,7 +98,7 @@ active_list <- active_list %>%
 # ee's or if there are multiple lh ee's, take the most recent (thinking the
 # most recent is probably the most up to date?)
 split_up_dupes <- get_dupes(active_list, PersonalID) %>%
-  mutate(PTCGames = if_else(ProjectType %in% c(1, 2, 4, 8), 1, 2)) %>%
+  mutate(PTCGames = if_else(ProjectType %in% c(lh_project_types, 4), 1, 2)) %>%
   group_by(PersonalID) %>%
   arrange(PTCGames, desc(EntryDate)) %>%
   slice(1L) %>%
