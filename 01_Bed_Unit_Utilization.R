@@ -31,7 +31,7 @@ small_project <- Project %>%
          ProjectName,
          ProjectType,
          HMISParticipatingProject) %>%
-  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
+  filter(ProjectType %in% c(project_types_w_beds) &
            operating_between(Project, FileStart, FileEnd) &
            is.na(Project$GrantType) &
            HMISParticipatingProject == 1)
@@ -114,7 +114,7 @@ utilizers_clients <- Utilizers %>%
     ) |
       ProjectType %in% c(1, 2, 8)
   ) &
-    !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317))
+    !ProjectID %in% c(1775, 1695, fake_projects))
 
 # function for adding bed nights per ee
 
@@ -416,15 +416,15 @@ names(utilization_bed) <-
     format.Date(int_start(TwentyfourthMonth), "%m%d%Y")
   )
 
-#Inf means there were no beds but there were clients served.
-#%NaN means there were no beds and no clients served that month.
+# Inf means there were no beds but there were clients served.
+# %NaN means there were no beds and no clients served that month.
 
 # HH Utilization of Units -------------------------------------------------
 
 HHUtilizers <- Utilizers %>%
   mutate(
     EntryAdjust = case_when(
-      ProjectType %in% c(1, 2, 8) ~ EntryDate,
+      ProjectType %in% c(lh_project_types) ~ EntryDate,
       ProjectType %in% c(3, 9) ~ MoveInDate
     ),
     ExitAdjust = if_else(
@@ -446,9 +446,9 @@ HHUtilizers <- Utilizers %>%
             ymd(MoveInDate) >= ymd(EntryDate) &
             ymd(MoveInDate) <= ymd(ExitAdjust)
         ) |
-          ProjectType %in% c(1, 2, 8)
+          ProjectType %in% c(lh_project_types)
       ) &
-      !ProjectID %in% c(1775, 1695, 1849, 1032, 1030, 1031, 1317)
+      !ProjectID %in% c(1775, 1695, fake_projects)
   ) %>%
   select(-EntryDate,-MoveInDate,-HouseholdID,-RelationshipToHoH)
 
@@ -721,7 +721,7 @@ names(utilization_unit) <-
 rm(bed_capacity, bed_nights_per_ee, unit_capacity)
 
 small_project <- Project %>%
-  filter(ProjectType %in% c(1, 2, 3, 8, 9) &
+  filter(ProjectType %in% c(project_types_w_beds) &
            ymd(OperatingStartDate) <= today() &
            (is.na(OperatingEndDate) | OperatingEndDate >= today()) &
            is.na(Project$GrantType)) %>%
@@ -792,7 +792,7 @@ utilization <-
             by = c("ProjectID", "ProjectName")) %>%
   left_join(., Households, 
             by = c("ProjectID", "ProjectName")) %>%
-  filter(ProjectType %in% c(1, 2, 3, 8, 9)) %>%
+  filter(ProjectType %in% c(project_types_w_beds)) %>%
   mutate(BedUtilization = percent(Clients/BedCount, accuracy = 1),
          UnitUtilization = percent(Households/UnitCount, accuracy = 1))
 

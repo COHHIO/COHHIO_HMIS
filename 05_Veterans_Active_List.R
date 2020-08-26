@@ -16,11 +16,12 @@ library(tidyverse)
 library(lubridate)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
 
 # Projects ----------------------------------------------------------------
 
 vet_projects <- Project %>%
-  filter(ProjectType %in% c(1, 2, 3, 4, 8, 9, 13) &
+  filter(ProjectType %in% c(lh_at_entry_project_types) &
            operating_between(., format(today() - days(90), "%m%d%Y"),
                                format(today(), "%m%d%Y")))
 
@@ -63,7 +64,7 @@ currently_housed_in_psh_rrh <- vet_ees %>%
 active_list <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
            (is.na(ExitDate) |
-              (!Destination %in% c(3, 10, 11, 19:23, 28, 31, 33, 34, 36) &
+              (!Destination %in% c(perm_destinations) &
                  ymd(ExitDate) >= today() - days(90))))
 
 # Currently Homeless Vets -------------------------------------------------
@@ -102,11 +103,8 @@ declined <- vet_ees %>%
 
 # New GPD -----------------------------------------------------------------
 
-GPD_project_ids <- c(751, 776, 749, 1229, 127, 550)
-
 new_gpd <- entered_past_90 %>%
   filter(ProjectID %in% c(GPD_project_ids))
-
 
 # Offers ------------------------------------------------------------------
 

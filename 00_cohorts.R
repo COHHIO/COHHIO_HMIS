@@ -254,5 +254,35 @@ rm(
 
 rm(list = ls(pattern = "summary_"))
 
+# Destinations Groups (FY2020) --------------------------------------------
+
+perm_destinations <- c(3, 10, 11, 19:23, 28, 31, 33, 34, 36)
+
+temp_destinations <-  c(1, 2, 12, 13, 14, 16, 18, 27, 32, 35) 
+
+institutional_destinations <- c(4:7, 15, 25:27, 29)
+
+other_destinations <- c(8, 9, 17, 24, 30, 37, 99)
+
+# Project Groupings -------------------------------------------------------
+
+GPD_project_ids <- c(751, 776, 749, 1229, 127, 550)
+
+fake_projects <- c(1027, 1849, 1028, 1033, 1032, 1029, 1931, 1030, 1031, 1317)
+
+# Project Type Groupings --------------------------------------------------
+
+lh_project_types <- c(1, 2, 4, 8)
+
+ph_project_types <- c(3, 9, 13)
+
+lh_ph_hp_project_types <- c(1, 2, 3, 4, 8, 9, 12, 13)
+
+coc_funded_project_types <- c(2, 3, 13)
+
+project_types_w_beds <- c(1, 2, 3, 8, 9)
+
+# Save it out -------------------------------------------------------------
+
 save.image("images/cohorts.RData")
 
