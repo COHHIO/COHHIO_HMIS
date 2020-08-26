@@ -18,13 +18,6 @@ library(lubridate)
 load("images/COHHIOHMIS.RData")
 load("images/cohorts.RData")
 
-# Projects ----------------------------------------------------------------
-
-vet_projects <- Project %>%
-  filter(ProjectType %in% c(lh_at_entry_project_types) &
-           operating_between(., format(today() - days(90), "%m%d%Y"),
-                               format(today(), "%m%d%Y")))
-
 # Get all veterans and associated hh members ------------------------------
 
 responsible_providers <- ServiceAreas %>%
@@ -35,6 +28,7 @@ bos_counties <- ServiceAreas %>%
   pull(County)
 
 vet_ees <- Enrollment %>%
+  filter(ProjectType %in% c(lh_at_entry_project_types)) %>%
   left_join(Client %>% select(PersonalID, VeteranStatus), by = "PersonalID") %>%
   mutate(VeteranStatus = if_else(VeteranStatus == 1, 1, 0)) %>%
   group_by(HouseholdID) %>%
@@ -54,7 +48,7 @@ vet_ees <- Enrollment %>%
 currently_housed_in_psh_rrh <- vet_ees %>%
   filter(stayed_between(., start = format(today(), "%m%d%Y"), 
                         end = format(today(), "%m%d%Y")) &
-           ProjectType %in% c(lh_project_types)) %>%
+           ProjectType %in% c(ph_project_types)) %>%
   pull(PersonalID)
 
 # Active List -------------------------------------------------------------
