@@ -272,15 +272,19 @@ fake_projects <- c(1027, 1849, 1028, 1033, 1032, 1029, 1931, 1030, 1031, 1317)
 
 # Project Type Groupings --------------------------------------------------
 
-lh_project_types <- c(1, 2, 4, 8)
+lh_project_types <- c(1, 2, 8)
 
 ph_project_types <- c(3, 9, 13)
+
+lh_at_entry_project_types <- c(1, 2, 3, 4, 8, 9, 13)
 
 lh_ph_hp_project_types <- c(1, 2, 3, 4, 8, 9, 12, 13)
 
 coc_funded_project_types <- c(2, 3, 13)
 
 project_types_w_beds <- c(1, 2, 3, 8, 9)
+
+move_in_date_project_types <- c(3, 9, 13)
 
 # Save it out -------------------------------------------------------------
 
