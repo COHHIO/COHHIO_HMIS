@@ -44,7 +44,8 @@ directory <- case_when(dataset == "live" ~ "data",
 # Service Areas -----------------------------------------------------------
 
 ServiceAreas <- read_csv("public_data/ServiceAreas.csv",
-                         col_types = "cccccccccc")
+                         col_types = "cccccccccc") %>%
+  mutate(County = if_else(County == "Vanwert", "Van Wert", County))
 
 # Affiliation -------------------------------------------------------------
 
@@ -198,14 +199,13 @@ EnrollmentCoC <-
 # VeteranCE --------------------------------------------------------------
 
 VeteranCE <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
-                         sheet = 14)#
+                         sheet = 14)
 
 VeteranCE <- 
   mutate(
     VeteranCE,
     DateVeteranIdentified = as.Date(DateVeteranIdentified, origin = "1899-12-30"),
-    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30"),
-    MostRecentOfferDate = as.Date(MostRecentOfferDate, origin = "1899-12-30")
+    ExpectedPHDate = as.Date(ExpectedPHDate, origin = "1899-12-30")
   )
 
 # Enrollment --------------------------------------------------------------
