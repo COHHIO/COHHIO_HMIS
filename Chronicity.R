@@ -135,3 +135,6 @@ active_list <- active_list %>%
   ) %>%
   filter(HoH_Adjust == 1) %>%
   select(-correctedhoh, -RelationshipToHoH, -hoh, -HoH_Adjust)
+
+
+
