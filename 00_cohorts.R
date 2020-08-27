@@ -254,6 +254,13 @@ rm(
 
 rm(list = ls(pattern = "summary_"))
 
+
+# Counties ----------------------------------------------------------------
+
+bos_counties <- ServiceAreas %>%
+  filter(CoC == "OH-507 Balance of State") %>%
+  pull(County)
+
 # Destinations Groups (FY2020) --------------------------------------------
 
 perm_destinations <- c(3, 10, 11, 19:23, 28, 31, 33, 34, 36)

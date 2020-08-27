@@ -23,13 +23,8 @@ load("images/cohorts.RData")
 responsible_providers <- ServiceAreas %>%
   select(County, SSVFServiceArea) 
 
-bos_counties <- ServiceAreas %>%
-  filter(CoC == "OH-507 Balance of State") %>%
-  pull(County)
-
-vet_ees <- Enrollment %>%
+vet_ees <- co_clients_served %>%
   filter(ProjectType %in% c(lh_at_entry_project_types)) %>%
-  left_join(Client %>% select(PersonalID, VeteranStatus), by = "PersonalID") %>%
   mutate(VeteranStatus = if_else(VeteranStatus == 1, 1, 0)) %>%
   group_by(HouseholdID) %>%
   summarise(VetCount = sum(VeteranStatus)) %>%
