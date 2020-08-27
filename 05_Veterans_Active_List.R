@@ -72,7 +72,8 @@ entered_past_90 <- vet_ees %>%
 
 most_recent_offer <- Offers %>%
   group_by(PersonalID) %>%
-  slice_max(ymd(OfferDate))
+  slice_max(ymd(OfferDate)) %>%
+  ungroup()
 
 declined <- vet_ees %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
