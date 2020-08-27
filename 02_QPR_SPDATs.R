@@ -92,12 +92,9 @@ qpr_spdats_county <-
     Score
   ) %>%
   group_by(PersonalID) %>%
-  mutate(MaxEntry = max(ymd(EntryDate))) %>% # most recent EE
-  filter(ymd(MaxEntry) == ymd(EntryDate)) %>%
-  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>% # most recent score
-  filter(ymd(ScoreDate) == ymd(MaxScoreDate)) %>%
-  mutate(MaxScore = max(Score)) %>% # highest score
-  filter(Score == MaxScore) %>%
+  slice_max(ymd(EntryDate)) %>% # most recent EE
+  slice_max(ymd(ScoreDate)) %>% # most recent score
+  slice_max(Score) %>% # highest score
   ungroup() %>%
   select(PersonalID,
          ProjectName,
@@ -121,6 +118,7 @@ HoH is missing their County data or they were served in a County outside the
 Ohio Balance of State, they will also not show here."
 
 # this pulls all entries into PSH or RRH
+start <- now()
 
 qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
@@ -142,16 +140,19 @@ qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
       ) &
       !is.na(CountyServed)
   ) %>%
+  mutate(
+    ScoreAdjusted = if_else(is.na(Score), 0, Score),
+    ScoreDateAdjusted = if_else(is.na(ScoreDate), today(), ScoreDate)
+  ) %>%
   group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
-  filter(ymd(ScoreDate) == ymd(MaxScoreDate) | is.na(ScoreDate)) %>%
-  mutate(MaxScore = max(Score)) %>%
-  filter(Score == MaxScore | is.na(ScoreDate)) %>%
+  slice_max(ymd(ScoreDateAdjusted)) %>%
+  slice_max(ScoreAdjusted) %>%
   distinct() %>%
   ungroup() %>%
-  select(-MaxScoreDate, -MaxScore) %>%
-  mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score)) %>%
-  filter(!is.na(ScoreAdjusted))
+  select(-ScoreDateAdjusted)
+
+end <- now() 
+difftime(end, start, units = "sec")
 
 # If you have clients here, you should either verify the scores saved here are 
 # valid or the correct client is marked as the Head of Household.
