@@ -118,7 +118,6 @@ HoH is missing their County data or they were served in a County outside the
 Ohio Balance of State, they will also not show here."
 
 # this pulls all entries into PSH or RRH
-start <- now()
 
 qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
@@ -150,9 +149,6 @@ qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
   distinct() %>%
   ungroup() %>%
   select(-ScoreDateAdjusted)
-
-end <- now() 
-difftime(end, start, units = "sec")
 
 # If you have clients here, you should either verify the scores saved here are 
 # valid or the correct client is marked as the Head of Household.
