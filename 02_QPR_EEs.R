@@ -19,6 +19,7 @@ library(lubridate)
 library(janitor)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
 
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 
