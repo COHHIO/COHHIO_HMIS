@@ -17,6 +17,7 @@ library(lubridate)
 library(scales)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
 
 # despite the fact we're pulling in usually more than 2 years of data, the 
 # utilization reporting will only go back 2 years. (decision based on lack of
@@ -871,7 +872,9 @@ possible bed nights (330), which is: 91%!"
 
 # removing all the Value objects we created as those are not used in the apps
 rm(list = ls(all.names = TRUE, pattern = "Month$"))
-rm(Contacts, covid19, regions)
+rm(list = ls(all.names = TRUE, pattern = "co_"))
+
+rm(Contacts, covid19, regions, ServiceAreas)
 
 save.image("images/Utilization.RData")
 
