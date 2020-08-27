@@ -103,6 +103,135 @@ declined <- vet_ees %>%
 # up to cohorts.R so I can get this easily from there instead of having to
 # copy that code to here
 
+# actually maybe not because the chronic code in the active_list.R looks at
+# an entire household's chronic status and then marks otherwise-non-chronic
+# clients as chronic if they're in a household, but this report only looks at
+# veterans. BUT maybe it shouldn't. Like it would make more sense to calculate
+# chronicity the same from one report to the other and take into account a 
+# veteran's household's chronic status as well.
+
+# ON THE OTHER HAND, it's very specific to the way the Active List is written
+# because that script is untangling household data quality issues first and THEN
+# calculating it, but I'm not planning to untangle household dq issues in this
+# report. Maybe I should untangle household dq issues in cohorts too. AAaaa
+
+
+# creating a small basic dataframe to work with
+smallEnrollment <- Enrollment %>%
+  select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
+         DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
+         MonthsHomelessPastThreeYears)
+
+# getting only the independently-chronic clients. they're chronic right now
+# and because of *their own* homeless history
+singly_chronic <-
+  active_list %>%
+  left_join(smallEnrollment,
+            by = c("PersonalID",
+                   "EnrollmentID",
+                   "HouseholdID")) %>%
+  mutate(SinglyChronic =
+           if_else(((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
+                       !is.na(DateToStreetESSH)) |
+                      (
+                        MonthsHomelessPastThreeYears %in% c(112, 113) &
+                          TimesHomelessPastThreeYears == 4 &
+                          !is.na(MonthsHomelessPastThreeYears) &
+                          !is.na(TimesHomelessPastThreeYears)
+                      )
+           ) &
+             DisablingCondition == 1 &
+             !is.na(DisablingCondition), 1, 0))
+
+# pulling all EEs with the Chronic designation, marking all hh members of anyone
+# with a Chronic marker as also Chronic
+household_chronic <- singly_chronic %>%
+  group_by(HouseholdID) %>%
+  mutate(
+    ChronicHousehold = sum(SinglyChronic, na.rm = TRUE),
+    ChronicStatus = case_when(
+      ChronicHousehold > 0 ~ "Chronic",
+      ChronicHousehold == 0 ~ "Not Chronic"
+    )
+  ) %>%
+  ungroup() %>%
+  select(-ChronicHousehold)
+
+# adds current days in ES or SH projects to days homeless prior to entry and if
+# it adds up to 365 or more, it marks the client as AgedIn
+agedIntoChronicity <- household_chronic %>%
+  mutate(
+    DaysHomelessInProject = difftime(ymd(ExitAdjust),
+                                     ymd(EntryDate),
+                                     units = "days"),
+    DaysHomelessBeforeEntry = difftime(ymd(EntryDate),
+                                       if_else(
+                                         is.na(ymd(DateToStreetESSH)),
+                                         ymd(EntryDate),
+                                         ymd(DateToStreetESSH)
+                                       ),
+                                       units = "days"),
+    ChronicStatus = if_else(
+      ProjectType %in% c(1, 8) &
+        ChronicStatus == "Not Chronic" &
+        ymd(DateToStreetESSH) + days(365) > ymd(EntryDate) &
+        !is.na(DateToStreetESSH) &
+        DaysHomelessBeforeEntry + DaysHomelessInProject >= 365,
+      "Aged In",
+      ChronicStatus
+    )
+  ) %>%
+  select(-DaysHomelessInProject,-DaysHomelessBeforeEntry)
+
+# adds another ChronicStatus of "Nearly Chronic" which catches those hhs with
+# almost enough times and months to qualify as Chronic
+nearly_chronic <- agedIntoChronicity %>%
+  mutate(
+    ChronicStatus = if_else(
+      ChronicStatus == "Not Chronic" &
+        ((
+          ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
+            !is.na(DateToStreetESSH)
+        ) |
+          (
+            MonthsHomelessPastThreeYears %in% c(110:113) &
+              TimesHomelessPastThreeYears%in% c(3, 4) &
+              !is.na(MonthsHomelessPastThreeYears) &
+              !is.na(TimesHomelessPastThreeYears)
+          )
+        ) &
+        DisablingCondition == 1 &
+        !is.na(DisablingCondition),
+      "Nearly Chronic",
+      ChronicStatus
+    )
+  )
+
+active_list <- active_list %>%
+  left_join(
+    nearly_chronic %>%
+      select("PersonalID",
+             "HouseholdID",
+             "EnrollmentID",
+             "ChronicStatus"),
+    by = c("PersonalID", "HouseholdID", "EnrollmentID")
+  )
+
+# THIS IS WHERE WE'RE SUMMARISING BY HOUSEHOLD (after all the group_bys)
+
+active_list <- active_list %>%
+  mutate(
+    HH_DQ_issue = if_else(
+      correctedhoh == 1 & !is.na(correctedhoh),
+      1,
+      0
+    ),
+    HoH_Adjust = case_when(correctedhoh == 1 ~ 1,
+                           is.na(correctedhoh) ~ hoh)
+  ) %>%
+  filter(HoH_Adjust == 1) %>%
+  select(-correctedhoh, -RelationshipToHoH, -hoh, -HoH_Adjust)
+
 # New GPD -----------------------------------------------------------------
 
 new_gpd <- entered_past_90 %>%
