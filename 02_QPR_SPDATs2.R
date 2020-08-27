@@ -140,16 +140,16 @@ qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
       ) &
       !is.na(CountyServed)
   ) %>%
+  mutate(
+    ScoreAdjusted = if_else(is.na(Score), 0, Score),
+    ScoreDateAdjusted = if_else(is.na(ScoreDate), today(), ScoreDate)
+  ) %>%
   group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
-  filter(ymd(ScoreDate) == ymd(MaxScoreDate) | is.na(ScoreDate)) %>%
-  mutate(MaxScore = max(Score)) %>%
-  filter(Score == MaxScore | is.na(ScoreDate)) %>%
+  slice_max(ymd(ScoreDateAdjusted)) %>%
+  slice_max(ScoreAdjusted) %>%
   distinct() %>%
   ungroup() %>%
-  select(-MaxScoreDate, -MaxScore) %>%
-  mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score)) %>%
-  filter(!is.na(ScoreAdjusted))
+  select(-ScoreDateAdjusted)
 
 end <- now() 
 difftime(end, start, units = "sec")
