@@ -1208,13 +1208,10 @@ check_eligibility <- served_in_date_range %>%
                # score is < 1 yr old
                ymd(ScoreDate) < ymd(ExitAdjust)) %>%  # score is prior to Exit
       group_by(EnrollmentID) %>%
-      mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
-      filter(ymd(ScoreDate) == ymd(MaxScoreDate)) %>%
-      mutate(MaxScore = max(Score)) %>%
-      filter(Score == MaxScore) %>%
+      slice_max(ymd(ScoreDate)) %>%
+      slice_max(Score) %>%
       distinct() %>%
       ungroup() %>%
-      select(-MaxScoreDate, -MaxScore) %>%
       mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
     
     rm(Scores)
