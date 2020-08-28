@@ -15,6 +15,7 @@
 library(tidyverse)
 library(lubridate)
 library(scales)
+library(readxl)
 
 # loading old data to freeze data as of the deadline
 load("images/COHHIOHMIS.RData")
@@ -671,7 +672,7 @@ eda_groups_providers <- read_xlsx("data/RMisc2.xlsx",
 providers_users <- users_eda_groups %>%
   left_join(eda_groups_providers, by = "EDAGroupID") %>%
   filter(!is.na(ProjectID) &
-           !UserID %in% c(641, 835, 1041, 1239, 1563, 1624, 1628, 1868, 1698))
+           !UserID %in% c(COHHIO_admin_user_ids))
 
 notify_about_dq <- data_quality_flags_detail %>%
   filter(GeneralFlagTotal > 0 |
@@ -681,7 +682,7 @@ notify_about_dq <- data_quality_flags_detail %>%
   left_join(consolidations %>%
               select(ProjectID, AltProjectID), by = "AltProjectID") %>%
   mutate(ProjectID = if_else(is.na(ProjectID), AltProjectID, ProjectID)) %>%
-  left_join(providers_users, by = "ProjectID") 
+  left_join(providers_users, by = "ProjectID")
  
 
 write_csv(notify_about_dq, "Reports/notify.csv")
