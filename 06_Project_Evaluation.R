@@ -687,6 +687,9 @@ notify_about_dq <- data_quality_flags_detail %>%
 
 write_csv(notify_about_dq, "Reports/notify.csv")
 
+# this file ^^ is used by Reports/CoC_Competition/Notify_DQ.Rmd to produce
+# emails to all users attached to any of the providers with DQ flags.
+
 # displays flags thrown at the alt-project level
 
 data_quality_flags <- data_quality_flags_detail %>%
