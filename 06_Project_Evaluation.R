@@ -707,8 +707,6 @@ upper_psh_sh <- 12000
 lower_rrh <- 5000
 upper_rrh <- 9000
 
-
-
 summary_pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName", "ProjectID")) %>%
   select(
