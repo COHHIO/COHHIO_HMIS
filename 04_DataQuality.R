@@ -774,8 +774,8 @@ check_eligibility <- served_in_date_range %>%
     RelationshipToHoH == 1 &
       AgeAtEntry > 17 &
       ymd(EntryDate) > mdy("10012016") &
-      GrantType != "RHY" &
-      ProjectType %in% c(2, 3, 4, 8, 9, 10, 12, 13) &
+      (ProjectType %in% c(3, 4, 8, 9, 10, 12, 13) |
+         (ProjectType == 2 & (is.na(GrantType) | GrantType != "RHY"))) &
       (
         (ProjectType %in% c(2, 3, 9, 10, 13) &
            # PTCs that require LH status
