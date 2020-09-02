@@ -34,8 +34,8 @@ image_filename <- "ProjectEvaluation.RData"
 
 project_and_folder_you_wish_had_the_image <- "Rminor\\data\\"
 
-command_to_copy_into_command_prompt <-
-  cat(paste0(
+cat(
+  paste0(
     "mklink \"",
     directory_where_all_your_projects_live,
     project_and_folder_you_wish_had_the_image,
@@ -45,7 +45,8 @@ command_to_copy_into_command_prompt <-
     project_and_folder_that_contains_image,
     image_filename,
     "\""
-  ))
+  )
+)
 
 # Mac ---------------------------------------------------------------------
 
