@@ -61,7 +61,7 @@ if(floor_date(ymd(export_meta$ExportStartDate), unit = "days") !=
 if(format.Date(file.info(paste0(directory, "/RMisc2.xlsx"))$mtime, "%F") != today()){
   stop <- 1
   "The RMisc.xlsx file is not up to date. Please run this ART report and 
-  overwrite the current RMisc.xlsx with the new one."
+  overwrite the current RMisc2.xlsx with the new one."
 } else{"OK"}
 
 if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) > 0){
