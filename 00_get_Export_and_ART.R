@@ -399,7 +399,6 @@ rm(provider_extras)
 
 # COVID-19 ----------------------------------------------------------------
   
-# can't use this one yet til we can get the dates out of ART
 covid19 <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 6) %>%
   mutate(
