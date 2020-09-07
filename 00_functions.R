@@ -58,11 +58,18 @@ age_years <- function(earlier, later)
 
 # Client Entry Exits Between Date Range Functions -------------------------------------
 
-served_between <- function(table, start, end){
-  served <- ymd(table$EntryDate) <= mdy(end) &
+served_between <- function(start, end){
+  served <- . %>% ymd(table$EntryDate) <= mdy(end) &
     (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
   served
 }
+
+# should move to this but will require a LOT of edits!
+
+# served_between <- function(., start, end) {
+#   . %>% filter(ymd(EntryDate) <= mdy(end) &
+#                  (is.na(ExitDate) | ymd(ExitDate) >= mdy(start)))
+# }
 
 entered_between <- function(table, start, end){
   entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
