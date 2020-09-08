@@ -199,28 +199,6 @@ covid_clients <- covid19 %>%
   mutate(LivingSituationDescr = living_situation(LivingSituation)) %>%
   as_tibble() %>%
   mutate(
-    Symptom1Cough = replace_yes_no(Symptom1Cough),
-    Symptom1BreathingDifficult = replace_yes_no(Symptom1BreathingDifficult),
-    Symptom2SoreThroat = replace_yes_no(Symptom2SoreThroat),
-    Symptom2Fever = replace_yes_no(Symptom2Fever),
-    Symptom2Chills = replace_yes_no(Symptom2Chills),
-    Symptom2Headache = replace_yes_no(Symptom2Headache),
-    Symptom2MusclePain = replace_yes_no(Symptom2MusclePain),
-    Symptom2LostTasteSmell = replace_yes_no(Symptom2LostTasteSmell),
-    Symptom2Congestion = replace_yes_no(Symptom2Congestion),
-    Symptom2Nausea = replace_yes_no(Symptom2Nausea),
-    Symptom2Diarrhea = replace_yes_no(Symptom2Diarrhea),
-    Symptom2Weak = replace_yes_no(Symptom2Weak),
-    HealthRiskChronicIllness = replace_yes_no(HealthRiskChronicIllness),
-    HealthRiskHistoryOfRespiratoryIllness = replace_yes_no(HealthRiskHistoryOfRespiratoryIllness),
-    HealthRiskOver65 = replace_yes_no(HealthRiskOver65),
-    HealthRiskKidneyDisease = replace_yes_no(HealthRiskKidneyDisease),
-    HealthRiskImmunocompromised = replace_yes_no(HealthRiskImmunocompromised),
-    HealthRiskSmoke = replace_yes_no(HealthRiskSmoke),
-    ContactWithConfirmedCOVID19Patient = replace_yes_no(ContactWithConfirmedCOVID19Patient),
-    ContactWithUnderCOVID19Investigation = replace_yes_no(ContactWithUnderCOVID19Investigation),
-    Tested = replace_yes_no(Tested),
-    UnderInvestigation = replace_yes_no(UnderInvestigation),
     COVID19Priority = case_when(
       (
         Tested == 1 &
