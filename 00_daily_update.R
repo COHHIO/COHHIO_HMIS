@@ -41,7 +41,7 @@ including_data_back_to <- mdy("01012018")
 
 export_meta <- read_csv("data/Export.csv")
 
-if(floor_date(ymd_hms(export_meta$ExportStartDate), unit = "days") != today()) {
+if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
   stop <- 1
   "The HUD CSV Export files are not up to date. Please be sure you unzipped the
   export."
