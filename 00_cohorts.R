@@ -62,7 +62,7 @@ tay <- Enrollment %>%
   select(all_of(vars_we_want)) %>%
   group_by(HouseholdID) %>%
   mutate(
-    TAY = if_else(max(AgeAtEntry) < 25, 1, 0)
+    TAY = if_else(max(AgeAtEntry) < 25 & max(AgeAtEntry) >= 16, 1, 0)
   ) %>%
   ungroup() %>%
   filter(TAY == 1, !is.na(ProjectName))
