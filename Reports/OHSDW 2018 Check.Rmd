@@ -21,6 +21,8 @@ load(here("images/YOHMIS.RData"), envir = yo)
 
 source(here("00_functions.R"))
 
+ReportStart <- "01012018"
+ReportEnd <- "12312018"
 ```
 
 ## Clients by Program Type
@@ -32,15 +34,15 @@ Taking from page 1, both BoS and YO.
 OHFAPTC <- tribble(
   ~ProjectType, ~BoS2018, ~YO2018,
   1, 11470, 701,
-  2, 1989, 9,
-  13, 7694, 425,
-  3, 4129, 528,
-  8, 22, 0
+  2, 1989, 28,
+  8, 22, 0,
+  13, 7694, 488,
+  3, 4129, 578
 )
 
 COHHIOPTC <- bos$Enrollment %>%
-  filter(served_between(., "01012018", "12312018") &
-           ProjectID != 1695) %>%
+  filter(served_between(., ReportStart, ReportEnd) &
+           ProjectID != 1695) %>% 
   group_by(ProjectType) %>%
   summarise(BoSClients = n())
 
@@ -55,9 +57,9 @@ ByPTC <- OHFAPTC %>%
 
 gt(ByPTC)
 
-yo_client_total_now <- 601+26+479+589
+yo_client_total_now <- 132+8+233+457
 yo_client_total_ohfa <- 701+28+488+578
-bos_client_total_now <- 13890+1889+7238+3984+22
+bos_client_total_now <- 13889+1887+22+7230+3992
 bos_client_total_ohfa <- 11470+1989+7694+4129+22
 
 ```
