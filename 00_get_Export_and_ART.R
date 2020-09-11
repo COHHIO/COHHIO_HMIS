@@ -413,18 +413,18 @@ covid19 <-
     TestDate = ymd(as.Date(TestDate,
                            origin = "1899-12-30")),
     DateUnderInvestigation = ymd(as.Date(DateUnderInvestigation,
-                                         origin = "1899-12-30"))#,
-    # Tested = replace_yes_no(Tested),
-    # UnderInvestigation = replace_yes_no(UnderInvestigation),
-    # ContactWithConfirmedCOVID19Patient = replace_yes_no(
-    #   ContactWithConfirmedCOVID19Patient
-    # ),
-    # ContactWithUnderCOVID19Investigation = replace_yes_no(
-    #   ContactWithUnderCOVID19Investigation
-    # )
-  ) #%>%
-  # mutate_at(vars(matches("Symptom")), replace_yes_no) %>%
-  # mutate_at(vars(matches("HealthRisk")), replace_yes_no)
+                                         origin = "1899-12-30")),
+    Tested = replace_yes_no(Tested),
+    UnderInvestigation = replace_yes_no(UnderInvestigation),
+    ContactWithConfirmedCOVID19Patient = replace_yes_no(
+      ContactWithConfirmedCOVID19Patient
+    ),
+    ContactWithUnderCOVID19Investigation = replace_yes_no(
+      ContactWithUnderCOVID19Investigation
+    )
+  ) %>%
+  mutate_at(vars(matches("Symptom")), replace_yes_no) %>%
+  mutate_at(vars(matches("HealthRisk")), replace_yes_no)
 
 # Services ----------------------------------------------------------------
 

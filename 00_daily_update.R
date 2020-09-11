@@ -106,10 +106,10 @@ if (stop == 0) {
   print("working on Data Quality")
   source("04_DataQuality.R")
   
-  rm(list = ls())
-
-  print("working on Project Evaluation")
-  source("06_Project_Evaluation.R")
+  # rm(list = ls())
+  # 
+  # print("working on Project Evaluation")
+  # source("06_Project_Evaluation.R")
 
   rm(list = ls())
   
