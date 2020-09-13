@@ -1162,7 +1162,8 @@ check_eligibility <- served_in_date_range %>%
         enter the exact date the client left your program. If this client has not
         yet exited, delete the Exit and then enter the Exit Date once the client
         is no longer in your program."
-      )
+      ) %>%
+      select(all_of(vars_we_want))
     
     # Incorrect Entry Exit Type -----------------------------------------------
     # check ART report for exact logic.
@@ -2883,6 +2884,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       extremely_long_stayers,
       FileActualStart,
       future_ees,
+      future_exits,
       HealthAndDV,
       hh_issues,
       incorrect_ee_type,
