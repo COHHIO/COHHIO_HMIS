@@ -57,23 +57,17 @@ ptc_status <- active_list %>%
 
 # split out the clients with ph entries
 clients_in_ph <- ptc_status %>%
-  group_by(PersonalID) %>%
-  arrange(desc(PTCStatus)) %>%
-  slice(1L) %>%
   filter(PTCStatus == "PH") %>%
-  ungroup() %>%
-  mutate(InPH = 1) %>%
-  select(PersonalID, InPH)
+  select(1) %>%
+  distinct() %>%
+  mutate(InPH = 1)
 
 # split out the clients with lh entries
 clients_in_lh <- ptc_status %>%
-  group_by(PersonalID) %>%
-  arrange(PTCStatus) %>%
-  slice(1L) %>%
   filter(PTCStatus == "LH") %>%
-  ungroup() %>%
-  mutate(LH = 1) %>%
-  select(PersonalID, LH)
+  select(1) %>%
+  distinct() %>%
+  mutate(LH = 1)
 
 # join them back, with one row per client, create PTCStatus variable
 client_ptc_status <- clients_in_lh %>%
