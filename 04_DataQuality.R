@@ -1146,11 +1146,23 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Future Entry Date",
         Type = "Warning",
-        Guidance = "Users should not be entering a client into a project on a date in the
-      future. There is no action needed, but going forward, please be sure that
-      your data entry workflow is correct according to your project type."
+        Guidance = "Users should not be entering a client into a project on a 
+        date in the future. There is no action needed, but going forward, please 
+        be sure that your data entry workflow is correct according to your 
+        project type."
       ) %>%
       select(all_of(vars_we_want))
+    
+    future_exits <- served_in_date_range %>%
+      filter(ymd(ExitDate) > today()) %>%
+      mutate(
+        Issue = "Future Exit Date",
+        Type = "Error",
+        Guidance = "This client's Exit Date is a date in the future. Please 
+        enter the exact date the client left your program. If this client has not
+        yet exited, delete the Exit and then enter the Exit Date once the client
+        is no longer in your program."
+      )
     
     # Incorrect Entry Exit Type -----------------------------------------------
     # check ART report for exact logic.
@@ -2405,6 +2417,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       entered_ph_without_spdat,
       extremely_long_stayers,
       future_ees,
+      future_exits,
       hh_issues,
       incorrect_ee_type,
       incorrect_path_contact_date,
@@ -2509,6 +2522,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       dq_name,
       duplicate_ees,
       future_ees,
+      future_exits,
       hh_issues,
       incorrect_ee_type,
       lh_without_spdat,
