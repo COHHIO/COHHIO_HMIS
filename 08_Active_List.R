@@ -54,14 +54,14 @@ ptc_status <- active_list %>%
 # split out the clients with ph entries
 clients_in_ph <- ptc_status %>%
   filter(PTCStatus == "PH") %>%
-  select(1) %>%
+  select(PersonalID) %>%
   distinct() %>%
   mutate(InPH = 1)
 
 # split out the clients with lh entries
 clients_in_lh <- ptc_status %>%
   filter(PTCStatus == "LH") %>%
-  select(1) %>%
+  select(PersonalID) %>%
   distinct() %>%
   mutate(LH = 1)
 
