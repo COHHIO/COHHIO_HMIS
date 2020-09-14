@@ -187,7 +187,7 @@ covid_clients <- covid19 %>%
     TestDate = ymd(TestDate),
     DateUnderInvestigation = ymd(DateUnderInvestigation)
   ) %>%
-  filter(ymd(COVID19AssessmentDate) > ymd("20200401") &
+  filter(ymd(COVID19AssessmentDate) >= ymd("20200401") &
            ymd(COVID19AssessmentDate) <= today()) %>%
   left_join(get_res_prior, by = "PersonalID") %>%
   mutate(LivingSituationDescr = living_situation(LivingSituation)) %>%
