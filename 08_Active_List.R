@@ -19,10 +19,6 @@ library(janitor)
 load("images/cohorts.RData")
 load("images/COHHIOHMIS.RData")
 
-replace_yes_no <- function(column_name){
-  if_else(column_name == "No" | is.na(column_name), 0, 1)
-}
-
 # clients currently entered into a homeless project in our system
 
 co_currently_homeless <- co_clients_served %>%
