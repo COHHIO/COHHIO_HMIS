@@ -32,4 +32,14 @@ cvi <- read_csv(here("Ohio/Ohio_COUNTY.csv")) %>%
     RPL_THEMES_pct = percent(RPL_THEMES)
   )
   
+svi <- read_csv(here("Ohio/Ohio.csv")) %>%
+  select(ST_ABBR,
+         COUNTY,
+         FIPS,
+         LOCATION,
+         "SocioeconomicStatus" = RPL_THEME1,
+         "HouseholdCompositionDisability" = RPL_THEME2,
+         "MinorityStatusLanguage" = RPL_THEME3,
+         "HousingTypeTransportation" = RPL_THEME4,
+         RPL_THEMES)
 
