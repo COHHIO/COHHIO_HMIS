@@ -261,18 +261,18 @@ Enrollment <- Enrollment %>%
   left_join(HoHsEntry, by = "HouseholdID") %>%
   mutate(
     MoveInDateAdjust = case_when(
-      EntryDate < mdy("10012017") &
+      ymd(EntryDate) < mdy("10012017") &
         ProjectType %in% c(3, 9)
       ~ EntryDate,
-      EntryDate != HoHsEntry &
+      ymd(EntryDate) != ymd(HoHsEntry) &
         ProjectType %in% c(3, 9, 13) ~ EntryDate,
-      EntryDate >= mdy("10012017") &
+      ymd(EntryDate) >= mdy("10012017") &
         ProjectType %in% c(3, 9) &
         ymd(EntryDate) <= ymd(MoveInDate) &
-        ymd(MoveInDate) <= ExitAdjust
+        ymd(MoveInDate) <= ymd(ExitAdjust)
       ~ MoveInDate,
       ymd(EntryDate) <= ymd(MoveInDate) &
-        ymd(MoveInDate) <= ExitAdjust &
+        ymd(MoveInDate) <= ymd(ExitAdjust) &
         ProjectType == 13 ~ MoveInDate
     ),
     EntryAdjust = case_when(
