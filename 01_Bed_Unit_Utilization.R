@@ -349,7 +349,10 @@ BedCapacity <- BedCapacity %>%
   ungroup()
 
 # Bed Utilization ---------------------------------------------------------
-
+# REVIEW From Rminor/server.R#915 - make a list object with utilization to facilitate later iterative transformations
+# REVIEW IE utilization <- list()
+# REVIEW utilization$bed <- [CODE]
+# REVIEW utilization$units <- [CODE]
 utilization_bed <- 
   left_join(BedCapacity,
             BedNights,
