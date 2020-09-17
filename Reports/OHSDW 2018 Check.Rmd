@@ -47,7 +47,7 @@ COHHIOPTC <- bos$Enrollment %>%
   summarise(BoSClients = n())
 
 YOHMISPTC <- yo$Enrollment %>%
-  filter(served_between(., "01012018", "12312018")) %>%
+  filter(served_between(., ReportStart, ReportEnd)) %>%
   group_by(ProjectType) %>%
   summarise(YOClients = n())
 
