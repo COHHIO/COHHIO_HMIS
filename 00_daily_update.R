@@ -53,7 +53,7 @@ if(ymd(export_meta$ExportStartDate) !=
    including_data_back_to |
    ymd(export_meta$ExportEndDate) != today()) {
   stop <- 1
-  "The HUD CSV Export files was not run on the correct date range. Please rerun."
+  "The HUD CSV Export was not run on the correct date range. Please rerun."
 } else{
   "OK"
 }
