@@ -97,19 +97,41 @@ stayed_between <- function(table, start, end){
 #'   \item{\code{`stayed/st`}}
 #'   \item{\code{`entered/en`}}
 #'   \item{\code{`exited/ex`}}
+#'   \item{\code{`operating/op`}}
+#'   \item{\code{`beds_available/be/ba`}}
 #' }
 #' that specifies the type of function to be performed
-#' @param start The ReportStart variable created from user input - will be automatically retrieved from parent environments if not specified.
-#' @param end The ReportEnd variable created from user input - will be automatically retrieved from parent environments if not specified.
+#' @param start The ReportStart variable created from user input - will be automatically retrieved from parent environments if not specified. If start is named other than ReportStart, it must be specified.
+#' @param end The ReportEnd variable created from user input - will be automatically retrieved from parent environments if not specified. If end is named other than ReportEnd, it must be specified.
 #' @examples 
 #' \dontrun{
 #' ReportStart = Sys.Date() - lubridate::weeks(4)
 #' ReportEnd = Sys.Date()
 #' qpr_leavers %>% between_(served)
 #' }
+#TODO Test with additional qpr_*, test with operating_* and beds_available_* instances
 between_ <- function(., status, start = ReportStart, end = ReportEnd) {
+  # if no status supplied, throw error
   if (missing(status)) {
     rlang::abort("Please supply a status. See ?between_ for details.")
+  } 
+  # Add input dates to list
+  .dates <- list(start = start, end = end)
+  # Check if inputs are all Date or POSIXct
+  .test_date <- purrr::map_lgl(.dates, ~{inherits(.x, c("Date", "POSIXct"))})
+  # If not
+  if (!all(.test_date)) {
+    # map over the one's that arent
+    list2env(purrr::imap(.dates[!.test_date], ~{
+      # try these formats
+      .out <- lubridate::parse_date_time(.x, c("Ymd", "Ymd", "mdY", "mdY"))
+      if (!inherits(.out, c("POSIXct","Date")) {
+        # if none of those formats worked throw error and inform user which argument was not able to be parsed
+        rlang::abort(paste0(.y, " could not be parsed to a Datetime, please check argument."))
+      }
+      .out
+    }), environment())
+    # bind the coerced Date/Datetimes to the environment, overwriting the existing values
   }
   # Get the expression provided by the user contained in status
   .cn <- rlang::enexpr(status)
@@ -137,6 +159,21 @@ between_ <- function(., status, start = ReportStart, end = ReportEnd) {
     }
     # Filter the appropriate column using between
     .out <- dplyr::filter(., dplyr::between(!!.col, start, end))
+  } else if (stringr::str_detect(.cn_chr, "op|be|ba")) {
+    if (stringr::str_detect(.cn_chr, "op")) {
+      .prefix <- "Operating"
+    } else if (stringr::str_detect(.cn_chr, "be|ba")) {
+      .prefix <- "Inventory"
+    }
+    # Construct column names from prefixes
+    .cols <- paste0(.prefix, c("StartDate", "EndDate"))
+    .tbl <- .
+    # Extract the appropriate columns
+    .cols <- purrr::map(.cols, ~{.tbl[[.x]]})
+    # Do the filtering
+    .out <- dplyr::if_else(is.na(.cols[[1]]) | .cols[[1]] > end | (!is.na(.cols[[2]]) & .cols[[2]] < start), 
+                           FALSE,
+                           TRUE)
   }
   .out
 }
