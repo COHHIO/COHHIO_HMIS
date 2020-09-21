@@ -320,12 +320,12 @@ disability_data <- active_list %>%
   ) %>%
   group_by(HouseholdID) %>%
   mutate(
-    CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),	    CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),
-    DisablingCondition = if_else(DisablingCondition == 1, 100, DisablingCondition),	    DisabilityInHH = max(if_else(DisablingCondition == 1, 1, 0)),
-    DisabilityInHH = max(DisablingCondition),	    TAY = if_else(max(AgeAtEntry) < 25 & max(AgeAtEntry) >= 16, 1, 0),
-    DisablingCondition = if_else(DisablingCondition == 100, 1, DisablingCondition),	
-    DisabilityInHH = if_else(DisabilityInHH == 100, 1, 0),	
-    TAY = if_else(max(AgeAtEntry) < 25, 1, 0),	
+    CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),
+    DisablingCondition = if_else(DisablingCondition == 1, 100, DisablingCondition),
+    DisabilityInHH = max(DisablingCondition),
+    DisablingCondition = if_else(DisablingCondition == 100, 1, DisablingCondition),
+    DisabilityInHH = if_else(DisabilityInHH == 100, 1, 0),
+    TAY = if_else(max(AgeAtEntry) < 25, 1, 0),
     PHTrack = if_else(
       !is.na(PHTrack) &
         !is.na(ExpectedPHDate) &
