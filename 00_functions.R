@@ -57,7 +57,7 @@ age_years <- function(earlier, later)
 }
 
 # Client Entry Exits Between Date Range Functions -------------------------------------
-
+#TODO Collapse all into a single function with a `between` flag
 served_between <- function(table, start, end){
   served <- ymd(table$EntryDate) <= mdy(end) &
     (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
@@ -86,6 +86,61 @@ stayed_between <- function(table, start, end){
     (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
   stayed
 }
+
+#CHANGED New Between function
+#' @title between_
+#' @description Performs quick filtering of qpr_* data.frames with the input of the type of filtering
+#' @param . \code{(data.frame/tibble)} Input to be filtered. In a `magrittr` pipe this will always be the first object
+#' @param status \code{(unquoted name)} One of:
+#' \itemize{
+#'   \item{\code{`served/se`}}
+#'   \item{\code{`stayed/st`}}
+#'   \item{\code{`entered/en`}}
+#'   \item{\code{`exited/ex`}}
+#' }
+#' that specifies the type of function to be performed
+#' @param start The ReportStart variable created from user input - will be automatically retrieved from parent environments if not specified.
+#' @param end The ReportEnd variable created from user input - will be automatically retrieved from parent environments if not specified.
+#' @examples 
+#' \dontrun{
+#' ReportStart = Sys.Date() - lubridate::weeks(4)
+#' ReportEnd = Sys.Date()
+#' qpr_leavers %>% between_(served)
+#' }
+between_ <- function(., status, start = ReportStart, end = ReportEnd) {
+  if (missing(status)) {
+    rlang::abort("Please supply a status. See ?between_ for details.")
+  }
+  # Get the expression provided by the user contained in status
+  .cn <- rlang::enexpr(status)
+  # Convert that to a character for regex parsing
+  .cn_chr <- tolower(substr(rlang::expr_deparse(.cn), 0, 2))
+  # If it's one of served of stayed
+  if (stringr::str_detect(.cn_chr, "se|st")) {
+    if (stringr::str_detect(.cn_chr, "se")) {
+      # if served use entrydate
+      .col <- rlang::sym("EntryDate")
+    } else if (stringr::str_detect(.cn_chr, "st")) {
+      # if stayed used entryadjust
+      .col <- rlang::sym("EntryAdjust")
+    }
+    #filter the appropriate columns
+    .out <- dplyr::filter(., !!.col <= end & (is.na(ExitDate) | ExitDate >= start))
+  } else if (stringr::str_detect(.cn_chr, "en|ex")) {
+    # if its entered or exited
+    if (stringr::str_detect(.cn_chr, "en")) {
+      # if entered use entrydate
+      .col <- rlang::sym("EntryDate")
+    } else if (stringr::str_detect(.cn_chr, "ex")) {
+      #if exited use exit date
+      .col <- rlang::sym("ExitDate")
+    }
+    # Filter the appropriate column using between
+    .out <- dplyr::filter(., dplyr::between(!!.col, start, end))
+  }
+  .out
+}
+
 
 # Projects Operating Between Date Range Function --------------------------
 
