@@ -525,6 +525,17 @@ active_list <- active_list %>%
              "EnrollmentID",
              "ChronicStatus"),
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
+  ) %>%
+  mutate(
+    ChronicStatus = factor(
+      ChronicStatus,
+      levels = c(
+        "Chronic",
+        "Aged In",
+        "Nearly Chronic",
+        "Not Chronic"
+      )
+    )
   )
 
 # THIS IS WHERE WE'RE SUMMARISING BY HOUSEHOLD (after all the group_bys)
