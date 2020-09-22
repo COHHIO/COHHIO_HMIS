@@ -29,6 +29,9 @@ library(tidyverse)
 rm(list = ls())
 stop <- 0
 
+# if there's not already an images directory, create it
+if (!dir.exists("images")) dir.create("images")
+
 # type "live" or "sample"
 dataset <- "live" 
 
@@ -122,7 +125,12 @@ if (stop == 0) {
   source("08_Active_List.R")
   
   rm(list = ls())
-  
+
+  print("copying images to app directories")
+  source("00_copy_images.R")
+
+  rm(list = ls())
+
   print(paste("Done! All images are updated."))
 } else
 {
@@ -130,4 +138,6 @@ if (stop == 0) {
 }
 
 # all scripts together take about 3 minutes 45 seconds
+
+
 
