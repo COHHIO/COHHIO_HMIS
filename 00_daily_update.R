@@ -72,54 +72,60 @@ if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) >
 # if the data folder passes all the tests above, let's run the scripts 
 if (stop == 0) {
   rm(list = ls())
-  
+
   print("Importing raw HMIS data..")
   source("00_get_Export_and_ART.R")
 
   rm(list = ls())
-  
+
   print("working on Cohorts")
   source("00_cohorts.R")
 
   rm(list = ls())  
-  
+
   print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
-  
+
   rm(list = ls())
-  
+
   print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
-  
+
   rm(list = ls())
 
   print("working on QPR_EEs")
   source("02_QPR_EEs.R")
-  
+
   rm(list = ls())
 
   print("working on Veterans")
   source("03_Veterans.R")
-  
+
   rm(list = ls())
 
   print("working on Data Quality")
   source("04_DataQuality.R")
-  
+
   # rm(list = ls())
   # 
   # print("working on Project Evaluation")
   # source("06_Project_Evaluation.R")
 
   rm(list = ls())
-  
+
   print("working on SPMs")
   source("07_SPMs.R")
-  
+
   rm(list = ls())
-  
+
   print("working on Active List")
   source("08_Active_List.R")
+
+  # CHANGED Auto copy images from COHHIO_HMIS to Rminor & Rminor_elevated (assumes Rminor & Rminor_elevated are sibling directories of COHHIO_HMIS)
+  print("copying images to app directories")
+  source("09_copy_images.R")
+  rm(list = ls(all.names = TRUE))
+  # END CHANGED
   
   rm(list = ls())
   
