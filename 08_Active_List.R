@@ -612,8 +612,7 @@ dv <- active_list %>%
         WhenOccurred %in% c(4, 8, 9, 99) ~ "No",
       CurrentlyFleeing == 1 |
         WhenOccurred %in% c(1:3) ~ "Yes",
-      CurrentlyFleeing %in% c(8, 9, 99) |
-        WhenOccurred %in% c(8, 9, 99) ~ "Unknown"
+      CurrentlyFleeing %in% c(8, 9) ~ "Unknown"
     )
   ) %>%
   select(-WhenOccurred)
