@@ -155,16 +155,29 @@ Project <-
   read_csv(paste0(directory, "/Project.csv"),
            col_types = "nnccDDnnnnnnnnTTcTn") 
 
-provider_extras <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
-                                sheet = 3,#
-                                range = cell_cols("A:H")) %>%
-  mutate(ProjectRegion = if_else(ProviderRegion != "Homeless Planning Region 10",
-                                 str_remove(ProviderRegion, "0"),
-                                 ProviderRegion),
-         ProviderRegion = NULL)
+
+provider_extras <- read_xlsx(
+  paste0(directory, "/RMisc2.xlsx"),
+  sheet = 3,
+  col_types = c("numeric", replicate(9, "text"))
+  ) %>% 
+  mutate(
+    ProjectRegion = if_else(
+      ProviderRegion != "Homeless Planning Region 10",
+      str_remove(ProviderRegion, "0"),
+      ProviderRegion
+    ),
+    ProviderRegion = NULL
+  )
+
+provider_geo <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                          sheet = 17)
+
+provider_tel <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                          sheet = 18)
 
 coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
-                              sheet = 13)#
+                              sheet = 13)
 
 coc_scoring <- coc_scoring %>%
   mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs))
