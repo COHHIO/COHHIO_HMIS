@@ -22,9 +22,10 @@
 # correct files in the correct way.
 
 # There's some date-checking, so we need the lubridate package.
-library(lubridate)
-library(tidyverse)
-
+# CHANGED Install necessary packages if they're not already installed.
+if (!require(pacman)) install.packages("pacman")
+pacman::p_load(char = c("tidyverse", "lubridate", "readxl", "scales", "janitor"))
+# END CHANGED
 # clearing the environment prior to running all the scripts
 rm(list = ls())
 stop <- 0
@@ -69,59 +70,67 @@ if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) >
   "Don't forget to delete the .7z file in your /data folder. It has PII in it!"
 } else {"OK"}
 
+#CHANGED Create image folder if it does not exist
+if (!dir.exists("images")) dir.create("images")
+#END CHANGED
+
 # if the data folder passes all the tests above, let's run the scripts 
 if (stop == 0) {
   rm(list = ls())
-  
+  #<p
   print("Importing raw HMIS data..")
   source("00_get_Export_and_ART.R")
-
+  #>p
   rm(list = ls())
-  
+  #<p
   print("working on Cohorts")
   source("00_cohorts.R")
-
+  #>p
   rm(list = ls())  
-  
+  #<p
   print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
-  
+  #>p
   rm(list = ls())
-  
+  #<p
   print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
-  
+  #>p
   rm(list = ls())
-
+  #<p
   print("working on QPR_EEs")
   source("02_QPR_EEs.R")
-  
+  #>p
   rm(list = ls())
-
+  #<p
   print("working on Veterans")
   source("03_Veterans.R")
-  
+  #>p
   rm(list = ls())
-
+  #<p
   print("working on Data Quality")
   source("04_DataQuality.R")
-  
-  # rm(list = ls())
-  # 
-  # print("working on Project Evaluation")
-  # source("06_Project_Evaluation.R")
-
+  #>p
   rm(list = ls())
-  
+  #<p
+  print("working on Project Evaluation")
+  source("06_Project_Evaluation.R")
+  #>p
+  rm(list = ls())
+  #<p
   print("working on SPMs")
   source("07_SPMs.R")
-  
+  #>p
   rm(list = ls())
-  
+  #<p
   print("working on Active List")
   source("08_Active_List.R")
-  
-  rm(list = ls())
+  #>p
+  # CHANGED Auto copy images from COHHIO_HMIS to Rminor & Rminor_elevated (assumes Rminor & Rminor_elevated are sibling directories of COHHIO_HMIS)
+  print("copying images to app directories")
+  source("09_copy_images.R")
+  rm(list = ls(all.names = TRUE))
+  # END CHANGED
   
   print(paste("Done! All images are updated."))
 } else
