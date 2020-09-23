@@ -7,6 +7,8 @@ purrr::walk(.dir, ~{
     dir.create(.d)
   }
   purrr::walk(list.files("images", full.names = TRUE), ~{
-    file.copy(.x, fs::path(.d, basename(.x)))
+    .path <- fs::path(.d, basename(.x))
+    if (file.exists(.path)) file.remove(.path)
+    file.copy(.x, .path)
   })
 })
