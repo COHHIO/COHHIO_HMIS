@@ -16,10 +16,10 @@
 # IT REPLACES THE NAMES AND SSNS WITH DATA QUALITY SIGNIFIERS!
 # IT CAN BE RUN ON A CLEAN CLIENT.CSV FILE OR ONE THAT'S BEEN OVERWRITTEN.
 
-# Currently, this file is expecting the following files in your data/ directory:
+# This file is expecting the following files in your data/ directory:
 
-# RMisc2.xlsx 
-# HUD CSV Export FY2020, unzipped.
+# 1. RMisc2.xlsx 
+# 2. HUD CSV Export FY2020, unzipped.
 
 library(tidyverse)
 library(lubridate)
@@ -262,7 +262,7 @@ HoHsEntry <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
   filter(RelationshipToHoH == 1 &
            ProjectType %in% c(3, 9, 13)) %>%
-  select(HouseholdID, "HoHsEntry" = EntryDate) %>%
+  select(HouseholdID, "HoHsEntry" = EntryDate, "HoHsMoveIn" = MoveInDate) %>%
   unique()
 
 ## ^^ this code causes a duplication for situations where a hh has two clients
@@ -274,20 +274,24 @@ Enrollment <- Enrollment %>%
   left_join(HoHsEntry, by = "HouseholdID") %>%
   mutate(
     MoveInDateAdjust = case_when(
-      ymd(EntryDate) < mdy("10012017") &
-        ProjectType %in% c(3, 9)
-      ~ EntryDate,
-      ymd(EntryDate) != ymd(HoHsEntry) &
-        ProjectType %in% c(3, 9, 13) ~ EntryDate,
-      ymd(EntryDate) >= mdy("10012017") &
-        ProjectType %in% c(3, 9) &
-        ymd(EntryDate) <= ymd(MoveInDate) &
+      !is.na(HoHsMoveIn) &
+        # prior to 2017, PSH didn't use move-in dates, so we're overwriting 
+        # those PSH move-in dates with the Entry Date        
+        (ymd(EntryDate) < mdy("10012017") &
+           ProjectType %in% c(3, 9)) |
+      # meant to account for non-hohs that join later
+        (ymd(EntryDate) > ymd(HoHsEntry) &
+           ProjectType %in% c(3, 9, 13)) ~ EntryDate,
+      ((
+        ymd(EntryDate) >= mdy("10012017") &
+          ProjectType %in% c(3, 9)
+      ) | ProjectType == 13) &
+        # the Move-In Dates must fall between the Entry and ExitAdjust to be 
+        # considered valid
+        ymd(EntryDate) <= ymd(MoveInDate) & 
         ymd(MoveInDate) <= ymd(ExitAdjust)
-      ~ MoveInDate,
-      ymd(EntryDate) <= ymd(MoveInDate) &
-        ymd(MoveInDate) <= ymd(ExitAdjust) &
-        ProjectType == 13 ~ MoveInDate
-    ),
+      ~ MoveInDate
+    ), 
     EntryAdjust = case_when(
       ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
       ProjectType %in% c(3, 9, 13) &
