@@ -124,14 +124,6 @@ if (stop == 0) {
   print("working on Active List")
   source("08_Active_List.R")
 
-  # CHANGED Auto copy images from COHHIO_HMIS to Rminor & Rminor_elevated (assumes Rminor & Rminor_elevated are sibling directories of COHHIO_HMIS)
-  print("copying images to app directories")
-  source("09_copy_images.R")
-  rm(list = ls(all.names = TRUE))
-  # END CHANGED
-  
-  rm(list = ls())
-
   print("copying images to app directories")
   source("00_copy_images.R")
 
