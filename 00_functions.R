@@ -56,63 +56,184 @@ age_years <- function(earlier, later)
   age
 }
 
-# Client Entry Exits Between Date Range Functions -------------------------------------
-
-served_between <- function(table, start, end){
-  served <- ymd(table$EntryDate) <= mdy(end) &
-    (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
-  served
-}
-
-# should move to this but will require a LOT of edits!
-
-# served_between <- function(., start, end) {
-#   . %>% filter(ymd(EntryDate) <= mdy(end) &
-#                  (is.na(ExitDate) | ymd(ExitDate) >= mdy(start)))
+# # Client Entry Exits Between Date Range Functions -------------------------------------
+# 
+# served_between <- function(table, start, end){
+#   served <- ymd(table$EntryDate) <= mdy(end) &
+#     (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
+#   served
+# }
+# 
+# # should move to this but will require a LOT of edits!
+# 
+# # served_between <- function(., start, end) {
+# #   . %>% filter(ymd(EntryDate) <= mdy(end) &
+# #                  (is.na(ExitDate) | ymd(ExitDate) >= mdy(start)))
+# # }
+# 
+# entered_between <- function(table, start, end){
+#   entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
+#   entered
+# }
+# 
+# exited_between <- function(table, start, end){
+#   exited <- between(ymd(table$ExitDate), mdy(start), mdy(end)) 
+#   exited
+# }
+# 
+# stayed_between <- function(table, start, end){
+#   stayed <- ymd(table$EntryAdjust) <= mdy(end) &
+#     (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
+#   stayed
+# }
+# 
+# # Projects Operating Between Date Range Function --------------------------
+# 
+# operating_between <- function(table, start, end) {
+#   operating <-  if_else(
+#     is.na(table$OperatingStartDate) |
+#       ymd(table$OperatingStartDate) > mdy(end) |
+#       (!is.na(table$OperatingEndDate) &
+#          ymd(table$OperatingEndDate) < mdy(start)),
+#     FALSE,
+#     TRUE
+#   )
+#   operating
+# }
+# 
+# # Beds Available Between --------------------------------------------------
+# 
+# beds_available_between <- function(table, start, end) {
+#   available <-  if_else(
+#     is.na(table$InventoryStartDate) |
+#       ymd(table$InventoryStartDate) > mdy(end) |
+#       (!is.na(table$InventoryEndDate) &
+#          ymd(table$InventoryEndDate) < mdy(start)),
+#     FALSE,
+#     TRUE
+#   )
+#   available
 # }
 
-entered_between <- function(table, start, end){
-  entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
-  entered
+#CHANGED New Between function
+#' @title between_
+#' @keywords Internal
+#' @description Performs quick filtering of qpr_* data.frames with the input of the type of filtering
+#' @param . \code{(data.frame/tibble)} Input to be filtered. In a `magrittr` pipe this will always be the first object
+#' @param status \code{(unquoted name)} One of:
+#' \itemize{
+#'   \item{\code{`served/se`}}
+#'   \item{\code{`stayed/st`}}
+#'   \item{\code{`entered/en`}}
+#'   \item{\code{`exited/ex`}}
+#'   \item{\code{`operating/op`}}
+#'   \item{\code{`beds_available/be/ba`}}
+#' }
+#' that specifies the type of function to be performed
+#' @param start The ReportStart variable created from user input - will be automatically retrieved from parent environments if not specified. If start is named other than ReportStart, it must be specified.
+#' @param end The ReportEnd variable created from user input - will be automatically retrieved from parent environments if not specified. If end is named other than ReportEnd, it must be specified.
+#' @examples 
+#' \dontrun{
+#' ReportStart = Sys.Date() - lubridate::weeks(4)
+#' ReportEnd = Sys.Date()
+#' qpr_leavers %>% between_(served)
+#' }
+#TODO Test with additional qpr_*, test with operating_* and beds_available_* instances
+between_ <- function(., status, start = ReportStart, end = ReportEnd) {
+  # if no status supplied, throw error
+  if (missing(status)) {
+    rlang::abort("Please supply a status. See ?between_ for details.")
+  } 
+  # Add input dates to list
+  .dates <- list(start = start, end = end)
+  # Check if inputs are all Date or POSIXct
+  .test_date <- purrr::map_lgl(.dates, ~{inherits(.x, c("Date", "POSIXct"))})
+  # If not
+  if (!all(.test_date)) {
+    # map over the one's that arent
+    list2env(purrr::imap(.dates[!.test_date], ~{
+      # try these formats
+      .out <- lubridate::parse_date_time(.x, c("Ymd", "Ymd", "mdY", "mdY"))
+      if (!inherits(.out, c("POSIXct","Date")) {
+        # if none of those formats worked throw error and inform user which argument was not able to be parsed
+        rlang::abort(paste0(.y, " could not be parsed to a Datetime, please check argument."))
+      }
+      .out
+    }), environment())
+    # bind the coerced Date/Datetimes to the environment, overwriting the existing values
+  }
+  # Get the expression provided by the user contained in status
+  .cn <- rlang::enexpr(status)
+  # Convert that to a character for regex parsing
+  .cn_chr <- tolower(substr(rlang::expr_deparse(.cn), 0, 2))
+  # If it's one of served of stayed
+  if (stringr::str_detect(.cn_chr, "se|st")) {
+    if (stringr::str_detect(.cn_chr, "se")) {
+      # if served use entrydate
+      .col <- rlang::sym("EntryDate")
+    } else if (stringr::str_detect(.cn_chr, "st")) {
+      # if stayed used entryadjust
+      .col <- rlang::sym("EntryAdjust")
+    }
+    #filter the appropriate columns
+    .out <- dplyr::filter(., !!.col <= end & (is.na(ExitDate) | ExitDate >= start))
+  } else if (stringr::str_detect(.cn_chr, "en|ex")) {
+    # if its entered or exited
+    if (stringr::str_detect(.cn_chr, "en")) {
+      # if entered use entrydate
+      .col <- rlang::sym("EntryDate")
+    } else if (stringr::str_detect(.cn_chr, "ex")) {
+      #if exited use exit date
+      .col <- rlang::sym("ExitDate")
+    }
+    # Filter the appropriate column using between
+    .out <- dplyr::filter(., dplyr::between(!!.col, start, end))
+  } else if (stringr::str_detect(.cn_chr, "op|be|ba")) {
+    if (stringr::str_detect(.cn_chr, "op")) {
+      .prefix <- "Operating"
+    } else if (stringr::str_detect(.cn_chr, "be|ba")) {
+      .prefix <- "Inventory"
+    }
+    # Construct column names from prefixes
+    .cols <- paste0(.prefix, c("StartDate", "EndDate"))
+    .tbl <- .
+    # Extract the appropriate columns
+    .cols <- purrr::map(.cols, ~{.tbl[[.x]]})
+    # Do the filtering
+    .out <- dplyr::if_else(is.na(.cols[[1]]) | .cols[[1]] > end | (!is.na(.cols[[2]]) & .cols[[2]] < start), 
+                           FALSE,
+                           TRUE)
+  }
+  .out
 }
 
-exited_between <- function(table, start, end){
-  exited <- between(ymd(table$ExitDate), mdy(start), mdy(end)) 
-  exited
+
+# Client Entry Exits Between Date Range Functions -------------------------------------
+
+served_between <- function(., start = ReportStart, end = ReportEnd) {
+  between_(., served, start, end)
 }
 
-stayed_between <- function(table, start, end){
-  stayed <- ymd(table$EntryAdjust) <= mdy(end) &
-    (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
-  stayed
+entered_between <- function(., start = ReportStart, end = ReportEnd) {
+  between_(., entered, start, end)
+}
+
+exited_between <- function(., start = ReportStart, end = ReportEnd){
+  between_(., exited, start, end)
+}
+
+stayed_between <- function(., start = ReportStart, end = ReportEnd){
+  between_(., stayed, start, end)
 }
 
 # Projects Operating Between Date Range Function --------------------------
 
-operating_between <- function(table, start, end) {
-  operating <-  if_else(
-    is.na(table$OperatingStartDate) |
-      ymd(table$OperatingStartDate) > mdy(end) |
-      (!is.na(table$OperatingEndDate) &
-         ymd(table$OperatingEndDate) < mdy(start)),
-    FALSE,
-    TRUE
-  )
-  operating
+operating_between <- function(., start = ReportStart, end = ReportEnd){
+  between_(., operating, start, end)
 }
 
-# Beds Available Between --------------------------------------------------
-
-beds_available_between <- function(table, start, end) {
-  available <-  if_else(
-    is.na(table$InventoryStartDate) |
-      ymd(table$InventoryStartDate) > mdy(end) |
-      (!is.na(table$InventoryEndDate) &
-         ymd(table$InventoryEndDate) < mdy(start)),
-    FALSE,
-    TRUE
-  )
-  available
+beds_available_between <- function(., start = ReportStart, end = ReportEnd){
+  between_(., ba, start, end)
 }
 
 living_situation <- function(ReferenceNo) {
