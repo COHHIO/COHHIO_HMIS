@@ -17,6 +17,6 @@ purrr::walk(.dir, ~ {
     dir.create(.d)
   }
   purrr::walk(paste0("images/", .images_to_copy, ".RData"), ~ {
-    file.copy(.x, fs::path(.d, basename(.x)))
+    file.copy(.x, overwrite = TRUE, fs::path(.d, basename(.x)))
   })
 }) 
