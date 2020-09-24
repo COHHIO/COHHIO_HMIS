@@ -10,7 +10,7 @@
 #'   \item{\code{.lo}}{ Short for line open, the line number of the opening profile code.}
 #'   \item{\code{.lc}}{ Short for line close, the line number of the closing profile code.}
 #' }
-#' **Default: `utils::Rprof(fs::path(dir_profvis, basename(.x), glue::glue('{.lo}-{.lc}'), ext = "Rprof"), interval = .01, line.profiling = TRUE, gc.profiling = TRUE, memory.profiling = TRUE)`**. If `profile_script` were called on a script called `script.R` with opening flag at line 20 and closing flag at line 30, then line 20 would be changed as follows: `utils::Rprof("profvis/script.R/20-30.Rprof", interval = 0.01, line.profiling = TRUE, gc.profiling = TRUE, memory.profiling = TRUE) #<p`.
+#' **Default: ` utils::Rprof(fs::path(dir_profvis, stringr::str_remove(basename(.file),'\\.[A-Za-z\\_\\-]+$'), glue::glue('{.lo}-{.lc}'), ext = "Rprof"), interval = .02, memory.profiling = TRUE)`**. If `profile_script` were called on a script called `script.R` with opening flag at line 20 and closing flag at line 30, then line 20 would be changed as follows: `utils::Rprof("profvis/script.R/20-30.Rprof", interval = 0.01, line.profiling = TRUE, gc.profiling = TRUE, memory.profiling = TRUE) #<p`.
 #' @param profile_close \code{(expression)} The code that will be added preceding the closing comment flag.  **Default: `utils::Rprof(NULL)`**
 #' @param dir_profvis \code{(character)} The directory in which all `profvis` related files will be put. **Default: `"profvis"`**. Profile-ready script copies (if `new_scripts = TRUE`) and Rprof files/directories will be placed here. Set to `NULL` to use the working directory and overwrite existing files.
 #' @param remove \code{(logical/character)} to indicate whether to remove profiling code. **Default: FALSE**. Change to `TRUE` to remove profile code but leave flags. Change to `"f"/"flags"` to remove code and flags. Remove modifies `.file` in place.
@@ -19,7 +19,7 @@
 
 
 
-profile_script <- function(.file, profile_open = utils::Rprof(fs::path(dir_profvis, stringr::str_remove(basename(.file), "\\.[a-zA-Z0-9\\-]+$"), glue::glue('{.lo}-{.lc}'), ext = "Rprof"), interval = .01, line.profiling = TRUE, gc.profiling = TRUE, memory.profiling = TRUE), profile_close = utils::Rprof(NULL), dir_profvis = "profvis", remove = FALSE, new_script = TRUE) {
+profile_script <- function(.file, profile_open = utils::Rprof(fs::path(dir_profvis, stringr::str_remove(basename(.file),'\\.[A-Za-z\\_\\-]+$'), glue::glue('{.lo}-{.lc}'), ext = "Rprof"), interval = .02, memory.profiling = TRUE), profile_close = Rprof(NULL), dir_profvis = "profvis", remove = FALSE, new_script = TRUE) {
   stopifnot(inherits(.file, "character"))
   .lines <- readr::read_lines(.file)
   .po <- rlang::enexpr(profile_open)
@@ -47,6 +47,8 @@ profile_script <- function(.file, profile_open = utils::Rprof(fs::path(dir_profv
     .write <- TRUE
   }
   
+  
+  .glue <- stringr::str_detect(as.character(.po), "glue|paste")
   if (isTRUE(remove)) {
     slider::slide(.flags, ~{
       .lo <- .x[[1]]
@@ -56,24 +58,38 @@ profile_script <- function(.file, profile_open = utils::Rprof(fs::path(dir_profv
     })
   } else if (inherits(remove, "character")) {
     .lines[c(.flags$.lo, .flags$.lc)] <- ""
-  } else {
+  } else if (any(.glue)) {
     slider::slide(.flags, ~{
+      # if filenames are dynamically created by glue or paste
       .lo <- .x[[1]]
       .lc <- .x[[2]]
-      #browser()
-      # evaluate the expression to create a filename for the Rprof file and coerce to character
-      .po[[2]] <- as.character(eval(.po[[2]]))
-      .dn <- dirname(.po[[2]])
-      if (!dir.exists(.dn)) fs::dir_create(.dn, recurse = TRUE)
+      
+      .glue <- which(.glue)
+      .po[[.glue]] <- as.character(eval(.po[[.glue]]))
+      if (any(stringr::str_detect(rlang::expr_deparse(.po), "Rprof"))) {
+        # If Rprof, ensure the directory for the Rprof files is created
+        .dn <- stringr::str_remove(dirname(.po[[.glue]]), "\\.R")
+        if (!dir.exists(.dn)) fs::dir_create(.dn, recurse = TRUE)
+      }
       #write the code to the appropriate lines
       .lines[.lo] <<- paste0(stringr::str_flatten(rlang::expr_deparse(.po)), " ", .lines[.lo])
       .lines[.lc] <<- paste0(stringr::str_flatten(rlang::expr_deparse(.pc)), " ", .lines[.lc])
     })
+  } else {
+    slider::slide(.flags, ~{
+      .lo <- .x[[1]]
+      .lc <- .x[[2]]
+      #write the code to the appropriate lines
+      .lines[.lo] <<- paste0(stringr::str_flatten(rlang::expr_deparse(.po)), " ", .lines[.lo])
+      .lines[.lc] <<- paste0(stringr::str_flatten(rlang::expr_deparse(.pc)), " ", .lines[.lc])
+    })
+    
   }
   
   # write the new file
   if (new_script && .write && (isFALSE(remove) || !is.character(remove))) {
-    readr::write_lines(.lines, fs::path(dir_profvis, basename(.file)), append = FALSE)
+    .new_file <- fs::path(dir_profvis, basename(.file))
+    readr::write_lines(.lines, .new_file, append = FALSE)
   } else if (isTRUE(remove) || is.character(remove)) {
     readr::write_lines(.lines, .file, append = FALSE)
   }
