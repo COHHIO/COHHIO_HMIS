@@ -29,6 +29,9 @@ library(tidyverse)
 rm(list = ls())
 stop <- 0
 
+# if there's not already an images directory, create it
+if (!dir.exists("images")) dir.create("images")
+
 # type "live" or "sample"
 dataset <- "live" 
 
@@ -53,7 +56,7 @@ if(ymd(export_meta$ExportStartDate) !=
    including_data_back_to |
    ymd(export_meta$ExportEndDate) != today()) {
   stop <- 1
-  "The HUD CSV Export files was not run on the correct date range. Please rerun."
+  "The HUD CSV Export was not run on the correct date range. Please rerun."
 } else{
   "OK"
 }
@@ -72,57 +75,60 @@ if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) >
 # if the data folder passes all the tests above, let's run the scripts 
 if (stop == 0) {
   rm(list = ls())
-  
+
   print("Importing raw HMIS data..")
   source("00_get_Export_and_ART.R")
 
   rm(list = ls())
-  
+
   print("working on Cohorts")
   source("00_cohorts.R")
 
   rm(list = ls())  
-  
+
   print("working on Bed_Unit_Utilization")
   source("01_Bed_Unit_Utilization.R")
-  
+
   rm(list = ls())
-  
+
   print("working on QPR_SPDATs")
   source("02_QPR_SPDATs.R")
-  
+
   rm(list = ls())
 
   print("working on QPR_EEs")
   source("02_QPR_EEs.R")
-  
+
   rm(list = ls())
 
   print("working on Veterans")
   source("03_Veterans.R")
-  
+
   rm(list = ls())
 
   print("working on Data Quality")
   source("04_DataQuality.R")
-  
+
   # rm(list = ls())
   # 
   # print("working on Project Evaluation")
   # source("06_Project_Evaluation.R")
 
   rm(list = ls())
-  
+
   print("working on SPMs")
   source("07_SPMs.R")
-  
+
   rm(list = ls())
-  
+
   print("working on Active List")
   source("08_Active_List.R")
-  
+
+  print("copying images to app directories")
+  source("00_copy_images.R")
+
   rm(list = ls())
-  
+
   print(paste("Done! All images are updated."))
 } else
 {
@@ -130,4 +136,6 @@ if (stop == 0) {
 }
 
 # all scripts together take about 3 minutes 45 seconds
+
+
 
