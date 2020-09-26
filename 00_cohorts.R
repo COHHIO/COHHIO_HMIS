@@ -221,7 +221,27 @@ summary <- summary_clients_served %>%
   full_join(summary_hohs_served_leavers, by= "ProjectName") %>%
   full_join(summary_adults_entered, by = "ProjectName") %>% 
   full_join(summary_hohs_served_leavers_died, by = "ProjectName")
+
+# APs ---------------------------------------------------------------------
+
+APs <- Project %>%
+  inner_join(provider_geo, by = c("ProjectID", "ProjectName")) %>%
+  filter(ProjectType == 14) %>%
+  select(
+    ProjectID,
+    ProjectAKA,
+    OrganizationName,
+    ProjectName,
+    ProjectHours,
+    ProjectWebsite,
+    ProjectCountyServed,
+    ProjectAreaServed,
+    ProjectTelNo
+  ) 
+
   
+# Clean up the house ------------------------------------------------------
+
 rm(
   Affiliation,
   CaseManagers,
@@ -241,6 +261,7 @@ rm(
   Organization,
   Project,
   ProjectCoC,
+  provider_geo,
   Referrals,
   regions,
   stray_services,
@@ -253,10 +274,6 @@ rm(
 )
 
 rm(list = ls(pattern = "summary_"))
-
-
-# APs ---------------------------------------------------------------------
-
 
 
 # Counties ----------------------------------------------------------------
