@@ -123,6 +123,8 @@ if (stop == 0) {
 
   print("working on Active List")
   source("08_Active_List.R")
+  
+  rm(list = ls())
 
   print("copying images to app directories")
   source("00_copy_images.R")
