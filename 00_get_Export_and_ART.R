@@ -174,7 +174,8 @@ provider_geo <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                           sheet = 17)
 
 provider_tel <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
-                          sheet = 18)
+                          sheet = 18) %>%
+  filter(ProjectTelPrimary == "Yes")
 
 coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                               sheet = 13)
@@ -186,10 +187,12 @@ Project <- Project %>%
   select(-ProjectName) %>%
   left_join(provider_extras, by = "ProjectID") %>%
   left_join(coc_scoring, by = "ProjectID") %>%
+  left_join(provider_tel[c("ProjectID", "ProjectTelType", "ProjectTelNo")], 
+            by = "ProjectID") %>%
   mutate(HMISParticipatingProject = if_else(UsesSP == "Yes", 1, 0)) %>% 
   select(-UsesSP)
 
-rm(coc_scoring)
+rm(coc_scoring, provider_tel)
 
 # Regions
 
