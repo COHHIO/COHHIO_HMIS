@@ -167,7 +167,8 @@ provider_extras <- read_xlsx(
       str_remove(ProviderRegion, "0"),
       ProviderRegion
     ),
-    ProviderRegion = NULL
+    ProviderRegion = NULL,
+    OrganizationName = str_remove(OrganizationName, "\\(.*\\)")
   )
 
 provider_geo <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
