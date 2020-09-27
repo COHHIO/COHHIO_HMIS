@@ -1,22 +1,29 @@
-.images_to_copy <- c(
-  "Utilization"
-  , "QPR_SPDATs"
-  , "QPR_EEs"
-  , "Veterans"
-  , "Data_Quality"
-  , "SPM_data"
-  , "ProjectEvaluation"
-  , "Active_List"
+# COHHIO_HMIS
+# Copyright (C) 2020  Coalition on Homelessness and Housing in Ohio (COHHIO)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details at
+# <https://www.gnu.org/licenses/>.
+
+.dir <- c("../Rminor/data"
+          , "../Rminor_elevated/data"
 )
-
-.dir <- c("../Rminor/data", "../Rminor_elevated/data")
-
-purrr::walk(.dir, ~ {
+purrr::walk(.dir, ~{
   .d <- .x
   if (!dir.exists(.d)) {
     dir.create(.d)
   }
-  purrr::walk(paste0("images/", .images_to_copy, ".RData"), ~ {
-    file.copy(.x, overwrite = TRUE, fs::path(.d, basename(.x)))
+  purrr::walk(list.files("images", full.names = TRUE), ~{
+    .path <- fs::path(.d, basename(.x))
+    if (file.exists(.path)) file.remove(.path)
+    file.copy(.x, .path)
   })
-}) 
+})
+

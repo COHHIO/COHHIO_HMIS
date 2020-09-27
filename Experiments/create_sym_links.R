@@ -35,17 +35,16 @@ image_filename <- "ProjectEvaluation.RData"
 project_and_folder_you_wish_had_the_image <- "Rminor\\data\\"
 
 cat(
-  paste0(
-    "mklink \"",
-    directory_where_all_your_projects_live,
-    project_and_folder_you_wish_had_the_image,
-    image_filename,
-    "\" \"",
-    directory_where_all_your_projects_live,
-    project_and_folder_that_contains_image,
-    image_filename,
-    "\""
-  )
+  "mklink \"",
+  directory_where_all_your_projects_live,
+  project_and_folder_you_wish_had_the_image,
+  image_filename,
+  "\" \"",
+  directory_where_all_your_projects_live,
+  project_and_folder_that_contains_image,
+  image_filename,
+  "\"",
+  sep = ""
 )
 
 # Mac ---------------------------------------------------------------------
