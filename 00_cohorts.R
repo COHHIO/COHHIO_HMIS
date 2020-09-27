@@ -246,8 +246,13 @@ APs <- Project %>%
     ProjectWebsite,
     "' target='_blank'>",
     ProjectAKA,
-    "</a>"
-  ), ProjectAKA)) %>%
+    "</a><small> (#",
+    ProjectID,
+    ")</small>"
+  ), paste0(ProjectAKA,
+           "<small> (#",
+           ProjectID,
+           ")</small>"))) %>%
   left_join(project_addresses, by = "ProjectID") %>%
   mutate(
     City = paste0(City, ", ", State, " ", ZIP),
