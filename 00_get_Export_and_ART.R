@@ -469,7 +469,7 @@ Services <- raw_services %>%
   unique() %>%
   left_join(services_funds, by = "ServiceID") %>%
   mutate(
-    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate) | ServiceEndDate > today(), today(), ServiceEndDate),
     service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
     ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
     intersect_tf = int_overlaps(service_interval, ee_interval),
