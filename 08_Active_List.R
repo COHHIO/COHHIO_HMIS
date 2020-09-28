@@ -525,6 +525,17 @@ active_list <- active_list %>%
              "EnrollmentID",
              "ChronicStatus"),
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
+  ) %>%
+  mutate(
+    ChronicStatus = factor(
+      ChronicStatus,
+      levels = c(
+        "Chronic",
+        "Aged In",
+        "Nearly Chronic",
+        "Not Chronic"
+      )
+    )
   )
 
 # THIS IS WHERE WE'RE SUMMARISING BY HOUSEHOLD (after all the group_bys)
@@ -601,8 +612,7 @@ dv <- active_list %>%
         WhenOccurred %in% c(4, 8, 9, 99) ~ "No",
       CurrentlyFleeing == 1 |
         WhenOccurred %in% c(1:3) ~ "Yes",
-      CurrentlyFleeing %in% c(8, 9, 99) |
-        WhenOccurred %in% c(8, 9, 99) ~ "Unknown"
+      CurrentlyFleeing %in% c(8, 9) ~ "Unknown"
     )
   ) %>%
   select(-WhenOccurred)

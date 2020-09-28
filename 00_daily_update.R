@@ -29,6 +29,9 @@ library(tidyverse)
 rm(list = ls())
 stop <- 0
 
+# if there's not already an images directory, create it
+if (!dir.exists("images")) dir.create("images")
+
 # type "live" or "sample"
 dataset <- "live" 
 
@@ -53,7 +56,7 @@ if(ymd(export_meta$ExportStartDate) !=
    including_data_back_to |
    ymd(export_meta$ExportEndDate) != today()) {
   stop <- 1
-  "The HUD CSV Export files was not run on the correct date range. Please rerun."
+  "The HUD CSV Export was not run on the correct date range. Please rerun."
 } else{
   "OK"
 }
@@ -120,15 +123,14 @@ if (stop == 0) {
 
   print("working on Active List")
   source("08_Active_List.R")
-
-  # CHANGED Auto copy images from COHHIO_HMIS to Rminor & Rminor_elevated (assumes Rminor & Rminor_elevated are sibling directories of COHHIO_HMIS)
-  print("copying images to app directories")
-  source("09_copy_images.R")
-  rm(list = ls(all.names = TRUE))
-  # END CHANGED
   
   rm(list = ls())
-  
+
+  print("copying images to app directories")
+  source("00_copy_images.R")
+
+  rm(list = ls())
+
   print(paste("Done! All images are updated."))
 } else
 {
@@ -136,4 +138,6 @@ if (stop == 0) {
 }
 
 # all scripts together take about 3 minutes 45 seconds
+
+
 

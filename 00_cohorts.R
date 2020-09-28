@@ -221,7 +221,48 @@ summary <- summary_clients_served %>%
   full_join(summary_hohs_served_leavers, by= "ProjectName") %>%
   full_join(summary_adults_entered, by = "ProjectName") %>% 
   full_join(summary_hohs_served_leavers_died, by = "ProjectName")
+
+# APs ---------------------------------------------------------------------
+
+project_addresses <- ProjectCoC %>%
+  select(ProjectID, CoCCode, Address1, Address2, City, State, ZIP)
+
+APs <- Project %>%
+  inner_join(provider_geo, by = c("ProjectID", "ProjectName")) %>%
+  filter(ProjectType == 14) %>%
+  select(
+    ProjectID,
+    ProjectAKA,
+    OrganizationName,
+    ProjectName,
+    ProjectHours,
+    ProjectWebsite,
+    ProjectCountyServed,
+    ProjectAreaServed,
+    ProjectTelNo
+  ) %>%
+  mutate(OrgLink = if_else(!is.na(ProjectWebsite), paste0(
+    "<a href='",
+    ProjectWebsite,
+    "' target='_blank'>",
+    ProjectAKA,
+    "</a><small> (#",
+    ProjectID,
+    ")</small>"
+  ), paste0(ProjectAKA,
+           "<small> (#",
+           ProjectID,
+           ")</small>"))) %>%
+  left_join(project_addresses, by = "ProjectID") %>%
+  mutate(
+    City = paste0(City, ", ", State, " ", ZIP),
+    Addresses = coalesce(Address1, Address2)
+  ) %>%
+  select(-Address1, -Address2, -State, -ZIP)
+
   
+# Clean up the house ------------------------------------------------------
+
 rm(
   Affiliation,
   CaseManagers,
@@ -241,6 +282,7 @@ rm(
   Organization,
   Project,
   ProjectCoC,
+  provider_geo,
   Referrals,
   regions,
   stray_services,
