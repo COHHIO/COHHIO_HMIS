@@ -11,15 +11,17 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
-
-.dir <- c("../Rminor/data"
-          , "../Rminor_elevated/data"
+.rm <- "Rminor"
+.rme <- "Rminor_elevated"
+.files <- c(fs::path("..", .rm, "data", .rm , ext = "RData")
+          , fs::path("..", .rme, "data", .rme , ext = "RData")
 )
-purrr::walk(.dir, ~{
-  .d <- .x
+purrr::walk(.files, ~{
+  .d <- dirname(.x)
   if (!dir.exists(.d)) {
   }
     dir.create(.d)
+  if (file.exists(.x)) file.remove(.x)
 })
 e <- environment()
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
