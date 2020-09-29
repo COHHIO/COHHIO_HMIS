@@ -13,9 +13,11 @@
 # <https://www.gnu.org/licenses/>.
 .rm <- "Rminor"
 .rme <- "Rminor_elevated"
+
 .files <- c(fs::path("..", .rm, "data", .rm , ext = "RData")
           , fs::path("..", .rme, "data", .rme , ext = "RData")
 )
+
 purrr::walk(.files, ~{
   .d <- dirname(.x)
   if (!dir.exists(.d)) {
@@ -27,6 +29,7 @@ e <- environment()
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   load(.x, envir = e)
 })
+
 save(
   APs,
   bos_counties,
