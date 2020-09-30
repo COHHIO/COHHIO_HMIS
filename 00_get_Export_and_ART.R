@@ -468,31 +468,25 @@ Services <- raw_services %>%
                          "ExitAdjust")],
             by = c("PersonalID")) %>%
   unique() %>%
-  left_join(services_funds, by = "ServiceID")
+  left_join(services_funds, by = "ServiceID") %>%
+  mutate(
+    ServiceEndAdjust = if_else(is.na(ServiceEndDate) | ServiceEndDate > today(), today(), ServiceEndDate),
+    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
+    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
+    intersect_tf = int_overlaps(service_interval, ee_interval),
+    stray_service = is.na(intersect_tf) | intersect_tf == FALSE | ServiceProvider != ProjectName
+  ) %>%
+  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
+         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
+         Fund, Amount, stray_service)
 
 stray_services <- Services %>%
-  mutate(
-    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
-    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
-    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
-    intersect_tf = int_overlaps(service_interval, ee_interval)
-  ) %>%
-  filter(is.na(intersect_tf) | intersect_tf == FALSE | ServiceProvider != ProjectName) %>%  
-  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
-         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
-         Fund, Amount)
+  filter(stray_service) %>%
+  select(-stray_service)
 
-Services <- Services %>%
-  mutate(
-    ServiceEndAdjust = if_else(is.na(ServiceEndDate), today(), ServiceEndDate),
-    service_interval = interval(start = ymd(ServiceStartDate), end = ymd(ServiceEndAdjust)),
-    ee_interval = interval(start = ymd(EntryDate), end = ymd(ExitAdjust)),
-    intersect_tf = int_overlaps(service_interval, ee_interval)
-  ) %>%
-  filter(intersect_tf == TRUE & ServiceProvider == ProjectName) %>%  
-  select(PersonalID, ServiceID, EnrollmentID, ServiceProvider, ServiceHHID, 
-         ServiceStartDate, ServiceEndDate, Code, Description, ProviderCreating, 
-         Fund, Amount)
+Services <- Services %>% 
+  filter(!stray_service) %>%
+  select(-stray_service)
 
 rm(raw_services, services_funds)
 
