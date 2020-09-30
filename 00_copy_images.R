@@ -35,6 +35,8 @@ save(
   bos_counties,
   Client,
   covid19,
+  covid19_priority_plot,
+  covid19_status_plot,
   current_tay_hohs,
   entered_between,
   Exit,
