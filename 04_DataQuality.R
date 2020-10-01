@@ -2942,6 +2942,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       projects_current_hmis,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
+      rent_paid_no_move_in,
       served_in_date_range,
       services_on_hh_members,
       services_on_hh_members_ssvf,
