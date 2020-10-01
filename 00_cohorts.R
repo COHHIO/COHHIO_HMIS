@@ -75,6 +75,7 @@ co_hohs_served <-  Enrollment %>%
   select(all_of(vars_we_want))
 
 summary_hohs_served <- co_hohs_served %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(hohs_served = n())
 
