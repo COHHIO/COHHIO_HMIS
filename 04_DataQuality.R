@@ -1925,6 +1925,23 @@ check_eligibility <- served_in_date_range %>%
     
     rm(IncomeBenefits, smallIncome)
     
+    # Servide End Date Does Not Match Start Date
+    service_end_date_error <- served_in_date_range %>%
+      inner_join(Services %>%
+                   filter((ymd(ServiceStartDate) != ymd(ServiceEndDate) |
+                             is.na(ServiceEndDate)) &
+                            Description != "Emergency Shelter") %>%
+                   select(-PersonalID), 
+                 by = "EnrollmentID") %>%
+      mutate(
+        Issue = "Service End Date Does Not Match Start Date",
+        Type = "Warning",
+        Guidance = "At least one of the services recorded in this entry for this 
+        client has a end date that is either missing or does not match the service 
+        start date. Please adjust or enter the end date so it matches the start date."
+      ) %>%
+      select(all_of(vars_we_want))
+    
     # Non HoHs w Svcs or Referrals --------------------------------------------
     # SSVF projects should be showing this as an Error, whereas non-SSVF projects
     # should be showing it as a warning, and only back to Feb of 2018.
@@ -2450,6 +2467,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       path_status_determination,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
+      service_end_date_error,
       services_on_hh_members,
       services_on_hh_members_ssvf,
       spdat_on_non_hoh,
@@ -2920,6 +2938,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
       served_in_date_range,
+      service_end_date_error,
       services_on_hh_members,
       services_on_hh_members_ssvf,
       smallProject,
