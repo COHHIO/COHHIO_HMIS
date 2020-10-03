@@ -40,72 +40,41 @@ co_currently_homeless <- co_clients_served %>%
     AgeAtEntry
   )
 
-active_list <- co_currently_homeless
-
 # Account for Multiple EEs ------------------------------------------------
 
-# bucket the ptc's
-ptc_status <- active_list %>%
+active_list <- co_currently_homeless %>%
+  group_by(PersonalID) %>%
+  
+  # label all program as either literally homeless or a housing program
   mutate(PTCStatus = case_when(
     ProjectType %in% c(lh_project_types, 4) ~ "LH",
     ProjectType %in% c(ph_project_types) ~ "PH"
-  )) 
-
-# split out the clients with ph entries
-clients_in_ph <- ptc_status %>%
-  filter(PTCStatus == "PH") %>%
-  select(PersonalID) %>%
-  distinct() %>%
-  mutate(InPH = 1)
-
-# split out the clients with lh entries
-clients_in_lh <- ptc_status %>%
-  filter(PTCStatus == "LH") %>%
-  select(PersonalID) %>%
-  distinct() %>%
-  mutate(LH = 1)
-
-# join them back, with one row per client, create PTCStatus variable
-client_ptc_status <- clients_in_lh %>%
-  full_join(clients_in_ph, by = "PersonalID") %>%
-  mutate(
-    InPH = if_else(is.na(InPH), 0, InPH),
-    LH = if_else(is.na(LH), 0, LH),
-    PTCStatus = if_else(
-      InPH == 1,
-      "Has Entry into RRH or PSH",
-      "Currently Has No Entry into RRH or PSH"
-    )
+  ),
+  PTCStatus = factor(
+    PTCStatus,
+    levels = c(
+      "LH", "PH"
+    )),
+  
+  # label all clients as literally homeless or in a housing program
+  client_status = if_else(PTCStatus == "LH", 0, 1),
+  client_status = max(client_status)
   ) %>%
-  select(PersonalID, PTCStatus)
-
-# add PTCStatus variable into the main dataframe (but now you have multiple
-# rows per client again)
-active_list <- active_list %>%
-  left_join(client_ptc_status, by = "PersonalID")
-
-# take only the clients with multiple rows and slice out only the current lh
-# ee's or if there are multiple lh ee's, take the most recent (thinking the
-# most recent is probably the most up to date?)
-split_up_dupes <- get_dupes(active_list, PersonalID) %>%
-  mutate(PTCGames = if_else(ProjectType %in% c(lh_project_types, 4), 1, 2)) %>%
-  group_by(PersonalID) %>%
-  arrange(PTCGames, desc(EntryDate)) %>%
+  
+  # if the client has at least one literally homeless entry, keep the most recent
+  # otherwise, keep the most recent housing program entry
+  arrange(PTCStatus, desc(EntryDate)) %>%
   slice(1L) %>%
-  select(-dupe_count, -PTCGames) %>%
-  ungroup()
+  
+  # apply human-readable status labels
+  mutate(PTCStatus = if_else(
+    client_status == 1,
+    "Has Entry into RRH or PSH",
+    "Currently Has No Entry into RRH or PSH"
+  )) %>%
+  select(-client_status)
 
-# remove the clients in split_up_dupes from the main dataframe so you can
-# add them back in now that they've been deduplicated
-duplicated_clients <- get_dupes(active_list, PersonalID) %>%
-  pull(PersonalID) %>% unique()
-
-filter_out_dupes <- active_list %>%
-  filter(!PersonalID %in% duplicated_clients)
-
-# add the deduplicated clients back in with the ones with only one ee
-active_list <- rbind(split_up_dupes, filter_out_dupes)
-
+#------------------------------------------------------------
 # correcting for bad hh data (while also flagging it) ---------------------
 
 # what household ids exist in the data?
