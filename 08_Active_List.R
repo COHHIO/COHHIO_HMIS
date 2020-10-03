@@ -61,8 +61,8 @@ active_list <- co_currently_homeless %>%
   client_status = max(client_status)
   ) %>%
   
-  # if the client has at least one literally homeless entry, keep the most recent
-  # otherwise, keep the most recent housing program entry
+  # if the client has at least one housing program entry, keep the most recent
+  # otherwise, keep the most recent literally homeless entry
   arrange(PTCStatus, desc(EntryDate)) %>%
   slice(1L) %>%
   
