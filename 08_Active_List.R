@@ -385,15 +385,13 @@ income_data <- active_list %>%
       ),
     by = c("PersonalID", "EnrollmentID")
   ) %>%
-  mutate(DateCreated = ymd_hms(DateCreated)) %>%
+  mutate(DateCreated = ymd_hms(DateCreated),
+         IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
+                                       99,
+                                       IncomeFromAnySource)) %>%
   group_by(PersonalID, EnrollmentID) %>%
-  mutate(
-    MaxUpdate = max(DateCreated),
-    IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
-                                  99,
-                                  IncomeFromAnySource)
-  ) %>%
-  filter(MaxUpdate == DateCreated) %>%
+  arrange(desc(DateCreated)) %>%
+  slice(1L) %>%
   ungroup() %>%
   select(PersonalID,
          EnrollmentID,
