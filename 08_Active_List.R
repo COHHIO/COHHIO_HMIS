@@ -116,8 +116,7 @@ active_list <- active_list %>%
   mutate(
     RelationshipToHoH = if_else(is.na(RelationshipToHoH), 99, RelationshipToHoH),
     hoh = if_else(str_detect(HouseholdID, fixed("s_")) |
-           (str_detect(HouseholdID, fixed("h_")) &
-              RelationshipToHoH == 1), 1, 0)) 
+              RelationshipToHoH == 1, 1, 0)) 
 
 # what household ids exist if we only count those with a hoh?
 HHIDs_in_current_logic <- active_list %>% 
