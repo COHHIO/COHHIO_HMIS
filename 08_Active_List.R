@@ -358,10 +358,8 @@ active_list <- county %>%
   left_join(Enrollment %>%
               select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
   mutate(
-    UserID = gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE),
-    UserCreating = str_remove(UserCreating, "\\(.*\\)"),
-    UserID = as.numeric(UserID)
-  ) %>%
+    UserID = as.numeric(gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE))
+    ) %>%
   left_join(Users %>%
               select(UserID, UserCounty), by = "UserID") %>%
   mutate(CountyServed = if_else(CountyServed == "MISSING County" &
