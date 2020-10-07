@@ -71,7 +71,8 @@ small_enrollment <- Enrollment %>%
          ExitAdjust,
          HouseholdID,
          RelationshipToHoH,
-         MoveInDate)
+         MoveInDate) %>%
+  filter(served_between(., FileStart, FileEnd))
 
 Utilizers <- semi_join(small_enrollment, Beds, by = "ProjectID") 
 
@@ -117,6 +118,13 @@ utilizers_clients <- Utilizers %>%
       ProjectType %in% c(1, 2, 8)
   ) &
     !ProjectID %in% c(1775, 1695, fake_projects))
+
+# filtering Beds object to exclude any providers that served 0 hhs in date range
+
+Beds <- Beds %>%
+  right_join(utilizers_clients %>%
+               select(ProjectID) %>%
+               unique(), by = "ProjectID")
 
 # function for adding bed nights per ee
 
