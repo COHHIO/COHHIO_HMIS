@@ -176,6 +176,16 @@ replace_yes_no <- function(column_name) {
   if_else(column_name == "No" | is.na(column_name), 0, 1)
 }
 
+# this function translates the HUD .csv 1.7 and 1.8 lists 
+# and returns yes, no, or unknown as appropriate
+translate_HUD_yes_no <- function(column_name){
+  case_when(
+    column_name == 1 ~ "Yes", 
+    column_name == 0 ~ "No",
+    column_name %in% c(8, 9, 99) ~ "Unknown"
+  )
+}
+
 # Experimental ------------------------------------------------------------
 
 # HUD_value_to_description <-

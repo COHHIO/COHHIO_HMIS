@@ -76,6 +76,7 @@ co_hohs_served <-  Enrollment %>%
   select(all_of(vars_we_want))
 
 summary_hohs_served <- co_hohs_served %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(hohs_served = n())
 
@@ -89,6 +90,7 @@ co_hohs_served_leavers <-  Enrollment %>%
   select(all_of(vars_we_want))	
 
 summary_hohs_served_leavers <- co_hohs_served_leavers %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(hohs_served_leavers = n())
 
@@ -103,6 +105,7 @@ co_hohs_served_leavers_died <- Enrollment %>%
   select(all_of(vars_we_want))	
 
 summary_hohs_served_leavers_died  <- co_hohs_served_leavers_died  %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(hohs_served_leavers_died = n())
 
@@ -113,6 +116,7 @@ co_clients_served <-  Enrollment %>%
   select(all_of(vars_we_want))
 
 summary_clients_served <- co_clients_served %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(clients_served = n())
 
@@ -124,6 +128,7 @@ co_adults_served <-  Enrollment %>%
   select(all_of(vars_we_want))
 
 summary_adults_served <- co_adults_served %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(adults_served = n())
 
@@ -136,6 +141,7 @@ co_adults_entered <-  Enrollment %>%
   select(all_of(vars_we_want))
 
 summary_adults_entered <- co_adults_entered %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(adults_entered = n())
 
@@ -149,6 +155,7 @@ co_hohs_entered <- Enrollment %>%
   select(all_of(vars_we_want))	
 
 summary_hohs_entered <- co_hohs_entered %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(hohs_entered = n())
 
@@ -161,6 +168,7 @@ co_clients_moved_in <-  Enrollment %>%
   select(all_of(vars_we_want))
 
 summary_clients_moved_in <- co_clients_moved_in %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(clients_moved_in = n())
 
@@ -172,6 +180,7 @@ co_adults_moved_in <-  Enrollment %>%
   select(all_of(vars_we_want))	
 
 summary_adults_moved_in <- co_adults_moved_in %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(adults_moved_in = n())
 
@@ -183,6 +192,7 @@ co_clients_moved_in_leavers <-  Enrollment %>%
   select(all_of(vars_we_want))	
 
 summary_clients_moved_in_leavers <- co_clients_moved_in_leavers %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(clients_moved_in_leavers = n())
 
@@ -195,6 +205,7 @@ co_hohs_moved_in_leavers <-  Enrollment %>%
   select(all_of(vars_we_want))	
 
 summary_hohs_moved_in_leavers <- co_hohs_moved_in_leavers %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(hohs_moved_in_leavers = n())
 
@@ -207,6 +218,7 @@ co_adults_moved_in_leavers <-  Enrollment %>%
   select(all_of(vars_we_want)) 
 
 summary_adults_moved_in_leavers <- co_adults_moved_in_leavers %>%
+  distinct(PersonalID, ProjectName) %>%
   group_by(ProjectName) %>%
   summarise(adults_moved_in_leavers = n())
 
