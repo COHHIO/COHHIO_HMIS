@@ -30,6 +30,7 @@
 
 library(tidyverse)
 library(lubridate)
+library(HMIS)
 
 load("images/COHHIOHMIS.RData")
 

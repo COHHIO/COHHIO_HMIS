@@ -16,6 +16,7 @@ library(tidyverse)
 library(janitor)
 library(lubridate)
 library(scales)
+library(HMIS)
 
 source("04_Guidance.R")
 load("images/COHHIOHMIS.RData")
