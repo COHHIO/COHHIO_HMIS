@@ -57,12 +57,12 @@ age_years <- function(earlier, later)
 }
 
 # Client Entry Exits Between Date Range Functions -------------------------------------
-
-served_between <- function(table, start, end){
-  served <- ymd(table$EntryDate) <= mdy(end) &
-    (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
-  served
-}
+# 
+# served_between <- function(table, start, end){
+#   served <- ymd(table$EntryDate) <= mdy(end) &
+#     (is.na(table$ExitDate) | ymd(table$ExitDate) >= mdy(start))
+#   served
+# }
 
 # should move to this but will require a LOT of edits!
 
@@ -70,50 +70,50 @@ served_between <- function(table, start, end){
 #   . %>% filter(ymd(EntryDate) <= mdy(end) &
 #                  (is.na(ExitDate) | ymd(ExitDate) >= mdy(start)))
 # }
-
-entered_between <- function(table, start, end){
-  entered <- between(ymd(table$EntryDate), mdy(start), mdy(end)) 
-  entered
-}
-
-exited_between <- function(table, start, end){
-  exited <- between(ymd(table$ExitDate), mdy(start), mdy(end)) 
-  exited
-}
-
-stayed_between <- function(table, start, end){
-  stayed <- ymd(table$EntryAdjust) <= mdy(end) &
-    (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
-  stayed
-}
+# 
+# entered_between <- function(table, start, end){
+#   entered <- between(ymd(table$EntryDate), mdy(start), mdy(end))
+#   entered
+# }
+# 
+# exited_between <- function(table, start, end){
+#   exited <- between(ymd(table$ExitDate), mdy(start), mdy(end))
+#   exited
+# }
+# 
+# stayed_between <- function(table, start, end){
+#   stayed <- ymd(table$EntryAdjust) <= mdy(end) &
+#     (is.na(table$ExitDate) | ymd(table$ExitDate) > mdy(start))
+#   stayed
+# }
 
 # Projects Operating Between Date Range Function --------------------------
-
-operating_between <- function(table, start, end) {
-  operating <-  if_else(
-    is.na(table$OperatingStartDate) |
-      ymd(table$OperatingStartDate) > mdy(end) |
-      (!is.na(table$OperatingEndDate) &
-         ymd(table$OperatingEndDate) < mdy(start)),
-    FALSE,
-    TRUE
-  )
-  operating
-}
+# 
+# operating_between <- function(table, start, end) {
+#   operating <-  if_else(
+#     is.na(table$OperatingStartDate) |
+#       ymd(table$OperatingStartDate) > mdy(end) |
+#       (!is.na(table$OperatingEndDate) &
+#          ymd(table$OperatingEndDate) < mdy(start)),
+#     FALSE,
+#     TRUE
+#   )
+#   operating
+# }
 
 # Beds Available Between --------------------------------------------------
-
-beds_available_between <- function(table, start, end) {
-  available <-  if_else(
-    is.na(table$InventoryStartDate) |
-      ymd(table$InventoryStartDate) > mdy(end) |
-      (!is.na(table$InventoryEndDate) &
-         ymd(table$InventoryEndDate) < mdy(start)),
-    FALSE,
-    TRUE
-  )
-  available
-}
+# 
+# beds_available_between <- function(table, start, end) {
+#   available <-  if_else(
+#     is.na(table$InventoryStartDate) |
+#       ymd(table$InventoryStartDate) > mdy(end) |
+#       (!is.na(table$InventoryEndDate) &
+#          ymd(table$InventoryEndDate) < mdy(start)),
+#     FALSE,
+#     TRUE
+#   )
+#   available
+# }
 
 living_situation <- function(ReferenceNo) {
   case_when(
