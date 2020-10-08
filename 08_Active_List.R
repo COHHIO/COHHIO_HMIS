@@ -623,21 +623,9 @@ active_list <- dv
 
 active_list <- active_list %>%
   mutate(
-    VeteranStatus = case_when(
-      VeteranStatus == 1 ~ "Yes", 
-      VeteranStatus == 0 ~ "No",
-      VeteranStatus %in% c(8, 9, 99) ~ "Unknown"
-      ),
-    DisabilityInHH = case_when(
-      DisabilityInHH == 1 ~ "Yes", 
-      DisabilityInHH == 0 ~ "No",
-      DisabilityInHH %in% c(8, 9, 99) ~ "Unknown"
-      ),
-    IncomeFromAnySource = case_when(
-      IncomeFromAnySource == 1 ~ "Yes",
-      IncomeFromAnySource == 0 ~ "No",
-      IncomeFromAnySource %in% c(8, 9, 99) ~ "Unknown"
-    ),
+    VeteranStatus = translate_HUD_yes_no(VeteranStatus),
+    DisabilityInHH = translate_HUD_yes_no(DisabilityInHH),
+    IncomeFromAnySource = translate_HUD_yes_no(IncomeFromAnySource),
     TAY = case_when(TAY == 1 ~ "Yes",
                     TAY == 0 ~ "No",
                     is.na(TAY) ~ "Unknown"), 
