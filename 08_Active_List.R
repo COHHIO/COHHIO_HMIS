@@ -116,8 +116,7 @@ active_list <- active_list %>%
   mutate(
     RelationshipToHoH = if_else(is.na(RelationshipToHoH), 99, RelationshipToHoH),
     hoh = if_else(str_detect(HouseholdID, fixed("s_")) |
-           (str_detect(HouseholdID, fixed("h_")) &
-              RelationshipToHoH == 1), 1, 0)) 
+              RelationshipToHoH == 1, 1, 0)) 
 
 # what household ids exist if we only count those with a hoh?
 HHIDs_in_current_logic <- active_list %>% 
@@ -321,11 +320,8 @@ disability_data <- active_list %>%
   group_by(HouseholdID) %>%
   mutate(
     CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),
-    DisablingCondition = if_else(DisablingCondition == 1, 100, DisablingCondition),
-    DisabilityInHH = max(DisablingCondition),
-    DisablingCondition = if_else(DisablingCondition == 100, 1, DisablingCondition),
-    DisabilityInHH = if_else(DisabilityInHH == 100, 1, 0),
-    TAY = if_else(max(AgeAtEntry) < 25, 1, 0),
+    DisabilityInHH = max(if_else(DisablingCondition == 1, 1, 0)),
+    TAY = if_else(max(AgeAtEntry) < 25 & max(AgeAtEntry) >= 16, 1, 0),
     PHTrack = if_else(
       !is.na(PHTrack) &
         !is.na(ExpectedPHDate) &
@@ -362,10 +358,8 @@ active_list <- county %>%
   left_join(Enrollment %>%
               select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
   mutate(
-    UserID = gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE),
-    UserCreating = str_remove(UserCreating, "\\(.*\\)"),
-    UserID = as.numeric(UserID)
-  ) %>%
+    UserID = as.numeric(gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE))
+    ) %>%
   left_join(Users %>%
               select(UserID, UserCounty), by = "UserID") %>%
   mutate(CountyServed = if_else(CountyServed == "MISSING County" &
@@ -391,15 +385,13 @@ income_data <- active_list %>%
       ),
     by = c("PersonalID", "EnrollmentID")
   ) %>%
-  mutate(DateCreated = ymd_hms(DateCreated)) %>%
+  mutate(DateCreated = ymd_hms(DateCreated),
+         IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
+                                       99,
+                                       IncomeFromAnySource)) %>%
   group_by(PersonalID, EnrollmentID) %>%
-  mutate(
-    MaxUpdate = max(DateCreated),
-    IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
-                                  99,
-                                  IncomeFromAnySource)
-  ) %>%
-  filter(MaxUpdate == DateCreated) %>%
+  arrange(desc(DateCreated)) %>%
+  slice(1L) %>%
   ungroup() %>%
   select(PersonalID,
          EnrollmentID,
