@@ -24,8 +24,9 @@
 library(tidyverse)
 library(lubridate)
 library(readxl)
+library(HMIS)
 
-# calling in HMIS-related functions
+# calling in HMIS-related functions that aren't in the HMIS pkg
 
 source("00_functions.R")
 

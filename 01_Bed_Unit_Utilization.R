@@ -15,6 +15,7 @@
 library(tidyverse)
 library(lubridate)
 library(scales)
+library(HMIS)
 
 load("images/COHHIOHMIS.RData")
 load("images/cohorts.RData")
@@ -22,8 +23,9 @@ load("images/cohorts.RData")
 # despite the fact we're pulling in usually more than 2 years of data, the 
 # utilization reporting will only go back 2 years. (decision based on lack of
 # a need to go back further and time to code all that.)
-
-FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2), "%m-%d-%Y")
+FileEnd <- format.Date(floor_date(today(), "month")- days(1), "%m-%d-%Y")
+FileStart <- format.Date(floor_date(mdy(FileEnd), "month") - years(2) + months(1), "%m-%d-%Y")
+FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 
 # Creating Beds table -----------------------------------------------------
 
@@ -70,7 +72,8 @@ small_enrollment <- Enrollment %>%
          ExitAdjust,
          HouseholdID,
          RelationshipToHoH,
-         MoveInDate)
+         MoveInDate) %>%
+  filter(served_between(., FileStart, FileEnd))
 
 Utilizers <- semi_join(small_enrollment, Beds, by = "ProjectID") 
 
@@ -116,6 +119,13 @@ utilizers_clients <- Utilizers %>%
       ProjectType %in% c(1, 2, 8)
   ) &
     !ProjectID %in% c(1775, 1695, fake_projects))
+
+# filtering Beds object to exclude any providers that served 0 hhs in date range
+
+Beds <- Beds %>%
+  right_join(utilizers_clients %>%
+               select(ProjectID) %>%
+               unique(), by = "ProjectID")
 
 # function for adding bed nights per ee
 
