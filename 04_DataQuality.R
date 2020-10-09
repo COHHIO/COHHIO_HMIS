@@ -852,6 +852,28 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
+# Rent Payment Made, No Move-In Date
+rent_paid_no_move_in <- served_in_date_range %>%
+  filter(is.na(MoveInDateAdjust) &
+           RelationshipToHoH == 1 &
+           ProjectType %in% c(3, 9, 13)) %>%
+  inner_join(Services %>%
+               filter(Description == "Rent Payment Assistance") %>%
+               select(-PersonalID), 
+             by = "EnrollmentID") %>%
+  mutate(
+    Issue = "Rent Payment Made, No Move-In Date",
+    Type = "Error",
+    Guidance = "This client does not have a valid move-in date entered, but there 
+    is at least one rent payment service transaction recorded for this program. 
+    Until a move-in date is entered, this client will continue to be counted as
+    unsheltered while in your program. Move-in dates must be on or after the entry 
+    date. If a client is housed through program then returns to homelessness while 
+    in program, they need to be exited from their original entry and re-entered in 
+    a new one that has no move-in date entered until they are re-housed."
+  ) %>%
+  select(all_of(vars_we_want))
+    
     # Missing Destination
     missing_destination <- served_in_date_range %>%
       filter(!is.na(ExitDate) &
@@ -2451,6 +2473,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       path_status_determination,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
+      rent_paid_no_move_in,
       services_on_hh_members,
       services_on_hh_members_ssvf,
       spdat_on_non_hoh,
@@ -2920,6 +2943,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       projects_current_hmis,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
+      rent_paid_no_move_in,
       served_in_date_range,
       services_on_hh_members,
       services_on_hh_members_ssvf,
