@@ -10,7 +10,7 @@ pacman::p_load(char = c(
   "devtools"
 ))
 
-#Install packages for Rminor
+# Install packages for Rminor
 if (!require(pacman))
   install.packages("pacman")
 pacman::p_load(
@@ -27,7 +27,7 @@ pacman::p_load(
   )
 )
 
-#Install packages for Rminor_elevated
+# Install packages for Rminor_elevated
 if (!require(pacman))
   install.packages("pacman")
 pacman::p_load(
@@ -48,3 +48,8 @@ pacman::p_load(
 
 # Install HMIS package
 devtools::install_github("COHHIO/HMIS")
+
+# Create needed directories
+
+if(!dir.exists("data")) dir.create("data")
+if(!dir.exists("images")) dir.create("images")
