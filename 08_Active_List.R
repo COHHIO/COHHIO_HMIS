@@ -43,7 +43,7 @@ co_currently_homeless <- co_clients_served %>%
 
 active_list <- co_currently_homeless
 
-# Account for Multiple EEs ------------------------------------------------
+# Account for Multiple EEs -----------------------------------------------
 
 # bucket the ptc's
 ptc_status <- active_list %>%
