@@ -131,7 +131,7 @@ hohs <- active_list %>%
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
   mutate(RelationshipToHoH = if_else(correctedhoh == 1, 1, RelationshipToHoH)) %>%
   select(PersonalID, HouseholdID, correctedhoh)
- 
+  
 
 active_list <- active_list %>%
   left_join(hohs, by = c("HouseholdID", "PersonalID"))
@@ -329,7 +329,7 @@ active_list <- county %>%
               select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
   mutate(
     UserID = as.numeric(gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE))
-  ) %>%
+   ) %>%
   left_join(Users %>%
               select(UserID, UserCounty), by = "UserID") %>%
   mutate(CountyServed = if_else(CountyServed == "MISSING County" &
