@@ -76,7 +76,6 @@ active_list <- co_currently_homeless %>%
   ungroup() %>%
   select(-client_status)
 
-#------------------------------------------------------------
 # correcting for bad hh data (while also flagging it) ---------------------
 
 # what household ids exist in the data?
@@ -554,8 +553,32 @@ active_list <- active_list %>%
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
   )
 
-# Fleeing DV --------------------------------------------------------------
+# Add Program if Not Shown
 
+# this looks up the program for clients that are currently enrolled in a housing program
+# AND are also in a literally homeless program, IF the LH program is the one shown on the 
+# list. I'm thinking this is less repetitive--why show the program in the status column if 
+# we already have it somewhere else in the row? But it could go either way
+
+who_has_entries <- active_list %>%
+  filter(PTCStatus == "Has Entry into RRH or PSH" &
+           ProjectType %in% c(lh_project_types, 4)) %>%
+  select("PersonalID") %>%
+  left_join(co_currently_homeless %>%
+              filter(ProjectType %in% c(ph_project_types)),
+            by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L) %>%
+  select(PersonalID, "EntryProvider" = ProjectName)
+
+active_list <- active_list %>%
+  left_join(
+    who_has_entries,
+    by = c("PersonalID")
+  )
+
+# Fleeing DV --------------------------------------------------------------
 
 active_list <- active_list %>%
   left_join(
@@ -607,7 +630,14 @@ active_list <- active_list %>%
     ),
     PersonalID = as.character(PersonalID),
     Situation = case_when(
-      PTCStatus == "Has Entry into RRH or PSH" ~ PTCStatus,
+      PTCStatus == "Has Entry into RRH or PSH" ~ if_else(
+        ProjectType %in% c(lh_project_types, 4), 
+        paste(
+          "Has Entry into",
+          EntryProvider
+        ),
+        PTCStatus
+      ),
       PTCStatus == "Currently Has No Entry into RRH or PSH" &
         !is.na(ReferredToProvider) ~
         paste(
