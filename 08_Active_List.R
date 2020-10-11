@@ -131,7 +131,7 @@ hohs <- active_list %>%
             by = c("HouseholdID", "PersonalID", "EnrollmentID")) %>%
   mutate(RelationshipToHoH = if_else(correctedhoh == 1, 1, RelationshipToHoH)) %>%
   select(PersonalID, HouseholdID, correctedhoh)
-
+ 
 
 active_list <- active_list %>%
   left_join(hohs, by = c("HouseholdID", "PersonalID"))
