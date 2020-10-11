@@ -329,7 +329,7 @@ active_list <- county %>%
               select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
   mutate(
     UserID = as.numeric(gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE))
-   ) %>%
+    ) %>%
   left_join(Users %>%
               select(UserID, UserCounty), by = "UserID") %>%
   mutate(CountyServed = if_else(CountyServed == "MISSING County" &
@@ -366,11 +366,11 @@ income_data <- active_list %>%
   select(PersonalID,
          EnrollmentID,
          IncomeFromAnySource)
-
+  
 # adding the column into the active list
 active_list <- active_list %>%
   left_join(income_data, by = c("PersonalID", "EnrollmentID")) 
-
+  
 # Add in Score ------------------------------------------------------------
 
 # taking the most recent score on the client, but this score cannot be over a
@@ -478,7 +478,7 @@ nearly_chronic <- agedIntoChronicity %>%
       ChronicStatus
     )
   )
-
+  
 active_list <- active_list %>%
   left_join(
     nearly_chronic %>%
