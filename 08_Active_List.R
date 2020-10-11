@@ -41,7 +41,7 @@ co_currently_homeless <- co_clients_served %>%
     AgeAtEntry
   )
 
-# Account for Multiple EEs ------------------------------------------------
+# Account for Multiple EEs -------------------------------------------------
 
 active_list <- co_currently_homeless %>%
   group_by(PersonalID) %>%
