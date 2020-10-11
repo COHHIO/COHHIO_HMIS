@@ -16,6 +16,7 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(readxl)
+library(HMIS)
 
 # loading old data to freeze data as of the deadline
 load("images/COHHIOHMIS.RData")
