@@ -73,6 +73,7 @@ active_list <- co_currently_homeless %>%
     "Has Entry into RRH or PSH",
     "Currently Has No Entry into RRH or PSH"
   )) %>%
+  ungroup() %>%
   select(-client_status)
 
 #------------------------------------------------------------
@@ -556,10 +557,18 @@ active_list <- active_list %>%
 # Fleeing DV --------------------------------------------------------------
 
 
-dv <- active_list %>%
+active_list <- active_list %>%
   left_join(
     HealthAndDV %>%
-      filter(DataCollectionStage == 1) %>%
+      # get DV information only for those on the active list
+      inner_join(active_list %>%
+                   select(PersonalID), 
+                 by = "PersonalID")  %>%
+      # get most recent DV information for those on the list
+      group_by(PersonalID) %>%
+      arrange(desc(InformationDate)) %>%
+      slice(1L) %>%
+      # pull variables we want
       select(EnrollmentID,
              PersonalID,
              CurrentlyFleeing,
@@ -578,8 +587,6 @@ dv <- active_list %>%
     )
   ) %>%
   select(-WhenOccurred)
-
-active_list <- dv
 
 # Clean the House ---------------------------------------------------------
 
