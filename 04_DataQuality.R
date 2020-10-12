@@ -852,27 +852,34 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
-# Rent Payment Made, No Move-In Date
-rent_paid_no_move_in <- served_in_date_range %>%
-  filter(is.na(MoveInDateAdjust) &
-           RelationshipToHoH == 1 &
-           ProjectType %in% c(3, 9, 13)) %>%
-  inner_join(Services %>%
-               filter(Description == "Rent Payment Assistance") %>%
-               select(-PersonalID), 
-             by = "EnrollmentID") %>%
-  mutate(
-    Issue = "Rent Payment Made, No Move-In Date",
-    Type = "Error",
-    Guidance = "This client does not have a valid move-in date entered, but there 
-    is at least one rent payment service transaction recorded for this program. 
-    Until a move-in date is entered, this client will continue to be counted as
-    unsheltered while in your program. Move-in dates must be on or after the entry 
-    date. If a client is housed through program then returns to homelessness while 
-    in program, they need to be exited from their original entry and re-entered in 
-    a new one that has no move-in date entered until they are re-housed."
-  ) %>%
-  select(all_of(vars_we_want))
+    # Rent Payment Made, No Move-In Date
+    rent_paid_no_move_in <- served_in_date_range %>%
+      filter(is.na(MoveInDateAdjust) &
+               RelationshipToHoH == 1 &
+               ProjectType %in% c(3, 9, 13)) %>%
+      inner_join(Services %>%
+                   filter(
+                     Description %in% c(
+                       "Rent Payment Assistance",
+                       "Utility Deposit Assistance",
+                       "Rental Deposit Assistance"
+                     )
+                   ) %>%
+                   select(-PersonalID),
+                 by = "EnrollmentID") %>%
+      mutate(
+        Issue = "Rent Payment Made, No Move-In Date",
+        Type = "Error",
+        Guidance = 
+          "This client does not have a valid Move-In Date, but there is at
+    least one rent/deposit payment Service Transaction recorded for this program.
+    Until a Move-In Date is entered, this client will continue to be counted as
+    literally homeless while in your program. Move-in dates must be on or after
+    the Entry Date. If a client is housed then returns to homelessness while
+    in your program, they need to be exited from their original Entry and
+    re-entered in a new one that has no Move-In Date until they are re-housed."
+      ) %>%
+      select(all_of(vars_we_want))
     
     # Missing Destination
     missing_destination <- served_in_date_range %>%
@@ -2512,6 +2519,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                      "Missing DOB",
                      "Missing Name Data Quality",
                      "Incomplete or Don't Know/Refused Name",
+                     "Rent Payment Made, No Move-In Date",
                      "Invalid SSN",
                      "Don't Know/Refused SSN",
                      "Missing SSN",
