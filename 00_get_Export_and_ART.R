@@ -190,7 +190,18 @@ provider_services <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                names_to = "DeleteThis",
                values_to = "County") %>%
   filter(!is.na(County) | ProjectServices == "Homeless Diversion Programs") %>%
-  select(-DeleteThis) %>% unique()
+  select(-DeleteThis) %>% unique() %>%
+  mutate(TargetPop = case_when(
+    ProjectServices == "Homeless Diversion Programs" ~ "General",
+    ProjectServices == "Veteran Benefits Assistance" ~ "Veterans")) %>%
+  select(ProjectID, County, TargetPop)
+
+provider_geo2 <- provider_services %>%
+  left_join(provider_geo %>% select(-ProjectAreaServed), by = "ProjectID") %>%
+  mutate(CountiesServed = 
+           if_else(TargetPop == "General", ProjectCountyServed, County)) %>%
+  unique() %>%
+  select(ProjectID, TargetPop, CountiesServed)
 
 coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                               sheet = 13)
