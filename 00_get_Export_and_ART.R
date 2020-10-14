@@ -172,12 +172,25 @@ provider_extras <- read_xlsx(
     OrganizationName = str_remove(OrganizationName, "\\(.*\\)")
   )
 
+
 provider_geo <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                           sheet = 17)
 
 provider_tel <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                           sheet = 18) %>%
   filter(ProjectTelPrimary == "Yes")
+
+provider_services <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                               sheet = 19) %>%
+  separate(ProjectServicesCounties, 
+           into = paste0("county", 1:80), 
+           sep = ", ",
+           fill = "right") %>%
+  pivot_longer(cols = starts_with("county"), 
+               names_to = "DeleteThis",
+               values_to = "County") %>%
+  filter(!is.na(County) | ProjectServices == "Homeless Diversion Programs") %>%
+  select(-DeleteThis) %>% unique()
 
 coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                               sheet = 13)
