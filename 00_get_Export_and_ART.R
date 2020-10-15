@@ -194,9 +194,7 @@ provider_services <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
   mutate(TargetPop = case_when(
     ProjectServices == "Homeless Diversion Programs" ~ "General",
     ProjectServices == "Veteran Benefits Assistance" ~ "Veterans")) %>%
-  select(ProjectID, County, TargetPop)
-
-provider_geo2 <- provider_services %>%
+  select(ProjectID, County, TargetPop) %>%
   left_join(provider_geo %>% select(-ProjectAreaServed), by = "ProjectID") %>%
   mutate(CountiesServed = 
            if_else(TargetPop == "General", ProjectCountyServed, County)) %>%
