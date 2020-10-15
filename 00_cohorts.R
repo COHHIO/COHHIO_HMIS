@@ -243,15 +243,17 @@ project_addresses <- ProjectCoC %>%
 APs <- Project %>%
   inner_join(provider_geo, by = c("ProjectID", "ProjectName")) %>%
   filter(ProjectType == 14) %>%
+  left_join(provider_services, by = "ProjectID") %>%
   select(
     ProjectID,
     ProjectAKA,
     OrganizationName,
     ProjectName,
+    TargetPop,
+    CountiesServed,
+    ProjectAreaServed,
     ProjectHours,
     ProjectWebsite,
-    ProjectCountyServed,
-    ProjectAreaServed,
     ProjectTelNo
   ) %>%
   mutate(OrgLink = if_else(!is.na(ProjectWebsite), paste0(
