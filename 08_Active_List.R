@@ -41,71 +41,40 @@ co_currently_homeless <- co_clients_served %>%
     AgeAtEntry
   )
 
-active_list <- co_currently_homeless
+# Account for Multiple EEs -------------------------------------------------
 
-# Account for Multiple EEs ------------------------------------------------
-
-# bucket the ptc's
-ptc_status <- active_list %>%
+active_list <- co_currently_homeless %>%
+  group_by(PersonalID) %>%
+  
+  # label all program as either literally homeless or a housing program
   mutate(PTCStatus = case_when(
     ProjectType %in% c(lh_project_types, 4) ~ "LH",
     ProjectType %in% c(ph_project_types) ~ "PH"
-  )) 
-
-# split out the clients with ph entries
-clients_in_ph <- ptc_status %>%
-  filter(PTCStatus == "PH") %>%
-  select(PersonalID) %>%
-  distinct() %>%
-  mutate(InPH = 1)
-
-# split out the clients with lh entries
-clients_in_lh <- ptc_status %>%
-  filter(PTCStatus == "LH") %>%
-  select(PersonalID) %>%
-  distinct() %>%
-  mutate(LH = 1)
-
-# join them back, with one row per client, create PTCStatus variable
-client_ptc_status <- clients_in_lh %>%
-  full_join(clients_in_ph, by = "PersonalID") %>%
-  mutate(
-    InPH = if_else(is.na(InPH), 0, InPH),
-    LH = if_else(is.na(LH), 0, LH),
-    PTCStatus = if_else(
-      InPH == 1,
-      "Has Entry into RRH or PSH",
-      "Currently Has No Entry into RRH or PSH"
-    )
+  ),
+  PTCStatus = factor(
+    PTCStatus,
+    levels = c(
+      "LH", "PH"
+    )),
+  
+  # label all clients as literally homeless or in a housing program
+  client_status = if_else(PTCStatus == "LH", 0, 1),
+  client_status = max(client_status)
   ) %>%
-  select(PersonalID, PTCStatus)
-
-# add PTCStatus variable into the main dataframe (but now you have multiple
-# rows per client again)
-active_list <- active_list %>%
-  left_join(client_ptc_status, by = "PersonalID")
-
-# take only the clients with multiple rows and slice out only the current lh
-# ee's or if there are multiple lh ee's, take the most recent (thinking the
-# most recent is probably the most up to date?)
-split_up_dupes <- get_dupes(active_list, PersonalID) %>%
-  mutate(PTCGames = if_else(ProjectType %in% c(lh_project_types, 4), 1, 2)) %>%
-  group_by(PersonalID) %>%
-  arrange(PTCGames, desc(EntryDate)) %>%
+  
+  # if the client has at least one literally homeless entry, keep the most recent
+  # otherwise, keep the most recent housing program entry
+  arrange(PTCStatus, desc(EntryDate)) %>%
   slice(1L) %>%
-  select(-dupe_count, -PTCGames) %>%
-  ungroup()
-
-# remove the clients in split_up_dupes from the main dataframe so you can
-# add them back in now that they've been deduplicated
-duplicated_clients <- get_dupes(active_list, PersonalID) %>%
-  pull(PersonalID) %>% unique()
-
-filter_out_dupes <- active_list %>%
-  filter(!PersonalID %in% duplicated_clients)
-
-# add the deduplicated clients back in with the ones with only one ee
-active_list <- rbind(split_up_dupes, filter_out_dupes)
+  
+  # apply human-readable status labels
+  mutate(PTCStatus = if_else(
+    client_status == 1,
+    "Has Entry into RRH or PSH",
+    "Currently Has No Entry into RRH or PSH"
+  )) %>%
+  ungroup() %>%
+  select(-client_status)
 
 # correcting for bad hh data (while also flagging it) ---------------------
 
@@ -117,7 +86,7 @@ active_list <- active_list %>%
   mutate(
     RelationshipToHoH = if_else(is.na(RelationshipToHoH), 99, RelationshipToHoH),
     hoh = if_else(str_detect(HouseholdID, fixed("s_")) |
-              RelationshipToHoH == 1, 1, 0)) 
+                    RelationshipToHoH == 1, 1, 0)) 
 
 # what household ids exist if we only count those with a hoh?
 HHIDs_in_current_logic <- active_list %>% 
@@ -572,11 +541,11 @@ who_has_referrals <- active_list %>%
                        ReferralOutcome == "Accepted" &
                        ReferToPTC %in% c(3, 9, 13)),
             by = c("PersonalID")) %>%
-      select(PersonalID,
-             HouseholdID,
-             EnrollmentID,
-             "ReferredToProvider" = "Referred-ToProvider",
-             ReferralDate)
+  select(PersonalID,
+         HouseholdID,
+         EnrollmentID,
+         "ReferredToProvider" = "Referred-ToProvider",
+         ReferralDate)
 
 active_list <- active_list %>%
   left_join(
@@ -584,13 +553,45 @@ active_list <- active_list %>%
     by = c("PersonalID", "HouseholdID", "EnrollmentID")
   )
 
+# Add Program if Not Shown
+
+# this looks up the program for clients that are currently enrolled in a housing program
+# AND are also in a literally homeless program, IF the LH program is the one shown on the 
+# list. I'm thinking this is less repetitive--why show the program in the status column if 
+# we already have it somewhere else in the row? But it could go either way
+
+who_has_entries <- active_list %>%
+  filter(PTCStatus == "Has Entry into RRH or PSH" &
+           ProjectType %in% c(lh_project_types, 4)) %>%
+  select("PersonalID") %>%
+  left_join(co_currently_homeless %>%
+              filter(ProjectType %in% c(ph_project_types)),
+            by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L) %>%
+  select(PersonalID, "EntryProvider" = ProjectName)
+
+active_list <- active_list %>%
+  left_join(
+    who_has_entries,
+    by = c("PersonalID")
+  )
+
 # Fleeing DV --------------------------------------------------------------
 
-
-dv <- active_list %>%
+active_list <- active_list %>%
   left_join(
     HealthAndDV %>%
-      filter(DataCollectionStage == 1) %>%
+      # get DV information only for those on the active list
+      inner_join(active_list %>%
+                   select(PersonalID), 
+                 by = "PersonalID")  %>%
+      # get most recent DV information for those on the list
+      group_by(PersonalID) %>%
+      arrange(desc(InformationDate)) %>%
+      slice(1L) %>%
+      # pull variables we want
       select(EnrollmentID,
              PersonalID,
              CurrentlyFleeing,
@@ -609,8 +610,6 @@ dv <- active_list %>%
     )
   ) %>%
   select(-WhenOccurred)
-
-active_list <- dv
 
 # Clean the House ---------------------------------------------------------
 
@@ -631,7 +630,14 @@ active_list <- active_list %>%
     ),
     PersonalID = as.character(PersonalID),
     Situation = case_when(
-      PTCStatus == "Has Entry into RRH or PSH" ~ PTCStatus,
+      PTCStatus == "Has Entry into RRH or PSH" ~ if_else(
+        ProjectType %in% c(lh_project_types, 4), 
+        paste(
+          "Has Entry into",
+          EntryProvider
+        ),
+        PTCStatus
+      ),
       PTCStatus == "Currently Has No Entry into RRH or PSH" &
         !is.na(ReferredToProvider) ~
         paste(
