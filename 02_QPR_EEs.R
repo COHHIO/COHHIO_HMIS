@@ -17,6 +17,7 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(HMIS)
 
 load("images/COHHIOHMIS.RData")
 load("images/cohorts.RData")
@@ -351,7 +352,8 @@ week_names <- priority %>%
     July_yn = if_else(is.na(July), 0, 1),
     August_yn = if_else(is.na(August), 0, 1),
     Sept_yn = if_else(is.na(September), 0, 1),
-    how_many = April_yn + May_yn + June_yn + July_yn + August_yn + Sept_yn,
+    Oct_yn = if_else(is.na(October), 0, 1),
+    how_many = April_yn + May_yn + June_yn + July_yn + August_yn + Sept_yn + Oct_yn,
     month_name = case_when(
       how_many == 1 & April_yn == 1 ~ "April",
       how_many == 1 & May_yn == 1 ~ "May",
@@ -359,11 +361,13 @@ week_names <- priority %>%
       how_many == 1 & July_yn == 1 ~ "July",
       how_many == 1 & August_yn == 1 ~ "August",
       how_many == 1 & Sept_yn == 1 ~ "September",
+      how_many == 1 & Oct_yn == 1 ~ "October",
       April_yn + May_yn > 1 ~ "April-May",
       May_yn + June_yn > 1 ~ "May-June",
       June_yn + July_yn > 1 ~ "June-July",
       July_yn + August_yn > 1 ~ "July-August",
-      August_yn + Sept_yn > 1 ~ "Aug-Sept"
+      August_yn + Sept_yn > 1 ~ "Aug-Sept",
+      Sept_yn + Oct_yn > 1 ~ "Sept-Oct"
     ),
     WeekName = paste(month_name, "Wk", Week),
     Week = as.numeric(Week)
@@ -470,7 +474,8 @@ week_names <- covid19_status %>%
     July_yn = if_else(is.na(July), 0, 1),
     August_yn = if_else(is.na(August), 0, 1),
     Sept_yn = if_else(is.na(September), 0, 1),
-    how_many = April_yn + May_yn + June_yn + July_yn + August_yn + Sept_yn,
+    Oct_yn = if_else(is.na(October), 0, 1),
+    how_many = April_yn + May_yn + June_yn + July_yn + August_yn + Sept_yn + Oct_yn,
     month_name = case_when(
       how_many == 1 & April_yn == 1 ~ "April",
       how_many == 1 & May_yn == 1 ~ "May",
@@ -478,11 +483,13 @@ week_names <- covid19_status %>%
       how_many == 1 & July_yn == 1 ~ "July",
       how_many == 1 & August_yn == 1 ~ "August",
       how_many == 1 & Sept_yn == 1 ~ "September",
+      how_many == 1 & Oct_yn == 1 ~ "October",
       April_yn + May_yn > 1 ~ "April-May",
       May_yn + June_yn > 1 ~ "May-June",
       June_yn + July_yn > 1 ~ "June-July",
       July_yn + August_yn > 1 ~ "July-August",
-      August_yn + Sept_yn > 1 ~ "Aug-Sept"
+      August_yn + Sept_yn > 1 ~ "Aug-Sept",
+      Sept_yn + Oct_yn > 1 ~ "Sept-Oct"
     ),
     WeekName = paste(month_name, "Wk", Week),
     Week = as.numeric(Week)

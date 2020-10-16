@@ -20,6 +20,8 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(HMIS)
+
 # loading the COHHIOHMIS data, dropping unnecessary objects
 load("images/COHHIOHMIS.RData")
 

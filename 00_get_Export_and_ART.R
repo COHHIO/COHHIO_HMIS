@@ -24,8 +24,9 @@
 library(tidyverse)
 library(lubridate)
 library(readxl)
+library(HMIS)
 
-# calling in HMIS-related functions
+# calling in HMIS-related functions that aren't in the HMIS pkg
 
 source("00_functions.R")
 
@@ -171,12 +172,34 @@ provider_extras <- read_xlsx(
     OrganizationName = str_remove(OrganizationName, "\\(.*\\)")
   )
 
+
 provider_geo <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                           sheet = 17)
 
 provider_tel <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                           sheet = 18) %>%
   filter(ProjectTelPrimary == "Yes")
+
+provider_services <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
+                               sheet = 19) %>%
+  separate(ProjectServicesCounties, 
+           into = paste0("county", 1:80), 
+           sep = ", ",
+           fill = "right") %>%
+  pivot_longer(cols = starts_with("county"), 
+               names_to = "DeleteThis",
+               values_to = "County") %>%
+  filter(!is.na(County) | ProjectServices == "Homeless Diversion Programs") %>%
+  select(-DeleteThis) %>% unique() %>%
+  mutate(TargetPop = case_when(
+    ProjectServices == "Homeless Diversion Programs" ~ "General",
+    ProjectServices == "Veteran Benefits Assistance" ~ "Veterans")) %>%
+  select(ProjectID, County, TargetPop) %>%
+  left_join(provider_geo %>% select(-ProjectAreaServed), by = "ProjectID") %>%
+  mutate(CountiesServed = 
+           if_else(TargetPop == "General", ProjectCountyServed, County)) %>%
+  unique() %>%
+  select(ProjectID, TargetPop, CountiesServed)
 
 coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                               sheet = 13)

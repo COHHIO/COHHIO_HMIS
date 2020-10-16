@@ -16,6 +16,7 @@ library(tidyverse)
 library(janitor)
 library(lubridate)
 library(scales)
+library(HMIS)
 
 source("04_Guidance.R")
 load("images/COHHIOHMIS.RData")
@@ -848,6 +849,35 @@ check_eligibility <- served_in_date_range %>%
       or the Residence Prior data at Entry is incorrect. Please check the terms
       of your grant or speak with the CoC team at COHHIO if you are unsure of
       eligibility criteria for your project type."
+      ) %>%
+      select(all_of(vars_we_want))
+    
+    # Rent Payment Made, No Move-In Date
+    rent_paid_no_move_in <- served_in_date_range %>%
+      filter(is.na(MoveInDateAdjust) &
+               RelationshipToHoH == 1 &
+               ProjectType %in% c(3, 9, 13)) %>%
+      inner_join(Services %>%
+                   filter(
+                     Description %in% c(
+                       "Rent Payment Assistance",
+                       "Utility Deposit Assistance",
+                       "Rental Deposit Assistance"
+                     )
+                   ) %>%
+                   select(-PersonalID),
+                 by = "EnrollmentID") %>%
+      mutate(
+        Issue = "Rent Payment Made, No Move-In Date",
+        Type = "Error",
+        Guidance = 
+          "This client does not have a valid Move-In Date, but there is at
+    least one rent/deposit payment Service Transaction recorded for this program.
+    Until a Move-In Date is entered, this client will continue to be counted as
+    literally homeless while in your program. Move-in dates must be on or after
+    the Entry Date. If a client is housed then returns to homelessness while
+    in your program, they need to be exited from their original Entry and
+    re-entered in a new one that has no Move-In Date until they are re-housed."
       ) %>%
       select(all_of(vars_we_want))
     
@@ -2450,6 +2480,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       path_status_determination,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
+      rent_paid_no_move_in,
       services_on_hh_members,
       services_on_hh_members_ssvf,
       spdat_on_non_hoh,
@@ -2488,6 +2519,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                      "Missing DOB",
                      "Missing Name Data Quality",
                      "Incomplete or Don't Know/Refused Name",
+                     "Rent Payment Made, No Move-In Date",
                      "Invalid SSN",
                      "Don't Know/Refused SSN",
                      "Missing SSN",
@@ -2919,6 +2951,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       projects_current_hmis,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
+      rent_paid_no_move_in,
       served_in_date_range,
       services_on_hh_members,
       services_on_hh_members_ssvf,

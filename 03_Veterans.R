@@ -14,6 +14,7 @@
 
 library(tidyverse)
 library(lubridate)
+library(HMIS)
 
 load("images/COHHIOHMIS.RData")
 load("images/cohorts.RData")
