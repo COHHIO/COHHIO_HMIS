@@ -261,42 +261,51 @@ rm(small_exit)
 small_project <- Project %>%
   select(ProjectID, ProjectType, ProjectName) 
 
-# getting HoH's Entry Dates bc WS is using that to overwrite MoveIn Dates
+# getting HH information
 # only doing this for RRH and PSHs since Move In Date doesn't matter for ES, etc.
-HoHsEntry <- Enrollment %>%
+HHMoveIn <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
-  filter(RelationshipToHoH == 1 &
-           ProjectType %in% c(3, 9, 13)) %>%
-  select(HouseholdID, "HoHsEntry" = EntryDate, "HoHsMoveIn" = MoveInDate) %>%
+  filter(ProjectType %in% c(3, 9, 13)) %>%
+  mutate(
+    ValidMoveIn = case_when(
+      # prior to 2017, PSH didn't use move-in dates, so we're overwriting 
+      # those PSH move-in dates with the Entry Date        
+      (ymd(EntryDate) < mdy("10012017") &
+         ProjectType %in% c(3, 9))  ~ EntryDate,
+      # the Move-In Dates must fall between the Entry and ExitAdjust to be 
+      # considered valid
+      ymd(EntryDate) <= ymd(MoveInDate) & 
+        ymd(MoveInDate) <= ymd(ExitAdjust)
+      ~ MoveInDate
+    )
+  ) %>%
+  filter(!is.na(ValidMoveIn)) %>%
+  group_by(HouseholdID) %>%
+  mutate(HHMoveIn = min(ValidMoveIn)) %>%
+  ungroup() %>%
+  select(HouseholdID, HHMoveIn) %>%
   unique()
 
-## ^^ this code causes a duplication for situations where a hh has two clients
-# marked as Head of Household AND the HoHs have different Entry Dates. RARE,
-# but possible. Not sure how to fix this, maybe it's just something to know.
+HHEntry <- Enrollment %>%
+  left_join(small_project, by = "ProjectID") %>%
+  group_by(HouseholdID) %>%
+  mutate(FirstEntry = min(EntryDate)) %>%
+  ungroup() %>%
+  select(HouseholdID, "HHEntry" = FirstEntry) %>%
+  unique() %>%
+  left_join(HHMoveIn, by = "HouseholdID")
+
 
 Enrollment <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
-  left_join(HoHsEntry, by = "HouseholdID") %>%
+  left_join(HHEntry, by = "HouseholdID") %>%
   mutate(
     MoveInDateAdjust = case_when(
-      !is.na(HoHsMoveIn) &
-        # prior to 2017, PSH didn't use move-in dates, so we're overwriting 
-        # those PSH move-in dates with the Entry Date        
-        (ymd(EntryDate) < mdy("10012017") &
-           ProjectType %in% c(3, 9)) |
-      # meant to account for non-hohs that join later
-        (ymd(EntryDate) > ymd(HoHsEntry) &
-           ProjectType %in% c(3, 9, 13)) ~ EntryDate,
-      ((
-        ymd(EntryDate) >= mdy("10012017") &
-          ProjectType %in% c(3, 9)
-      ) | ProjectType == 13) &
-        # the Move-In Dates must fall between the Entry and ExitAdjust to be 
-        # considered valid
-        ymd(EntryDate) <= ymd(MoveInDate) & 
-        ymd(MoveInDate) <= ymd(ExitAdjust)
-      ~ MoveInDate
-    ), 
+      !is.na(HHMoveIn) &
+        ymd(HHMoveIn) <= ymd(ExitAdjust) &
+        ymd(EntryDate) <= ymd(HHMoveIn) ~ HHMoveIn,
+      !is.na(HHMoveIn) &
+        ymd(HHMoveIn) <= ymd(ExitAdjust) ~ EntryDate), 
     EntryAdjust = case_when(
       ProjectType %in% c(1, 2, 4, 8, 12) ~ EntryDate,
       ProjectType %in% c(3, 9, 13) &
@@ -304,7 +313,7 @@ Enrollment <- Enrollment %>%
     )
   )
 
-rm(small_project, HoHsEntry)
+rm(small_project, HHEntry)
 
 # Client Location
 
