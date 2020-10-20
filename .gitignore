@@ -13,6 +13,7 @@
 *.png
 Reports/*.pdf
 Reports/*.csv
+Reports/Data_Warehouse/*.csv
 Reports/ohla_hotels_files
 threeyearsdata/
 data/

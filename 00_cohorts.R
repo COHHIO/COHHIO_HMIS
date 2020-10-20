@@ -273,7 +273,9 @@ APs <- Project %>%
     City = paste0(City, ", ", State, " ", ZIP),
     Addresses = coalesce(Address1, Address2)
   ) %>%
-  select(-Address1, -Address2, -State, -ZIP)
+  select(ProjectID, ProjectAKA, OrganizationName, ProjectName, TargetPop,
+         "ProjectCountyServed" = CountiesServed, ProjectAreaServed,
+         ProjectHours, ProjectTelNo, OrgLink, CoCCode, Addresses, City)
 
   
 # Clean up the house ------------------------------------------------------
