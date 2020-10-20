@@ -134,7 +134,11 @@ hohs <- active_list %>%
   
 
 active_list <- active_list %>%
-  left_join(hohs, by = c("HouseholdID", "PersonalID"))
+  left_join(hohs, by = c("HouseholdID", "PersonalID")) %>%
+  group_by(HouseholdID) %>%
+  mutate(correctedhoh = if_else(is.na(correctedhoh), 0, 1),
+         HH_DQ_Issue = max(correctedhoh)) %>%
+  ungroup()
 
 # COVID-19 ----------------------------------------------------------------
 
@@ -504,13 +508,8 @@ active_list <- active_list %>%
 
 active_list <- active_list %>%
   mutate(
-    HH_DQ_issue = if_else(
-      correctedhoh == 1 & !is.na(correctedhoh),
-      1,
-      0
-    ),
-    HoH_Adjust = case_when(correctedhoh == 1 ~ 1,
-                           is.na(correctedhoh) ~ hoh)
+    HoH_Adjust = case_when(HH_DQ_Issue == 1 ~ correctedhoh,
+                           HH_DQ_Issue == 0 ~ hoh)
   ) %>%
   filter(HoH_Adjust == 1) %>%
   select(-correctedhoh, -RelationshipToHoH, -hoh, -HoH_Adjust)
@@ -539,7 +538,11 @@ who_has_referrals <- active_list %>%
   left_join(Referrals %>%
               filter(ReferralDate >= today() - days(14) &
                        ReferralOutcome == "Accepted" &
-                       ReferToPTC %in% c(3, 9, 13)),
+                       ReferToPTC %in% c(3, 9, 13)) %>%
+              group_by(PersonalID) %>%
+              arrange(desc(ymd(ReferralDate))) %>%
+              slice(1L) %>%
+              ungroup(),
             by = c("PersonalID")) %>%
   select(PersonalID,
          HouseholdID,
