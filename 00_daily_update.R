@@ -41,71 +41,72 @@ directory <- case_when(dataset == "live" ~ "data",
 # folder check
 including_data_back_to <- mdy("01012018")
 
-export_meta <- read_csv("data/Export.csv")
+export_meta <- read_csv("data/Export.csv",
+                        col_types = c("iicccccccTDDcciii"))
 
 if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
   stop <- 1
-  "The HUD CSV Export files are not up to date. Please be sure you unzipped the
-  export."
+  cat("The HUD CSV Export files are not up to date. Please be sure you unzipped the
+  export.\n")
 } else{
-  "OK"
+  cat("OK\n")
 }
 
 if(ymd(export_meta$ExportStartDate) != 
    including_data_back_to |
    ymd(export_meta$ExportEndDate) != today()) {
   stop <- 1
-  "The HUD CSV Export was not run on the correct date range. Please rerun."
+  cat("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
 } else{
-  "OK"
+  cat("OK\n")
 }
 
 if(format.Date(file.info(paste0(directory, "/RMisc2.xlsx"))$mtime, "%F") != today()){
   stop <- 1
-  "The RMisc2.xlsx file is not up to date. Please run this ART report and 
-  overwrite the current RMisc2.xlsx with the new one."
-} else{"OK"}
+  cat("The RMisc2.xlsx file is not up to date. Please run this ART report and 
+  overwrite the current RMisc2.xlsx with the new one.\n")
+} else{cat("OK\n")}
 
 if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) > 0){
   stop <- 1
-  "Don't forget to delete the .7z file in your /data folder. It has PII in it!"
-} else {"OK"}
+  cat("Don't forget to delete the .7z file in your /data folder. It has PII in it!\n")
+} else {cat("OK\n")}
 
 # if the data folder passes all the tests above, let's run the scripts 
 if (stop == 0) {
   rm(list = ls())
 
-  print("Importing raw HMIS data..")
+  cat("Importing raw HMIS data..\n")
   source("00_get_Export_and_ART.R")
 
   rm(list = ls())
 
-  print("working on Cohorts")
+  cat("working on Cohorts\n")
   source("00_cohorts.R")
 
   rm(list = ls())  
 
-  print("working on Bed_Unit_Utilization")
+  cat("working on Bed_Unit_Utilization\n")
   source("01_Bed_Unit_Utilization.R")
 
   rm(list = ls())
 
-  print("working on QPR_SPDATs")
+  cat("working on QPR_SPDATs\n")
   source("02_QPR_SPDATs.R")
 
   rm(list = ls())
 
-  print("working on QPR_EEs")
+  cat("working on QPR_EEs\n")
   source("02_QPR_EEs.R")
 
   rm(list = ls())
 
-  print("working on Veterans")
+  cat("working on Veterans\n")
   source("03_Veterans.R")
 
   rm(list = ls())
 
-  print("working on Data Quality")
+  cat("working on Data Quality\n")
   source("04_DataQuality.R")
 
   # rm(list = ls())
@@ -115,25 +116,25 @@ if (stop == 0) {
 
   rm(list = ls())
 
-  print("working on SPMs")
+  cat("working on SPMs\n")
   source("07_SPMs.R")
 
   rm(list = ls())
 
-  print("working on Active List")
+  cat("working on Active List\n")
   source("08_Active_List.R")
   
   rm(list = ls())
 
-  print("copying images to app directories")
+  cat("copying images to app directories\n")
   source("00_copy_images.R")
 
   rm(list = ls())
 
-  print(paste("Done! All images are updated."))
+  cat("Done! All images are updated.\n")
 } else
 {
-  print("Check your data folder for errors")
+  cat("Check your data folder for errors\n")
 }
 
 # all scripts together take about 3 minutes 45 seconds
