@@ -153,6 +153,7 @@ qpr_benefits <- smallProject %>%
          EntryAdjust, MoveInDate, MoveInDateAdjust, ExitDate, ExitAdjust,
          InsuranceFromAnySource, BenefitsFromAnySource, DataCollectionStage, 
          InformationDate, ProjectRegion, ProjectCounty, ProjectType) %>%
+  #FIXME Remove this mutate and change upstream calls in Rm & Rme to use the numeric instead of character
   mutate(ProjectType = case_when(
     ProjectType == 1 ~ "Emergency Shelters", 
     ProjectType == 2 ~ "Transitional Housing", 
