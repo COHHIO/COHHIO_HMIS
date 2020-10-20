@@ -275,7 +275,9 @@ small_exit <- Exit %>% select(EnrollmentID,
                               OtherDestination)
 
 Enrollment <- left_join(Enrollment, small_exit, by = "EnrollmentID") %>%
-  mutate(ExitAdjust = if_else(is.na(ExitDate), today(), ExitDate))
+  mutate(ExitAdjust = if_else(is.na(ExitDate) |
+                                ExitDate > today(),
+                              today(), ExitDate))
 
 rm(small_exit)
 
