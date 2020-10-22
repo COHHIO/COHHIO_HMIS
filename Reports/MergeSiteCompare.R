@@ -110,13 +110,30 @@ raw_BoS_dupes <-
   read_xlsx(here("random_data/0212BoS.xlsx"),
             sheet = 1)
 
+raw_YO_dupes <- 
+  read_xlsx(here("random_data/0212YO.xlsx"),
+            sheet = 1) %>%
+  select("Client Unique ID" = 1, "Client Uid" = 2, 6:9)
+
 # Comparisons -------------------------------------------------------------
 
+yo_data <- raw_YO_dupes %>%
+  select(`First Name`, `Last Name`) %>%
+  unique()
 
-bos_data <- raw_BoS_dupes
-demo_data <- raw_demo_dupes
+bos_data <- raw_BoS_dupes %>%
+  select(`First Name`, `Last Name`) %>%
+  unique()
+
+demo_data <- raw_demo_dupes %>%
+  select(`First Name`, `Last Name`) %>%
+  unique()
 
 not_on_demo <- setdiff(bos_data, demo_data)
 not_on_bos <- setdiff(demo_data, bos_data)
+not_on_yo <- setdiff(demo_data, yo_data)
+
+new_dupes <- setdiff(not_on_bos, yo_data) %>% view()
+
 
 
