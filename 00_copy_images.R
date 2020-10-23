@@ -81,7 +81,7 @@ save(
   utilization_unit,
   validation,
   veteran_current_in_project,
-  compress = FALSE,
+  compress = "xz",
   envir = e,
   file = .files[1]
 )
@@ -152,7 +152,7 @@ save(
   utilizers_clients,
   utilization,
   utilization_bed,
-  compress = FALSE,
+  compress = "xz",
   envir = e,
   file = .files[2]
 )
