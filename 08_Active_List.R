@@ -79,16 +79,40 @@ co_currently_homeless <- co_currently_homeless %>%
     by = c("PersonalID", "EnrollmentID")) %>%
   left_join(
     Enrollment %>%
-      select(PersonalID, HouseholdID, DisablingCondition), 
-    by = c("PersonalID", "HouseholdID")
+      select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
+             DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
+             MonthsHomelessPastThreeYears, DisablingCondition),
+    by = c("PersonalID",
+           "EnrollmentID",
+           "HouseholdID")
   ) %>%
+  mutate(SinglyChronic =
+           if_else(((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
+                       !is.na(DateToStreetESSH)) |
+                      (
+                        MonthsHomelessPastThreeYears %in% c(112, 113) &
+                          TimesHomelessPastThreeYears == 4 &
+                          !is.na(MonthsHomelessPastThreeYears) &
+                          !is.na(TimesHomelessPastThreeYears)
+                      )
+           ) &
+             DisablingCondition == 1 &
+             !is.na(DisablingCondition), 1, 0)) %>%
+  group_by(PersonalID) %>%
+  mutate(SinglyChronic = max(SinglyChronic)) %>%
+  ungroup() %>%
   group_by(HouseholdID) %>%
   mutate(HouseholdSize = length(PersonalID),
          IncomeInHH = max(if_else(IncomeFromAnySource == 1, 100, IncomeFromAnySource)),
          IncomeInHH = if_else(IncomeInHH == 100, 1, IncomeInHH),
-         DisabilityInHH = max(if_else(DisablingCondition == 1, 1, 0))) %>%
+         DisabilityInHH = max(if_else(DisablingCondition == 1, 1, 0)),
+         ChronicStatus = if_else(max(SinglyChronic) == 1, "Chronic", "Not Chronic")
+  ) %>%
   ungroup() %>%
-  select(-IncomeFromAnySource)
+  select("PersonalID", "ProjectName", "ProjectType", "HouseholdID", "EnrollmentID",
+         "RelationshipToHoH", "VeteranStatus", "EntryDate", "AgeAtEntry",
+         "DisablingCondition", "HouseholdSize", "IncomeInHH", "DisabilityInHH",
+         "ChronicStatus")
 
 # Account for Multiple EEs -------------------------------------------------
 
@@ -391,52 +415,18 @@ scores_staging <- Scores %>%
 active_list <- active_list %>%
   left_join(scores_staging, by = "PersonalID")
 
-# Add Chronicity ----------------------------------------------------------
-
-# creating a small basic dataframe to work with
-smallEnrollment <- Enrollment %>%
-  select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
-         DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
-         MonthsHomelessPastThreeYears)
-
-# getting only the independently-chronic clients. they're chronic right now
-# and because of *their own* homeless history
-singly_chronic <-
-  active_list %>%
-  left_join(smallEnrollment,
-            by = c("PersonalID",
-                   "EnrollmentID",
-                   "HouseholdID")) %>%
-  mutate(SinglyChronic =
-           if_else(((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
-                       !is.na(DateToStreetESSH)) |
-                      (
-                        MonthsHomelessPastThreeYears %in% c(112, 113) &
-                          TimesHomelessPastThreeYears == 4 &
-                          !is.na(MonthsHomelessPastThreeYears) &
-                          !is.na(TimesHomelessPastThreeYears)
-                      )
-           ) &
-             DisablingCondition == 1 &
-             !is.na(DisablingCondition), 1, 0))
-
-# pulling all EEs with the Chronic designation, marking all hh members of anyone
-# with a Chronic marker as also Chronic
-household_chronic <- singly_chronic %>%
-  group_by(HouseholdID) %>%
-  mutate(
-    ChronicHousehold = sum(SinglyChronic, na.rm = TRUE),
-    ChronicStatus = case_when(
-      ChronicHousehold > 0 ~ "Chronic",
-      ChronicHousehold == 0 ~ "Not Chronic"
-    )
-  ) %>%
-  ungroup() %>%
-  select(-ChronicHousehold)
+# Add Additional Chronic Statuses ---------------------------------------------
 
 # adds current days in ES or SH projects to days homeless prior to entry and if
 # it adds up to 365 or more, it marks the client as AgedIn
-agedIntoChronicity <- household_chronic %>%
+agedIntoChronicity <- active_list %>%
+  left_join(Enrollment %>%
+              select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
+                     DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
+                     MonthsHomelessPastThreeYears),
+            by = c("PersonalID",
+                   "EnrollmentID",
+                   "HouseholdID")) %>%
   mutate(
     DaysHomelessInProject = difftime(ymd(ExitAdjust),
                                      ymd(EntryDate),
@@ -485,6 +475,7 @@ nearly_chronic <- agedIntoChronicity %>%
   )
   
 active_list <- active_list %>%
+  select(-ChronicStatus) %>%
   left_join(
     nearly_chronic %>%
       select("PersonalID",
