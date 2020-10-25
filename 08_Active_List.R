@@ -23,7 +23,8 @@ load("images/COHHIOHMIS.RData")
 # clients currently entered into a homeless project in our system
 
 co_currently_homeless <- co_clients_served %>%
-  filter(is.na(ExitDate) &
+  filter((is.na(ExitDate) |
+            ExitDate > today()) &
            (ProjectType %in% c(4, lh_project_types) |
               (
                 ProjectType %in% c(ph_project_types) &
