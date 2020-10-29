@@ -65,6 +65,8 @@ raw_assessment_sub_question_link_bos <-
 raw_picklists_bos <- read_xlsx("random_data/bos_assessments.xlsx",
                                sheet = 7)
 
+raw_picklists_yo <- read_xlsx("random_data/yo_assessments.xlsx",
+                               sheet = 7)
 # Question Differences ----------------------------------------------------
 
 questionsysnames_not_on_bos <-
@@ -84,6 +86,18 @@ picklist_names_not_on_bos <-
     raw_picklists_bos$PicklistName
   )) %>%
   left_join(raw_picklists_demo, by = "PicklistName")
+
+picklist_names_y_yo_n_demo <-
+  data.frame("PicklistName" = setdiff(
+    raw_picklists_yo$PicklistName,
+    raw_picklists_demo$PicklistName
+  )) %>%
+  left_join(raw_picklists_yo, by = "PicklistName")
+
+picklist_values_y_yo_n_demo <- anti_join(
+  raw_picklists_yo[, c(1, 5, 7)],
+  raw_picklists_demo[, c(1, 5, 7)]
+)
 
 # Assessment Differences --------------------------------------------------
 
@@ -124,7 +138,8 @@ datasets_to_examine <- list(
   "questions" = questionsysnames_not_on_bos,
   "subs" = subassessments_not_on_bos,
   "subqs" = subassessment_qs_not_on_bos,
-  "picklists" = picklist_names_not_on_bos
+  "picklists" = picklist_names_not_on_bos,
+  "picklistvalues" = picklist_values_y_yo_n_demo
 )
 
 write_xlsx(datasets_to_examine, path = "DemoDifferences.xlsx")
