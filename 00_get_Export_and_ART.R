@@ -557,7 +557,7 @@ FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
 
 # Update Date -------------------------------------------------------------
 
-update_date <- file.info(paste0(directory, "/Enrollment.csv"))$mtime
+update_date <- Export$ExportDate
 
 # Save it out -------------------------------------------------------------
 
