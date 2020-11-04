@@ -254,8 +254,6 @@ get_res_prior <- validation %>%
   arrange(desc(EntryDate)) %>%
   slice(1L)
 
-current_week <- week(today())
-
 covid19_plot <- covid19 %>%
   left_join(get_res_prior, by = "PersonalID") %>%
   filter(ymd(COVID19AssessmentDate) >= mdy("04012020") &
@@ -332,68 +330,31 @@ priority <- covid19_plot %>%
     Priority = factor(Priority, levels = c("Needs Isolation/Quarantine", 
                                            "Has Health Risk(s)", 
                                            "No Known Risks or Exposure")),
-    Week = format.Date(COVID19AssessmentDate, "%U"),
-    Week = as.numeric(Week),
-    Month = format.Date(COVID19AssessmentDate, "%m"),
-    MonthName = format.Date(COVID19AssessmentDate, "%B")
+    Week = epiweek(COVID19AssessmentDate),
+    WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
+                         "%b %d, %Y")
   ) %>% 
-  filter(Week != current_week)
-
-week_names <- priority %>%
-  group_by(Week, MonthName) %>%
-  summarise(Clients = n()) %>%
-  pivot_wider(names_from = MonthName,
-              values_from = Clients) %>%
-  ungroup() %>%
-  mutate(
-    April_yn = if_else(is.na(April), 0, 1),
-    May_yn = if_else(is.na(May), 0, 1),
-    June_yn = if_else(is.na(June), 0, 1),
-    July_yn = if_else(is.na(July), 0, 1),
-    August_yn = if_else(is.na(August), 0, 1),
-    Sept_yn = if_else(is.na(September), 0, 1),
-    Oct_yn = if_else(is.na(October), 0, 1),
-    how_many = April_yn + May_yn + June_yn + July_yn + August_yn + Sept_yn + Oct_yn,
-    month_name = case_when(
-      how_many == 1 & April_yn == 1 ~ "April",
-      how_many == 1 & May_yn == 1 ~ "May",
-      how_many == 1 & June_yn == 1 ~ "June",
-      how_many == 1 & July_yn == 1 ~ "July",
-      how_many == 1 & August_yn == 1 ~ "August",
-      how_many == 1 & Sept_yn == 1 ~ "September",
-      how_many == 1 & Oct_yn == 1 ~ "October",
-      April_yn + May_yn > 1 ~ "April-May",
-      May_yn + June_yn > 1 ~ "May-June",
-      June_yn + July_yn > 1 ~ "June-July",
-      July_yn + August_yn > 1 ~ "July-August",
-      August_yn + Sept_yn > 1 ~ "Aug-Sept",
-      Sept_yn + Oct_yn > 1 ~ "Sept-Oct"
-    ),
-    WeekName = paste(month_name, "Wk", Week),
-    Week = as.numeric(Week)
-  ) %>%
-  select(Week, WeekName)
+  filter(Week != epiweek(today()))
 
 priority_plot <- priority %>%
-  dplyr::select(PersonalID, Week, Priority) %>%
-  group_by(Week, Priority) %>%
+  dplyr::select(PersonalID, WeekOf, Week, Priority) %>%
+  group_by(WeekOf, Week, Priority) %>%
   summarise(Clients = n()) %>%
-  left_join(week_names, by = "Week") %>%
   arrange(Week)
 
 covid19_priority_plot <- priority_plot %>%
-  ggplot(aes(x = reorder(WeekName, Week), y = Clients,
+  ggplot(aes(x = reorder(WeekOf, Week), y = Clients,
              fill = Priority, label = Clients)) +
   scale_fill_brewer(palette = "GnBu", direction = -1) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(x = NULL, y = "Clients Assessed") +
+  labs(x = "Week of", y = "Clients Assessed") +
   theme(legend.title=element_blank(),
         legend.position = "top",
         legend.text = element_text(size = 11),
         axis.text.x = element_text(angle = 45, hjust=1, size = 11))
 
-rm(priority, week_names, priority_plot)
+rm(priority, priority_plot)
 
 # COVID Status plot -------------------------------------------------------
 
@@ -454,68 +415,30 @@ covid19_status <- covid19_plot %>%
                  "May Have COVID-19",
                  "Positive")
     ),
-    Week = format.Date(COVID19AssessmentDate, "%U"),
-    Week = as.numeric(Week),
-    Month = format.Date(COVID19AssessmentDate, "%m"),
-    MonthName = format.Date(COVID19AssessmentDate, "%B")
+    Week = epiweek(COVID19AssessmentDate),
+    WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
+                         "%b %d, %Y")
   ) %>% 
-  filter(Week != current_week)
-
-week_names <- covid19_status %>%
-  group_by(Week, MonthName) %>%
-  summarise(Clients = n()) %>%
-  pivot_wider(names_from = MonthName,
-              values_from = Clients) %>%
-  ungroup() %>%
-  mutate(
-    April_yn = if_else(is.na(April), 0, 1),
-    May_yn = if_else(is.na(May), 0, 1),
-    June_yn = if_else(is.na(June), 0, 1),
-    July_yn = if_else(is.na(July), 0, 1),
-    August_yn = if_else(is.na(August), 0, 1),
-    Sept_yn = if_else(is.na(September), 0, 1),
-    Oct_yn = if_else(is.na(October), 0, 1),
-    how_many = April_yn + May_yn + June_yn + July_yn + August_yn + Sept_yn + Oct_yn,
-    month_name = case_when(
-      how_many == 1 & April_yn == 1 ~ "April",
-      how_many == 1 & May_yn == 1 ~ "May",
-      how_many == 1 & June_yn == 1 ~ "June",
-      how_many == 1 & July_yn == 1 ~ "July",
-      how_many == 1 & August_yn == 1 ~ "August",
-      how_many == 1 & Sept_yn == 1 ~ "September",
-      how_many == 1 & Oct_yn == 1 ~ "October",
-      April_yn + May_yn > 1 ~ "April-May",
-      May_yn + June_yn > 1 ~ "May-June",
-      June_yn + July_yn > 1 ~ "June-July",
-      July_yn + August_yn > 1 ~ "July-August",
-      August_yn + Sept_yn > 1 ~ "Aug-Sept",
-      Sept_yn + Oct_yn > 1 ~ "Sept-Oct"
-    ),
-    WeekName = paste(month_name, "Wk", Week),
-    Week = as.numeric(Week)
-  ) %>%
-  select(Week, WeekName)
-
+  filter(Week != epiweek(today()))
 
 covid19_status_plot <- covid19_status %>%
-  select(PersonalID, Week, COVID19Status) %>%
-  group_by(Week, COVID19Status) %>%
+  select(PersonalID, WeekOf, Week, COVID19Status) %>%
+  group_by(WeekOf, Week, COVID19Status) %>%
   summarise(Clients = n()) %>%
-  left_join(week_names, by = "Week") %>%
   arrange(Week) %>%
-  ggplot(aes(x = reorder(WeekName, Week), y = Clients,
+  ggplot(aes(x = reorder(WeekOf, Week), y = Clients,
              fill = COVID19Status)) +
   geom_bar(stat = "identity", 
            position = position_stack(reverse = TRUE)) +  
   scale_fill_manual(values = c("#e0ecf4", "#9ebcda", "#8856a7")) +
   theme_minimal() +
-  labs(x = NULL, y = "Clients Assessed") +
+  labs(x = "Week of", y = "Clients Assessed") +
   theme(legend.title=element_blank(),
         legend.position = "top",
         legend.text = element_text(size = 11),
         axis.text.x = element_text(angle = 45, hjust=1, size = 11))
 
-rm(covid19_status, week_names, covid19_plot)
+rm(covid19_status, covid19_plot)
 
 # Save it out -------------------------------------------------------------
 
