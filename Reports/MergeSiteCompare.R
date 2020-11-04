@@ -15,6 +15,7 @@
 library(tidyverse)
 library(readxl)
 library(here)
+library(rlang)
 
 
 # Demo Settings -----------------------------------------------------------
@@ -135,5 +136,19 @@ not_on_yo <- setdiff(demo_data, yo_data)
 
 new_dupes <- setdiff(not_on_bos, yo_data)
 
+
+# RMisc comparisons -------------------------------------------------------
+
+bos <- env()
+demo <- env()
+
+load(here("images/COHHIOHMIS.RData"), envir = bos)
+load(here("images/YOHMIS.RData"), envir = demo)
+
+summary(bos$stray_services)
+summary(demo$stray_services)
+a <- setdiff(bos$Client$PersonalID, demo$Client$PersonalID)
+b <- bos$Client %>% filter(PersonalID %in% a) %>% 
+  select(PersonalID, DateUpdated)
 
 
