@@ -73,11 +73,45 @@ income_data <- co_currently_homeless %>%
          EnrollmentID,
          IncomeFromAnySource)
 
+# Check Whether Each Client Has Any Indication of Disability ------------
+
+# this checks the enrollment's 1.3 and 4.02 records to catch potential 
+# disabling conditions that may be used to determine PSH eligibility but 
+# were not reported in 3.08. If any of these three data elements (1.3, 
+# 4.02, 3.08) suggest the presence of a disabling condition, this section 
+# flags that enrollment as belonging to a disabled client. Otherwise,
+# the enrollment is marked not disabled.
+
+extended_disability <- co_currently_homeless %>%
+  left_join(Disabilities, by = c("EnrollmentID"))  %>%
+  group_by(EnrollmentID) %>%
+  mutate(D_Disability = if_else(DisabilityResponse == 1 &
+                                  IndefiniteAndImpairs != 0, 1, 0),
+         D_Disability = max(D_Disability)) %>%
+  select(EnrollmentID, D_Disability) %>%
+  left_join(IncomeBenefits, by = c("EnrollmentID")) %>%
+  mutate(I_Disability = if_else(SSDI == 1 |
+                                  VADisabilityService == 1 |
+                                  VADisabilityNonService == 1 |
+                                  PrivateDisability == 1, 
+                                1, 0),
+         I_Disability = max(I_Disability)) %>%
+  select(EnrollmentID, D_Disability, I_Disability) %>%
+  ungroup() %>%
+  distinct() %>%
+  left_join(Enrollment, by = c("EnrollmentID")) %>%
+  mutate(any_disability = case_when(D_Disability == 1 |
+                                    I_Disability == 1 |
+                                    DisablingCondition == 1 ~ 1, 
+                                    TRUE ~ 0)) %>%
+  select(EnrollmentID, any_disability)
+
 # adding household aggregations into the full client list
 co_currently_homeless <- co_currently_homeless %>%
   left_join(
     income_data, 
     by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(extended_disability, by = "EnrollmentID") %>%
   left_join(
     Enrollment %>%
       select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
@@ -106,7 +140,7 @@ co_currently_homeless <- co_currently_homeless %>%
   mutate(HouseholdSize = length(PersonalID),
          IncomeInHH = max(if_else(IncomeFromAnySource == 1, 100, IncomeFromAnySource)),
          IncomeInHH = if_else(IncomeInHH == 100, 1, IncomeInHH),
-         DisabilityInHH = max(if_else(DisablingCondition == 1, 1, 0)),
+         DisabilityInHH = max(if_else(any_disability == 1, 1, 0)),
          ChronicStatus = if_else(max(SinglyChronic) == 1, "Chronic", "Not Chronic")
   ) %>%
   ungroup() %>%

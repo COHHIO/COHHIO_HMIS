@@ -519,6 +519,55 @@ dkr_months_times_homeless <- served_in_date_range %>%
          Guidance = guidance_dkr_data) %>%
   select(all_of(vars_we_want))
 
+invalid_months_times_homeless <- served_in_date_range %>%
+  select(
+    all_of(vars_prep),
+    AgeAtEntry,
+    RelationshipToHoH,
+    MonthsHomelessPastThreeYears,
+    TimesHomelessPastThreeYears,
+    DateToStreetESSH
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) >= mdy("10012016") &
+           TimesHomelessPastThreeYears == 1 &
+           !is.na(DateToStreetESSH)
+  ) %>%
+  mutate(
+    MonthHomelessnessBegan = floor_date(DateToStreetESSH, "month"),
+    MonthEnteredProgram = floor_date(EntryDate, "month"),
+    MonthDiff = interval(MonthHomelessnessBegan, MonthEnteredProgram) %/% months(1) + 1,
+    MonthDiff = if_else(MonthDiff >= 13, 13, MonthDiff),
+    DateMonthsMismatch = if_else(MonthsHomelessPastThreeYears - MonthDiff != 100, 1, 0),
+    Issue = case_when(
+      MonthDiff <= 0 ~
+        "Homelessness Start Date Later Than Entry",
+      MonthsHomelessPastThreeYears < 100 ~
+        "Number of Months Homeless Can Be Determined",
+      DateMonthsMismatch == 1 ~ 
+        "Invalid Homelessness Start Date/Number of Months Homeless"),
+    Type = "Warning",
+    Guidance = case_when(
+      MonthDiff <= 0 ~
+        "This client has a homelessness start date in their entry that is after their
+        project start date. The information in the entry should reflect the client's
+      situation at the point of entry, so this date may have been incorrectly entered.",
+      MonthsHomelessPastThreeYears < 100 ~
+        "According to this client's entry, they experienced a single episode of homelessness
+        in the three years prior to their entry and the approximate start date of their
+        homelessness is known, but there was no response entered for the number of months
+        they experienced homelessness prior to this entry. It should be possible to determine
+        and enter the number of months homeless based on the homelessness start date and the
+      entry date.",
+      DateMonthsMismatch == 1 ~ 
+        "According to this client's entry, they experienced a single episode of homelessness
+        in the three years prior to their entry and the approximate start date of their
+        homelessness is known, but the recorded number of months they experienced homelessness
+        prior to this entry is inconsistent with the given dates. Please double check this
+      information for consistency and accuracy.")) %>%
+  filter(!is.na(Guidance)) %>%
+  select(all_of(vars_we_want))
+
 missing_living_situation <- served_in_date_range %>%
   select(
     all_of(vars_prep),
@@ -2464,6 +2513,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
+      invalid_months_times_homeless,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
@@ -2934,6 +2984,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
+      invalid_months_times_homeless,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
