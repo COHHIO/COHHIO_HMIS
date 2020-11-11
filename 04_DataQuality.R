@@ -781,6 +781,81 @@ rm(list = ls(pattern = "Top*"),
    rrh_stayers,
    hp_stayers)
 
+
+# Incorrect Destination ---------------------------------------------------
+
+# RRH
+
+enrolled_in_rrh <- served_in_date_range %>%
+  filter(ProjectType == 13) %>%
+  mutate(RRH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, RRH_range, "RRHProjectName" = ProjectName)
+
+should_be_rrh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_rrh, by = "PersonalID") %>%
+  filter(ProjectType != 13 &
+           ExitAdjust %within% RRH_range &
+           Destination != 31) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Rental by client, with RRH...\")",
+    Type = "Error",
+    Guidance = "This household appears to have an Entry into an RRH project that
+    overlaps their Exit from your project, but the Exit Destination from your
+    project does not indicate that the household exited to Rapid Rehousing. The 
+    correct Destination for households entering RRH from your project is 
+    \"Rental by client, with RRH or equivalent subsidy\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# PSH
+
+enrolled_in_psh <- served_in_date_range %>%
+  filter(ProjectType %in% c(3, 9)) %>%
+  mutate(PSH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, PSH_range, "PSHProjectName" = ProjectName)
+
+should_be_psh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_psh, by = "PersonalID") %>%
+  filter(!ProjectType %in% c(3, 9) &
+           ExitAdjust %within% PSH_range &
+           !Destination %in% c(3, 19, 26)) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Permanent housing (other 
+    than RRH)...\")",
+    Type = "Error",
+    Guidance = "This household appears to have an Entry into a PSH project that
+    overlaps their Exit from your project, but the Exit Destination from your
+    project does not indicate that the household exited to PSH. The 
+    correct Destination for households entering PSH from your project is 
+    \"Permanent housing (other than RRH) for formerly homeless persons\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# TH
+
+enrolled_in_th <- served_in_date_range %>%
+  filter(ProjectType == 2) %>%
+  mutate(TH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, TH_range, "THProjectName" = ProjectName)
+
+should_be_th_destination <- served_in_date_range %>%
+  left_join(enrolled_in_th, by = "PersonalID") %>%
+  filter(ProjectType != 2 &
+           ExitAdjust %within% TH_range &
+           Destination != 2) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Transitional housing...\")",
+    Type = "Error",
+    Guidance = "This household appears to have an Entry into a Transitional 
+    Housing project that overlaps their Exit from your project, but the Exit 
+    Destination from your project does not indicate that the household exited to 
+    Transitional Housing. The correct Destination for households entering TH from 
+    your project is \"Transitional housing for homeless persons (including 
+    homeless youth)\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+
 # CountyServed
 
 missing_county_served <- served_in_date_range %>%
@@ -2533,6 +2608,9 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       rent_paid_no_move_in,
       services_on_hh_members,
       services_on_hh_members_ssvf,
+      should_be_psh_destination,
+      should_be_rrh_destination,
+      should_be_th_destination,
       spdat_on_non_hoh,
       ssvf_missing_address,
       ssvf_missing_vamc,
@@ -2608,6 +2686,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       future_exits,
       hh_issues,
       incorrect_ee_type,
+      internal_old_outstanding_referrals,
       lh_without_spdat,
       missing_approx_date_homeless,
       missing_destination,
@@ -2615,8 +2694,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_LoS,
       missing_months_times_homeless,
       missing_residence_prior,
-      internal_old_outstanding_referrals,
       referrals_on_hh_members,
+      should_be_psh_destination,
+      should_be_rrh_destination,
+      should_be_th_destination,
       spdat_on_non_hoh,
       unsheltered_not_unsheltered,
       unsheltered_long_not_referred
