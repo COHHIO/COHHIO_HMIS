@@ -856,6 +856,68 @@ should_be_th_destination <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 
+# Missing Project Stay or Incorrect Destination ---------------------------
+
+# RRH
+
+destination_rrh <- served_in_date_range %>%
+  filter(Destination == 31)
+
+no_bos_rrh <- destination_rrh %>%
+  anti_join(enrolled_in_rrh, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing RRH Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to Rapid Rehousing, but there is no RRH project stay on the client. If the 
+    RRH project the household exited to is outside of the Balance of State or 
+    Mahoning CoCs, then no correction is necessary. If they received RRH services 
+    in the Balance of State CoC or Mahoning CoC, then this household is missing 
+    their RRH project stay. If they did not actually receive RRH services at all, 
+    the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# PSH
+
+destination_psh <- served_in_date_range %>%
+  filter(Destination == 3)
+
+no_bos_psh <- destination_psh %>%
+  anti_join(enrolled_in_psh, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing PSH Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to Permanent Supportive Housing, but there is no PSH project stay on the 
+    client. If the PSH project the household exited to is outside of the Balance 
+    of State CoC or Mahoning CoC, then no correction is necessary. If they 
+    entered PSH in the Balance of State CoC or Mahoning CoC, then this household 
+    is missing their PSH project stay. If they did not actually enter PSH at all, 
+    the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# TH
+
+destination_th <- served_in_date_range %>%
+  filter(Destination == 2)
+
+no_bos_th <- destination_th %>%
+  anti_join(enrolled_in_th, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing TH Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to Transitional Housing, but there is no TH project stay on the client. If the 
+    TH project that the household exited to is outside of the Balance of State 
+    CoC or Mahoning CoC, then no correction is necessary. If they went into a TH 
+    project in the Balance of State CoC or Mahoning CoC, then this household is 
+    missing their TH project stay. If they did not actually enter Transitional 
+    Housing at all, the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
 # CountyServed
 
 missing_county_served <- served_in_date_range %>%
@@ -2577,6 +2639,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       incorrect_ee_type,
       incorrect_path_contact_date,
       internal_old_outstanding_referrals,
+      invalid_months_times_homeless,
       lh_without_spdat,
       missing_approx_date_homeless,
       missing_client_location,
@@ -2588,7 +2651,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
-      invalid_months_times_homeless,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
@@ -2597,6 +2659,9 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
+      no_bos_rrh,
+      no_bos_psh,
+      no_bos_th,
       path_enrolled_missing,
       path_missing_los_res_prior,
       path_no_status_at_exit,
@@ -2694,6 +2759,9 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_LoS,
       missing_months_times_homeless,
       missing_residence_prior,
+      no_bos_rrh,
+      no_bos_psh,
+      no_bos_th,
       referrals_on_hh_members,
       should_be_psh_destination,
       should_be_rrh_destination,
@@ -2977,7 +3045,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       labs(x = "") +
       scale_fill_viridis_c(direction = -1) +
       theme_minimal(base_size = 18)
-    
+       
     dq_data_without_spdat_plot <- dq_past_year %>%
       filter(
         Type == "Warning" &
