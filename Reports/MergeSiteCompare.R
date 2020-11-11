@@ -251,9 +251,9 @@ svcs_yo <- read_xlsx(here("random_data/Merge_Services_yo.xlsx")) %>%
 
 svcs_bos_and_yo <- rbind(svcs_bos, svcs_yo) %>% unique()
 
-not_on_demo <- svcs_bos_and_yo %>% anti_join(svcs_demo) %>%
+not_on_demo <- svcs_bos %>% anti_join(svcs_demo) %>%
   filter(str_starts(Provider, "zz", negate = TRUE),
          ymd(DateAdded) <= mdy("10302020"))
 
-
-
+svcs_bos %>% filter(PersonalID == 215225 & ServiceCode =="FT-1000") ==
+svcs_demo %>% filter(PersonalID == 215225 & ServiceCode == "FT-1000")
