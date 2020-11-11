@@ -855,6 +855,29 @@ should_be_th_destination <- served_in_date_range %>%
   ) %>% 
   select(all_of(vars_we_want))
 
+# SH
+
+enrolled_in_sh <- served_in_date_range %>%
+  filter(ProjectType == 8) %>%
+  mutate(SH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, SH_range, "SHProjectName" = ProjectName)
+
+should_be_sh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_sh, by = "PersonalID") %>%
+  filter(ProjectType != 8 &
+           ExitAdjust %within% SH_range &
+           Destination != 18) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Safe Haven\")",
+    Type = "Error",
+    Guidance = "This household appears to have an Entry into a Safe Haven that 
+    overlaps their Exit from your project, but the Exit Destination from your 
+    project does not indicate that the household exited to a Safe Haven. The 
+    correct Destination for households entering SH from your project is 
+    \"Safe Haven\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
 
 # Missing Project Stay or Incorrect Destination ---------------------------
 
@@ -915,6 +938,24 @@ no_bos_th <- destination_th %>%
     project in the Balance of State CoC or Mahoning CoC, then this household is 
     missing their TH project stay. If they did not actually enter Transitional 
     Housing at all, the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# SH
+
+destination_sh <- served_in_date_range %>%
+  filter(Destination == 18)
+
+no_bos_sh <- destination_sh %>%
+  anti_join(enrolled_in_sh, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing Safe Haven Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to a Safe Haven, but there is no Entry in HMIS into a Safe Haven. Keep in 
+    mind that there is only one Safe Haven in the Balance of State and they are
+    no longer operating as of 1/1/2021. If you meant to indicate that the household
+    exited to a Domestic Violence shelter, please select \"Emergency shelter, ...\"."
   ) %>% 
   select(all_of(vars_we_want))
 
@@ -2662,6 +2703,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       no_bos_rrh,
       no_bos_psh,
       no_bos_th,
+      no_bos_sh,
       path_enrolled_missing,
       path_missing_los_res_prior,
       path_no_status_at_exit,
@@ -2676,6 +2718,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       should_be_psh_destination,
       should_be_rrh_destination,
       should_be_th_destination,
+      should_be_sh_destination,
       spdat_on_non_hoh,
       ssvf_missing_address,
       ssvf_missing_vamc,
@@ -2762,10 +2805,12 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       no_bos_rrh,
       no_bos_psh,
       no_bos_th,
+      no_bos_sh,
       referrals_on_hh_members,
       should_be_psh_destination,
       should_be_rrh_destination,
       should_be_th_destination,
+      should_be_sh_destination,
       spdat_on_non_hoh,
       unsheltered_not_unsheltered,
       unsheltered_long_not_referred
