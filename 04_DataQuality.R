@@ -1404,9 +1404,9 @@ check_eligibility <- served_in_date_range %>%
         Issue = "Future Entry Date",
         Type = "Warning",
         Guidance = "Users should not be entering a client into a project on a 
-        date in the future. There is no action needed, but going forward, please 
-        be sure that your data entry workflow is correct according to your 
-        project type."
+        date in the future. If the Entry Date is correct, there is no action 
+        needed, but going forward, please be sure that your data entry workflow 
+        is correct according to your project type."
       ) %>%
       select(all_of(vars_we_want))
     
