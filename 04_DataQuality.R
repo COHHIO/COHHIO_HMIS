@@ -787,7 +787,7 @@ rm(list = ls(pattern = "Top*"),
 # RRH
 
 enrolled_in_rrh <- served_in_date_range %>%
-  filter(ProjectType == 13) %>%
+  filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
   mutate(RRH_range = interval(EntryDate, ExitAdjust)) %>%
   select(PersonalID, RRH_range, "RRHProjectName" = ProjectName)
 
@@ -810,7 +810,7 @@ should_be_rrh_destination <- served_in_date_range %>%
 # PSH
 
 enrolled_in_psh <- served_in_date_range %>%
-  filter(ProjectType %in% c(3, 9)) %>%
+  filter(ProjectType %in% c(3, 9) & !is.na(MoveInDateAdjust)) %>%
   mutate(PSH_range = interval(EntryDate, ExitAdjust)) %>%
   select(PersonalID, PSH_range, "PSHProjectName" = ProjectName)
 
