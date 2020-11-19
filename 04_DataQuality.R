@@ -789,18 +789,37 @@ rm(list = ls(pattern = "Top*"),
 enrolled_in_rrh <- served_in_date_range %>%
   filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
   mutate(RRH_range = interval(EntryDate, ExitAdjust)) %>%
-  select(PersonalID, RRH_range, "RRHProjectName" = ProjectName)
+  select(PersonalID, 
+         "RRHMoveIn" = MoveInDateAdjust, 
+         RRH_range, 
+         "RRHProjectName" = ProjectName)
 
-should_be_rrh_destination <- served_in_date_range %>%
+maybe_rrh_destination <- served_in_date_range %>%
   left_join(enrolled_in_rrh, by = "PersonalID") %>%
   filter(ProjectType != 13 &
            ExitAdjust %within% RRH_range &
            Destination != 31) %>%
   mutate(
+    Issue = "Check Exit Destination (may be \"Rental by client, with RRH...\")",
+    Type = "Warning",
+    Guidance = "This household appears to have an Entry into an RRH project that
+    overlaps their Exit from your project. Typically this means the client moved
+    into a Rapid Rehousing unit after their stay with you. If that is true, the 
+    Destination should be \"Rental by client, with RRH...\". If you are sure the
+    current Destination is accurate, then please leave it the way it is."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+should_be_rrh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_rrh, by = "PersonalID") %>%
+  filter(ProjectType != 13 &
+           ExitDate == RRHMoveIn &
+           Destination != 31) %>%
+  mutate(
     Issue = "Incorrect Exit Destination (should be \"Rental by client, with RRH...\")",
     Type = "Error",
-    Guidance = "This household appears to have an Entry into an RRH project that
-    overlaps their Exit from your project, but the Exit Destination from your
+    Guidance = "This household appears to have a Move-In Date into an RRH project 
+    that matches their Exit from your project, but the Exit Destination from your
     project does not indicate that the household exited to Rapid Rehousing. The 
     correct Destination for households entering RRH from your project is 
     \"Rental by client, with RRH or equivalent subsidy\"."
@@ -812,21 +831,43 @@ should_be_rrh_destination <- served_in_date_range %>%
 enrolled_in_psh <- served_in_date_range %>%
   filter(ProjectType %in% c(3, 9) & !is.na(MoveInDateAdjust)) %>%
   mutate(PSH_range = interval(EntryDate, ExitAdjust)) %>%
-  select(PersonalID, PSH_range, "PSHProjectName" = ProjectName)
+  select(PersonalID, 
+         PSH_range, 
+         "PSHMoveIn" = MoveInDateAdjust,
+         "PSHProjectName" = ProjectName)
 
-should_be_psh_destination <- served_in_date_range %>%
+maybe_psh_destination <- served_in_date_range %>%
   left_join(enrolled_in_psh, by = "PersonalID") %>%
   filter(!ProjectType %in% c(3, 9) &
            ExitAdjust %within% PSH_range &
            !Destination %in% c(3, 19, 26)) %>%
   mutate(
+    Issue = "Check Exit Destination (may be \"Permanent housing (other 
+    than RRH)...\")",
+    Type = "Warning",
+    Guidance = "This household appears to have an Entry into a PSH project that
+    overlaps their Exit from your project. Typically this means the client moved
+    into a Permanent Supportive Housing unit after their stay with you. If that 
+    is true, the Destination should be 
+    \"Permanent housing (other than RRH) for formerly homeless persons\". If you 
+    are sure the current Destination is accurate, then please leave it the way 
+    it is."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+should_be_psh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_psh, by = "PersonalID") %>%
+  filter(!ProjectType %in% c(3, 9) &
+           ExitDate == PSHMoveIn &
+           !Destination %in% c(3, 19, 26)) %>%
+  mutate(
     Issue = "Incorrect Exit Destination (should be \"Permanent housing (other 
     than RRH)...\")",
     Type = "Error",
-    Guidance = "This household appears to have an Entry into a PSH project that
-    overlaps their Exit from your project, but the Exit Destination from your
-    project does not indicate that the household exited to PSH. The 
-    correct Destination for households entering PSH from your project is 
+    Guidance = "This household appears to have a Move-In Date into a PSH project
+    that matches their Exit from your project, but the Exit Destination from your
+    project does not indicate that the household exited to PSH. The correct 
+    Destination for households entering PSH from your project is 
     \"Permanent housing (other than RRH) for formerly homeless persons\"."
   ) %>% 
   select(all_of(vars_we_want))
@@ -2682,6 +2723,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       internal_old_outstanding_referrals,
       invalid_months_times_homeless,
       lh_without_spdat,
+      maybe_psh_destination,
+      maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_client_location,
       missing_county_served,
@@ -2796,6 +2839,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       incorrect_ee_type,
       internal_old_outstanding_referrals,
       lh_without_spdat,
+      maybe_psh_destination,
+      maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_destination,
       missing_county_served,
