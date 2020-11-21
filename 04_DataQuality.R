@@ -2297,7 +2297,7 @@ check_eligibility <- served_in_date_range %>%
     
     # AP No Recent Referrals --------------------------------------------------
     co_APs <- Project %>%
-      filter(ProjectType == 14) %>%
+      filter(ProjectType == 14 & ProjectID != 2372) %>% # not incl Mah CE
       select(
         ProjectID,
         OperatingStartDate,
