@@ -225,7 +225,7 @@ regions <- read_csv("public_data/Regions.csv",
   arrange(Region) %>%
   mutate(RegionName = if_else(
     Region == 0,
-    "Mahoning CoC",
+    "Mahoning County CoC",
     paste("Homeless Planning Region", Region)))
 # 
 # Project <- left_join(project_county, regions, by = "County")
