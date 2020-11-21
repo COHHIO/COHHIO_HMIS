@@ -2387,7 +2387,7 @@ check_eligibility <- served_in_date_range %>%
                 by = c("PersonalID")) %>%
       left_join(Referrals,
                 by = c("PersonalID")) %>%
-      filter(ProviderCreating == ProjectName,
+      filter(ProviderCreating == ProjectName &
              ProjectID != 1695) %>%
       select(all_of(vars_prep),
              ProviderCreating,
