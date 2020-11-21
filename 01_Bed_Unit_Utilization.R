@@ -55,7 +55,7 @@ small_inventory <- Inventory %>%
           is.na(InventoryEndDate)
       )
   ) &
-    Inventory$CoCCode == "OH-507")
+    Inventory$CoCCode %in% c("OH-507", "OH-504"))
 
 Beds <- inner_join(small_project, small_inventory, by = "ProjectID")
 
@@ -752,7 +752,7 @@ small_inventory <- Inventory %>%
               ymd(InventoryEndDate) >= today() |
                 is.na(InventoryEndDate)
             )) &
-           Inventory$CoCCode == "OH-507") %>%
+           Inventory$CoCCode %in% c("OH-507", "OH-504")) %>%
   select(
     ProjectID,
     HouseholdType,
