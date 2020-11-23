@@ -784,7 +784,7 @@ rm(list = ls(pattern = "Top*"),
 
 # Incorrect Destination ---------------------------------------------------
 
-# RRH
+# RRH mover inners only
 
 enrolled_in_rrh <- served_in_date_range %>%
   filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
@@ -826,7 +826,7 @@ should_be_rrh_destination <- served_in_date_range %>%
   ) %>% 
   select(all_of(vars_we_want))
 
-# PSH
+# PSH mover inners only
 
 enrolled_in_psh <- served_in_date_range %>%
   filter(ProjectType %in% c(3, 9) & !is.na(MoveInDateAdjust)) %>%
