@@ -66,7 +66,7 @@ tay <- Enrollment %>%
     TAY = if_else(max(AgeAtEntry) < 25 & max(AgeAtEntry) >= 16, 1, 0)
   ) %>%
   ungroup() %>%
-  filter(TAY == 1, !is.na(ProjectName))
+  filter(TAY == 1 & !is.na(ProjectName))
 
 # Leaver and Stayer HoHs who were served during the reporting period
 co_hohs_served <-  Enrollment %>%
