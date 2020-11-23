@@ -130,10 +130,18 @@ current_tay_hohs <- tay %>%
   filter(RelationshipToHoH == 1 & 
            is.na(ExitDate) & 
            ProjectType %in% c(1, 2, 4, 8)) %>%
+  group_by(ProjectName, ProjectType) %>%
+  summarise(TAYHHs = sum(TAY)) %>%
+  ungroup() %>%  
+  left_join(tay, by = c("ProjectName", "ProjectType")) %>%
+  filter(RelationshipToHoH == 1 & 
+           is.na(ExitDate) & 
+           ProjectType %in% c(1, 2, 4, 8)) %>%
   select(PersonalID,
          EnrollmentID,
          ProjectName,
-         ProjectType) %>%
+         ProjectType,
+         TAYHHs) %>%
   left_join(
     VeteranCE %>%
       select(PersonalID,
@@ -142,59 +150,41 @@ current_tay_hohs <- tay %>%
              ExpectedPHDate),
     by = c("PersonalID", "EnrollmentID")
   ) %>%
-  mutate(EngagementStatus = case_when(
+  mutate(HasPlan = if_else(
     !is.na(PHTrack) & PHTrack != "None" &
-      ymd(ExpectedPHDate) >= today() ~ "Has Current Housing Plan",
-    is.na(PHTrack) | PHTrack == "None" |
-      (!is.na(PHTrack) & (
-        ymd(ExpectedPHDate) < today() |
-          is.na(ExpectedPHDate)
-      )) ~ "No Current Housing Plan"
-  )) %>%
-  group_by(ProjectName, ProjectType, EngagementStatus) %>%
-  summarise(CurrentTAYCount = n()) %>%
-  spread(key = EngagementStatus, value = CurrentTAYCount) %>%
-  rename(HasCurrentHousingPlan = `Has Current Housing Plan`,
-         NoCurrentHousingPlan = `No Current Housing Plan`) %>%
-  ungroup()
-
-current_tay_hohs[is.na(current_tay_hohs)] <- 0
-
-CurrentTAYHHs <- tay %>%
-  filter(is.na(ExitDate) & 
-           ProjectType %in% c(1, 2, 4, 8) & 
-           RelationshipToHoH == 1) %>%
-  group_by(ProjectName) %>%
-  summarise(TAYHHs = n()) %>%
-  ungroup()
-
-current_tay_hohs <- current_tay_hohs %>%
-  left_join(CurrentTAYHHs, by = "ProjectName") %>%
+      !is.na(ExpectedPHDate) &
+      ymd(ExpectedPHDate) >= today(),
+    1,
+    0
+  )) %>% 
+  group_by(ProjectName, ProjectType, TAYHHs, HasPlan) %>%
+  summarise(HasPlan = sum(HasPlan)) %>%
+  ungroup() %>%
   mutate(
     Summary =
       case_when(
-        HasCurrentHousingPlan == 0 &
-          NoCurrentHousingPlan == 1 ~
+        HasPlan == 0 &
+          TAYHHs == 1 ~
           "This Transition Aged Youth household has no current Housing Plan",
-        HasCurrentHousingPlan == 0 &
-          NoCurrentHousingPlan > 1  ~
+        HasPlan == 0 &
+          TAYHHs > 1  ~
           "None of these Transition Aged Youth households have current Housing Plans",
-        HasCurrentHousingPlan == 1 &
-          NoCurrentHousingPlan == 0 ~
+        HasPlan == 1 &
+          TAYHHs == 1 ~
           "This Transition Aged Youth household has a current Housing Plan!",
-        HasCurrentHousingPlan > 1 &
-          NoCurrentHousingPlan == 0  ~
+        HasPlan == TAYHHs &
+          HasPlan > 0 ~
           "All Transition Aged Youth households in this project have current Housing Plans!",
-        HasCurrentHousingPlan == 1 &
-          NoCurrentHousingPlan > 0 ~
+        HasPlan == 1 &
+          HasPlan != TAYHHs ~
           paste(
-            HasCurrentHousingPlan,
+            HasPlan,
             "of these Transition Aged Youth households has a current Housing Plan"
           ),
-        HasCurrentHousingPlan > 1 &
-          NoCurrentHousingPlan > 0 ~
+        HasPlan > 1 &
+          HasPlan != TAYHHs ~
           paste(
-            HasCurrentHousingPlan,
+            HasPlan,
             "of these Transition Aged Youth households have current Housing Plans"
           )
       )
@@ -202,7 +192,7 @@ current_tay_hohs <- current_tay_hohs %>%
 
 rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 
    Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, 
-   Referrals, CurrentVeteranCounts, CurrentTAYHHs, Contacts, covid19, HUD_specs)
+   Referrals, CurrentVeteranCounts, Contacts, covid19, HUD_specs)
 
 rm(list = ls(pattern = "co_"))
 
