@@ -22,14 +22,11 @@ library(here)
 load(here("images/COHHIOHMIS.RData"))
 load(here("images/cohorts.RData"))
 
-# despite the fact we're pulling in usually more than 2 years of data, the 
-# utilization reporting will only go back 2 years. (decision based on lack of
-# a need to go back further and time to code all that.)
 FileEnd <- format.Date(today(), "%m-%d-%Y")
 FileStart <- format.Date(mdy("10012019"), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 
-# ACTUAL BEDS and EXPECTED UTILIZATION ------------------------------------
+# CURRENT BEDS and EXPECTED UTILIZATION -----------------------------------
 
 small_project <- Project %>%
   filter((ProjectType == 13 |
@@ -71,10 +68,16 @@ small_inventory <- Inventory  %>%
     BedEndDate,
     Availability
   )
+# provider-hhtype granularity
+overflow_and_rrh_beds <- small_project %>%
+  inner_join(small_inventory, by = "ProjectID") %>%
+  mutate(DaysBedsAvailable = difftime(ymd(BedEndDate), ymd(BedStartDate),
+                                      units = "days")) %>%
+  group_by(ProjectID, ProjectName, ProjectType, HouseholdType) %>%
+  summarise(DaysBedsAvailable = sum(DaysBedsAvailable)) %>%
+  ungroup()
 
-overflow_and_rrh_beds <-
-  inner_join(small_project, small_inventory, by = "ProjectID")
-
+# provider granularity
 BedCapacity <- small_project %>%
   inner_join(small_inventory, by = "ProjectID") %>%
   mutate(HHType = case_when(
@@ -82,7 +85,7 @@ BedCapacity <- small_project %>%
     HouseholdType == 3 ~ "FAM",
     HouseholdType == 4 ~ "CHILDONLY"
   ),
-  PossibleBedNights = as.numeric(difftime(
+  DaysBedsAvailable = as.numeric(difftime(
     ymd(BedEndDate), 
     ymd(BedStartDate), 
     units = "days"
@@ -90,20 +93,23 @@ BedCapacity <- small_project %>%
   select(ProjectID,
          HHType,
          BedInventory,
-         PossibleBedNights) %>%
+         DaysBedsAvailable) %>%
   pivot_wider(
     names_from = HHType,
     values_from = BedInventory,
-    names_prefix = "Actual",
+    names_prefix = "Current",
     values_fill = 0
   )
 
 # ACTUAL UTILIZATION AND EXPECTED BEDS ------------------------------------
 
+# ee granularity
 small_enrollment <- Enrollment %>% 
   select(PersonalID,
          EnrollmentID,
          ProjectID,
+         ProjectName,
+         ProjectType,
          EntryDate,
          EntryAdjust,
          MoveInDateAdjust,
@@ -114,31 +120,12 @@ small_enrollment <- Enrollment %>%
          MoveInDate) %>%
   filter(served_between(., FileStart, FileEnd))
 
-Utilizers <- semi_join(small_enrollment, overflow_and_rrh_beds, by = "ProjectID") 
-
-Utilizers <- left_join(Utilizers, overflow_and_rrh_beds, by = "ProjectID") %>%
-  select(
-    PersonalID,
-    EnrollmentID,
-    ProjectID,
-    ProjectName,
-    ProjectType,
-    HouseholdID,
-    RelationshipToHoH,
-    EntryDate,
-    EntryAdjust,
-    MoveInDate,
-    MoveInDateAdjust,
-    ExitDate,
-    ExitAdjust
-  )
-
-# filtering out any fake training providers
-utilizers_clients <- Utilizers %>%
+# ee granularity, filtered to moved-in rrhs & es overflows
+Utilizers <- small_enrollment %>%
+  semi_join(overflow_and_rrh_beds, by = "ProjectID") %>%
   mutate(StayWindow = interval(ymd(EntryAdjust), ymd(ExitAdjust))) %>%
   filter(
-    int_overlaps(StayWindow, FilePeriod) &
-      !ProjectID %in% c(1775, 1695, fake_projects))
+    int_overlaps(StayWindow, FilePeriod))
 
 
 # function for adding bed nights per ee
@@ -164,40 +151,56 @@ bed_nights_per_ee <- function(table, interval) {
             ),
             # give it to me in days
             units = "days"
-          )), NULL
+          ))
+          , NULL
   )
 }
-
-utilizers_clients <- utilizers_clients %>%
+# adding bed nights data
+utilizers_clients <- Utilizers %>%
   mutate(
-    FilePeriod = bed_nights_per_ee(utilizers_clients, FilePeriod),
+    BedNights = bed_nights_per_ee(Utilizers, FilePeriod),
     HHType = if_else(str_detect(HouseholdID, fixed("s_")), "IND", "FAM")
   ) %>%
-  select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, 
-         EntryDate, MoveInDate, ExitDate, FilePeriod, HHType)
+  select(ProjectID, PersonalID, EnrollmentID, 
+         EntryDate, MoveInDate, ExitDate, BedNights, HHType)
 
-utilizers_clients <- as.data.frame(utilizers_clients)
-
-# making granularity by provider instead of by enrollment id
-utilizers_clients <- utilizers_clients %>%
-  group_by(ProjectID, ProjectName, ProjectType, HHType) %>%
-  summarise(BedNights = sum(FilePeriod, na.rm = TRUE)) %>%
-  ungroup()	  
-
-
+# provider granularity
+project_bed_nights <- utilizers_clients %>%
+  group_by(ProjectID, HHType) %>%
+  summarise(ProjectBedNightsServed = sum(BedNights, na.rm = TRUE)) %>%
+  ungroup()	%>%
+  pivot_wider(names_from = HHType,
+              values_from = ProjectBedNightsServed,
+              names_prefix = "BedNightsServed",
+              values_fill = 0)
 
 # Estimates ---------------------------------------------------------------
 
-EstimatedBeds <- utilizers_clients %>%
-  mutate(ApproxBeds = BedNights / PossibleBedNights) %>%
-  pivot_wider(names_from = HHType,
-              values_from = ApproxBeds,
-              names_prefix = "Estimated") %>%
+EstimatedBeds <- BedCapacity %>%
+  left_join(project_bed_nights, by = "ProjectID") %>%
+  left_join(small_project[c("ProjectID", "ProjectName")], by = "ProjectID") %>%
   mutate(
-    DifferenceFAM = round(EstimatedFAM - ActualFAM, digits = 1),
-    DifferenceIND = round(EstimatedIND - ActualIND, digits = 1),
+    EstimatedFAM = BedNightsServedFAM / DaysBedsAvailable,
+    EstimatedIND = BedNightsServedIND / DaysBedsAvailable,
+    DifferenceFAM = round(EstimatedFAM - CurrentFAM, digits = 1),
+    DifferenceIND = round(EstimatedIND - CurrentIND, digits = 1),
     EstimatedFAM = round(EstimatedFAM, digits = 1),
-    EstimatedIND = round(EstimatedIND, digits = 1)
+    EstimatedIND = round(EstimatedIND, digits = 1),
+    SortColumn = abs(DifferenceFAM + DifferenceIND)
+  ) %>%
+  arrange(desc(SortColumn)) %>%
+  select(
+    ProjectID,
+    ProjectName,
+    DaysBedsAvailable,
+    CurrentFAM,
+    BedNightsServedFAM,
+    EstimatedFAM,
+    DifferenceFAM,
+    CurrentIND,
+    BedNightsServedIND,
+    EstimatedIND,
+    DifferenceIND
   )
 
 write_csv(EstimatedBeds, "random_data/RRH_overflow_bed_changes.csv")
