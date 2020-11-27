@@ -23,7 +23,8 @@ load("images/COHHIOHMIS.RData")
 # clients currently entered into a homeless project in our system
 
 co_currently_homeless <- co_clients_served %>%
-  filter(is.na(ExitDate) &
+  filter((is.na(ExitDate) |
+            ExitDate > today()) &
            (ProjectType %in% c(4, lh_project_types) |
               (
                 ProjectType %in% c(ph_project_types) &
@@ -40,6 +41,113 @@ co_currently_homeless <- co_clients_served %>%
     EntryDate,
     AgeAtEntry
   )
+
+# Check Whether Each Client Has Income ---------------------------------
+
+# getting income-related data and data collection stages. this will balloon
+# out the number of rows per client, listing each yes/no update, then, using
+# DateCreated, it picks out the most recent answer, keeping only that one
+
+income_data <- co_currently_homeless %>%
+  left_join(
+    IncomeBenefits %>%
+      select(
+        PersonalID,
+        EnrollmentID,
+        IncomeFromAnySource,
+        DateCreated,
+        DataCollectionStage
+      ),
+    by = c("PersonalID", "EnrollmentID")
+  ) %>%
+  mutate(DateCreated = ymd_hms(DateCreated),
+         IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
+                                       if_else(AgeAtEntry >= 18 |
+                                                 is.na(AgeAtEntry), 99, 0),
+                                       IncomeFromAnySource)) %>%
+  group_by(PersonalID, EnrollmentID) %>%
+  arrange(desc(DateCreated)) %>%
+  slice(1L) %>%
+  ungroup() %>%
+  select(PersonalID,
+         EnrollmentID,
+         IncomeFromAnySource)
+
+# Check Whether Each Client Has Any Indication of Disability ------------
+
+# this checks the enrollment's 1.3 and 4.02 records to catch potential 
+# disabling conditions that may be used to determine PSH eligibility but 
+# were not reported in 3.08. If any of these three data elements (1.3, 
+# 4.02, 3.08) suggest the presence of a disabling condition, this section 
+# flags that enrollment as belonging to a disabled client. Otherwise,
+# the enrollment is marked not disabled.
+
+extended_disability <- co_currently_homeless %>%
+  left_join(Disabilities, by = c("EnrollmentID"))  %>%
+  group_by(EnrollmentID) %>%
+  mutate(D_Disability = if_else(DisabilityResponse == 1 &
+                                  IndefiniteAndImpairs != 0, 1, 0),
+         D_Disability = max(D_Disability)) %>%
+  select(EnrollmentID, D_Disability) %>%
+  left_join(IncomeBenefits, by = c("EnrollmentID")) %>%
+  mutate(I_Disability = if_else(SSDI == 1 |
+                                  VADisabilityService == 1 |
+                                  VADisabilityNonService == 1 |
+                                  PrivateDisability == 1, 
+                                1, 0),
+         I_Disability = max(I_Disability)) %>%
+  select(EnrollmentID, D_Disability, I_Disability) %>%
+  ungroup() %>%
+  distinct() %>%
+  left_join(Enrollment, by = c("EnrollmentID")) %>%
+  mutate(any_disability = case_when(D_Disability == 1 |
+                                    I_Disability == 1 |
+                                    DisablingCondition == 1 ~ 1, 
+                                    TRUE ~ 0)) %>%
+  select(EnrollmentID, any_disability)
+
+# adding household aggregations into the full client list
+co_currently_homeless <- co_currently_homeless %>%
+  left_join(
+    income_data, 
+    by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(extended_disability, by = "EnrollmentID") %>%
+  left_join(
+    Enrollment %>%
+      select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
+             DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
+             MonthsHomelessPastThreeYears, DisablingCondition),
+    by = c("PersonalID",
+           "EnrollmentID",
+           "HouseholdID")
+  ) %>%
+  mutate(SinglyChronic =
+           if_else(((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
+                       !is.na(DateToStreetESSH)) |
+                      (
+                        MonthsHomelessPastThreeYears %in% c(112, 113) &
+                          TimesHomelessPastThreeYears == 4 &
+                          !is.na(MonthsHomelessPastThreeYears) &
+                          !is.na(TimesHomelessPastThreeYears)
+                      )
+           ) &
+             DisablingCondition == 1 &
+             !is.na(DisablingCondition), 1, 0)) %>%
+  group_by(PersonalID) %>%
+  mutate(SinglyChronic = max(SinglyChronic)) %>%
+  ungroup() %>%
+  group_by(HouseholdID) %>%
+  mutate(HouseholdSize = length(PersonalID),
+         IncomeInHH = max(if_else(IncomeFromAnySource == 1, 100, IncomeFromAnySource)),
+         IncomeInHH = if_else(IncomeInHH == 100, 1, IncomeInHH),
+         DisabilityInHH = max(if_else(any_disability == 1, 1, 0)),
+         ChronicStatus = if_else(max(SinglyChronic) == 1, "Chronic", "Not Chronic")
+  ) %>%
+  ungroup() %>%
+  select("PersonalID", "ProjectName", "ProjectType", "HouseholdID", "EnrollmentID",
+         "RelationshipToHoH", "VeteranStatus", "EntryDate", "AgeAtEntry",
+         "DisablingCondition", "HouseholdSize", "IncomeInHH", "DisabilityInHH",
+         "ChronicStatus")
 
 # Account for Multiple EEs -------------------------------------------------
 
@@ -134,7 +242,11 @@ hohs <- active_list %>%
   
 
 active_list <- active_list %>%
-  left_join(hohs, by = c("HouseholdID", "PersonalID"))
+  left_join(hohs, by = c("HouseholdID", "PersonalID")) %>%
+  group_by(HouseholdID) %>%
+  mutate(correctedhoh = if_else(is.na(correctedhoh), 0, 1),
+         HH_DQ_Issue = max(correctedhoh)) %>%
+  ungroup()
 
 # COVID-19 ----------------------------------------------------------------
 
@@ -260,27 +372,17 @@ covid_hhs <- active_list %>%
 active_list <- active_list %>%
   left_join(covid_hhs, by = c("PersonalID", "HouseholdID"))
 
-# time to collapse from clients to hohs!
-hh_size <- active_list %>%
-  group_by(HouseholdID) %>%
-  summarise(HouseholdSize = n()) %>%
-  ungroup() 
-
-active_list <- active_list %>%
-  right_join(hh_size, by = "HouseholdID")
-
-# Adding in Disability Status of HH, County, PHTrack ----------------------
+# Adding in TAY, County, PHTrack ----------------------
 
 # getting whatever data's needed from the Enrollment data frame, creating
 # columns that tell us something about each household and some that are about
 # each client
-disability_data <- active_list %>%
+additional_data <- active_list %>%
   left_join(
     Enrollment %>%
       select(
         PersonalID,
         HouseholdID,
-        DisablingCondition,
         CountyServed,
         PHTrack,
         ExpectedPHDate
@@ -290,7 +392,6 @@ disability_data <- active_list %>%
   group_by(HouseholdID) %>%
   mutate(
     CountyServed = if_else(is.na(CountyServed), "MISSING County", CountyServed),
-    DisabilityInHH = max(if_else(DisablingCondition == 1, 1, 0)),
     TAY = if_else(max(AgeAtEntry) < 25 & max(AgeAtEntry) >= 16, 1, 0),
     PHTrack = if_else(
       !is.na(PHTrack) &
@@ -301,7 +402,7 @@ disability_data <- active_list %>%
   select(-AgeAtEntry)
 
 # saving these new columns back to the active list
-active_list <- disability_data
+active_list <- additional_data
 
 
 
@@ -338,39 +439,6 @@ active_list <- county %>%
                                 CountyServed)) %>%
   select(-starts_with("User"))
 
-# Indicate if the Household Has No Income ---------------------------------
-
-# getting income-related data and data collection stages. this will balloon
-# out the number of rows per client, listing each yes/no update, then, using
-# DateCreated, it picks out the most recent answer, keeping only that one
-income_data <- active_list %>%
-  left_join(
-    IncomeBenefits %>%
-      select(
-        PersonalID,
-        EnrollmentID,
-        IncomeFromAnySource,
-        DateCreated,
-        DataCollectionStage
-      ),
-    by = c("PersonalID", "EnrollmentID")
-  ) %>%
-  mutate(DateCreated = ymd_hms(DateCreated),
-         IncomeFromAnySource = if_else(is.na(IncomeFromAnySource),
-                                       99,
-                                       IncomeFromAnySource)) %>%
-  group_by(PersonalID, EnrollmentID) %>%
-  arrange(desc(DateCreated)) %>%
-  slice(1L) %>%
-  ungroup() %>%
-  select(PersonalID,
-         EnrollmentID,
-         IncomeFromAnySource)
-  
-# adding the column into the active list
-active_list <- active_list %>%
-  left_join(income_data, by = c("PersonalID", "EnrollmentID")) 
-  
 # Add in Score ------------------------------------------------------------
 
 # taking the most recent score on the client, but this score cannot be over a
@@ -386,52 +454,18 @@ scores_staging <- Scores %>%
 active_list <- active_list %>%
   left_join(scores_staging, by = "PersonalID")
 
-# Add Chronicity ----------------------------------------------------------
-
-# creating a small basic dataframe to work with
-smallEnrollment <- Enrollment %>%
-  select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
-         DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
-         MonthsHomelessPastThreeYears)
-
-# getting only the independently-chronic clients. they're chronic right now
-# and because of *their own* homeless history
-singly_chronic <-
-  active_list %>%
-  left_join(smallEnrollment,
-            by = c("PersonalID",
-                   "EnrollmentID",
-                   "HouseholdID")) %>%
-  mutate(SinglyChronic =
-           if_else(((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
-                       !is.na(DateToStreetESSH)) |
-                      (
-                        MonthsHomelessPastThreeYears %in% c(112, 113) &
-                          TimesHomelessPastThreeYears == 4 &
-                          !is.na(MonthsHomelessPastThreeYears) &
-                          !is.na(TimesHomelessPastThreeYears)
-                      )
-           ) &
-             DisablingCondition == 1 &
-             !is.na(DisablingCondition), 1, 0))
-
-# pulling all EEs with the Chronic designation, marking all hh members of anyone
-# with a Chronic marker as also Chronic
-household_chronic <- singly_chronic %>%
-  group_by(HouseholdID) %>%
-  mutate(
-    ChronicHousehold = sum(SinglyChronic, na.rm = TRUE),
-    ChronicStatus = case_when(
-      ChronicHousehold > 0 ~ "Chronic",
-      ChronicHousehold == 0 ~ "Not Chronic"
-    )
-  ) %>%
-  ungroup() %>%
-  select(-ChronicHousehold)
+# Add Additional Chronic Statuses ---------------------------------------------
 
 # adds current days in ES or SH projects to days homeless prior to entry and if
 # it adds up to 365 or more, it marks the client as AgedIn
-agedIntoChronicity <- household_chronic %>%
+agedIntoChronicity <- active_list %>%
+  left_join(Enrollment %>%
+              select(EnrollmentID, PersonalID, HouseholdID, LivingSituation, 
+                     DateToStreetESSH, TimesHomelessPastThreeYears, ExitAdjust,
+                     MonthsHomelessPastThreeYears),
+            by = c("PersonalID",
+                   "EnrollmentID",
+                   "HouseholdID")) %>%
   mutate(
     DaysHomelessInProject = difftime(ymd(ExitAdjust),
                                      ymd(EntryDate),
@@ -480,6 +514,7 @@ nearly_chronic <- agedIntoChronicity %>%
   )
   
 active_list <- active_list %>%
+  select(-ChronicStatus) %>%
   left_join(
     nearly_chronic %>%
       select("PersonalID",
@@ -504,13 +539,8 @@ active_list <- active_list %>%
 
 active_list <- active_list %>%
   mutate(
-    HH_DQ_issue = if_else(
-      correctedhoh == 1 & !is.na(correctedhoh),
-      1,
-      0
-    ),
-    HoH_Adjust = case_when(correctedhoh == 1 ~ 1,
-                           is.na(correctedhoh) ~ hoh)
+    HoH_Adjust = case_when(HH_DQ_Issue == 1 ~ correctedhoh,
+                           HH_DQ_Issue == 0 ~ hoh)
   ) %>%
   filter(HoH_Adjust == 1) %>%
   select(-correctedhoh, -RelationshipToHoH, -hoh, -HoH_Adjust)
@@ -539,7 +569,11 @@ who_has_referrals <- active_list %>%
   left_join(Referrals %>%
               filter(ReferralDate >= today() - days(14) &
                        ReferralOutcome == "Accepted" &
-                       ReferToPTC %in% c(3, 9, 13)),
+                       ReferToPTC %in% c(3, 9, 13)) %>%
+              group_by(PersonalID) %>%
+              arrange(desc(ymd(ReferralDate))) %>%
+              slice(1L) %>%
+              ungroup(),
             by = c("PersonalID")) %>%
   select(PersonalID,
          HouseholdID,
@@ -617,7 +651,7 @@ active_list <- active_list %>%
   mutate(
     VeteranStatus = translate_HUD_yes_no(VeteranStatus),
     DisabilityInHH = translate_HUD_yes_no(DisabilityInHH),
-    IncomeFromAnySource = translate_HUD_yes_no(IncomeFromAnySource),
+    IncomeFromAnySource = translate_HUD_yes_no(IncomeInHH),
     TAY = case_when(TAY == 1 ~ "Yes",
                     TAY == 0 ~ "No",
                     is.na(TAY) ~ "Unknown"), 
@@ -657,7 +691,8 @@ active_list <- active_list %>%
         is.na(PHTrack) ~ 
         "No Entry or accepted Referral into PSH/RRH, and no current Permanent Housing Track"
     )
-  ) 
+  ) %>%
+  select(-IncomeInHH)
 
 rm(list = ls()[!(ls() %in% c("active_list"))])
 

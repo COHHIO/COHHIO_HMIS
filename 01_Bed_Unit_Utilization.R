@@ -55,7 +55,7 @@ small_inventory <- Inventory %>%
           is.na(InventoryEndDate)
       )
   ) &
-    Inventory$CoCCode == "OH-507")
+    Inventory$CoCCode %in% c("OH-507", "OH-504"))
 
 Beds <- inner_join(small_project, small_inventory, by = "ProjectID")
 
@@ -698,12 +698,14 @@ utilization_unit <- left_join(UnitCapacity,
   select(ProjectID,
          ProjectName,
          ProjectType,
+         # FilePeriod,
          starts_with("Month"))
 
 rm(UnitCapacity, HHNights, Beds, Utilizers)
 
 names(utilization_unit) <- 
-  c("ProjectID", "ProjectName", "ProjectType",
+  c("ProjectID", "ProjectName", "ProjectType", 
+    # "FilePeriod",
     format.Date(int_start(FirstMonth), "%m%d%Y"),
     format.Date(int_start(SecondMonth), "%m%d%Y"),
     format.Date(int_start(ThirdMonth), "%m%d%Y"),
@@ -750,7 +752,7 @@ small_inventory <- Inventory %>%
               ymd(InventoryEndDate) >= today() |
                 is.na(InventoryEndDate)
             )) &
-           Inventory$CoCCode == "OH-507") %>%
+           Inventory$CoCCode %in% c("OH-507", "OH-504")) %>%
   select(
     ProjectID,
     HouseholdType,
@@ -883,6 +885,20 @@ possible bed nights (330), which is: 91%!"
 # removing all the Value objects we created as those are not used in the apps
 rm(list = ls(all.names = TRUE, pattern = "Month$"))
 rm(list = ls(all.names = TRUE, pattern = "co_"))
+
+
+# Find Outliers for HIC Purposes ------------------------------------------
+
+# utilization_unit_overall <- utilization_unit %>%
+#   select(ProjectID, ProjectName, ProjectType, FilePeriod)
+# 
+# outliers_hi <- subset(utilization_unit_overall,
+#                       FilePeriod > quantile(FilePeriod, prob = 0.90))
+# 
+# outliers_lo <- subset(utilization_unit_overall,
+#                       FilePeriod < quantile(FilePeriod, prob = 0.03))
+# 
+# outliers <- rbind(outliers_hi, outliers_lo)
 
 rm(Contacts, covid19, regions, ServiceAreas)
 

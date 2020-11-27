@@ -20,6 +20,7 @@ library(HMIS)
 
 source("04_Guidance.R")
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
 
 va_funded <- Funder %>%
   filter(Funder %in% c(27, 30, 33, 37:42, 45)) %>%
@@ -216,11 +217,11 @@ dq_ssn <- served_in_date_range %>%
     Guidance = case_when(
       Issue == "Don't Know/Refused SSN" ~ guidance_dkr_data,
       Issue == "Missing SSN" ~ guidance_missing_pii,
-      Issue == "Invalid SSN" ~ "The Social Security Number does not conform with standards set by the
-      Social Security Administration. This includes rules like every SSN is
-      exactly 9 digits and cannot have certain number patterns. Correct by
-      navigating to the client's record, then clicking the Client Profile tab,
-      then click into the Client Record pencil to correct the data."
+      Issue == "Invalid SSN" ~ "The Social Security Number does not conform with 
+      standards set by the Social Security Administration. This includes rules 
+      like every SSN is exactly 9 digits and cannot have certain number patterns. 
+      Correct by navigating to the client's record, then clicking the Client 
+      Profile tab, then click into the Client Record pencil to correct the data."
     )
   ) %>%
   filter(!is.na(Issue)) %>%
@@ -519,6 +520,57 @@ dkr_months_times_homeless <- served_in_date_range %>%
          Guidance = guidance_dkr_data) %>%
   select(all_of(vars_we_want))
 
+invalid_months_times_homeless <- served_in_date_range %>%
+  select(
+    all_of(vars_prep),
+    AgeAtEntry,
+    RelationshipToHoH,
+    MonthsHomelessPastThreeYears,
+    TimesHomelessPastThreeYears,
+    DateToStreetESSH
+  ) %>%
+  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
+           ymd(EntryDate) >= mdy("10012016") &
+           TimesHomelessPastThreeYears == 1 &
+           !is.na(DateToStreetESSH)
+  ) %>%
+  mutate(
+    MonthHomelessnessBegan = floor_date(DateToStreetESSH, "month"),
+    MonthEnteredProgram = floor_date(EntryDate, "month"),
+    MonthDiff = interval(MonthHomelessnessBegan, MonthEnteredProgram) %/% months(1) + 1,
+    MonthDiff = if_else(MonthDiff >= 13, 13, MonthDiff),
+    DateMonthsMismatch = if_else(MonthsHomelessPastThreeYears - MonthDiff != 100, 1, 0),
+    Issue = case_when(
+      MonthDiff <= 0 ~
+        "Homelessness Start Date Later Than Entry",
+      MonthsHomelessPastThreeYears < 100 ~
+        "Number of Months Homeless Can Be Determined",
+      DateMonthsMismatch == 1 ~ 
+        "Invalid Homelessness Start Date/Number of Months Homeless"),
+    Type = "Warning",
+    Guidance = case_when(
+      MonthDiff <= 0 ~
+        "This client has an Approximate Date Homeless in their Entry that is after 
+        their Entry Date. The information in the Entry should reflect the 
+        client's situation at the point of Entry, so this date may have been 
+        incorrectly entered.",
+      MonthsHomelessPastThreeYears < 100 ~
+        "According to this client's entry, they experienced a single episode of 
+        homelessness in the three years prior to their entry and the approximate 
+        start date of their homelessness is known, but there was no response 
+        entered for the number of months they experienced homelessness prior to 
+        this entry. It should be possible to determine and enter the number of 
+        months homeless based on the Approximate Date Homeless and the Entry Date.",
+      DateMonthsMismatch == 1 ~ 
+        "According to this client's entry, they experienced a single episode of 
+        homelessness in the three years prior to their entry and the approximate 
+        start date of their homelessness is known, but the recorded number of 
+        months they experienced homelessness prior to this entry is inconsistent 
+        with the given dates. Please double-check this information for 
+        consistency and accuracy.")) %>%
+  filter(!is.na(Guidance)) %>%
+  select(all_of(vars_we_want))
+
 missing_living_situation <- served_in_date_range %>%
   select(
     all_of(vars_prep),
@@ -656,11 +708,12 @@ conflicting_disabilities <- served_in_date_range %>%
   mutate(
     Issue = "Conflicting Disability of Long Duration yes/no",
     Type = "Error",
-    Guidance = "If the user answered \"Yes\" to the \"Does the client have a disabling
-    condition?\", then there should be a disability subassessment that
+    Guidance = "If the user answered \"Yes\" to the \"Does the client have a 
+    disabling condition?\", then there should be a disability subassessment that
     indicates the disability determination is Yes *and* the \"If yes,... long
     duration\" question is Yes. Similarly if the user answered \"No\", the 
-    client has that type of disability"
+    client should not have any disability subassessments that indicate that they
+    do have a Disabling Condition."
   ) %>%
   select(all_of(vars_we_want))
 
@@ -668,74 +721,356 @@ rm(smallDisabilities)
 
 # Extremely Long Stayers --------------------------------------------------
 
-th_stayers <- served_in_date_range %>%
-  select(all_of(vars_prep)) %>%
+th_stayers_bos <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
   mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) %>%
   filter(is.na(ExitDate) &
-           ProjectType == 2)
+           ProjectType == 2 &
+           !ProjectID %in% c(mahoning_projects))
 
-Top2_TH <- subset(th_stayers, Days > quantile(Days, prob = 1 - 2 / 100))
-
-rrh_stayers <- served_in_date_range %>%
-  select(all_of(vars_prep)) %>%
+th_stayers_mah <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) %>%
   filter(is.na(ExitDate) &
-           ProjectType == 13) %>%
+           ProjectType == 2 &
+           ProjectID %in% c(mahoning_projects))
+
+Top2_TH_bos <- subset(th_stayers_bos, Days > quantile(Days, prob = 1 - 2 / 100))
+Top2_TH_mah <- subset(th_stayers_mah, Days > quantile(Days, prob = 1 - 2 / 100))
+
+rrh_stayers_bos <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 13 &
+           !ProjectID %in% c(mahoning_projects)) %>%
   mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
 
-Top2_RRH <- subset(rrh_stayers, Days > quantile(Days, prob = 1 - 2 / 100))
-
-es_stayers <- served_in_date_range %>%
-  select(all_of(vars_prep)) %>%
+rrh_stayers_mah <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
   filter(is.na(ExitDate) &
-           ProjectType == 1) %>%
+           ProjectType == 13 &
+           ProjectID %in% c(mahoning_projects)) %>%
   mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
 
-Top2_ES <- subset(es_stayers, Days > quantile(Days, prob = 1 - 2 / 100))
+Top2_RRH_bos <- subset(rrh_stayers_bos, Days > quantile(Days, prob = 1 - 2 / 100))
+Top2_RRH_mah <- subset(rrh_stayers_mah, Days > quantile(Days, prob = 1 - 2 / 100))
 
-psh_stayers <- served_in_date_range %>%
-  select(all_of(vars_prep)) %>%
+es_stayers_bos <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
   filter(is.na(ExitDate) &
-           ProjectType == 3) %>%
+           ProjectType == 1 &
+           !ProjectID %in% c(mahoning_projects)) %>%
   mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
 
-Top1_PSH <- subset(psh_stayers, Days > quantile(Days, prob = 1 - 1 / 100))
-
-hp_stayers <- served_in_date_range %>%
-  select(all_of(vars_prep)) %>%
+es_stayers_mah <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
   filter(is.na(ExitDate) &
-           ProjectType == 12) %>%
+           ProjectType == 1 &
+           ProjectID %in% c(mahoning_projects)) %>%
   mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
 
-Top5_HP <- subset(hp_stayers, Days > quantile(Days, prob = 1 - 5 / 100))
+Top2_ES_bos <- subset(es_stayers_bos, Days > quantile(Days, prob = 1 - 2 / 100))
+Top2_ES_mah <- subset(es_stayers_mah, Days > quantile(Days, prob = 1 - 2 / 100))
 
-extremely_long_stayers <- rbind(Top1_PSH,
-                                Top2_ES,
-                                Top2_RRH,
-                                Top2_TH,
-                                Top5_HP) %>%
+psh_stayers_bos <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 3 &
+           !ProjectID %in% c(mahoning_projects)) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+psh_stayers_mah <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 3 &
+           ProjectID %in% c(mahoning_projects)) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+Top1_PSH_bos <- subset(psh_stayers_bos, Days > quantile(Days, prob = 1 - 1 / 100))
+Top1_PSH_mah <- subset(psh_stayers_mah, Days > quantile(Days, prob = 1 - 1 / 100))
+
+hp_stayers_bos <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 12 &
+           !ProjectID %in% c(mahoning_projects)) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+hp_stayers_mah <- served_in_date_range %>%
+  select(all_of(vars_prep), ProjectID) %>%
+  filter(is.na(ExitDate) &
+           ProjectType == 12 &
+           ProjectID %in% c(mahoning_projects)) %>%
+  mutate(Days = as.numeric(difftime(today(), ymd(EntryDate)))) 
+
+Top5_HP_bos <- subset(hp_stayers_bos, Days > quantile(Days, prob = 1 - 5 / 100))
+Top10_HP_mah <- subset(hp_stayers_mah, Days > quantile(Days, prob = 90 / 100))
+
+extremely_long_stayers <- rbind(Top1_PSH_bos,
+                                Top2_ES_bos,
+                                Top2_RRH_bos,
+                                Top2_TH_bos,
+                                Top5_HP_bos,
+                                Top1_PSH_mah,
+                                Top2_ES_mah,
+                                Top2_RRH_mah,
+                                Top2_TH_mah,
+                                Top10_HP_mah) %>%
   mutate(
     Issue = "Extremely Long Stayer",
     Type = "Warning",
-    Guidance = "This client is showing as an outlier for Length of Stay
-         for this project type in the Balance of State CoC. Please verify that
+    Guidance = paste(
+      "This client is showing as an outlier for Length of Stay for this project 
+      type in the",
+      if_else(
+        ProjectID %in% c(mahoning_projects),
+        "Mahoning County",
+        "Balance of State"
+      ),
+      "CoC. Please verify that
          this client is still in your project. If they are, be sure there are no
          alternative permanent housing solutions for this client. If the client
          is no longer in your project, please enter their Exit Date as the
          closest estimation of the day they left your project."
+    )
   ) %>% 
   select(all_of(vars_we_want))
 
 rm(list = ls(pattern = "Top*"),
-   es_stayers,
-   th_stayers,
-   psh_stayers,
-   rrh_stayers,
-   hp_stayers)
+   es_stayers_mah,
+   th_stayers_mah,
+   psh_stayers_mah,
+   rrh_stayers_mah,
+   hp_stayers_mah,
+   es_stayers_bos,
+   th_stayers_bos,
+   psh_stayers_bos,
+   rrh_stayers_bos,
+   hp_stayers_bos)
 
-# CountyServed
+
+# Incorrect Destination ---------------------------------------------------
+
+# RRH mover inners only
+
+enrolled_in_rrh <- served_in_date_range %>%
+  filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
+  mutate(RRH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, 
+         "RRHMoveIn" = MoveInDateAdjust, 
+         RRH_range, 
+         "RRHProjectName" = ProjectName)
+
+maybe_rrh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_rrh, by = "PersonalID") %>%
+  filter(ProjectType != 13 &
+           ExitAdjust %within% RRH_range &
+           Destination != 31) %>%
+  mutate(
+    Issue = "Check Exit Destination (may be \"Rental by client, with RRH...\")",
+    Type = "Warning",
+    Guidance = "This household appears to have an Entry into an RRH project that
+    overlaps their Exit from your project. Typically this means the client moved
+    into a Rapid Rehousing unit after their stay with you. If that is true, the 
+    Destination should be \"Rental by client, with RRH...\". If you are sure the
+    current Destination is accurate, then please leave it the way it is."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+should_be_rrh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_rrh, by = "PersonalID") %>%
+  filter(ProjectType != 13 &
+           ExitDate == RRHMoveIn &
+           Destination != 31) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Rental by client, with RRH...\")",
+    Type = "Error",
+    Guidance = "This household appears to have a Move-In Date into an RRH project 
+    that matches their Exit from your project, but the Exit Destination from your
+    project does not indicate that the household exited to Rapid Rehousing. The 
+    correct Destination for households entering RRH from your project is 
+    \"Rental by client, with RRH or equivalent subsidy\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# PSH mover inners only
+
+enrolled_in_psh <- served_in_date_range %>%
+  filter(ProjectType %in% c(3, 9) & !is.na(MoveInDateAdjust)) %>%
+  mutate(PSH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, 
+         PSH_range, 
+         "PSHMoveIn" = MoveInDateAdjust,
+         "PSHProjectName" = ProjectName)
+
+maybe_psh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_psh, by = "PersonalID") %>%
+  filter(!ProjectType %in% c(3, 9) &
+           ExitAdjust %within% PSH_range &
+           !Destination %in% c(3, 19, 26)) %>%
+  mutate(
+    Issue = "Check Exit Destination (may be \"Permanent housing (other 
+    than RRH)...\")",
+    Type = "Warning",
+    Guidance = "This household appears to have an Entry into a PSH project that
+    overlaps their Exit from your project. Typically this means the client moved
+    into a Permanent Supportive Housing unit after their stay with you. If that 
+    is true, the Destination should be 
+    \"Permanent housing (other than RRH) for formerly homeless persons\". If you 
+    are sure the current Destination is accurate, then please leave it the way 
+    it is."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+should_be_psh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_psh, by = "PersonalID") %>%
+  filter(!ProjectType %in% c(3, 9) &
+           ExitDate == PSHMoveIn &
+           !Destination %in% c(3, 19, 26)) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Permanent housing (other 
+    than RRH)...\")",
+    Type = "Error",
+    Guidance = "This household appears to have a Move-In Date into a PSH project
+    that matches their Exit from your project, but the Exit Destination from your
+    project does not indicate that the household exited to PSH. The correct 
+    Destination for households entering PSH from your project is 
+    \"Permanent housing (other than RRH) for formerly homeless persons\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# TH
+
+enrolled_in_th <- served_in_date_range %>%
+  filter(ProjectType == 2) %>%
+  mutate(TH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, TH_range, "THProjectName" = ProjectName)
+
+should_be_th_destination <- served_in_date_range %>%
+  left_join(enrolled_in_th, by = "PersonalID") %>%
+  filter(ProjectType != 2 &
+           ExitAdjust %within% TH_range &
+           Destination != 2) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Transitional housing...\")",
+    Type = "Error",
+    Guidance = "This household appears to have an Entry into a Transitional 
+    Housing project that overlaps their Exit from your project, but the Exit 
+    Destination from your project does not indicate that the household exited to 
+    Transitional Housing. The correct Destination for households entering TH from 
+    your project is \"Transitional housing for homeless persons (including 
+    homeless youth)\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# SH
+
+enrolled_in_sh <- served_in_date_range %>%
+  filter(ProjectType == 8) %>%
+  mutate(SH_range = interval(EntryDate, ExitAdjust)) %>%
+  select(PersonalID, SH_range, "SHProjectName" = ProjectName)
+
+should_be_sh_destination <- served_in_date_range %>%
+  left_join(enrolled_in_sh, by = "PersonalID") %>%
+  filter(ProjectType != 8 &
+           ExitAdjust %within% SH_range &
+           Destination != 18) %>%
+  mutate(
+    Issue = "Incorrect Exit Destination (should be \"Safe Haven\")",
+    Type = "Error",
+    Guidance = "This household appears to have an Entry into a Safe Haven that 
+    overlaps their Exit from your project, but the Exit Destination from your 
+    project does not indicate that the household exited to a Safe Haven. The 
+    correct Destination for households entering SH from your project is 
+    \"Safe Haven\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+
+# Missing Project Stay or Incorrect Destination ---------------------------
+
+# RRH
+
+destination_rrh <- served_in_date_range %>%
+  filter(Destination == 31)
+
+no_bos_rrh <- destination_rrh %>%
+  anti_join(enrolled_in_rrh, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing RRH Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to Rapid Rehousing, but there is no RRH project stay on the client. If the 
+    RRH project the household exited to is outside of the Balance of State or 
+    Mahoning CoCs, then no correction is necessary. If they received RRH services 
+    in the Balance of State CoC or Mahoning CoC, then this household is missing 
+    their RRH project stay. If they did not actually receive RRH services at all, 
+    the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# PSH
+
+destination_psh <- served_in_date_range %>%
+  filter(Destination == 3)
+
+no_bos_psh <- destination_psh %>%
+  anti_join(enrolled_in_psh, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing PSH Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to Permanent Supportive Housing, but there is no PSH project stay on the 
+    client. If the PSH project the household exited to is outside of the Balance 
+    of State CoC or Mahoning CoC, then no correction is necessary. If they 
+    entered PSH in the Balance of State CoC or Mahoning CoC, then this household 
+    is missing their PSH project stay. If they did not actually enter PSH at all, 
+    the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# TH
+
+destination_th <- served_in_date_range %>%
+  filter(Destination == 2)
+
+no_bos_th <- destination_th %>%
+  anti_join(enrolled_in_th, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing TH Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to Transitional Housing, but there is no TH project stay on the client. If the 
+    TH project that the household exited to is outside of the Balance of State 
+    CoC or Mahoning CoC, then no correction is necessary. If they went into a TH 
+    project in the Balance of State CoC or Mahoning CoC, then this household is 
+    missing their TH project stay. If they did not actually enter Transitional 
+    Housing at all, the Destination should be corrected."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# SH
+
+destination_sh <- served_in_date_range %>%
+  filter(Destination == 18)
+
+no_bos_sh <- destination_sh %>%
+  anti_join(enrolled_in_sh, by = "PersonalID") %>%
+  mutate(
+    Issue = "Missing Safe Haven Project Stay or Incorrect Destination",
+    Type = "Warning",
+    Guidance = "The Exit Destination for this household indicates that they exited
+    to a Safe Haven, but there is no Entry in HMIS into a Safe Haven. Keep in 
+    mind that there is only one Safe Haven in the Balance of State and they are
+    no longer operating as of 1/1/2021. If you meant to indicate that the household
+    exited to a Domestic Violence shelter, please select \"Emergency shelter, ...\"."
+  ) %>% 
+  select(all_of(vars_we_want))
+
+# CountyServed (BoS ONLY for now)
 
 missing_county_served <- served_in_date_range %>%
-  filter(is.na(CountyServed)) %>%
+  filter(is.na(CountyServed) & !ProjectID %in% c(mahoning_projects)) %>%
   mutate(
     Issue = "Missing County Served",
     Type = "Error",
@@ -746,10 +1081,10 @@ missing_county_served <- served_in_date_range %>%
   ) %>%
   select(all_of(vars_we_want))
 
-# CountyPrior
+# CountyPrior (BoS ONLY for now)
 
 missing_county_prior <- served_in_date_range %>%
-  filter(is.na(CountyPrior) &
+  filter(is.na(CountyPrior) & !ProjectID %in% c(mahoning_projects) &
          (AgeAtEntry > 17 |
             is.na(AgeAtEntry))) %>%
   mutate(Issue = "Missing County of Prior Residence",
@@ -844,11 +1179,14 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Check Eligibility",
         Type = "Warning",
-        Guidance = "Your Residence Prior data suggests that this project is either serving
-      ineligible households, the household was entered into the wrong project,
-      or the Residence Prior data at Entry is incorrect. Please check the terms
-      of your grant or speak with the CoC team at COHHIO if you are unsure of
-      eligibility criteria for your project type."
+        Guidance = paste("Your Residence Prior data suggests that this project is either 
+        serving ineligible households, the household was entered into the wrong 
+        project, or the Residence Prior data at Entry is incorrect. Please check 
+        the terms of your grant or speak with", 
+        if_else(ProjectID %in% c(mahoning_projects), 
+                "the Mahoning CoC Coordinator",
+                "the CoC team at COHHIO"), 
+        "if you are unsure of eligibility criteria for your project type.")
       ) %>%
       select(all_of(vars_we_want))
     
@@ -885,13 +1223,22 @@ check_eligibility <- served_in_date_range %>%
     missing_destination <- served_in_date_range %>%
       filter(!is.na(ExitDate) &
                (is.na(Destination) | Destination %in% c(99, 30))) %>%
-      mutate(Issue = "Missing Destination",
-             Type = "Warning",
-             Guidance = "It is widely understood that not every client will complete an exit
-      interview, especially for high-volume emergency shelters. A few warnings
-      for Missing Destination is no cause for concern, but if there is a large
-      number, please contact the CoC team to work out a way to improve client
-      engagement.") %>%
+      mutate(
+        Issue = "Missing Destination",
+        Type = "Warning",
+        Guidance = paste(
+          "It is widely understood that not every client will
+             complete an exit interview, especially for high-volume emergency
+             shelters. A few warnings for Missing Destination is no cause for
+             concern, but if there is a large number, please contact",
+          if_else(
+            ProjectID %in% c(mahoning_projects),
+            "the Mahoning CoC Coordinator",
+            "the Balance of State CoC team at COHHIO"
+          ),
+          "to work out a way to improve client engagement."
+        )
+      ) %>% 
       select(all_of(vars_we_want))
     
     dkr_destination <- served_in_date_range %>%
@@ -1026,8 +1373,8 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Missing Reason Not PATH Enrolled",
         Type = "Error",
-        Guidance = "The user has indicated the household was not enrolled into PATH, but
-      no reason was selected."
+        Guidance = "The user has indicated the household was not enrolled into 
+        PATH, but no reason was selected."
       ) %>%
       select(all_of(vars_we_want))
     
@@ -1152,9 +1499,9 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Duplicate Entry Exits",
         Type = "High Priority",
-        Guidance = "Users sometimes create this error when they forget to click into a
-      program stay by using the Entry pencil, and instead they click \"Add
-      Entry/Exit\" each time. To correct, EDA to the project the Entry/Exit
+        Guidance = "Users sometimes create this error when they forget to click 
+        into a program stay by using the Entry pencil, and instead they click 
+        \"Add Entry/Exit\" each time. To correct, EDA to the project the Entry/Exit
       belongs to, navigate to the Entry/Exit tab and delete the program stay
       that was accidentally added for each household member."
       ) %>%
@@ -1177,9 +1524,9 @@ check_eligibility <- served_in_date_range %>%
         Issue = "Future Entry Date",
         Type = "Warning",
         Guidance = "Users should not be entering a client into a project on a 
-        date in the future. There is no action needed, but going forward, please 
-        be sure that your data entry workflow is correct according to your 
-        project type."
+        date in the future. If the Entry Date is correct, there is no action 
+        needed, but going forward, please be sure that your data entry workflow 
+        is correct according to your project type."
       ) %>%
       select(all_of(vars_we_want))
     
@@ -1228,9 +1575,10 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       mutate(Issue = "Incorrect Entry Exit Type",
              Type = "High Priority",
-             Guidance = "The user selected the wrong Entry Exit Type. To correct, click the
-      Entry pencil and Save & Continue. The Entry Exit Type at the top can then
-      be changed. Click \"Update\" to make this change take effect.") %>%
+             Guidance = "The user selected the wrong Entry Exit Type. To correct, 
+             click the Entry pencil and Save & Continue. The Entry Exit Type at 
+             the top can then be changed. Click \"Update\" to make this change 
+             take effect.") %>%
       select(all_of(vars_we_want))
     
     
@@ -1946,10 +2294,10 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Client with No Disability Receiving SSI/SSDI (could be ok)",
         Type = "Warning",
-        Guidance = "If a client is receiving SSI or SSDI for THEIR OWN disability, that
-      disability should be indicated in the Disabilities data elements. If
-      an adult is receiving SSI or SSDI benefits on behalf a minor child,
-      then there is no action needed."
+        Guidance = "If a client is receiving SSI or SSDI for THEIR OWN disability, 
+        that disability should be indicated in the Disabilities data elements. If
+        an adult is receiving SSI or SSDI benefits on behalf a minor child,
+        then there is no action needed."
       ) %>%
       select(all_of(vars_we_want))
     
@@ -2029,7 +2377,7 @@ check_eligibility <- served_in_date_range %>%
     
     # AP No Recent Referrals --------------------------------------------------
     co_APs <- Project %>%
-      filter(ProjectType == 14) %>%
+      filter(ProjectType == 14 & ProjectID != 2372) %>% # not incl Mah CE
       select(
         ProjectID,
         OperatingStartDate,
@@ -2093,7 +2441,7 @@ check_eligibility <- served_in_date_range %>%
     # AP entering project stays -----------------------------------------------
     
     aps_with_ees <- served_in_date_range %>%
-      filter(ProjectType == 14) %>%
+      filter(ProjectType == 14 & ProjectID != 2372) %>% # not incl Mah CE
       mutate(
         Issue = "Access Point with Entry Exits",
         Type = "High Priority",
@@ -2119,7 +2467,7 @@ check_eligibility <- served_in_date_range %>%
                 by = c("PersonalID")) %>%
       left_join(Referrals,
                 by = c("PersonalID")) %>%
-      filter(ProviderCreating == ProjectName,
+      filter(ProviderCreating == ProjectName &
              ProjectID != 1695) %>%
       select(all_of(vars_prep),
              ProviderCreating,
@@ -2453,7 +2801,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       incorrect_ee_type,
       incorrect_path_contact_date,
       internal_old_outstanding_referrals,
+      invalid_months_times_homeless,
       lh_without_spdat,
+      maybe_psh_destination,
+      maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_client_location,
       missing_county_served,
@@ -2472,6 +2823,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
+      no_bos_rrh,
+      no_bos_psh,
+      no_bos_th,
+      no_bos_sh,
       path_enrolled_missing,
       path_missing_los_res_prior,
       path_no_status_at_exit,
@@ -2483,6 +2838,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       rent_paid_no_move_in,
       services_on_hh_members,
       services_on_hh_members_ssvf,
+      should_be_psh_destination,
+      should_be_rrh_destination,
+      should_be_th_destination,
+      should_be_sh_destination,
       spdat_on_non_hoh,
       ssvf_missing_address,
       ssvf_missing_vamc,
@@ -2558,15 +2917,25 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       future_exits,
       hh_issues,
       incorrect_ee_type,
+      internal_old_outstanding_referrals,
       lh_without_spdat,
+      maybe_psh_destination,
+      maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_destination,
       missing_county_served,
       missing_LoS,
       missing_months_times_homeless,
       missing_residence_prior,
-      internal_old_outstanding_referrals,
+      no_bos_rrh,
+      no_bos_psh,
+      no_bos_th,
+      no_bos_sh,
       referrals_on_hh_members,
+      should_be_psh_destination,
+      should_be_rrh_destination,
+      should_be_th_destination,
+      should_be_sh_destination,
       spdat_on_non_hoh,
       unsheltered_not_unsheltered,
       unsheltered_long_not_referred
@@ -2846,7 +3215,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       labs(x = "") +
       scale_fill_viridis_c(direction = -1) +
       theme_minimal(base_size = 18)
-    
+       
     dq_data_without_spdat_plot <- dq_past_year %>%
       filter(
         Type == "Warning" &
@@ -2934,6 +3303,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
+      invalid_months_times_homeless,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,

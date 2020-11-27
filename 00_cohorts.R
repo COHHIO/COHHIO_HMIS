@@ -66,7 +66,7 @@ tay <- Enrollment %>%
     TAY = if_else(max(AgeAtEntry) < 25 & max(AgeAtEntry) >= 16, 1, 0)
   ) %>%
   ungroup() %>%
-  filter(TAY == 1, !is.na(ProjectName))
+  filter(TAY == 1 & !is.na(ProjectName))
 
 # Leaver and Stayer HoHs who were served during the reporting period
 co_hohs_served <-  Enrollment %>%
@@ -337,6 +337,10 @@ GPD_project_ids <- c(751, 776, 749, 1229, 127, 550)
 fake_projects <- c(1027, 1849, 1028, 1033, 1032, 1029, 1931, 1030, 1031, 1317)
 
 unsheltered_projects <- c(1695, 1680)
+
+mahoning_projects <-
+  c(696:697, 1327:1328, 1330:1331, 1392, 1638:1641, 1704, 1738, 2103, 2105,
+    2110, 2322:2336, 2338:2360, 2362:2385)
 
 # Project Type Groupings --------------------------------------------------
 
