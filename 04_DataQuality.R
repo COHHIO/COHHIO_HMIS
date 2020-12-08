@@ -1179,14 +1179,18 @@ check_eligibility <- served_in_date_range %>%
       mutate(
         Issue = "Check Eligibility",
         Type = "Warning",
-        Guidance = paste("Your Residence Prior data suggests that this project is either 
-        serving ineligible households, the household was entered into the wrong 
-        project, or the Residence Prior data at Entry is incorrect. Please check 
-        the terms of your grant or speak with", 
-        if_else(ProjectID %in% c(mahoning_projects), 
-                "the Mahoning CoC Coordinator",
-                "the CoC team at COHHIO"), 
-        "if you are unsure of eligibility criteria for your project type.")
+        Guidance = paste(
+          "Your Residence Prior data suggests that this project is either
+        serving ineligible households, the household was entered into the wrong
+        project, or the Residence Prior data at Entry is incorrect. Please check
+        the terms of your grant or speak with",
+          if_else(
+            ProjectID %in% c(mahoning_projects),
+            "the Mahoning CoC Coordinator",
+            "the CoC team at COHHIO"
+          ),
+          "if you are unsure of eligibility criteria for your project type."
+        )
       ) %>%
       select(all_of(vars_we_want))
     
@@ -2789,6 +2793,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       dq_ethnicity,
       dq_gender,
       dq_name,
+      dq_overlaps %>% select(-PreviousProject),
       dq_race,
       dq_ssn,
       dq_veteran,
@@ -2912,6 +2917,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       dq_race,
       dq_gender,
       dq_name,
+      dq_overlaps %>% select(-PreviousProject),
       duplicate_ees,
       future_ees,
       future_exits,
