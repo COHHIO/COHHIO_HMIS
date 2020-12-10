@@ -180,9 +180,14 @@ project_bed_nights <- utilizers_clients %>%
 
 # Utilization ---------------------------------------------------------------
 
+
+funders <- Funder %>%
+  filter((is.na(EndDate) | ymd(EndDate) > today()))
+
 Utilization <- BedCapacity %>%
   left_join(project_bed_nights, by = "ProjectID") %>%
   left_join(small_project[c("ProjectID", "ProjectName", "ProjectType")], by = "ProjectID") %>%
+  left_join(funders[c("ProjectID", "Funder", "OtherFunder")], by = "ProjectID") %>%
   filter(ProjectType != 13) %>%
   mutate(
     PossibleFAM = CurrentFAM * DaysBedsAvailable,
@@ -194,11 +199,14 @@ Utilization <- BedCapacity %>%
                              accuracy = .1),
     bucket = case_when(
       (BedNightsServedFAM + BedNightsServedIND) /
-        (PossibleFAM + PossibleIND) > 1.05 ~ "greater than 105%",
+        (PossibleFAM + PossibleIND) > 1.05 |
       (BedNightsServedFAM + BedNightsServedIND) /
-        (PossibleFAM + PossibleIND) < 0.65 ~ "less than 65%",
+        (PossibleFAM + PossibleIND) < 0.65 ~ "too high or too low",
       is.na((BedNightsServedFAM + BedNightsServedIND) /
-              (PossibleFAM + PossibleIND)) ~ "zero clients",
+              (PossibleFAM + PossibleIND)) &
+        !Funder %in% c(47:48) &
+        !is.na(Funder) &
+        OtherFunder != "TANF" ~ "zero clients",
       TRUE ~ "only send if there's a change"
     )
   ) %>%
@@ -213,28 +221,19 @@ Utilization <- BedCapacity %>%
     UtilizationIND,
     UtilizationALL,
     bucket
-  )
+  ) %>%
+  unique()
 
 stats <- Utilization %>%
   group_by(bucket) %>%
   summarise(Total = n())
 
-funders <- Funder %>%
-  filter((is.na(EndDate) | ymd(EndDate) > today()))
-
-zero_clients <- Utilization %>%
-  left_join(funders[c("ProjectID", "Funder", "OtherFunder")], by = "ProjectID") %>%
-  filter(bucket == "zero clients" &
-           !Funder %in% c(47:48) &
-           !is.na(Funder) &
-           OtherFunder != "TANF") %>%
-  select(ProjectID, ProjectName, Funder, OtherFunder)
-
-
-
 write_csv(Utilization, "random_data/SendHICVRs.csv")
 
-
+# Before sending out, I culled it for any newer ES Overflows related to
+# deconcentration and found a couple of places where there was just something
+# weird. Also the TAY beds weren't coming in, making it look like there was
+# something wrong with them so I removed those as well.
 
 
 
