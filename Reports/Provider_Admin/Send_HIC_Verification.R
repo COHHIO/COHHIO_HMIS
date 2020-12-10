@@ -182,7 +182,8 @@ project_bed_nights <- utilizers_clients %>%
 
 Utilization <- BedCapacity %>%
   left_join(project_bed_nights, by = "ProjectID") %>%
-  left_join(small_project[c("ProjectID", "ProjectName")], by = "ProjectID") %>%
+  left_join(small_project[c("ProjectID", "ProjectName", "ProjectType")], by = "ProjectID") %>%
+  filter(ProjectType != 13) %>%
   mutate(
     PossibleFAM = CurrentFAM * DaysBedsAvailable,
     PossibleIND = CurrentIND * DaysBedsAvailable,
@@ -217,6 +218,19 @@ Utilization <- BedCapacity %>%
 stats <- Utilization %>%
   group_by(bucket) %>%
   summarise(Total = n())
+
+funders <- Funder %>%
+  filter((is.na(EndDate) | ymd(EndDate) > today()))
+
+zero_clients <- Utilization %>%
+  left_join(funders[c("ProjectID", "Funder", "OtherFunder")], by = "ProjectID") %>%
+  filter(bucket == "zero clients" &
+           !Funder %in% c(47:48) &
+           !is.na(Funder) &
+           OtherFunder != "TANF") %>%
+  select(ProjectID, ProjectName, Funder, OtherFunder)
+
+
 
 write_csv(Utilization, "random_data/SendHICVRs.csv")
 
