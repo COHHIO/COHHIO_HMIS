@@ -695,12 +695,12 @@ active_list <- active_list %>%
     ),
     ShortSituation = factor(
       case_when(
-        str_starts(PTCStatus, "Has Entry") ~ "Enrolled in PH",
-        str_starts(Situation, "No current") ~ "Referred to PH",
-        str_starts(Situation, "Permanent") ~ "Has PH Track",
+        str_starts(PTCStatus, "Has Entry") ~ "Enrolled in RRH/PSH",
+        str_starts(Situation, "No current") |
+        str_starts(Situation, "Permanent") ~ "Has Referral or Plan",
         str_starts(Situation, "No Entry") ~ "No Housing Plan"
       ),
-      levels = c("No Housing Plan", "Has PH Track", "Referred to PH", "Enrolled in PH")
+      levels = c("No Housing Plan", "Has Referral or Plan", "Enrolled in RRH/PSH")
     )
   ) %>% 
   select(-IncomeInHH)
@@ -708,6 +708,8 @@ active_list <- active_list %>%
 landing_data <- active_list %>%
   select(PersonalID, CountyServed, COVID19Priority, ShortSituation) %>%
   # filter(CountyServed == "Lorain") %>%
+  # mutate(COVID19Priority = as.character(COVID19Priority),
+  #        ShortSituation = as.character(ShortSituation)) %>%
   group_by(COVID19Priority, ShortSituation) %>%
   summarise(HHs = n()) %>%
   ungroup() %>%
@@ -723,31 +725,28 @@ landing <- treemap(
   vSize = "HHs",
   vColor = "COVID19Priority",
   type = "categorical",
+  position.legend = "bottom",
   fontsize.labels = c(17, 12),
   fontcolor.labels = c("white", "black"),
   fontface.labels = c(2, 1),
-  bg.labels = 210,
+  bg.labels = "transparent",
   # position.legend = "none",
   align.labels = list(c("center", "center"),
                       c("left", "top"))
 )
 
-this_does_not_work <- landing_data %>%
-  mutate(
-    COVID19Priority = as.character(COVID19Priority),
-    ShortSituation = as.character(ShortSituation),
-    ids = paste(COVID19Priority, ShortSituation, sep = "-")
-  ) %>%
-  plot_ly(
-    labels = ~ ShortSituation,
-    ids = ~ ids,
-    parents = ~ COVID19Priority,
-    values = ~ HHs,
-    type = 'treemap'
-  )
+# rowsum(plotly_attempt$HHs, group = plotly_attempt$COVID19Priority)
 
-# rm(list = ls()[!(ls() %in% c("active_list"))])
+plot_ly(
+  b,
+  parents = ~ COVID19Priority,
+  labels = ~ ShortSituation,
+  values = ~ HHs,
+  type = 'treemap'
+)
 
-# save.image("images/Active_List.RData")
+rm(list = ls()[!(ls() %in% c("active_list"))])
+
+save.image("images/Active_List.RData")
 
 
