@@ -15,6 +15,8 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(treemap)
+library(plotly)
 library(HMIS)
 
 load("images/cohorts.RData")
@@ -690,12 +692,62 @@ active_list <- active_list %>%
         is.na(ReferredToProvider) &
         is.na(PHTrack) ~ 
         "No Entry or accepted Referral into PSH/RRH, and no current Permanent Housing Track"
+    ),
+    ShortSituation = factor(
+      case_when(
+        str_starts(PTCStatus, "Has Entry") ~ "Enrolled in PH",
+        str_starts(Situation, "No current") ~ "Referred to PH",
+        str_starts(Situation, "Permanent") ~ "Has PH Track",
+        str_starts(Situation, "No Entry") ~ "No Housing Plan"
+      ),
+      levels = c("No Housing Plan", "Has PH Track", "Referred to PH", "Enrolled in PH")
     )
-  ) %>%
+  ) %>% 
   select(-IncomeInHH)
 
-rm(list = ls()[!(ls() %in% c("active_list"))])
+landing_data <- active_list %>%
+  select(PersonalID, CountyServed, COVID19Priority, ShortSituation) %>%
+  # filter(CountyServed == "Lorain") %>%
+  group_by(COVID19Priority, ShortSituation) %>%
+  summarise(HHs = n()) %>%
+  ungroup() %>%
+  as.data.frame() 
 
-save.image("images/Active_List.RData")
+landing <- treemap(
+  landing_data,
+  title = "Currently Literally Homeless Households",
+  index = c("ShortSituation", "COVID19Priority"),
+  border.lwds = c(4, .5),
+  border.col = c("#FFFFFF", "#D2B48C"),
+  palette = "RdBu",
+  vSize = "HHs",
+  vColor = "COVID19Priority",
+  type = "categorical",
+  fontsize.labels = c(17, 12),
+  fontcolor.labels = c("white", "black"),
+  fontface.labels = c(2, 1),
+  bg.labels = 210,
+  # position.legend = "none",
+  align.labels = list(c("center", "center"),
+                      c("left", "top"))
+)
+
+this_does_not_work <- landing_data %>%
+  mutate(
+    COVID19Priority = as.character(COVID19Priority),
+    ShortSituation = as.character(ShortSituation),
+    ids = paste(COVID19Priority, ShortSituation, sep = "-")
+  ) %>%
+  plot_ly(
+    labels = ~ ShortSituation,
+    ids = ~ ids,
+    parents = ~ COVID19Priority,
+    values = ~ HHs,
+    type = 'treemap'
+  )
+
+# rm(list = ls()[!(ls() %in% c("active_list"))])
+
+# save.image("images/Active_List.RData")
 
 
