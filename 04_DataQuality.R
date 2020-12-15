@@ -883,13 +883,15 @@ should_be_rrh_destination <- served_in_date_range %>%
            ExitDate == RRHMoveIn &
            Destination != 31) %>%
   mutate(
-    Issue = "Incorrect Exit Destination (should be \"Rental by client, with RRH...\")",
-    Type = "Error",
-    Guidance = "This household appears to have a Move-In Date into an RRH project 
-    that matches their Exit from your project, but the Exit Destination from your
-    project does not indicate that the household exited to Rapid Rehousing. The 
-    correct Destination for households entering RRH from your project is 
-    \"Rental by client, with RRH or equivalent subsidy\"."
+    Issue = "Maybe Incorrect Exit Destination (did you mean \"Rental by client, with RRH...\"?)",
+    Type = "Warning",
+    Guidance = "This household has a Move-In Date into an RRH project that 
+    matches their Exit from your project, but the Exit Destination from your
+    project does not indicate that the household exited to Rapid Rehousing. If
+    the household exited to a Destination that was not \"Rental by client\", but
+    it is a permanent destination attained through a Rapid Rehousing project, 
+    then this is no change needed. If this is not the case, then the Destination
+    should be \"Rental by client, with RRH or equivalent subsidy\"."
   ) %>% 
   select(all_of(vars_we_want))
 
