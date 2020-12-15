@@ -737,13 +737,13 @@ landing <- treemap(
 
 # rowsum(plotly_attempt$HHs, group = plotly_attempt$COVID19Priority)
 
-plot_ly(
-  b,
-  parents = ~ COVID19Priority,
-  labels = ~ ShortSituation,
-  values = ~ HHs,
-  type = 'treemap'
-)
+# plot_ly(
+#   b,
+#   parents = ~ COVID19Priority,
+#   labels = ~ ShortSituation,
+#   values = ~ HHs,
+#   type = 'treemap'
+# )
 
 rm(list = ls()[!(ls() %in% c("active_list"))])
 
