@@ -193,7 +193,8 @@ provider_services <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
   select(-DeleteThis) %>% unique() %>%
   mutate(TargetPop = case_when(
     ProjectServices == "Homeless Diversion Programs" ~ "General",
-    ProjectServices == "Veteran Benefits Assistance" ~ "Veterans")) %>%
+    ProjectServices == "Veteran Benefits Assistance" ~ "Veterans",
+    ProjectServices == "Runaway/Homeless Youth Counseling" ~ "Youth (ages 0-24)")) %>%
   select(ProjectID, County, TargetPop) %>%
   left_join(provider_geo %>% select(-ProjectAreaServed), by = "ProjectID") %>%
   mutate(CountiesServed = 
