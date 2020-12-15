@@ -277,6 +277,7 @@ APs <- Project %>%
          "ProjectCountyServed" = CountiesServed, ProjectAreaServed,
          ProjectHours, ProjectTelNo, OrgLink, CoCCode, Addresses, City)
 
+write_csv(APs, "public_data/aps.csv")
   
 # Clean up the house ------------------------------------------------------
 
