@@ -26,6 +26,12 @@ FileEnd <- format.Date(today(), "%m-%d-%Y")
 FileStart <- format.Date(mdy("10012019"), "%m-%d-%Y")
 FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
 
+PIT_Date <- ymd("20200126")
+
+non_participating <- Project %>%
+  filter(HMISParticipatingProject == 0 &
+           (is.na(OperatingEndDate)| ymd(OperatingEndDate) > PIT_Date))
+
 # CURRENT BEDS and EXPECTED UTILIZATION -----------------------------------
 
 small_project <- Project %>%
