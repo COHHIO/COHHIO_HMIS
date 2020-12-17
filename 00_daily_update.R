@@ -15,11 +15,11 @@
 # ************
 # Run this whenever the data has been refreshed (usually every weekday morning)
 
-# Each script here creates an image file which is copied to both
-# R minor and R minor elevated. Running this after updating the data files 
-# should be all that's necessary in order to be sure the apps are getting the 
-# most recent data and code. This script checks that you've downloaded all the
-# correct files in the correct way.
+# Each script here creates an image file which is copied to both R minor and R 
+# minor elevated. Running this after updating the data files should be all 
+# that's necessary in order to be sure the apps are getting the most recent data
+# and code. This script checks that you've downloaded all the correct files in 
+# the correct way, runs them all, then copies the images to Rm/Rme.
 
 library(lubridate)
 library(tidyverse)
