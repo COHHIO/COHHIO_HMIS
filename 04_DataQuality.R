@@ -2447,7 +2447,7 @@ check_eligibility <- served_in_date_range %>%
     # AP entering project stays -----------------------------------------------
     
     aps_with_ees <- served_in_date_range %>%
-      filter(ProjectType == 14 & ProjectID != 2372) %>% # not incl Mah CE
+      filter(ProjectType == 14 & !ProjectID %in% c(2372, 1858)) %>% # not incl Mah CE
       mutate(
         Issue = "Access Point with Entry Exits",
         Type = "High Priority",
