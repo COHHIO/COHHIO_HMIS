@@ -21,15 +21,24 @@ ph_program_types <- c(3, 9, 10, 13)
 
 df_for_returns <- co_clients_served %>%
   filter(ProjectType %in% return_project_types) %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitDate, ProjectType, Destination) %>%
+  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, ExitDate, ProjectType, Destination) %>%
   mutate(two_weeks_after_exit = if_else(!is.na(ExitDate), ExitDate + ddays(14), NULL))
 
 
-##  find all exits from TH or PH programs
-housing_exits <- df_for_returns %>%
-  filter(ProjectType %in% housing_program_types,
-         !is.na(ExitDate)) %>%
-  setNames(paste("Exited_PHTH", colnames(df_for_returns), sep = "_"))
+##  get permanent exit counts for project types listed in SPMs logic
+## only keeping the first permanent exit in the 2 year period
+permanent_exits <- df_for_returns %>%
+  filter(Destination %in% perm_destinations &
+           ymd(ExitAdjust) > ymd(ReportEnd) - years(2) &
+           ymd(ExitAdjust) <= ymd(ReportEnd)) %>%
+  group_by(PersonalID) %>%
+  slice_min(ExitDate, n = 1) %>%
+  ungroup() %>%
+  setNames(paste("ExitedToPerm", colnames(df_for_returns), sep = "_"))
+
+column_b <- permanent_exits %>%
+  group_by(ExitedToPerm_ProjectType) %>%
+  summarise(ExitedToPerm = n())
 
 ##  find all entries to PH programs
 ph_enrollments <- df_for_returns %>%
