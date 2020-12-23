@@ -13,7 +13,7 @@ ReportEnd <- mdy("09302020")
 ##  set up definitions and initial dataframe, adjust as needed
 all_program_types <- c(1:4, 6:14)   
 
-return_project_types <- c(2, 3, 9, 10, 1, 4, 13, 8, 14)
+return_project_types <- c(1, 2, 3, 4, 8, 9, 10, 13) # pg 17 SPM specs
 
 housing_program_types <- c(2, 3, 9, 10, 13)
 
@@ -21,24 +21,46 @@ ph_program_types <- c(3, 9, 10, 13)
 
 df_for_returns <- co_clients_served %>%
   filter(ProjectType %in% return_project_types) %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, ExitDate, ProjectType, Destination) %>%
-  mutate(two_weeks_after_exit = if_else(!is.na(ExitDate), ExitDate + ddays(14), NULL))
-
+  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, ExitDate, ProjectType, Destination)
+# moved two-week column to permanent_exits bc that's the only place we need this
 
 ##  get permanent exit counts for project types listed in SPMs logic
 ## only keeping the first permanent exit in the 2 year period
 permanent_exits <- df_for_returns %>%
   filter(Destination %in% perm_destinations &
-           ymd(ExitAdjust) > ymd(ReportEnd) - years(2) &
-           ymd(ExitAdjust) <= ymd(ReportEnd)) %>%
+           ymd(ExitAdjust) > ReportEnd - years(2) &
+           ymd(ExitAdjust) <= ReportEnd) %>%
+  mutate(two_weeks_after_exit = ExitDate + ddays(14)) %>%
   group_by(PersonalID) %>%
-  slice_min(ExitDate, n = 1) %>%
+  slice_min(ExitDate, n = 1) %>% # step 2, pg 18
+  slice_min(EnrollmentID, n = 1) %>% # if the hh exits 2 projects on the same day
   ungroup() %>%
-  setNames(paste("ExitedToPerm", colnames(df_for_returns), sep = "_"))
+  setNames(paste("ExitedToPerm", colnames(.), sep = "_"))
 
 column_b <- permanent_exits %>%
   group_by(ExitedToPerm_ProjectType) %>%
-  summarise(ExitedToPerm = n())
+  summarise(ExitedToPerm = n()) %>%
+  adorn_totals()
+
+## find all entries to LH Project Types and PH (since they require LH at Entry)
+
+literally_homeless_entries <- permanent_exits %>%
+  left_join(df_for_returns, by = c("ExitedToPerm_PersonalID" = "PersonalID")) %>%
+  filter(ymd(EntryDate) > ExitedToPerm_two_weeks_after_exit) %>%
+  group_by(ExitedToPerm_EnrollmentID) %>%
+  slice_min(EntryDate, n = 1) %>%
+  slice_min(EnrollmentID, n = 1) %>%
+  ungroup() %>%
+  mutate(
+    TimeToRecur_days = as.integer(difftime(EntryDate, ExitedToPerm_ExitDate, units = "days")),
+    TimeToRecur = case_when(
+      between(TimeToRecur_days, 0L, 180L) ~ "less than 6 mo",
+      between(TimeToRecur_days, 181L, 365L) ~ "6 - 12 mo",
+      between(TimeToRecur_days, 366L, 730L) ~ "1 - 2 yrs",
+      TRUE ~ "delete"
+    )
+  ) %>%
+  filter(TimeToRecur_days <= 730)
 
 ##  find all entries to PH programs
 ph_enrollments <- df_for_returns %>%
