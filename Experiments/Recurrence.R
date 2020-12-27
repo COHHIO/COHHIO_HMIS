@@ -33,7 +33,6 @@ df_for_returns <- co_clients_served %>%
          ExitDate,
          ProjectType,
          Destination)
-# moved two-week column to permanent_exits bc that's the only place we need this
 
 # Universe to Compare -----------------------------------------------------
 
@@ -104,16 +103,13 @@ counted_recurrences <- every_recurrence %>%
 
 # Trying to Code to Specs -------------------------------------------------
 
-project_type_recurrence <- counted_recurrences %>%
+to_specs <- counted_recurrences %>%
   group_by(ScanAheadPTC, RecurrenceBucket) %>%
   summarise(Recurrences = n()) %>%
   ungroup()  %>%
   mutate(ProjectType = as.character(ScanAheadPTC)) %>%
   select(-ScanAheadPTC) %>%
-  left_join(column_b, by = "ProjectType")
-
-
-to_specs <- project_type_recurrence %>%
+  left_join(column_b, by = "ProjectType")  %>%
   pivot_wider(names_from = RecurrenceBucket,
               values_from = Recurrences,
               values_fill = 0) %>%
@@ -152,8 +148,6 @@ recurring_clients <- counted_recurrences %>%
 
 co_clients_served_test <- co_clients_served %>%
   left_join(recurring_clients, by = c("PersonalID", "HouseholdID"))
-
-# Getting this at the Project Level ---------------------------------------
 
 
 
