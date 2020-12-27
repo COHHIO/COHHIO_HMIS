@@ -5,10 +5,12 @@
 library(tidyverse)
 library(lubridate)
 library(dplyr)
+library(janitor)
+library(scales)
 
 load("images/cohorts.RData")
 
-ReportEnd <- mdy("09302020")
+ReportEnd <- mdy("12312020")
 
 ##  set up definitions and initial dataframe, adjust as needed
 all_program_types <- c(1:4, 6:14)   
@@ -20,93 +22,138 @@ housing_program_types <- c(2, 3, 9, 10, 13)
 ph_program_types <- c(3, 9, 10, 13)
 
 df_for_returns <- co_clients_served %>%
-  filter(ProjectType %in% return_project_types) %>%
-  select(PersonalID, EnrollmentID, EntryDate, ExitAdjust, ExitDate, ProjectType, Destination)
+  filter(ProjectType %in% return_project_types &
+           ProjectID != 1695) %>%
+  select(HouseholdID,
+         PersonalID,
+         EnrollmentID,
+         ProjectID,
+         EntryDate,
+         ExitAdjust,
+         ExitDate,
+         ProjectType,
+         Destination)
 # moved two-week column to permanent_exits bc that's the only place we need this
 
-##  get permanent exit counts for project types listed in SPMs logic
-## only keeping the first permanent exit in the 2 year period
-permanent_exits <- df_for_returns %>%
-  filter(Destination %in% perm_destinations &
-           ymd(ExitAdjust) > ReportEnd - years(2) &
-           ymd(ExitAdjust) <= ReportEnd) %>%
-  mutate(two_weeks_after_exit = ExitDate + ddays(14)) %>%
-  group_by(PersonalID) %>%
-  slice_min(ExitDate, n = 1) %>% # step 2, pg 18
-  slice_min(EnrollmentID, n = 1) %>% # if the hh exits 2 projects on the same day
-  ungroup() %>%
-  setNames(paste("ExitedToPerm", colnames(.), sep = "_"))
+# Universe to Compare -----------------------------------------------------
 
-column_b <- permanent_exits %>%
-  group_by(ExitedToPerm_ProjectType) %>%
+##  get permanent exit counts for project types listed in SPMs logic
+## grabbing first permanent-destination exit in the past 2 years
+
+scan_forward_from <- df_for_returns %>%
+  filter(Destination %in% perm_destinations &
+           ymd(ExitAdjust) >= ReportEnd - years(3) &
+           ymd(ExitAdjust) <= ReportEnd - years(2) &
+           !ProjectID %in% c(mahoning_projects)) %>%
+  mutate(
+    orderby = case_when(
+      ProjectType == 1 ~ 1,
+      ProjectType == 2 ~ 2,
+      ProjectType == 4 ~ 3,
+      ProjectType == 8 ~ 4,
+      ProjectType == 3 ~ 5,
+      ProjectType == 9 ~ 6,
+      ProjectType == 10 ~ 7,
+      ProjectType == 13 ~ 8
+    ) # in case someone exits to perm housing on the same date
+  ) %>% 
+  group_by(PersonalID) %>%
+  arrange(ymd(ExitAdjust), orderby) %>%
+  slice(n = 1) %>% 
+  ungroup() %>%
+  select("ScanAheadHHID" = HouseholdID,
+         PersonalID,
+         "ScanAheadEEID" = EnrollmentID,
+         "ScanAheadProjectID" = ProjectID,
+         "ScanAheadEntry" = EntryDate,
+         "ScanAheadExitAdjust" = ExitAdjust,
+         "ScanAheadExit" = ExitDate,
+         "ScanAheadPTC" = ProjectType)
+
+# column b in SPM specs, page 17
+
+column_b <- scan_forward_from %>%
+  group_by(ScanAheadPTC) %>%
   summarise(ExitedToPerm = n()) %>%
+  select("ProjectType" = ScanAheadPTC, ExitedToPerm) %>%
   adorn_totals()
 
-## find all entries to LH Project Types and PH (since they require LH at Entry)
+# Recurrence --------------------------------------------------------------
 
-literally_homeless_entries <- permanent_exits %>%
-  left_join(df_for_returns, by = c("ExitedToPerm_PersonalID" = "PersonalID")) %>%
-  filter(ymd(EntryDate) > ExitedToPerm_two_weeks_after_exit) %>%
-  group_by(ExitedToPerm_EnrollmentID) %>%
-  slice_min(EntryDate, n = 1) %>%
-  slice_min(EnrollmentID, n = 1) %>%
-  ungroup() %>%
+every_recurrence <- df_for_returns %>%
+  left_join(scan_forward_from, by = "PersonalID") %>%
+  select(starts_with("ScanAhead"), everything()) %>%
+  filter(!is.na(ScanAheadHHID) &
+           difftime(ymd(EntryDate), ymd(ScanAheadExitAdjust), units = "days") >= 14 &
+           difftime(ymd(EntryDate), ymd(ScanAheadExitAdjust), units = "days") <= 730) %>%
+  mutate(Gap = as.numeric(difftime(ymd(EntryDate), ymd(ScanAheadExitAdjust), units = "days")),
+         RecurrenceBucket = case_when(
+           between(Gap, 14, 90) ~ "SixMo",
+           between(Gap, 91, 365) ~ "OneYr",
+           between(Gap, 366, 730) ~ "TwoYr"
+         ))
+  
+# the specs say a client can only be counted in the 6mo, 1yr, or 2yr column
+# so I'm taking the first recurrence
+
+counted_recurrences <- every_recurrence %>%
+  group_by(PersonalID) %>%
+  arrange(Gap) %>%
+  slice(n = 1) %>%
+  ungroup()
+
+# Trying to Code to Specs -------------------------------------------------
+
+project_type_recurrence <- counted_recurrences %>%
+  group_by(ScanAheadPTC, RecurrenceBucket) %>%
+  summarise(Recurrences = n()) %>%
+  ungroup()  %>%
+  mutate(ProjectType = as.character(ScanAheadPTC)) %>%
+  select(-ScanAheadPTC) %>%
+  left_join(column_b, by = "ProjectType")
+
+
+to_specs <- project_type_recurrence %>%
+  pivot_wider(names_from = RecurrenceBucket,
+              values_from = Recurrences,
+              values_fill = 0) %>%
+  adorn_totals() %>%
   mutate(
-    TimeToRecur_days = as.integer(difftime(EntryDate, ExitedToPerm_ExitDate, units = "days")),
-    TimeToRecur = case_when(
-      between(TimeToRecur_days, 0L, 180L) ~ "less than 6 mo",
-      between(TimeToRecur_days, 181L, 365L) ~ "6 - 12 mo",
-      between(TimeToRecur_days, 366L, 730L) ~ "1 - 2 yrs",
-      TRUE ~ "delete"
+    SixMoRecurrence = percent(SixMo / ExitedToPerm),
+    OneYrRecurrence = percent(OneYr / ExitedToPerm),
+    TwoYrRecurrence = percent(TwoYr / ExitedToPerm),
+    TotalReturning = SixMo + OneYr + TwoYr,
+    TotalRecurrence = percent(TotalReturning / ExitedToPerm),
+    ProjectType = case_when(
+      ProjectType == 9 ~ "PH - Housing Only",
+      ProjectType %in% c(1:8, 13) ~ project_type(ProjectType),
+      TRUE ~ "All Project Types"
     )
-  ) %>%
-  filter(TimeToRecur_days <= 730)
+  ) %>% 
+  select(ProjectType,
+         ExitedToPerm,
+         SixMo,
+         SixMoRecurrence,
+         OneYr,
+         OneYrRecurrence,
+         TwoYr,
+         TwoYrRecurrence,
+         TotalReturning,
+         TotalRecurrence)
 
-##  find all entries to PH programs
-ph_enrollments <- df_for_returns %>%
-  filter(ProjectType %in% ph_program_types) %>%
-  setNames(paste("Entered_PH", colnames(df_for_returns), sep = "_")) %>%
-  select(-Entered_PH_two_weeks_after_exit)
 
-##  identify all PH enrollments within 14 days of a TH or PH exit 
-## (wouldn't we also want to get exits from ESs and SHs?)
-excluded_PH_entries <- ph_enrollments %>%
-  left_join(housing_exits, by = c("Entered_PH_PersonalID" = "Exited_PHTH_PersonalID")) %>%
-  filter(Entered_PH_EntryDate >= Exited_PHTH_ExitDate &
-           Entered_PH_EntryDate <= Exited_PHTH_two_weeks_after_exit) %>%
-  select(Entered_PH_EnrollmentID) %>%
-  distinct()
+# Flagging Recurrers ------------------------------------------------------
 
-##  remove enrollments identified above from enrollments used to flag returns
-returning_entries <- df_for_returns %>%
-  anti_join(excluded_PH_entries, by = c("EnrollmentID" = "Entered_PH_EnrollmentID")) %>%
-  setNames(paste("Returning_Entries", colnames(df_for_returns), sep = "_"))
+recurring_clients <- counted_recurrences %>%
+  select(PersonalID,
+         "HouseholdID" = ScanAheadHHID,
+         "RecurrenceProjectType" = ProjectType,
+         RecurrenceBucket)
 
-##  get all enrollments with permanent exits
-permanent_exits <- df_for_returns %>%
-  filter(Destination %in% c(perm_destinations)) %>%
-  setNames(paste("Perm_Exits", colnames(df_for_returns), sep = "_")) %>%
-  mutate(two_years_after_exit = Perm_Exits_ExitDate + dyears(2))
+co_clients_served_test <- co_clients_served %>%
+  left_join(recurring_clients, by = c("PersonalID", "HouseholdID"))
 
-## create flag for all enrollments with a qualifying returning entry
-return_flags <- permanent_exits %>%
-  left_join(returning_entries, by = c("Perm_Exits_PersonalID" = "Returning_Entries_PersonalID")) %>%
-  group_by(Perm_Exits_EnrollmentID) %>%
-  mutate(return_flag = 
-           if_else(
-             (Returning_Entries_ProjectType %in% housing_program_types &
-                Returning_Entries_EntryDate >= Perm_Exits_two_weeks_after_exit &
-                Returning_Entries_EntryDate <= two_years_after_exit) |
-               (!Returning_Entries_ProjectType %in% housing_program_types &
-                  Returning_Entries_EntryDate >= Perm_Exits_ExitDate &
-                  Returning_Entries_EntryDate <= two_years_after_exit),
-             1, 0
-           ),
-         return_flag = if_else(is.na(max(return_flag)), 0, max(return_flag))) %>%
-  ungroup() %>%
-  select(Perm_Exits_EnrollmentID, return_flag) %>%
-  distinct()
+# Getting this at the Project Level ---------------------------------------
 
-rm(list = ls()[!(ls() %in% c("return_flags"))])
-save.image("images/return_flags.RData")
+
 
