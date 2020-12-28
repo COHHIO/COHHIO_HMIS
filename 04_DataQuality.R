@@ -2017,7 +2017,8 @@ check_eligibility <- served_in_date_range %>%
       select(all_of(vars_we_want), PreviousProject)
     
     dq_overlaps <-
-      rbind(dq_overlaps, rrh_overlaps, psh_overlaps, same_day_overlaps)
+      rbind(dq_overlaps, rrh_overlaps, psh_overlaps, same_day_overlaps) %>%
+      unique()
     
     rm(staging_overlaps,
        same_day_overlaps,
