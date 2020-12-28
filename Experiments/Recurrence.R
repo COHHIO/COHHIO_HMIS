@@ -13,13 +13,8 @@ load("images/cohorts.RData")
 ReportEnd <- mdy("12312020")
 
 ##  set up definitions and initial dataframe, adjust as needed
-all_program_types <- c(1:4, 6:14)   
 
 return_project_types <- c(1, 2, 3, 4, 8, 9, 10, 13) # pg 17 SPM specs
-
-housing_program_types <- c(2, 3, 9, 10, 13)
-
-ph_program_types <- c(3, 9, 10, 13)
 
 df_for_returns <- co_clients_served %>%
   filter(ProjectType %in% return_project_types &
