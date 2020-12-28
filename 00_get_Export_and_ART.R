@@ -45,7 +45,7 @@ directory <- case_when(dataset == "live" ~ "data",
 # Service Areas -----------------------------------------------------------
 
 ServiceAreas <- read_csv("public_data/ServiceAreas.csv",
-                         col_types = "cccccccccc") %>%
+                         col_types = "ccccccccccccc") %>%
   mutate(County = if_else(County == "Vanwert", "Van Wert", County))
 
 # Affiliation -------------------------------------------------------------
