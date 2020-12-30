@@ -109,6 +109,11 @@ if (stop == 0) {
   cat("working on Data Quality\n")
   source("04_DataQuality.R")
 
+  rm(list = ls())
+
+  print("working on Project Evaluation")
+  source("05_Veterans_Active_List.R")
+  
   # rm(list = ls())
   # 
   # print("working on Project Evaluation")

@@ -30,6 +30,8 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   load(.x, envir = e)
 })
 
+## to Rm:
+
 save(
   APs,
   bos_counties,
@@ -85,6 +87,9 @@ save(
   envir = e,
   file = .files[1]
 )
+
+## to Rme:
+
 save(
   active_list,
   Enrollment,
@@ -143,6 +148,7 @@ save(
   pe_validation_summary,
   qpr_leavers,
   validation,
+  veteran_active_list,
   qpr_income,
   qpr_benefits,
   qpr_rrh_enterers,
