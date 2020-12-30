@@ -59,6 +59,8 @@ declined <- vet_ees %>%
   filter(OfferAccepted == "No" &
            ymd(OfferDate) >= today() - days(14))
 
+# Notes -------------------------------------------------------------------
+
 small_CLS <- Contacts %>%
   filter(RecordType == "CLS") %>%
   unite("Notes", ContactDate, Notes, sep = ": ") %>%
