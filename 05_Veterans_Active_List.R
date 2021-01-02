@@ -33,9 +33,10 @@ vet_ees <- co_clients_served %>%
   filter(VetCount > 0) %>%
   left_join(Enrollment, by = "HouseholdID") %>%
   left_join(Client %>% select(PersonalID, VeteranStatus), by = "PersonalID") %>%
+  left_join(Project[c("ProjectID", "ProjectCounty")], by = "ProjectID") %>%
   filter((CountyServed %in% c(bos_counties) | is.na(CountyServed)) &
            !ProjectID %in% c(1282)) %>%
-  select(1, 3:15, 17, 51, 67, 73, 75:90)
+  select(1, 3:15, 17, 51, 67, 73, 75:92)
 
 # Currently in PSH/RRH ----------------------------------------------------
 
@@ -44,7 +45,8 @@ vet_ees <- co_clients_served %>%
 currently_housed_in_psh_rrh <- vet_ees %>%
   filter(stayed_between(., start = format(today(), "%m%d%Y"), 
                         end = format(today(), "%m%d%Y")) &
-           ProjectType %in% c(ph_project_types)) %>%
+           ProjectType %in% c(ph_project_types) &
+           VeteranStatus == 1) %>%
   pull(PersonalID)
 
 # Declined  ---------------------------------------------------------------
@@ -57,12 +59,15 @@ most_recent_offer <- Offers %>%
 declined <- vet_ees %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   filter(OfferAccepted == "No" &
-           ymd(OfferDate) >= today() - days(14))
+           ymd(OfferDate) >= today() - days(14) &
+           VeteranStatus == 1)
 
 # Notes -------------------------------------------------------------------
 
 small_CLS <- Contacts %>%
   filter(RecordType == "CLS") %>%
+  mutate(Notes = str_remove_all(Notes, "<"),
+         Notes = str_remove_all(Notes, ">")) %>% # in case there's html in the notes
   unite("Notes", ContactDate, Notes, sep = ": ") %>%
   select(PersonalID, Notes) %>%
   group_by(PersonalID) %>%
@@ -86,6 +91,7 @@ small_CLS <- Contacts %>%
 
 veteran_active_list <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
+           VeteranStatus == 1 &
            (is.na(ExitDate) |
               (
                 !Destination %in% c(perm_destinations) &
@@ -155,8 +161,12 @@ veteran_active_list <- vet_ees %>%
         ),
       "<br><br>Notes:<br>",
       Notes)
-      )
-  )
+      ),
+    County = if_else(is.na(CountyServed),
+                     ProjectCounty,
+                     CountyServed)
+  ) %>%
+  left_join(responsible_providers, by = "County")
 
 # Currently Homeless Vets -------------------------------------------------
 
@@ -169,8 +179,6 @@ veteran_active_list <- vet_ees %>%
 entered_past_90 <- vet_ees %>%
   filter(entered_between(., format(today() - days(90), "%m%d%Y"),
                          format(today(), "%m%d%Y")))
-
-
 
 # Data Quality ------------------------------------------------------------
 
