@@ -142,7 +142,5 @@ if (stop == 0) {
   cat("Check your data folder for errors\n")
 }
 
-# all scripts together take about 3 minutes 45 seconds
-
 
 
