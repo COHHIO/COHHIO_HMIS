@@ -664,14 +664,14 @@ data_quality_flags_detail[is.na(data_quality_flags_detail)] <- 0
 
 users_eda_groups <- read_xlsx("data/RMisc2.xlsx", 
                              sheet = 15) %>%
-  select(UserID, UserEmail, EDAGroupID)
+  select(UserID, UserEmail, EDAGroupName)
 
 eda_groups_providers <- read_xlsx("data/RMisc2.xlsx",
                                   sheet = 16) %>%
-  select(ProjectID, EDAGroupID)
+  select(ProjectID, EDAGroup)
 
 providers_users <- users_eda_groups %>%
-  left_join(eda_groups_providers, by = "EDAGroupID") %>%
+  left_join(eda_groups_providers, by = c("EDAGroupName" = "EDAGroup")) %>%
   filter(!is.na(ProjectID) &
            !UserID %in% c(COHHIO_admin_user_ids))
 
