@@ -33,6 +33,7 @@ library(lubridate)
 library(HMIS)
 
 load("images/COHHIOHMIS.RData")
+source("00_dates.R")
 
 ReportStart <- FileStart
 ReportEnd <- FileEnd

@@ -29,6 +29,7 @@ library(HMIS)
 # calling in HMIS-related functions that aren't in the HMIS pkg
 
 source("00_functions.R")
+source("00_dates.R")
 
 # type "live" or "sample" or "yo"
 if(exists("dataset") == FALSE) {
@@ -38,8 +39,7 @@ if(exists("dataset") == FALSE) {
 }
 
 directory <- case_when(dataset == "live" ~ "data",
-                       dataset == "sample" ~ "sampledata",
-                       dataset == "yo" ~ "youngstowndata")
+                       dataset == "sample" ~ "sampledata")
 
 
 # Service Areas -----------------------------------------------------------
@@ -295,7 +295,7 @@ HHMoveIn <- Enrollment %>%
     ValidMoveIn = case_when(
       # prior to 2017, PSH didn't use move-in dates, so we're overwriting 
       # those PSH move-in dates with the Entry Date        
-      (ymd(EntryDate) < mdy("10012017") &
+      (ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
          ProjectType %in% c(3, 9))  ~ EntryDate,
       # the Move-In Dates must fall between the Entry and ExitAdjust to be 
       # considered valid
@@ -548,24 +548,9 @@ Enrollment <- Enrollment %>%
 
 rm(small_client)
 
-# Metadata ----------------------------------------------------------------
-
-FileEnd <- format.Date(file.info(paste0(directory, "/Enrollment.csv"))$mtime, 
-                       "%m-%d-%Y")
-FileStart <- format.Date(floor_date(mdy(FileEnd), "year") - years(2), "%m-%d-%Y")
-FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-FileActualStart <- min(Enrollment$ExitDate, na.rm = TRUE)
-
-# Update Date -------------------------------------------------------------
-
-update_date <- Export$ExportDate
-
 # Save it out -------------------------------------------------------------
 
-if(dataset == "yo") {
-  save.image(file = "images/YOHMIS.RData")
-} else{
-  save.image(file = "images/COHHIOHMIS.RData")
-}
+save.image(file = "images/COHHIOHMIS.RData")
+
 
 

@@ -26,7 +26,10 @@ library(tidyverse)
 
 # clearing the environment prior to running all the scripts
 rm(list = ls())
+
+# some preliminary parameters
 stop <- 0
+source("00_dates.R")
 
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")
@@ -35,12 +38,9 @@ if (!dir.exists("images")) dir.create("images")
 dataset <- "live" 
 
 directory <- case_when(dataset == "live" ~ "data",
-                       dataset == "sample" ~ "sampledata",
-                       dataset == "yo" ~ "youngstowndata")
+                       dataset == "sample" ~ "sampledata")
 
 # folder check
-including_data_back_to <- mdy("01012018")
-
 export_meta <- read_csv("data/Export.csv",
                         col_types = c("iicccccccTDDcciii"))
 
@@ -53,7 +53,7 @@ if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
 }
 
 if(ymd(export_meta$ExportStartDate) != 
-   including_data_back_to |
+   hc_data_goes_back_to |
    ymd(export_meta$ExportEndDate) != today()) {
   stop <- 1
   cat("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
