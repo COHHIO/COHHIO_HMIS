@@ -15,18 +15,21 @@
 # ************
 # Run this whenever the data has been refreshed (usually every weekday morning)
 
-# Each script here creates an image file which is copied to both
-# R minor and R minor elevated. Running this after updating the data files 
-# should be all that's necessary in order to be sure the apps are getting the 
-# most recent data and code. This script checks that you've downloaded all the
-# correct files in the correct way.
+# Each script here creates an image file which is copied to both R minor and R 
+# minor elevated. Running this after updating the data files should be all 
+# that's necessary in order to be sure the apps are getting the most recent data
+# and code. This script checks that you've downloaded all the correct files in 
+# the correct way, runs them all, then copies the images to Rm/Rme.
 
 library(lubridate)
 library(tidyverse)
 
 # clearing the environment prior to running all the scripts
 rm(list = ls())
+
+# some preliminary parameters
 stop <- 0
+source("00_dates.R")
 
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")
@@ -35,12 +38,9 @@ if (!dir.exists("images")) dir.create("images")
 dataset <- "live" 
 
 directory <- case_when(dataset == "live" ~ "data",
-                       dataset == "sample" ~ "sampledata",
-                       dataset == "yo" ~ "youngstowndata")
+                       dataset == "sample" ~ "sampledata")
 
 # folder check
-including_data_back_to <- mdy("01012018")
-
 export_meta <- read_csv("data/Export.csv",
                         col_types = c("iicccccccTDDcciii"))
 
@@ -53,7 +53,7 @@ if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
 }
 
 if(ymd(export_meta$ExportStartDate) != 
-   including_data_back_to |
+   hc_data_goes_back_to |
    ymd(export_meta$ExportEndDate) != today()) {
   stop <- 1
   cat("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
@@ -109,6 +109,11 @@ if (stop == 0) {
   cat("working on Data Quality\n")
   source("04_DataQuality.R")
 
+  rm(list = ls())
+
+  print("working on Project Evaluation")
+  source("05_Veterans_Active_List.R")
+  
   # rm(list = ls())
   # 
   # print("working on Project Evaluation")
@@ -136,8 +141,6 @@ if (stop == 0) {
 {
   cat("Check your data folder for errors\n")
 }
-
-# all scripts together take about 3 minutes 45 seconds
 
 
 

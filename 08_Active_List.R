@@ -15,6 +15,8 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(treemap)
+library(plotly)
 library(HMIS)
 
 load("images/cohorts.RData")
@@ -690,9 +692,58 @@ active_list <- active_list %>%
         is.na(ReferredToProvider) &
         is.na(PHTrack) ~ 
         "No Entry or accepted Referral into PSH/RRH, and no current Permanent Housing Track"
+    ),
+    ShortSituation = factor(
+      case_when(
+        str_starts(PTCStatus, "Has Entry") ~ "Enrolled in RRH/PSH",
+        str_starts(Situation, "No current") |
+        str_starts(Situation, "Permanent") ~ "Has Referral or Plan",
+        str_starts(Situation, "No Entry") ~ "No Housing Plan"
+      ),
+      levels = c("No Housing Plan", "Has Referral or Plan", "Enrolled in RRH/PSH")
     )
-  ) %>%
+  ) %>% 
   select(-IncomeInHH)
+
+landing_data <- active_list %>%
+  select(PersonalID, CountyServed, COVID19Priority, ShortSituation) %>%
+  # filter(CountyServed == "Lorain") %>%
+  # mutate(COVID19Priority = as.character(COVID19Priority),
+  #        ShortSituation = as.character(ShortSituation)) %>%
+  group_by(COVID19Priority, ShortSituation) %>%
+  summarise(HHs = n()) %>%
+  ungroup() %>%
+  as.data.frame() 
+
+landing <- treemap(
+  landing_data,
+  title = "Currently Literally Homeless Households",
+  index = c("ShortSituation", "COVID19Priority"),
+  border.lwds = c(4, .5),
+  border.col = c("#FFFFFF", "#D2B48C"),
+  palette = "RdBu",
+  vSize = "HHs",
+  vColor = "COVID19Priority",
+  type = "categorical",
+  position.legend = "bottom",
+  fontsize.labels = c(17, 12),
+  fontcolor.labels = c("white", "black"),
+  fontface.labels = c(2, 1),
+  bg.labels = "transparent",
+  # position.legend = "none",
+  align.labels = list(c("center", "center"),
+                      c("left", "top"))
+)
+
+# rowsum(plotly_attempt$HHs, group = plotly_attempt$COVID19Priority)
+
+# plot_ly(
+#   b,
+#   parents = ~ COVID19Priority,
+#   labels = ~ ShortSituation,
+#   values = ~ HHs,
+#   type = 'treemap'
+# )
 
 rm(list = ls()[!(ls() %in% c("active_list"))])
 

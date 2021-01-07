@@ -6,12 +6,13 @@ library(hrbrthemes)
 library(circlize)
 library(networkD3)
 
-source("07_SPMs.R")
 source("02_QPR_EEs.R")
+ReportStart <- format.Date(today() - years(1), "%m%d%Y")
+ReportEnd <- format.Date(today(), "%m%d%Y")
 
 destinations <- validation %>%
-  filter(stayed_between(., format.Date(spm_current_start_date, "%m%d%Y"), 
-                        format.Date(spm_current_end_date, "%m%d%Y")) &
+  filter(stayed_between(., ReportStart, 
+                        ReportEnd) &
            !is.na(ExitDate) &
            ProjectType %in% c(1:4, 8:9, 12:13)) %>%
   mutate(DestinationGroup = case_when(
