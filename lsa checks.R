@@ -1,4 +1,4 @@
-source("04_DataQuality.R")
+load("images/Data_Quality.RData")
 
 a <- dq_main %>%
   filter(served_between(., "10012018", "09302020") &
