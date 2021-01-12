@@ -374,12 +374,22 @@ hh_too_many_hohs <- served_in_date_range %>%
          Type = "High Priority",
          Guidance = "Check inside the Entry pencil to be sure each household member has
       \"Relationship to Head of Household\" answered and that only one of
-      them says Self (head of household).") %>%
+      them says \"Self (head of household)\".") %>%
   select(all_of(vars_we_want))
 
-hh_issues <- rbind(hh_too_many_hohs, hh_no_hoh, hh_children_only)
+hh_missing_rel_to_hoh <- served_in_date_range %>%
+  filter(RelationshipToHoH == 99) %>%
+  anti_join(hh_no_hoh["HouseholdID"], by = "HouseholdID") %>%
+  mutate(Issue = "Missing Relationship to Head of Household",
+         Type = "High Priority",
+         Guidance = "Check inside the Entry pencil to be sure each household member has
+      \"Relationship to Head of Household\" answered and that only one of
+      them says \"Self (head of household)\".") %>%
+  select(all_of(vars_we_want))
 
-rm(hh_too_many_hohs, hh_no_hoh, hh_children_only)
+hh_issues <- rbind(hh_too_many_hohs, hh_no_hoh, hh_children_only, hh_missing_rel_to_hoh)
+
+rm(hh_too_many_hohs, hh_no_hoh, hh_children_only, hh_missing_rel_to_hoh)
 
 # Missing Data at Entry ---------------------------------------------------
 # Living Situation,  Length of Stay, LoSUnderThreshold, PreviousStreetESSH,
