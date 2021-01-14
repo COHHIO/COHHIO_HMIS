@@ -1,10 +1,12 @@
 load("images/Data_Quality.RData")
+load("images/COHHIOHMIS.RData")
 
 a <- dq_main %>%
   filter(served_between(., "10012018", "09302020") &
            ProjectType %in% c(1, 2, 3, 8, 9, 13) &
            Issue %in% c(
              "Children Only Household",
+             "Missing Relationship to Head of Household",
              "Too Many Heads of Household",
              "No Head of Household"
            ))
@@ -18,12 +20,18 @@ a <- dq_main %>%
            ))
 write_csv(a, "coclocation.csv")
 
-a <- dq_main %>%
+a <- dq_overlaps %>%
+  rename("RecentProjectType" = "ProjectType") %>%
+  left_join(Project[c("ProjectName", "ProjectType")], 
+            by = c("PreviousProject" = "ProjectName")) %>%
+  rename("PreviousProjectType" = "ProjectType") %>%
   filter(served_between(., "10012018", "09302020") &
-           ProjectType %in% c(1, 2, 3, 8, 9, 13) &
+           RecentProjectType %in% c(1, 2, 3, 8, 9, 13) &
+           PreviousProjectType %in% c(1, 2, 3, 8, 9, 13) &
            Issue %in% c(
              "Overlapping Project Stays"
            ))
+
 write_csv(a, "overlaps.csv")
 
 
