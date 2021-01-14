@@ -3024,6 +3024,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
         Type %in% c("Error", "High Priority") &
           !Issue %in% c(
             "No Head of Household",
+            "Missing Relationship to Head of Household",
             "Too Many Heads of Household",
             "Children Only Household"
           )
@@ -3152,6 +3153,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       filter(
         Type %in% c("Error", "High Priority") &
           Issue %in% c(
+            "Missing Relationship to Head of Household",
             "No Head of Household",
             "Too Many Heads of Household",
             "Children Only Household"
