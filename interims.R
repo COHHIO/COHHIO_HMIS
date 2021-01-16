@@ -5,6 +5,7 @@ library(tidyverse)
 library(lubridate)
 library(readxl)
 library(HMIS)
+library(janitor)
 
 ReportStart <- "10012019"
 ReportEnd <- "09302020"
