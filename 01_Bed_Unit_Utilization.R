@@ -113,8 +113,8 @@ utilizers_clients <- Utilizers %>%
     (
       ProjectType %in% c(3, 9) &
         !is.na(EntryAdjust) &
-        ymd(MoveInDate) >= ymd(EntryDate) &
-        ymd(MoveInDate) < ymd(ExitAdjust)
+        ymd(MoveInDateAdjust) >= ymd(EntryDate) &
+        ymd(MoveInDateAdjust) < ymd(ExitAdjust)
     ) |
       ProjectType %in% c(1, 2, 8)
   ) &
@@ -214,8 +214,11 @@ utilizers_clients <- utilizers_clients %>%
     Month23 = bed_nights_per_ee(utilizers_clients, TwentythirdMonth),
     Month24 = bed_nights_per_ee(utilizers_clients, TwentyfourthMonth)
   ) %>%
+  mutate(
+    across(starts_with("Month"), ~if_else(is.na(.x), 0, .x))
+  ) %>%
   select(ProjectName, ProjectID, ProjectType, PersonalID, EnrollmentID, 
-         EntryDate, MoveInDate, ExitDate, starts_with("Month"))
+         EntryDate, MoveInDateAdjust, ExitDate, starts_with("Month"))
 
 utilizers_clients <- as.data.frame(utilizers_clients)
 
@@ -436,7 +439,7 @@ HHUtilizers <- Utilizers %>%
   mutate(
     EntryAdjust = case_when(
       ProjectType %in% c(lh_project_types) ~ EntryDate,
-      ProjectType %in% c(3, 9) ~ MoveInDate
+      ProjectType %in% c(3, 9) ~ MoveInDateAdjust
     ),
     ExitAdjust = if_else(
       is.na(ExitDate) & ymd(EntryAdjust) <= mdy(FileEnd),
@@ -454,14 +457,14 @@ HHUtilizers <- Utilizers %>%
         (
           ProjectType %in% c(3, 9) &
             !is.na(EntryAdjust) &
-            ymd(MoveInDate) >= ymd(EntryDate) &
-            ymd(MoveInDate) <= ymd(ExitAdjust)
+            ymd(MoveInDateAdjust) >= ymd(EntryDate) &
+            ymd(MoveInDateAdjust) <= ymd(ExitAdjust)
         ) |
           ProjectType %in% c(lh_project_types)
       ) &
       !ProjectID %in% c(1775, 1695, fake_projects)
   ) %>%
-  select(-EntryDate,-MoveInDate,-HouseholdID,-RelationshipToHoH)
+  select(-EntryDate,-MoveInDateAdjust,-HouseholdID,-RelationshipToHoH)
 
 HHUtilizers <- HHUtilizers %>%
   mutate(
@@ -490,7 +493,11 @@ HHUtilizers <- HHUtilizers %>%
     Month22 = bed_nights_per_ee(HHUtilizers, TwentysecondMonth),
     Month23 = bed_nights_per_ee(HHUtilizers, TwentythirdMonth),
     Month24 = bed_nights_per_ee(HHUtilizers, TwentyfourthMonth)
-    )
+    ) %>%
+  mutate(
+    across(starts_with("Month"), ~if_else(is.na(.x), 0, .x))
+  )
+  
 HHUtilizers <- as.data.frame(HHUtilizers)
 
 # making granularity by provider instead of by enrollment id
@@ -701,7 +708,7 @@ utilization_unit <- left_join(UnitCapacity,
          # FilePeriod,
          starts_with("Month"))
 
-rm(UnitCapacity, HHNights, Beds, Utilizers)
+rm(UnitCapacity, HHNights, Utilizers)
 
 names(utilization_unit) <- 
   c("ProjectID", "ProjectName", "ProjectType", 
