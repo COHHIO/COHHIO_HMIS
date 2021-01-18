@@ -93,6 +93,7 @@ save(
 save(
   active_list,
   aps_no_referrals,
+  Beds,
   Client,
   dq_main,
   dq_past_year,
