@@ -70,7 +70,7 @@ whos_the_worst <- missing_interims %>%
 
 # LSA2 APR for a given provider
 
-provider_name <- "Hocking - Hocking MHA - Region 17 Tenant Based - PSH"
+provider_name <- "Licking - LCCH - RROhio - RRH"
 
 APR_moved_in <- read_csv("random_data/movedin.csv")
 
@@ -88,6 +88,7 @@ full_data_of_no_move_ins <- enrollments_interims %>%
       is.na(InterimID) ~ "There's no interim",
       ymd(InterimDate) != ymd(MoveInDateAdjust) ~ "Interim Date doesn't match Move In Date",
       ymd(MoveInDateAdjust) >= mdy(ReportEnd) ~ "Move-in was after Report End Date",
+      ymd(MoveInDateAdjust) == ymd(ExitDate) ~ "Move-in = Exit Date",
       TRUE ~ "We don't know"
     )
   )
@@ -101,6 +102,7 @@ bucketed_differently <- enrollments_interims %>%
       is.na(InterimID) ~ "not ok",
       ymd(InterimDate) != ymd(MoveInDateAdjust) ~ "not ok",
       ymd(MoveInDateAdjust) >= mdy(ReportEnd) ~ "ok",
+      ymd(MoveInDateAdjust) == ymd(ExitDate) ~ "not ok",
       TRUE ~ "not ok"
     )
   )
