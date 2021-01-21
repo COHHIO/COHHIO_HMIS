@@ -52,7 +52,7 @@ smallProject <- Project %>%
          ProjectCounty,
          ProjectRegion) %>%
   filter(HMISParticipatingProject == 1 &
-           operating_between(., FileStart, FileEnd) &
+           operating_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
            !is.na(ProjectRegion) &
            ProjectType %in% c(1:4, 8:9, 12:14)) %>%
   mutate(
@@ -112,7 +112,7 @@ smallEnrollment <- smallEnrollment %>%
 qpr_leavers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter((!is.na(ExitDate) | ProjectType %in% c(3, 9, 12)) &
-           served_between(., FileStart, FileEnd) &
+           served_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
            RelationshipToHoH == 1) %>%
   mutate(
     DestinationGroup = case_when(
@@ -124,12 +124,12 @@ qpr_leavers <- smallProject %>%
     ),
     DaysinProject = difftime(ExitAdjust, EntryDate, units = "days")
   ) %>% 
-  filter(stayed_between(., FileStart, FileEnd))
+  filter(stayed_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)))
 
 qpr_rrh_enterers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
   filter(ProjectType == 13 &
-           entered_between(., FileStart, FileEnd) &
+           entered_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
            RelationshipToHoH == 1) %>%
   mutate(
     DaysToHouse = difftime(MoveInDateAdjust, EntryDate, units = "days"),
@@ -146,7 +146,7 @@ smallMainstreamBenefits <- IncomeBenefits %>%
 
 qpr_benefits <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
-  filter(exited_between(., FileStart, FileEnd) &
+  filter(exited_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
            RelationshipToHoH == 1) %>%
   left_join(smallMainstreamBenefits, by = "EnrollmentID") %>%
   select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
@@ -188,7 +188,7 @@ smallIncomeDiff <-
 
 qpr_income <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
-  filter(served_between(., FileStart, FileEnd) &
+  filter(served_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
            RelationshipToHoH == 1) %>%
   left_join(smallIncomeDiff, by = "EnrollmentID") %>%
   select(ProjectName, FriendlyProjectName, PersonalID, HouseholdID, EntryDate,
@@ -443,40 +443,5 @@ rm(covid19_status, covid19_plot)
 # Save it out -------------------------------------------------------------
 
 save.image("images/QPR_EEs.RData")
-
-
-
-# somecolors <- c("#7156e9", "#56B4E9", "#56e98c", "#e98756", "#e9d056", "#ba56e9",
-#                 "#e95684")
-# somemorecolors <- c('#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#4eb3d3','#2b8cbe',
-#                     '#08589e')
-
-# RECURRENCE #
-
-# Enrollments to Compare Against ------------------------------------------
-
-# ReportStart <- format.Date(ymd("20190101"), "%m-%d-%Y")
-# ReportEnd <- format.Date(mdy("06302019"), "%m-%d-%Y")
-# LookbackStart <- format.Date(mdy(ReportStart) - years(1), "%m-%d-%Y")
-# LookbackEnd <- format.Date(mdy(ReportEnd) - years(1), "%m-%d-%Y")
-# 
-# exitedToPH <- qpr_leavers %>%
-#   filter(Destination %in% c(3, 10, 11, 19, 20, 21, 22, 23, 26, 28, 31) &
-#            ymd(ExitDate) >= mdy(LookbackStart) &
-#            ymd(ExitDate) <= mdy(LookbackEnd) &
-#            ProjectType %in% c(1, 2, 3, 4, 8, 9, 10, 13))
-# 
-# earliestExitsToPH <- exitedToPH %>%
-#   group_by(PersonalID) %>%
-#   summarise(ExitDate = min(ymd(ExitDate)))
-# 
-# x <- semi_join(exitedToPH, earliestExitsToPH, by = c("PersonalID", "ExitDate"))
-# 
-# get_dupes(x, PersonalID) %>% view()
-
-# so how do you break the tie when a client has two exits to PH on the same day?
-
-# Qualifying Recurrences --------------------------------------------------
-
 
 

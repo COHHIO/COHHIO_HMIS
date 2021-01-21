@@ -35,8 +35,8 @@ library(HMIS)
 load("images/COHHIOHMIS.RData")
 source("00_dates.R")
 
-ReportStart <- FileStart
-ReportEnd <- FileEnd
+ReportStart <- ymd(calc_data_goes_back_to)
+ReportEnd <- ymd(meta_HUDCSV_Export_End)
 
 vars_we_want <- c(
   "PersonalID",

@@ -41,10 +41,8 @@ directory <- case_when(dataset == "live" ~ "data",
                        dataset == "sample" ~ "sampledata")
 
 # folder check
-export_meta <- read_csv("data/Export.csv",
-                        col_types = c("iicccccccTDDcciii"))
 
-if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
+if(meta_HUDCSV_Export_End != today()) {
   stop <- 1
   cat("The HUD CSV Export files are not up to date. Please be sure you unzipped the
   export.\n")
@@ -52,16 +50,15 @@ if(floor_date(ymd_hms(export_meta$ExportDate), unit = "days") != today()) {
   cat("OK\n")
 }
 
-if(ymd(export_meta$ExportStartDate) != 
-   hc_data_goes_back_to |
-   ymd(export_meta$ExportEndDate) != today()) {
+if(ymd(meta_HUDCSV_Export_Start) != ymd(hc_data_goes_back_to) |
+   ymd(meta_HUDCSV_Export_End) != today()) {
   stop <- 1
   cat("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
 } else{
   cat("OK\n")
 }
 
-if(format.Date(file.info(paste0(directory, "/RMisc2.xlsx"))$mtime, "%F") != today()){
+if(meta_Rmisc_last_run_date != today()){
   stop <- 1
   cat("The RMisc2.xlsx file is not up to date. Please run this ART report and 
   overwrite the current RMisc2.xlsx with the new one.\n")

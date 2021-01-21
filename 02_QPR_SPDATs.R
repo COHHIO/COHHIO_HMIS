@@ -158,11 +158,11 @@ qpr_spdats_project <- left_join(Entries, Scores, by = "PersonalID") %>%
 SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
   filter(RelationshipToHoH != 1 & 
            !is.na(Score) & 
-           served_between(., FileStart, FileEnd)) %>%
+           served_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End))) %>%
   select(ProjectName, PersonalID, EntryDate, ExitDate, Score) %>%
   arrange(ProjectName)
 
-rm(Entries, Scores, smallEnrollment, FileEnd, FilePeriod, FileStart, 
+rm(Entries, Scores, smallEnrollment, 
    SPDATsOnNonHoHs)
 
 save.image("images/QPR_SPDATs.RData")
