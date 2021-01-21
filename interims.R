@@ -40,6 +40,8 @@ interim_dates_that_match_hmid <- enrollments_interims %>%
   select(PersonalID, EnrollmentID, HouseholdID) %>%
   unique()
 
+# if hud answers that ws is correct about the Exit Date, then you'll 
+# have to modify this to exclude ees where the hmid == the exit date
 no_valid_hmid <- enrollments_interims %>%
   filter(is.na(MoveInDateAdjust)) %>%
   select(PersonalID, EnrollmentID, HouseholdID) %>%
@@ -54,7 +56,8 @@ missing_interims <- enrollments_interims %>%
     why = case_when(
       is.na(InterimID) ~ "No Interim at all",
       ymd(InterimDate) != ymd(MoveInDateAdjust) &
-        ymd(EntryDate) != ymd(MoveInDateAdjust) ~ "Move In Date doesn't match Interim Date"
+        ymd(EntryDate) != ymd(MoveInDateAdjust) ~ "Move In Date doesn't match Interim Date",
+      ymd(MoveInDateAdjust) == ymd(ExitDate) ~ "Move In Date matches Exit Date"
     )
   ) %>%
   select(PersonalID, EnrollmentID, HouseholdID, ProjectName, EntryDate, why) %>%
@@ -64,7 +67,6 @@ whos_the_worst <- missing_interims %>%
   group_by(ProjectName, why) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total))
-
 
 # Experiment with the APR -------------------------------------------------
 
