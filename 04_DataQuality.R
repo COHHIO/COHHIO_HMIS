@@ -1557,6 +1557,48 @@ check_eligibility <- served_in_date_range %>%
         is no longer in your program."
       ) %>%
       select(all_of(vars_we_want))
+
+# Move-In Dates in HUD Reporting ------------------------------------------
+
+    enrollments_interims <- served_in_date_range %>%
+      left_join(Interims, by = c("EnrollmentID", "PersonalID"))
+    
+    hmid_matches_entry <- enrollments_interims %>%
+      filter(ymd(MoveInDateAdjust) == ymd(EntryDate)) %>%
+      select(PersonalID, EnrollmentID, HouseholdID) %>%
+      unique()
+    
+    interim_dates_that_match_hmid <- enrollments_interims %>%
+      filter(ymd(InterimDate) == ymd(MoveInDateAdjust)) %>%
+      select(PersonalID, EnrollmentID, HouseholdID) %>%
+      unique()
+    
+    # if hud answers that ws is correct about the Exit Date, then you'll 
+    # have to modify this to exclude ees where the hmid == the exit date
+    no_valid_hmid <- enrollments_interims %>%
+      filter(is.na(MoveInDateAdjust)) %>%
+      select(PersonalID, EnrollmentID, HouseholdID) %>%
+      unique()
+    
+    missing_interims <- enrollments_interims %>%
+      anti_join(hmid_matches_entry, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+      anti_join(interim_dates_that_match_hmid, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+      anti_join(no_valid_hmid, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+      mutate(
+        Type = "Error",
+        Issue = case_when(
+          is.na(InterimID) ~ 
+            "WellSky reporting will not count Move-In: Missing Interim",
+          ymd(InterimDate) != ymd(MoveInDateAdjust) &
+            ymd(EntryDate) != ymd(MoveInDateAdjust) ~ 
+            "WellSky reporting will not count Move-In: Move-In Date doesn't match Interim Date"
+        ),
+        Guidance = "For a Move-In Date to count in any WellSky (ServicePoint) 
+        reports, there must be an Interim created where the Interim Date matches
+        the Move In Date."
+      ) %>%
+      select(all_of(vars_we_want)) %>%
+      unique()
     
     # Incorrect Entry Exit Type -----------------------------------------------
     # check ART report for exact logic.
@@ -2833,6 +2875,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
+      missing_interims,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,

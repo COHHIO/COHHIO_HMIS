@@ -406,6 +406,12 @@ CaseManagers <-
     CMEndDate = as.Date(CMEndDate, origin = "1899-12-30")
   )
 
+# Interims ----------------------------------------------------------------
+
+Interims <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 20) %>%
+  mutate(InterimDate = as.Date(InterimDate, origin = "1899-12-30"))
+
 # Contacts ----------------------------------------------------------------
 # only pulling in contacts made between an Entry Date and an Exit Date
 

@@ -46,25 +46,31 @@ no_valid_hmid <- enrollments_interims %>%
   filter(is.na(MoveInDateAdjust)) %>%
   select(PersonalID, EnrollmentID, HouseholdID) %>%
   unique()
-  
+
+hmid_not_in_date_range <- enrollments_interims %>%
+  filter(ymd(MoveInDateAdjust) >= mdy(ReportStart) & 
+           ymd(MoveInDateAdjust) < mdy(ReportEnd)) %>%
+  select(PersonalID, EnrollmentID, HouseholdID) %>%
+  unique()
   
 missing_interims <- enrollments_interims %>%
   anti_join(hmid_matches_entry, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
   anti_join(interim_dates_that_match_hmid, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
   anti_join(no_valid_hmid, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+  anti_join(hmid_not_in_date_range, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
   mutate(
-    why = case_when(
+    Issue = case_when(
       is.na(InterimID) ~ "No Interim at all",
       ymd(InterimDate) != ymd(MoveInDateAdjust) &
         ymd(EntryDate) != ymd(MoveInDateAdjust) ~ "Move In Date doesn't match Interim Date",
       ymd(MoveInDateAdjust) == ymd(ExitDate) ~ "Move In Date matches Exit Date"
     )
   ) %>%
-  select(PersonalID, EnrollmentID, HouseholdID, ProjectName, EntryDate, why) %>%
+  select(PersonalID, EnrollmentID, HouseholdID, ProjectName, EntryDate, Issue) %>%
   unique()
 
 whos_the_worst <- missing_interims %>%
-  group_by(ProjectName, why) %>%
+  group_by(ProjectName, Issue) %>%
   summarise(Total = n()) %>%
   arrange(desc(Total))
 
@@ -87,9 +93,9 @@ full_data_of_no_move_ins <- enrollments_interims %>%
   mutate(
     why = case_when(
       is.na(MoveInDateAdjust) ~ "There's no valid move-in date",
+      ymd(MoveInDateAdjust) >= mdy(ReportEnd) ~ "Move-in was after Report End Date",
       is.na(InterimID) ~ "There's no interim",
       ymd(InterimDate) != ymd(MoveInDateAdjust) ~ "Interim Date doesn't match Move In Date",
-      ymd(MoveInDateAdjust) >= mdy(ReportEnd) ~ "Move-in was after Report End Date",
       ymd(MoveInDateAdjust) == ymd(ExitDate) ~ "Move-in = Exit Date",
       TRUE ~ "We don't know"
     )
@@ -101,9 +107,9 @@ bucketed_differently <- enrollments_interims %>%
   mutate(
     why = case_when(
       is.na(MoveInDateAdjust) ~ "ok",
+      ymd(MoveInDateAdjust) >= mdy(ReportEnd) ~ "ok",
       is.na(InterimID) ~ "not ok",
       ymd(InterimDate) != ymd(MoveInDateAdjust) ~ "not ok",
-      ymd(MoveInDateAdjust) >= mdy(ReportEnd) ~ "ok",
       ymd(MoveInDateAdjust) == ymd(ExitDate) ~ "not ok",
       TRUE ~ "not ok"
     )
