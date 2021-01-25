@@ -298,9 +298,12 @@ HHMoveIn <- Enrollment %>%
       (ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
          ProjectType %in% c(3, 9))  ~ EntryDate,
       # the Move-In Dates must fall between the Entry and ExitAdjust to be 
-      # considered valid
+      # considered valid and for PSH the hmid cannot = ExitDate
       ymd(EntryDate) <= ymd(MoveInDate) & 
-        ymd(MoveInDate) <= ymd(ExitAdjust)
+        (ymd(MoveInDate) < ymd(ExitAdjust) &
+           ProjectType %in% c(3, 9)) |
+        (ymd(MoveInDate) <= ymd(ExitAdjust) &
+           ProjectType == 13)
       ~ MoveInDate
     )
   ) %>%

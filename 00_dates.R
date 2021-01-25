@@ -21,7 +21,7 @@ library(tidyverse)
 
 # Hard-coded Dates --------------------------------------------------------
 
-hc_data_goes_back_to <- mdy("01012018") # the date we should run the Export back to
+hc_data_goes_back_to <- mdy("01012018") 
 
 hc_check_dq_back_to <- mdy("10012018") # the default ReportStart for DQ reporting
 
