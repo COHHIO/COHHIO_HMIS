@@ -13,8 +13,33 @@
 # <https://www.gnu.org/licenses/>.
 
 source("01_Bed_Unit_Utilization.R")
+library(janitor)
 
 shelters <- utilization_bed %>% filter(ProjectType == 1) %>%
-  rename_all()
-  mutate(pre = mean(01012019:03012020))
+  rename_with(~ paste0("bernie", .x), ends_with(c('2019'))) %>%
+  rename_with(~ paste0("aoc", .x), ends_with(c('2020'))) 
+
+pre <- shelters %>%
+  select(
+    ProjectID,
+    ProjectName,
+    starts_with("bernie"),
+    aoc01012020,
+    aoc02012020,
+    aoc03012020
+  ) %>%
+  mutate(pre = mean(bernie01012019:aoc03012020, na.rm = TRUE))
+
+post <- shelters %>%
+  select(
+    ProjectID,
+    ProjectName,
+    starts_with("aoc"),
+    -aoc01012020,
+    -aoc02012020,
+    -aoc03012020
+  )
+
+
+
 
