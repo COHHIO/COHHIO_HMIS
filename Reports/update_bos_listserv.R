@@ -17,6 +17,11 @@ library(lubridate)
 library(writexl)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
+
+mahoning_project_names <- Project %>%
+  filter(ProjectID %in% c(mahoning_projects)) %>%
+  pull(ProjectName)
 
 active_users <- Users %>%
   filter(
@@ -57,7 +62,8 @@ active_users <- Users %>%
         "Rescue Mission of Mahoning Valley",
         "zzBeatitude House - A House of Blessing, Youngstown - TH",
         "zzFamily Promise of Mahoning Valley",
-        "Mahoning - Ursuline Center - Merici - PSH"
+        "Mahoning - Ursuline Center - Merici - PSH",
+        mahoning_project_names
       )
   ) %>%
   select(UserName, UserEmail)
@@ -73,7 +79,8 @@ non_users_on_listserv <- tibble(
     "Sally Hammitt",
     "Scott Gary",
     "Shannon Prince",
-    "Vernon McNeil"
+    "Vernon McNeil",
+    "Jackie Bouvette"
   ),
   UserEmail = c(
     "Amy.Bullard@development.ohio.gov",
@@ -85,7 +92,8 @@ non_users_on_listserv <- tibble(
     "Sally.Hammitt@va.gov",
     "scott.gary@development.ohio.gov",
     "shannon.prince@development.ohio.gov",
-    "vernon.mcneil@development.ohio.gov"
+    "vernon.mcneil@development.ohio.gov",
+    "jackieb@serve-city.org"
   )
 )
 
