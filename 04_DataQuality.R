@@ -2875,7 +2875,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
-      missing_interims,
+      # missing_interims,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
