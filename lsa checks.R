@@ -34,4 +34,10 @@ a <- dq_overlaps %>%
 
 write_csv(a, "overlaps.csv")
 
+today <- a
+yesterday <- read_csv("overlaps (1).csv")
 
+new <- anti_join(today, yesterday)
+new
+fixed <- anti_join(yesterday, today)
+fixed
