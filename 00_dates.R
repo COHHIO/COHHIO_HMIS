@@ -85,21 +85,6 @@ calc_2_yrs_prior_start <-
 calc_2_yrs_prior_range <- interval(ymd(calc_2_yrs_prior_start),
                                    ymd(calc_2_yrs_prior_end))
 
-# Dates to Replace or Retire ----------------------------------------------
 
-# should use meta_HUDCSV_Export_End here
-# FileEnd <- format.Date(file.info("data/Exit.csv")$mtime, "%m-%d-%Y")
-
-# should use cal_data_goes_back_to
-# FileStart <- format.Date(floor_date(mdy(FileEnd), "year") - years(2), "%m-%d-%Y")
-
-# should use calc_full_date_range
-# FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-
-# should not need to make this distinction, should not use at all
-# FileActualStart <- min(Exit$ExitDate, na.rm = TRUE)
-
-# should use meta_HUDCSV_Export_Date instead
-# update_date <- Export$ExportDate 
 
 

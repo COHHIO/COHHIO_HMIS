@@ -19,6 +19,11 @@ shelters <- utilization_bed %>% filter(ProjectType == 1) %>%
   rename_with(~ paste0("bernie", .x), ends_with(c('2019'))) %>%
   rename_with(~ paste0("aoc", .x), ends_with(c('2020'))) 
 
+shelters <- shelters %>%
+  mutate(across(.cols = starts_with(c("bernie", "aoc")),
+                .fns = ~if_else(!is.finite(.x), 0, .x)))
+
+  
 pre <- shelters %>%
   select(
     ProjectID,
@@ -28,8 +33,10 @@ pre <- shelters %>%
     aoc02012020,
     aoc03012020
   ) %>%
-  mutate(pre = mean(bernie01012019:aoc03012020, na.rm = TRUE))
-
+  rowwise() %>%
+  mutate(pre = mean(c(bernie01012019:aoc03012020))) %>%
+  select(ProjectID, ProjectName, pre)
+  
 post <- shelters %>%
   select(
     ProjectID,
@@ -38,8 +45,15 @@ post <- shelters %>%
     -aoc01012020,
     -aoc02012020,
     -aoc03012020
-  )
+  ) %>%
+  rowwise() %>%
+  mutate(post = mean(c(aoc04012020:aoc12012020))) %>%
+  select(ProjectID, ProjectName, post)
 
+covid_differences <- pre %>%
+  full_join(post) %>%
+  mutate(difference = pre - post)
 
+write_csv(covid_differences, "random_data/coviddifferences.csv")
 
 
