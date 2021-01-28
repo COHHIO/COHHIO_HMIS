@@ -10,7 +10,7 @@ a <- dq_main %>%
              "Too Many Heads of Household",
              "No Head of Household"
            ))
-write_csv(a, "hhs.csv")
+write_csv(a, "random_data/hhs.csv")
 
 a <- dq_main %>%
   filter(served_between(., "10012018", "09302020") &
@@ -18,7 +18,7 @@ a <- dq_main %>%
            Issue %in% c(
              "Missing Client Location"
            ))
-write_csv(a, "coclocation.csv")
+write_csv(a, "random_data/coclocation.csv")
 
 a <- dq_overlaps %>%
   rename("RecentProjectType" = "ProjectType") %>%
@@ -32,10 +32,10 @@ a <- dq_overlaps %>%
              "Overlapping Project Stays"
            ))
 
-write_csv(a, "overlaps.csv")
+write_csv(a, "random_data/overlaps.csv")
 
 today <- a
-yesterday <- read_csv("overlaps1.csv")
+yesterday <- read_csv("random_data/overlaps1.csv")
 
 new <- anti_join(today, yesterday)
 new
