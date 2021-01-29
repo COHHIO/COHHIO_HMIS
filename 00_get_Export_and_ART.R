@@ -490,6 +490,11 @@ covid19 <-
   mutate_at(vars(matches("Symptom")), replace_yes_no) %>%
   mutate_at(vars(matches("HealthRisk")), replace_yes_no)
 
+doses <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 21) %>%
+  mutate(
+    COVID19DoseDate = ymd(as.Date(COVID19DoseDate,
+                                        origin = "1899-12-30")))
+
 # Services ----------------------------------------------------------------
 
 raw_services <-
