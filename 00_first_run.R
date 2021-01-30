@@ -2,6 +2,7 @@
 if (!require(pacman))
   install.packages("pacman")
 pacman::p_load(char = c(
+  "feather",
   "tidyverse",
   "lubridate",
   "readxl",
