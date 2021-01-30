@@ -17,10 +17,22 @@ library(lubridate)
 library(writexl)
 
 load("images/COHHIOHMIS.RData")
+load("images/cohorts.RData")
+
+mahoning_project_names <- Project %>%
+  filter(ProjectID %in% c(mahoning_projects)) %>%
+  pull(ProjectName)
 
 active_users <- Users %>%
   filter(
     UserActive == "Yes" &
+      !UserEmail %in% c(
+        "gwenbeebe@gmail.com",
+        "sholsen@alumni.emory.edu",
+        "awilson.msw@gmail.com",
+        "rmatthews@fwsadl.com",
+        "dameca.neal@use.salvationarmy.org"
+      ) &
       !UserName %in% c("BIS ART Support User", "User, Art"),
       !DefaultProvider %in% c(
         "Bowman Systems, LLC",
@@ -50,14 +62,14 @@ active_users <- Users %>%
         "Rescue Mission of Mahoning Valley",
         "zzBeatitude House - A House of Blessing, Youngstown - TH",
         "zzFamily Promise of Mahoning Valley",
-        "Mahoning - Ursuline Center - Merici - PSH"
+        "Mahoning - Ursuline Center - Merici - PSH",
+        mahoning_project_names
       )
   ) %>%
   select(UserName, UserEmail)
 
 non_users_on_listserv <- tibble(
   UserName = c(
-    "Collen Kosta",
     "Amy Bullard",
     "Christie Watson",
     "Lequita Potter",
@@ -68,12 +80,9 @@ non_users_on_listserv <- tibble(
     "Scott Gary",
     "Shannon Prince",
     "Vernon McNeil",
-    "John Roszkowski",
-    "Teresa Lopez",
-    "Diane Waite"
+    "Jackie Bouvette"
   ),
   UserEmail = c(
-    "colleen.kosta@mahoningcountyoh.gov",
     "Amy.Bullard@development.ohio.gov",
     "christie.watson@va.gov",
     "lequita.potter@va.gov",
@@ -84,23 +93,24 @@ non_users_on_listserv <- tibble(
     "scott.gary@development.ohio.gov",
     "shannon.prince@development.ohio.gov",
     "vernon.mcneil@development.ohio.gov",
-    "john.roszkowski@va.gov",
-    "teresa.lopez@va.gov",
-    "diane.waite@va.gov"
+    "jackieb@serve-city.org"
   )
 )
 
-add_to_listserv <- rbind(active_users, non_users_on_listserv)
+add_to_listserv <- rbind(active_users, non_users_on_listserv) %>%
+  select(UserEmail)
 
 write_csv(add_to_listserv, "random_data/upload_to_bos_listserv.csv")
 
 # Who are we losing/gaining -----------------------------------------------
 
-# email the following subject line to boshmis-request@cohhio.org: who [list pw]
+# email the following subject line to boshmis-request@cohhio.org: who ***** (<- pw)
+
+# replace below with the results of getting the list of current members ^^
 
 current <- data.frame(
   UserEmail = c(
-    "replace.this@fake.com"
+   "replacethis@fake.com"
   )
 )
 
@@ -110,8 +120,8 @@ not_a_current_user <-
 current_user_not_on_list <-
   active_users %>% anti_join(current, by = "UserEmail")
 
-write_xlsx(x = list(losing = not_a_current_user, 
-                    gaining = current_user_not_on_list),
-           "random_data/bos_listserv.xlsx")
+write_xlsx(x = list(lost = not_a_current_user, 
+                    gained = current_user_not_on_list),
+           "random_data/bos_listserv_changes.xlsx")
 
 

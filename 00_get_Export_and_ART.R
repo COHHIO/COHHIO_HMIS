@@ -298,9 +298,12 @@ HHMoveIn <- Enrollment %>%
       (ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
          ProjectType %in% c(3, 9))  ~ EntryDate,
       # the Move-In Dates must fall between the Entry and ExitAdjust to be 
-      # considered valid
+      # considered valid and for PSH the hmid cannot = ExitDate
       ymd(EntryDate) <= ymd(MoveInDate) & 
-        ymd(MoveInDate) <= ymd(ExitAdjust)
+        (ymd(MoveInDate) < ymd(ExitAdjust) &
+           ProjectType %in% c(3, 9)) |
+        (ymd(MoveInDate) <= ymd(ExitAdjust) &
+           ProjectType == 13)
       ~ MoveInDate
     )
   ) %>%
@@ -406,6 +409,12 @@ CaseManagers <-
     CMEndDate = as.Date(CMEndDate, origin = "1899-12-30")
   )
 
+# Interims ----------------------------------------------------------------
+
+Interims <-
+  read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 20) %>%
+  mutate(InterimDate = as.Date(InterimDate, origin = "1899-12-30"))
+
 # Contacts ----------------------------------------------------------------
 # only pulling in contacts made between an Entry Date and an Exit Date
 
@@ -480,6 +489,11 @@ covid19 <-
   ) %>%
   mutate_at(vars(matches("Symptom")), replace_yes_no) %>%
   mutate_at(vars(matches("HealthRisk")), replace_yes_no)
+
+doses <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 21) %>%
+  mutate(
+    COVID19DoseDate = ymd(as.Date(COVID19DoseDate,
+                                        origin = "1899-12-30")))
 
 # Services ----------------------------------------------------------------
 

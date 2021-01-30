@@ -25,7 +25,7 @@ rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC,
    regions, Scores, Services, stray_services, Users, VeteranCE)
 
 load("images/cohorts.RData")
-rm(FileActualStart, FileStart, FileEnd, update_date, summary)
+rm(summary)
 
 load("images/Data_Quality.RData")
 

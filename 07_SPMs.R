@@ -20,7 +20,7 @@ library(HMIS)
 coc <- "OH-507: Balance of State"
 
 how_many_worksheets_in_the_701 <- 5
-how_many_worksheets_in_the_703 <- 6
+how_many_worksheets_in_the_703 <- 5
 what_sheet_is_701_data_on <- 2
 
 

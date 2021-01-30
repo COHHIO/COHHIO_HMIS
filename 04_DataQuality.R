@@ -45,7 +45,7 @@ projects_current_hmis <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
   filter(ProjectID == 1695 | (
     HMISParticipatingProject == 1 &
-      operating_between(., FileStart, FileEnd) &
+      operating_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
       (GrantType != "HOPWA" | is.na(GrantType))) 
   ) %>% 
   select(
@@ -67,7 +67,7 @@ rm(Inventory, Organization)
 # Clients to Check --------------------------------------------------------
 
 served_in_date_range <- Enrollment %>%
-  filter(served_between(., FileStart, FileEnd)) %>%
+  filter(served_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End))) %>%
   left_join(Client %>%
               select(-DateCreated), by = "PersonalID") %>%
   select(
@@ -129,7 +129,7 @@ DV <- HealthAndDV %>%
 served_in_date_range <- served_in_date_range %>%
   left_join(DV, by = "EnrollmentID")
 
-rm(FileStart, FileEnd, FilePeriod, DV)
+rm(DV)
 
 # The Variables That We Want ----------------------------------------------
 
@@ -374,12 +374,22 @@ hh_too_many_hohs <- served_in_date_range %>%
          Type = "High Priority",
          Guidance = "Check inside the Entry pencil to be sure each household member has
       \"Relationship to Head of Household\" answered and that only one of
-      them says Self (head of household).") %>%
+      them says \"Self (head of household)\".") %>%
   select(all_of(vars_we_want))
 
-hh_issues <- rbind(hh_too_many_hohs, hh_no_hoh, hh_children_only)
+hh_missing_rel_to_hoh <- served_in_date_range %>%
+  filter(RelationshipToHoH == 99) %>%
+  anti_join(hh_no_hoh["HouseholdID"], by = "HouseholdID") %>%
+  mutate(Issue = "Missing Relationship to Head of Household",
+         Type = "High Priority",
+         Guidance = "Check inside the Entry pencil to be sure each household member has
+      \"Relationship to Head of Household\" answered and that only one of
+      them says \"Self (head of household)\".") %>%
+  select(all_of(vars_we_want))
 
-rm(hh_too_many_hohs, hh_no_hoh, hh_children_only)
+hh_issues <- rbind(hh_too_many_hohs, hh_no_hoh, hh_children_only, hh_missing_rel_to_hoh)
+
+rm(hh_too_many_hohs, hh_no_hoh, hh_children_only, hh_missing_rel_to_hoh)
 
 # Missing Data at Entry ---------------------------------------------------
 # Living Situation,  Length of Stay, LoSUnderThreshold, PreviousStreetESSH,
@@ -397,7 +407,7 @@ missing_approx_date_homeless <- served_in_date_range %>%
     PreviousStreetESSH
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= mdy("10012016") &
+           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
            is.na(DateToStreetESSH) &
            LOSUnderThreshold == 1 &
            PreviousStreetESSH == 1
@@ -417,7 +427,7 @@ missing_previous_street_ESSH <- served_in_date_range %>%
     LOSUnderThreshold
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= mdy("10012016") &
+           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
            is.na(PreviousStreetESSH) &
            LOSUnderThreshold == 1
   ) %>%
@@ -486,7 +496,7 @@ missing_months_times_homeless <- served_in_date_range %>%
     TimesHomelessPastThreeYears
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= mdy("10012016") &
+           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
            ProjectType %in% c(1, 4, 8) &
            (
              is.na(MonthsHomelessPastThreeYears) |
@@ -509,7 +519,7 @@ dkr_months_times_homeless <- served_in_date_range %>%
     TimesHomelessPastThreeYears
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= mdy("10012016") &
+           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
            (
              MonthsHomelessPastThreeYears %in% c(8, 9) |
                TimesHomelessPastThreeYears %in% c(8, 9)
@@ -530,7 +540,7 @@ invalid_months_times_homeless <- served_in_date_range %>%
     DateToStreetESSH
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= mdy("10012016") &
+           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
            TimesHomelessPastThreeYears == 1 &
            !is.na(DateToStreetESSH)
   ) %>%
@@ -585,7 +595,7 @@ missing_living_situation <- served_in_date_range %>%
     TimesHomelessPastThreeYears
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= mdy("10012016") &
+           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
            # not req'd prior to this
            ProjectType %in% c(2, 3, 6, 9, 10, 12, 13) &
            (
@@ -638,7 +648,7 @@ dkr_living_situation <- served_in_date_range %>%
     UserCreating
   ) %>%
   filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) > mdy("10012016") &
+           ymd(EntryDate) > ymd(hc_prior_living_situation_required) &
            (
              MonthsHomelessPastThreeYears %in% c(8, 9) |
                TimesHomelessPastThreeYears %in% c(8, 9) |
@@ -1111,7 +1121,7 @@ check_eligibility <- served_in_date_range %>%
   filter(
     RelationshipToHoH == 1 &
       AgeAtEntry > 17 &
-      ymd(EntryDate) > mdy("10012016") &
+      ymd(EntryDate) > ymd(hc_check_eligibility_back_to) &
       (ProjectType %in% c(3, 4, 8, 9, 10, 12, 13) |
          (ProjectType == 2 & (is.na(GrantType) | GrantType != "RHY"))) &
       (
@@ -1428,7 +1438,7 @@ check_eligibility <- served_in_date_range %>%
           ymd(ContactDate) <= ymd(ExitAdjust) &
           ((
             RecordType == "Outreach" &
-              ymd(ContactDate) < mdy("10012019")
+              ymd(ContactDate) < ymd(hc_outreach_to_cls)
           ) |
             RecordType == "CLS")
       ) %>% 
@@ -1464,7 +1474,7 @@ check_eligibility <- served_in_date_range %>%
     
     first_contact <- Contacts %>%
       filter((RecordType == "Outreach" &
-                ymd(ContactDate) < mdy("10012019")) |
+                ymd(ContactDate) < ymd(hc_outreach_to_cls)) |
                RecordType == "CLS") %>%
       left_join(served_in_date_range, by = "PersonalID") %>%
       select(PersonalID, EntryDate, ExitAdjust, ExitDate, ContactDate, ProjectName, 
@@ -1524,7 +1534,7 @@ check_eligibility <- served_in_date_range %>%
                (ProjectType %in% c(1, 2, 4, 8, 13) |
                   (
                     ProjectType %in% c(3, 9) & 
-                      ymd(EntryDate) >= mdy("10012017")
+                      ymd(EntryDate) >= ymd(hc_psh_started_collecting_move_in_date)
                   )))  %>%
       mutate(
         Issue = "Future Entry Date",
@@ -1547,6 +1557,48 @@ check_eligibility <- served_in_date_range %>%
         is no longer in your program."
       ) %>%
       select(all_of(vars_we_want))
+
+# Move-In Dates in HUD Reporting ------------------------------------------
+
+    enrollments_interims <- served_in_date_range %>%
+      left_join(Interims, by = c("EnrollmentID", "PersonalID"))
+    
+    hmid_matches_entry <- enrollments_interims %>%
+      filter(ymd(MoveInDateAdjust) == ymd(EntryDate)) %>%
+      select(PersonalID, EnrollmentID, HouseholdID) %>%
+      unique()
+    
+    interim_dates_that_match_hmid <- enrollments_interims %>%
+      filter(ymd(InterimDate) == ymd(MoveInDateAdjust)) %>%
+      select(PersonalID, EnrollmentID, HouseholdID) %>%
+      unique()
+    
+    # if hud answers that ws is correct about the Exit Date, then you'll 
+    # have to modify this to exclude ees where the hmid == the exit date
+    no_valid_hmid <- enrollments_interims %>%
+      filter(is.na(MoveInDateAdjust)) %>%
+      select(PersonalID, EnrollmentID, HouseholdID) %>%
+      unique()
+    
+    missing_interims <- enrollments_interims %>%
+      anti_join(hmid_matches_entry, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+      anti_join(interim_dates_that_match_hmid, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+      anti_join(no_valid_hmid, by = c("PersonalID", "EnrollmentID", "HouseholdID")) %>%
+      mutate(
+        Type = "Error",
+        Issue = case_when(
+          is.na(InterimID) ~ 
+            "WellSky reporting will not count Move-In: Missing Interim",
+          ymd(InterimDate) != ymd(MoveInDateAdjust) &
+            ymd(EntryDate) != ymd(MoveInDateAdjust) ~ 
+            "WellSky reporting will not count Move-In: Move-In Date doesn't match Interim Date"
+        ),
+        Guidance = "For a Move-In Date to count in any WellSky (ServicePoint) 
+        reports, there must be an Interim created where the Interim Date matches
+        the Move In Date."
+      ) %>%
+      select(all_of(vars_we_want)) %>%
+      unique()
     
     # Incorrect Entry Exit Type -----------------------------------------------
     # check ART report for exact logic.
@@ -1617,7 +1669,7 @@ check_eligibility <- served_in_date_range %>%
       anti_join(served_in_date_range, ees_with_spdats, by = "EnrollmentID") %>%
       filter(
         ProjectType %in% c(2, 3, 9, 13) &
-          ymd(EntryDate) > ymd("20190101") &
+          ymd(EntryDate) > ymd(hc_began_requiring_spdats) &
           # only looking at 1/1/2019 forward
           RelationshipToHoH == 1 &
           (CurrentlyFleeing != 1 |
@@ -1645,7 +1697,7 @@ check_eligibility <- served_in_date_range %>%
           RelationshipToHoH == 1 &
           ymd(EntryDate) < today() - days(8) &
           is.na(ExitDate) &
-          ymd(EntryDate) > ymd("20190101")
+          ymd(EntryDate) > ymd(hc_began_requiring_spdats)
       ) %>%
       mutate(
         Issue = "HoHs in shelter for 8+ days without SPDAT",
@@ -2312,7 +2364,7 @@ check_eligibility <- served_in_date_range %>%
     
     # Non HoHs w Svcs or Referrals --------------------------------------------
     # SSVF projects should be showing this as an Error, whereas non-SSVF projects
-    # should be showing it as a warning, and only back to Feb of 2018.
+    # should be showing it as a warning, and only back to Feb of 2019
     services_on_hh_members <- served_in_date_range %>%
       select(all_of(vars_prep),
              EnrollmentID,
@@ -2320,7 +2372,7 @@ check_eligibility <- served_in_date_range %>%
              GrantType) %>%
       filter(
         RelationshipToHoH != 1 &
-          ymd(EntryDate) >= mdy("02012019") &
+          ymd(EntryDate) >= ymd(hc_no_more_svcs_on_hh_members) &
           (GrantType != "SSVF" | is.na(GrantType))
       ) %>%
       semi_join(Services, by = c("PersonalID", "EnrollmentID")) %>%
@@ -2823,6 +2875,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_health_insurance_exit,
       missing_income_entry,
       missing_income_exit,
+      # missing_interims,
       missing_living_situation,
       missing_LoS,
       missing_months_times_homeless,
@@ -2984,7 +3037,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     
     # for CoC-wide DQ tab
     
-    ReportStart <- "10012018"
+    ReportStart <- format.Date(hc_check_dq_back_to, "%m-%d-%Y")
     ReportEnd <- format.Date(today(), "%m-%d-%Y")
     
     dq_past_year <- dq_main %>%
@@ -2993,14 +3046,9 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     
     # for project evaluation reporting
     
-    ReportStart <- "01012019"
-    ReportEnd <- "12312019"
-    
     dq_2019 <- dq_main %>%
-      filter(served_between(., ReportStart, ReportEnd)) %>%
+      filter(served_between(., ymd(hc_project_eval_start), ymd(hc_project_eval_end))) %>%
       left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
-    
-    rm(ReportStart, ReportEnd)
     
     projects_current_hmis <- projects_current_hmis %>%
       filter(ProjectID != 1695)
@@ -3014,6 +3062,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
         Type %in% c("Error", "High Priority") &
           !Issue %in% c(
             "No Head of Household",
+            "Missing Relationship to Head of Household",
             "Too Many Heads of Household",
             "Children Only Household"
           )
@@ -3114,7 +3163,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     
     dq_data_unsheltered_high <- dq_unsheltered %>%
       filter(Type == "High Priority",
-             served_between(., "01012019", format.Date(today(), "%m-%d-%Y"))) %>%
+             served_between(., ymd(hc_unsheltered_data_start), ymd(meta_HUDCSV_Export_End))) %>%
       select(PersonalID, HouseholdID, DefaultProvider) %>%
       unique() %>%
       group_by(DefaultProvider) %>%
@@ -3142,6 +3191,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       filter(
         Type %in% c("Error", "High Priority") &
           Issue %in% c(
+            "Missing Relationship to Head of Household",
             "No Head of Household",
             "Too Many Heads of Household",
             "Children Only Household"
@@ -3292,7 +3342,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       Enrollment,
       entered_ph_without_spdat,
       extremely_long_stayers,
-      FileActualStart,
       future_ees,
       future_exits,
       HealthAndDV,
@@ -3346,7 +3395,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       unsheltered_enrollments,
       unsheltered_not_unsheltered,
       unsheltered_long_not_referred,
-      update_date,
       va_funded,
       vars_prep,
       vars_we_want,

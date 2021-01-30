@@ -13,38 +13,78 @@
 # <https://www.gnu.org/licenses/>.
 
 library(lubridate)
+library(tidyverse)
+
+# hc = hard-coded here, used elsewhere
+# meta = result comes from meta data
+# calc = result is calculated
 
 # Hard-coded Dates --------------------------------------------------------
 
-hc_data_goes_back_to <- mdy("01012018")
+hc_data_goes_back_to <- mdy("01012018") 
 
-hc_check_dq_back_to <- mdy("10012018")
+hc_check_dq_back_to <- mdy("10012018") # the default ReportStart for DQ reporting
 
-hc_psh_started_collecting_move_in_date <- mdy("10012017")
+hc_psh_started_collecting_move_in_date <- mdy("10012017") 
 
-# Metadata and Calculated Dates -------------------------------------------
+hc_began_collecting_covid_data <- mdy("04012020")
 
-# meta_HUDCSV_Export_Date <- read_csv("data/Export.csv",
-#                                 col_types = c("iicccccccTDDcciii")) %>%
-#   mutate() %>%
-#   pull(format.Date(ymd_hms(ExportDate), "%m%d%Y"))
+hc_outreach_to_cls <- mdy("10012019")
 
-# cal_data_goes_back_to <- min(Enrollment$ExitDate, na.rm = TRUE)
+hc_began_requiring_spdats <- mdy("01012019")
 
-# Dates to Replace or Retire ----------------------------------------------
-Export <- read_csv("data/Export.csv",
-                   col_types = c("iicccccccTDDcciii"))
-Exit <-
+hc_project_eval_start <- mdy("01012019")
+
+hc_project_eval_end <- mdy("12312019")
+
+hc_unsheltered_data_start <- mdy("01012019")
+
+hc_prior_living_situation_required <- mdy("10012016")
+
+hc_check_eligibility_back_to <- mdy("10012016")
+
+hc_no_more_svcs_on_hh_members <- mdy("02012019")
+
+# Dates from Metadata -----------------------------------------------------
+
+meta_HUDCSV_Export_Date <- read_csv("data/Export.csv",
+                                col_types = c("iicccccccTDDcciii")) %>%
+  mutate(ExportDate = ymd_hms(ExportDate)) %>%
+  pull(ExportDate)
+
+meta_HUDCSV_Export_Start <- read_csv("data/Export.csv",
+                                     col_types = c("iicccccccTDDcciii")) %>%
+  mutate(ExportStartDate = ymd(ExportStartDate)) %>%
+  pull(ExportStartDate)
+
+meta_HUDCSV_Export_End <- read_csv("data/Export.csv",
+                                   col_types = c("iicccccccTDDcciii")) %>%
+  mutate(ExportEndDate = ymd(ExportEndDate)) %>%
+  pull(ExportEndDate)
+
+meta_Rmisc_last_run_date <- floor_date(file.info("data/RMisc2.xlsx")$mtime, 
+                                       unit = "day")
+
+# Calculated Dates --------------------------------------------------------
+
+calc_data_goes_back_to <-
   read_csv("data/Exit.csv",
-           col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
+           col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn") %>%
+  mutate(ExitDate = ymd(ExitDate)) %>%
+  arrange(ExitDate) %>%
+  head(1) %>% 
+  pull(ExitDate)
 
-FileEnd <- format.Date(file.info("data/Exit.csv")$mtime, "%m-%d-%Y")
-FileStart <- format.Date(floor_date(mdy(FileEnd), "year") - years(2), "%m-%d-%Y")
-FilePeriod <- interval(mdy(FileStart), mdy(FileEnd))
-FileActualStart <- min(Exit$ExitDate, na.rm = TRUE)
+calc_full_date_range <- interval(ymd(meta_HUDCSV_Export_End),
+                                ymd(calc_data_goes_back_to))
+
+calc_2_yrs_prior_end <- floor_date(today(), "month") - days(1)
+calc_2_yrs_prior_start <-
+  floor_date(ymd(calc_2_yrs_prior_end), "month") - years(2) + months(1)
+
+calc_2_yrs_prior_range <- interval(ymd(calc_2_yrs_prior_start),
+                                   ymd(calc_2_yrs_prior_end))
 
 
-update_date <- Export$ExportDate
 
-rm(Export, Exit)
 
