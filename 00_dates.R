@@ -21,9 +21,13 @@ library(tidyverse)
 
 # Hard-coded Dates --------------------------------------------------------
 
-hc_data_goes_back_to <- mdy("01012018") 
+hc_data_goes_back_to <- mdy("01012019") 
 
-hc_check_dq_back_to <- mdy("10012018") # the default ReportStart for DQ reporting
+hc_check_dq_back_to <- mdy("10012019") # the default ReportStart for DQ reporting
+
+hc_project_eval_start <- mdy("01012019")
+
+hc_project_eval_end <- mdy("12312019")
 
 hc_psh_started_collecting_move_in_date <- mdy("10012017") 
 
@@ -32,10 +36,6 @@ hc_began_collecting_covid_data <- mdy("04012020")
 hc_outreach_to_cls <- mdy("10012019")
 
 hc_began_requiring_spdats <- mdy("01012019")
-
-hc_project_eval_start <- mdy("01012019")
-
-hc_project_eval_end <- mdy("12312019")
 
 hc_unsheltered_data_start <- mdy("01012019")
 
