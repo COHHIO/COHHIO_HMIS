@@ -321,7 +321,7 @@ rm(list = ls(pattern = "summary_"))
 BoS_PIT <- dplyr::tribble(
   ~Population, ~January2019Count, ~January2020Count,
   "Total", 3479, 3577,
-  "Sheltered", 3479 - 814, 3577 - 986,
+  "Sheltered", 3479 - 814, 3577 - 986, # total minus unsheltered
   "Veterans", 159, 162,
   "Chronic", 330, 192
 )
