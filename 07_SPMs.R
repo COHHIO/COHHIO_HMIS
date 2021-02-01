@@ -16,11 +16,12 @@ library(tidyverse)
 library(lubridate)
 library(readxl)
 library(HMIS)
+library(writexl)
 
 coc <- "OH-507: Balance of State"
 
 how_many_worksheets_in_the_701 <- 5
-how_many_worksheets_in_the_703 <- 5
+how_many_worksheets_in_the_703 <- 6
 what_sheet_is_701_data_on <- 2
 
 
@@ -973,4 +974,29 @@ spm_7b2_exits_ph <- exits_to_ph_prior[-c(1:14), ] %>%
 rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
 save.image("images/SPM_data.RData")
+
+write_xlsx(
+  x = list(
+    measure1a = spm_1a_loth_ees,
+    measure1b = spm_1b_loth_self_report,
+    measure2 = spm_2_recurrence,
+    measure3 = spm_3_homeless_count,
+    measure4.1 = spm_4_1_empl_stayers,
+    measure4.2 = spm_4_2_income_non_empl_stayers,
+    measure4.3 = spm_4_3_income_total_stayers,
+    measure4.4 = spm_4_4_income_empl_leavers,
+    measure4.5 = spm_4_5_income_non_empl_leavers,
+    measure4.6 = spm_4_6_income_total_leavers,
+    measure5.1 = spm_5_1_first_timers_lh,
+    measure5.2 = spm_5_2_first_timers_all,
+    measure7a = spm_7a_exits_out_to_ph,
+    measure7b1 = spm_7b1_exits_lh,
+    measure7b2 = spm_7b2_exits_ph
+  ),
+  "random_data/bos_spms.xlsx"
+)
+
+
+
+
 
