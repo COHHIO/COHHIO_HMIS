@@ -705,35 +705,35 @@ active_list <- active_list %>%
   ) %>% 
   select(-IncomeInHH)
 
-landing_data <- active_list %>%
-  select(PersonalID, CountyServed, COVID19Priority, ShortSituation) %>%
-  # filter(CountyServed == "Lorain") %>%
-  # mutate(COVID19Priority = as.character(COVID19Priority),
-  #        ShortSituation = as.character(ShortSituation)) %>%
-  group_by(COVID19Priority, ShortSituation) %>%
-  summarise(HHs = n()) %>%
-  ungroup() %>%
-  as.data.frame() 
-
-landing <- treemap(
-  landing_data,
-  title = "Currently Literally Homeless Households",
-  index = c("ShortSituation", "COVID19Priority"),
-  border.lwds = c(4, .5),
-  border.col = c("#FFFFFF", "#D2B48C"),
-  palette = "RdBu",
-  vSize = "HHs",
-  vColor = "COVID19Priority",
-  type = "categorical",
-  position.legend = "bottom",
-  fontsize.labels = c(17, 12),
-  fontcolor.labels = c("white", "black"),
-  fontface.labels = c(2, 1),
-  bg.labels = "transparent",
-  # position.legend = "none",
-  align.labels = list(c("center", "center"),
-                      c("left", "top"))
-)
+# landing_data <- active_list %>%
+#   select(PersonalID, CountyServed, COVID19Priority, ShortSituation) %>%
+#   # filter(CountyServed == "Lorain") %>%
+#   # mutate(COVID19Priority = as.character(COVID19Priority),
+#   #        ShortSituation = as.character(ShortSituation)) %>%
+#   group_by(COVID19Priority, ShortSituation) %>%
+#   summarise(HHs = n()) %>%
+#   ungroup() %>%
+#   as.data.frame() 
+# 
+# landing <- treemap(
+#   landing_data,
+#   title = "Currently Literally Homeless Households",
+#   index = c("ShortSituation", "COVID19Priority"),
+#   border.lwds = c(4, .5),
+#   border.col = c("#FFFFFF", "#D2B48C"),
+#   palette = "RdBu",
+#   vSize = "HHs",
+#   vColor = "COVID19Priority",
+#   type = "categorical",
+#   position.legend = "bottom",
+#   fontsize.labels = c(17, 12),
+#   fontcolor.labels = c("white", "black"),
+#   fontface.labels = c(2, 1),
+#   bg.labels = "transparent",
+#   # position.legend = "none",
+#   align.labels = list(c("center", "center"),
+#                       c("left", "top"))
+# )
 
 # rowsum(plotly_attempt$HHs, group = plotly_attempt$COVID19Priority)
 
