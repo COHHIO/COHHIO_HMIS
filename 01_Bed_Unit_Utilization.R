@@ -909,8 +909,8 @@ rm(list = ls(all.names = TRUE, pattern = "co_"))
 # outliers <- rbind(outliers_hi, outliers_lo)
 
 rm(Contacts, covid19, regions, ServiceAreas)
-
-save.image("images/Utilization.RData")
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Utilization.RData")
 
 
 

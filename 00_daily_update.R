@@ -120,9 +120,6 @@ if(ymd(meta_HUDCSV_Export_Start) != ymd(hc_data_goes_back_to) |
 if(meta_Rmisc_last_run_date != today()) stop_with_instructions("The RMisc2.xlsx file is not up to date. Please run this ART report and overwrite the current RMisc2.xlsx with the new one.")
 
 
-if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) > 0) stop_with_instructions("Don't forget to delete the .7z file in your /data folder. It has PII in it!\n")
-
-
 increment("Importing raw HMIS data")
 COHHIO_HMIS <- environment()
 source("00_get_Export_and_ART.R", local = COHHIO_HMIS)

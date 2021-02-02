@@ -195,7 +195,7 @@ rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE,
    Referrals, CurrentVeteranCounts, Contacts, covid19, HUD_specs)
 
 rm(list = ls(pattern = "co_"))
-
-save.image("images/Veterans.RData")
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Veterans.RData")
 
 

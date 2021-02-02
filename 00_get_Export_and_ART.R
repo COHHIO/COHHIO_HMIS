@@ -564,7 +564,7 @@ Enrollment <- Enrollment %>%
 rm(small_client)
 
 # Save it out -------------------------------------------------------------
-save.image(file = "images/COHHIOHMIS.RData")
-
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/COHHIOHMIS.RData")
 
 

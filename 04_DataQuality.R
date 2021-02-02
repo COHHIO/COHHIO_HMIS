@@ -3407,6 +3407,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     rm(list = ls(pattern = "dq_data_"))
     rm(list = ls(pattern = "guidance_"))
 
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Data_Quality.RData")
     
-    save.image("images/Data_Quality.RData")
 
