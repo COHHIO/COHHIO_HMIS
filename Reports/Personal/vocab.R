@@ -34,7 +34,34 @@ seventh_grade <-  c(
   "condemn", 	"irate", 	"confront"
 )
 
-sample(seventh_grade, 10)
+
+Rstudied7th <- c(
+  "exuberant",
+  "devour",
+  "obnoxious",
+  "addict",
+  "condemn",
+  "liaison",
+  "relinquish",
+  "ludicrous",
+  "punctual",
+  "acknowledge",
+  "exuberant",
+  "legendary",
+  "exonerated",
+  "evaluate",
+  "toxic",
+  "conclusive",
+  "abrasive",
+  "allege",
+  "tentative",
+  "condor",
+  "formidable"
+)
+
+Rlist7th <- setdiff(seventh_grade, Rstudied7th)
+
+sample(Rlist7th, 10)
 
 eighth_grade <- c(
   "abhor", 	"construct", 	"precise",
@@ -71,7 +98,19 @@ eighth_grade <- c(
   "consistent", 	"persuasive", 	"inspire"
 )
 
-sample(eighth_grade, 10)
+list8th <- setdiff(eighth_grade, seventh_grade)
+
+Rstudied8th <- c("words")
+
+Pstudied8th <- c("words")
+
+Rlist8th <- setdiff(list8th, Rstudied8th)
+
+Plist8th <- setdiff(list8th, Pstudied8th)
+
+sample(Rlist8th, 10)
+
+sample(Rlist8th, 10)
 
 ninth_grade <- c(
   "absolve", 	"escalate", 	"mediate",
@@ -108,7 +147,26 @@ ninth_grade <- c(
   "elude", 	"mandatory", 	"vulnerable"
 )
 
-sample(ninth_grade, 10)
+list9th <- setdiff(ninth_grade, seventh_grade)
+
+list9th <- setdiff(list9th, eighth_grade)
+
+Pstudied9th <- c(
+  "redundant",
+  "scrutiny",
+  "exacerbate",
+  "exposition",
+  "alternative",
+  "fluctuate",
+  "deficient",
+  "elicit",
+  "illicit",
+  "innovation"
+)
+
+Plist9th <- setdiff(list9th, Pstudied9th)
+
+sample(Plist9th, 10)
 
 tenth_grade <- c(
   "abstract", 	"divert", 	"oppose",
