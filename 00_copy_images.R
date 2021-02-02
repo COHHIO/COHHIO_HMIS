@@ -19,6 +19,12 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
 
 ## to Rm:
 
+  hc_began_collecting_covid_data,        
+  hc_check_dq_back_to,                   
+  hc_data_goes_back_to,    
+  hc_project_eval_start,
+  hc_project_eval_end,
+  hc_psh_started_collecting_move_in_date,
 .Rm <- list(
   APs = APs,
   bos_counties = bos_counties,
@@ -68,6 +74,11 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   utilization_unit = utilization_unit,
   validation = validation,
   veteran_current_in_project = veteran_current_in_project
+  meta_HUDCSV_Export_Date,               
+  Mah_PIT,
+  meta_HUDCSV_Export_End,                
+  meta_HUDCSV_Export_Start,              
+  meta_Rmisc_last_run_date,  
 )
 
 .Rme <- list(
@@ -130,6 +141,22 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   utilization_bed = utilization_bed,
   validation = validation,
   veteran_active_list = veteran_active_list,  
+  Beds,
+  calc_2_yrs_prior_end,                  
+  calc_2_yrs_prior_range,                
+  calc_2_yrs_prior_start,                
+  calc_data_goes_back_to,                
+  calc_full_date_range,                  
+  hc_began_collecting_covid_data,        
+  hc_check_dq_back_to,                   
+  hc_data_goes_back_to,  
+  hc_project_eval_start,
+  hc_project_eval_end,
+  hc_psh_started_collecting_move_in_date,
+  meta_HUDCSV_Export_Date,               
+  meta_HUDCSV_Export_End,                
+  meta_HUDCSV_Export_Start,              
+  meta_Rmisc_last_run_date,    
 )
 directories <- c("../Rminor",
                  "../Rminor_elevated")
