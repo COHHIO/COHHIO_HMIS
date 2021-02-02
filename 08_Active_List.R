@@ -19,8 +19,8 @@ library(treemap)
 library(plotly)
 library(HMIS)
 
-load("images/cohorts.RData")
-load("images/COHHIOHMIS.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 # clients currently entered into a homeless project in our system
 

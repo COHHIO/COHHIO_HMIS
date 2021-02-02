@@ -16,8 +16,8 @@ library(tidyverse)
 library(lubridate)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 # Get all veterans and associated hh members ------------------------------
 

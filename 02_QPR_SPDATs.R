@@ -23,7 +23,8 @@ library(janitor)
 library(HMIS)
 
 # loading the COHHIOHMIS data, dropping unnecessary objects
-load("images/COHHIOHMIS.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+
 
 rm(Affiliation, CaseManagers, Client, EnrollmentCoC, EmploymentEducation, 
    Export, Exit, Funder, HealthAndDV, Disabilities, IncomeBenefits, Inventory, 

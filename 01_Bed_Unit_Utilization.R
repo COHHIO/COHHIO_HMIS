@@ -17,8 +17,9 @@ library(lubridate)
 library(scales)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
+
 
 # despite the fact we're pulling in usually more than 2 years of data, the 
 # utilization reporting will only go back 2 years. (decision based on lack of

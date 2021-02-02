@@ -19,8 +19,8 @@ library(lubridate)
 library(janitor)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 
