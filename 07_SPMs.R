@@ -18,176 +18,160 @@ library(readxl)
 library(HMIS)
 library(writexl)
 
-coc <- "OH-507: Balance of State"
-
-how_many_worksheets_in_the_701 <- 5
-how_many_worksheets_in_the_703 <- 5
 what_sheet_is_701_data_on <- 2
+
+rename_file <-
+  function(CoC = "OH-507",
+           subdirectory = "Current",
+           pattern = "(0700 -)") {
+    directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                           CoC == "OH-504" ~ "SPM_data_YO")
+    filename <- case_when(
+      pattern == "(0700 -)" ~ "0700a",
+      pattern == "(0700.1b)" ~ "0700b",
+      pattern == "(0701 -)" ~ "0701",
+      pattern == "(0702 -)" ~ "0702",
+      pattern == "(0703 -)" ~ "0703",
+      pattern == "(0704 -)" ~ "0704",
+      pattern == "(0706 -)" ~ "0706"
+    )
+    
+    if (file.exists(paste0(
+      directory,
+      "/",
+      subdirectory,
+      "/",
+      list.files(paste0("./", directory, "/", subdirectory),
+                 pattern = pattern)
+    ))) {
+      file.rename(
+        paste0(
+          directory,
+          "/",
+          subdirectory,
+          "/",
+          list.files(paste0("./", directory, "/", subdirectory),
+                     pattern = pattern)
+        ),
+        paste0(directory, "/", subdirectory, "/", filename, ".xls")
+      )
+    }
+  }
 
 
 # Renaming all the files to reasonable things -----------------------------
 
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0700 -)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0700 -)")),
-              "SPM_data/Current/0700a.xls")
-}
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0700 -)")
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0700.1b)")
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0701 -)")
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0702 -)")
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0703 -)")
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0704 -)")
+rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0706 -)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0700 -)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0700.1b)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0701 -)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0702 -)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0703 -)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0704 -)")
+rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0706 -)")
 
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0700.1b)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0700.1b)")),
-              "SPM_data/Current/0700b.xls")
-}
-
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0701 -)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0701 -)")),
-              "SPM_data/Current/0701.xls")
-}
-
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0702 -)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0702 -)")),
-              "SPM_data/Current/0702.xls")
-}
-
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0703 -)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0703 -)")),
-              "SPM_data/Current/0703.xls")
-}
-
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0704 -)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0704 -)")),
-              "SPM_data/Current/0704.xls")
-}
-
-if(file.exists(paste0("SPM_data/Current/",
-                      list.files("./SPM_data/Current", pattern = "(0706 -)")))) {
-  file.rename(paste0("SPM_data/Current/",
-                     list.files("./SPM_data/Current", pattern = "(0706 -)")),
-              "SPM_data/Current/0706.xls")
-}
-
-# RENAMING PRIOR FILES
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0700 -)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0700 -)")),
-              "SPM_data/Prior/0700a.xls")
-}
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0700.1b)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0700.1b)")),
-              "SPM_data/Prior/0700b.xls")
-}
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0701 -)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0701 -)")),
-              "SPM_data/Prior/0701.xls")
-}
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0702 -)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0702 -)")),
-              "SPM_data/Prior/0702.xls")
-}
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0703 -)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0703 -)")),
-              "SPM_data/Prior/0703.xls")
-}
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0704 -)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0704 -)")),
-              "SPM_data/Prior/0704.xls")
-}
-
-if(file.exists(paste0("SPM_data/Prior/",
-                      list.files("./SPM_data/Prior", pattern = "(0706 -)")))) {
-  file.rename(paste0("SPM_data/Prior/",
-                     list.files("./SPM_data/Prior", pattern = "(0706 -)")),
-              "SPM_data/Prior/0706.xls")
-}
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0700 -)")
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0700.1b)")
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0701 -)")
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0702 -)")
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0703 -)")
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0704 -)")
+rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0706 -)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0700 -)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0700.1b)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0701 -)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0702 -)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0703 -)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0704 -)")
+rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0706 -)")
 
 # OPEN ALL YOUR EXCEL FILES AND PRESS ENABLE EDITING BEFORE PROCEEDING
-# Checking that the 0700a was run correctly -CURRENT-----------------------
+# Checking that the 0700a was run correctly -------------------------------
 
-check_loth_a <- read_xls("SPM_data/Current/0700a.xls",
-         sheet = 3,
-         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "EffectiveDate" = 2,
-         "ReportEnd" = 3,
-         "PriorYear" = 4,
-         "ReportStart" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+check_loth_a <- function(CoC = "OH-507", subdirectory = "Current") {
+  
+  directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                         CoC == "OH-504" ~ "SPM_data_YO")
+  
+  loth_a <-
+    read_xls(
+      paste0(directory, "/", subdirectory, "/0700a.xls"),
+      sheet = 3,
+      range = cell_cols("B2:C9")
+    ) %>%
+    select("Prompt" = 2, "Selection" = 3) %>%
+    head(n = 7L) %>%
+    spread(Prompt, Selection) %>%
+    select(
+      "EDA" = 1,
+      "EffectiveDate" = 2,
+      "ReportEnd" = 3,
+      "PriorYear" = 4,
+      "ReportStart" = 5,
+      "CoCInfo" = 6,
+      "Providers" = 7
+    ) %>%
+    mutate(
+      ReportStart = as.integer(ReportStart),
+      ReportEnd = as.integer(ReportEnd),
+      PriorYear = as.integer(PriorYear),
+      EffectiveDate = as.integer(EffectiveDate),
+      ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
+      ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
+      EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
+      PriorYear = as.Date(PriorYear, origin = "1899-12-30")
+    )
+  
+  rpt_0700a <- loth_a %>%
+    select(ReportStart, ReportEnd, PriorYear, EffectiveDate) %>%
+    mutate(CoCName = CoC,
+           CurrentOrPrior = subdirectory,
+           ReportName = "0700a")
+  
+  assign(paste0(CoC, "_", subdirectory, "_rpt_0700a"), 
+         rpt_0700a, 
+         envir = .GlobalEnv)
+  
+  if (nrow(
+    loth_a %>%
+    filter(
+      EDA != "-Default Provider-" |
+      EffectiveDate != ReportEnd |
+      str_sub(CoCInfo, 1, 6) != CoC |
+      ReportEnd - years(1) != ReportStart |
+      ReportStart - years(1) != PriorYear
+    )
+  ) > 0)
+    print(paste("the", CoC, subdirectory, "0700a report was run incorrectly"))
+  else{
+    print(paste(CoC, subdirectory, "0700a ok"))
+  }
+}
 
-if(nrow(
-  read_xls("SPM_data/Current/0700a.xls",
-           sheet = 3,
-           range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "EffectiveDate" = 2,
-         "ReportEnd" = 3,
-         "PriorYear" = 4,
-         "ReportStart" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30")) %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0700a report was run incorrectly")
+check_loth_a(CoC = "OH-507", subdirectory = "Current")
+check_loth_a(CoC = "OH-507", subdirectory = "Prior")
+
+check_loth_a(CoC = "OH-504", subdirectory = "Current")
+check_loth_a(CoC = "OH-504", subdirectory = "Prior")
 
 
-# checking that 700b was run correctly -CURRENT----------------------------
+# checking that 700b was run correctly ------------------------------------
 
-check_loth_b <- read_xls("SPM_data/Current/0700b.xls",
+check_loth_b <- function(CoC = "OH-507", subdirectory = "Current"){
+  
+  directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                         CoC == "OH-504" ~ "SPM_data_YO")
+  
+  loth_b <- read_xls(paste0(directory,
+                            "/",
+                            subdirectory,
+                            "/0700b.xls"),
                          sheet = 3,
                          range = cell_cols("B2:C9")) %>%
   select("Prompt" = 2, "Selection" = 3) %>%
@@ -198,7 +182,7 @@ check_loth_b <- read_xls("SPM_data/Current/0700b.xls",
          "ReportEnd" = 3,
          "PriorYear" = 4,
          "ReportStart" = 5,
-         "CoC" = 6,
+         "CoCInfo" = 6,
          "Providers" = 7) %>%
   mutate(ReportStart = as.integer(ReportStart),
          ReportEnd = as.integer(ReportEnd),
@@ -209,556 +193,550 @@ check_loth_b <- read_xls("SPM_data/Current/0700b.xls",
          EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
          PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
 
+  rpt_0700b <- loth_b %>%
+    select(ReportStart, ReportEnd, PriorYear, EffectiveDate) %>%
+    mutate(CoCName = CoC,
+           CurrentOrPrior = subdirectory,
+           ReportName = "0700b")
+  
+  assign(paste0(CoC, "_", subdirectory, "_rpt_0700b"), 
+         rpt_0700b, 
+         envir = .GlobalEnv)
+  
 if(nrow(
-  check_loth_b %>%
+  loth_b %>%
   filter(
     EDA != "-Default Provider-" |
     EffectiveDate != ReportEnd |
-    CoC != coc |
+    str_sub(CoCInfo, 1, 6) != CoC |
     ReportEnd - years(1) != ReportStart |
     ReportStart - years(1) != PriorYear
   )
 ) > 0)
-  print("the 0700b report was run incorrectly")
+  print(paste("the", CoC, subdirectory,"0700b report was run incorrectly"))
+  else{
+    print(paste(CoC, subdirectory, "0700b ok"))
+  }
+  
+  }
 
+check_loth_b(CoC = "OH-507", subdirectory = "Current")
+check_loth_b(CoC = "OH-507", subdirectory = "Prior")
 
-# Checking that the 701 was run correctly -CURRENT-------------------------
+check_loth_b(CoC = "OH-504", subdirectory = "Current")
+check_loth_b(CoC = "OH-504", subdirectory = "Prior")
 
-check_recurrence <- read_xls("SPM_data/Current/0701.xls",
-                         sheet = how_many_worksheets_in_the_701,
-                         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "EffectiveDate" = 3,
-         "PriorYear" = 4,
-         "Prior2Year" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(Prior2Year = as.integer(Prior2Year),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         Prior2Year = as.Date(Prior2Year, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+# Checking that the 701 was run correctly ---------------------------------
 
-if(nrow(
-  check_recurrence %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(2) != PriorYear |
-    ReportEnd - years(3) != Prior2Year
-  )
-) > 0)
-  print("the 701 report was run incorrectly")
+check_recurrence <-
+  function(CoC = "OH-507", subdirectory = "Current") {
+    directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                           CoC == "OH-504" ~ "SPM_data_YO")
+    
+    worksheet_count <- length(excel_sheets(paste0(
+      directory,
+      "/",
+      subdirectory,
+      "/0701.xls"
+    )))
+    
+    recurrence <- read_xls(
+      paste0(directory,
+             "/",
+             subdirectory,
+             "/0701.xls"),
+      sheet = worksheet_count,
+      range = cell_cols("B2:C9")
+    ) %>%
+      select("Prompt" = 2, "Selection" = 3) %>%
+      head(n = 7L) %>%
+      spread(Prompt, Selection) %>%
+      select(
+        "EDA" = 1,
+        "ReportEnd" = 2,
+        "EffectiveDate" = 3,
+        "PriorYear" = 4,
+        "Prior2Year" = 5,
+        "CoCInfo" = 6,
+        "Providers" = 7
+      ) %>%
+      mutate(
+        Prior2Year = as.integer(Prior2Year),
+        ReportEnd = as.integer(ReportEnd),
+        PriorYear = as.integer(PriorYear),
+        EffectiveDate = as.integer(EffectiveDate),
+        Prior2Year = as.Date(Prior2Year, origin = "1899-12-30"),
+        ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
+        EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
+        PriorYear = as.Date(PriorYear, origin = "1899-12-30")
+      )
+    
+    rpt_0701 <- recurrence %>%
+      select(PriorYear, Prior2Year, ReportEnd, EffectiveDate) %>%
+      mutate(CoCName = CoC,
+             CurrentOrPrior = subdirectory,
+             ReportName = "0701")
+    
+    assign(paste0(CoC, "_", subdirectory, "_rpt_0701"), 
+           rpt_0701, 
+           envir = .GlobalEnv)
+    
+    if (nrow(
+      recurrence %>%
+      filter(
+        EDA != "-Default Provider-" |
+        EffectiveDate != ReportEnd |
+        str_sub(CoCInfo, 1, 6) != CoC |
+        ReportEnd - years(2) != PriorYear |
+        ReportEnd - years(3) != Prior2Year
+      )
+    ) > 0)
+      print(paste("the", CoC, subdirectory, "0701 report was run incorrectly"))
+    else{
+      print(paste(CoC, subdirectory, "0701 ok"))
+    }
+  }
 
-# checking the homeless count report was run correctly -CURRENT------------
+check_recurrence(CoC = "OH-507", subdirectory = "Current")
+check_recurrence(CoC = "OH-507", subdirectory = "Prior")
 
-check_homeless_count <- read_xls("SPM_data/Current/0702.xls",
-                         sheet = 3,
-                         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+check_recurrence(CoC = "OH-504", subdirectory = "Current")
+check_recurrence(CoC = "OH-504", subdirectory = "Prior")
 
-if(nrow(
-  check_homeless_count %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0702 report was run incorrectly")
+# checking the homeless count report was run correctly --------------------
 
+check_homeless_count <-
+  function(CoC = "OH-507", subdirectory = "Current") {
+    directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                           CoC == "OH-504" ~ "SPM_data_YO")
+    
+    homeless_count <- read_xls(
+      paste0(directory,
+             "/",
+             subdirectory,
+             "/0702.xls"),
+      sheet = 3,
+      range = cell_cols("B2:C9")
+    ) %>%
+      select("Prompt" = 2, "Selection" = 3) %>%
+      head(n = 7L) %>%
+      spread(Prompt, Selection) %>%
+      select(
+        "EDA" = 1,
+        "ReportEnd" = 2,
+        "ReportStart" = 3,
+        "EffectiveDate" = 4,
+        "PriorYear" = 5,
+        "CoCInfo" = 6,
+        "Providers" = 7
+      ) %>%
+      mutate(
+        ReportStart = as.integer(ReportStart),
+        ReportEnd = as.integer(ReportEnd),
+        PriorYear = as.integer(PriorYear),
+        EffectiveDate = as.integer(EffectiveDate),
+        ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
+        ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
+        EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
+        PriorYear = as.Date(PriorYear, origin = "1899-12-30")
+      )
+    
+    rpt_0702 <- homeless_count %>%
+      select(ReportStart, ReportEnd, PriorYear, EffectiveDate) %>%
+      mutate(CoCName = CoC,
+             CurrentOrPrior = subdirectory,
+             ReportName = "0702")
+    
+    assign(paste0(CoC, "_", subdirectory, "_rpt_0702"), 
+           rpt_0702, 
+           envir = .GlobalEnv)
+    
+    if (nrow(
+      homeless_count %>%
+      filter(
+        EDA != "-Default Provider-" |
+        EffectiveDate != ReportEnd |
+        str_sub(CoCInfo, 1, 6) != CoC |
+        ReportEnd - years(1) != ReportStart |
+        ReportStart - years(1) != PriorYear
+      )
+    ) > 0)
+      print(paste("the", CoC, subdirectory, "0702 report was run incorrectly"))
+    else{
+      print(paste(CoC, subdirectory, "0702 ok"))
+    }
+  }
 
-# Checking the 703 report was run correctly -CURRENT-----------------------
+check_homeless_count(CoC = "OH-507", subdirectory = "Current")
+check_homeless_count(CoC = "OH-507", subdirectory = "Prior")
 
-check_income <- read_xls("SPM_data/Current/0703.xls",
-                         sheet = how_many_worksheets_in_the_703,
-                         range = cell_cols("B2:e9")) %>%
-  select("Prompt" = 2, "Selection" = 5) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+check_homeless_count(CoC = "OH-504", subdirectory = "Current")
+check_homeless_count(CoC = "OH-504", subdirectory = "Prior")
 
-if(nrow(
-  check_income %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0703 report was run incorrectly")
+# Checking the 703 report was run correctly -------------------------------
 
-# Checking the 704 report was run correctly -CURRENT-----------------------
+check_income <- function(CoC = "OH-507", subdirectory = "Current") {
+  directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                         CoC == "OH-504" ~ "SPM_data_YO")
+  
+  worksheet_count <- length(excel_sheets(paste0(
+    directory,
+    "/",
+    subdirectory,
+    "/0703.xls"
+  )))
+  
+  income <- read_xls(
+    paste0(directory,
+           "/",
+           subdirectory,
+           "/0703.xls"),
+    sheet = worksheet_count,
+    range = cell_cols("B2:e9")
+  ) %>%
+    select("Prompt" = 2, "Selection" = 5) %>%
+    head(n = 7L) %>%
+    spread(Prompt, Selection) %>%
+    select(
+      "EDA" = 1,
+      "ReportEnd" = 2,
+      "ReportStart" = 3,
+      "EffectiveDate" = 4,
+      "PriorYear" = 5,
+      "CoCInfo" = 6,
+      "Providers" = 7
+    ) %>%
+    mutate(
+      ReportStart = as.integer(ReportStart),
+      ReportEnd = as.integer(ReportEnd),
+      PriorYear = as.integer(PriorYear),
+      EffectiveDate = as.integer(EffectiveDate),
+      ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
+      ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
+      EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
+      PriorYear = as.Date(PriorYear, origin = "1899-12-30")
+    )
+  
+  
+  rpt_0703 <- income %>%
+    select(ReportStart, ReportEnd, PriorYear, EffectiveDate) %>%
+    mutate(CoCName = CoC,
+           CurrentOrPrior = subdirectory,
+           ReportName = "0703")
+  
+  assign(paste0(CoC, "_", subdirectory, "_rpt_0703"), 
+         rpt_0703, 
+         envir = .GlobalEnv)
+  
+  if (nrow(
+    income %>%
+    filter(
+      EDA != "-Default Provider-" |
+      EffectiveDate != ReportEnd |
+      str_sub(CoCInfo, 1, 6) != CoC |
+      ReportEnd - years(1) != ReportStart |
+      ReportStart - years(1) != PriorYear
+    )
+  ) > 0)
+    print(paste("the", CoC, subdirectory, "0703 report was run incorrectly"))
+  else{
+    print(paste(CoC, subdirectory, "0703 ok"))
+  }
+}
 
-check_first_timers <- read_xls("SPM_data/Current/0704.xls",
-                         sheet = 4,
-                         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+check_income(CoC = "OH-507", subdirectory = "Current")
+check_income(CoC = "OH-507", subdirectory = "Prior")
 
-if(nrow(
-  check_first_timers %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0704 report was run incorrectly")
+check_income(CoC = "OH-504", subdirectory = "Current")
+check_income(CoC = "OH-504", subdirectory = "Prior")
 
-# Checking the 706 report was run correctly -CURRENT-----------------------
+# Checking the 704 report was run correctly -------------------------------
 
-check_exits_to_ph <- read_xls("SPM_data/Current/0706.xls",
-                         sheet = 3,
-                         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
-
-if(nrow(
-  check_exits_to_ph %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0706 report was run incorrectly")
-
-# Check that ALL SPMs were run on the same date range -CURRENT-------------
-
-starts <- c(check_exits_to_ph$ReportStart, 
-            check_first_timers$ReportStart, 
-            check_homeless_count$ReportStart, 
-            check_income$ReportStart, 
-            check_loth_a$ReportStart, 
-            check_loth_b$ReportStart, 
-            check_recurrence$ReportEnd - years(1))
-
-ends <- c(check_exits_to_ph$ReportEnd, 
-          check_first_timers$ReportEnd, 
-          check_homeless_count$ReportEnd, 
-          check_income$ReportEnd, 
-          check_loth_a$ReportEnd, 
-          check_loth_b$ReportEnd, 
-          check_recurrence$ReportEnd)
-
-priors <- c(check_exits_to_ph$PriorYear, 
-            check_first_timers$PriorYear, 
-            check_homeless_count$PriorYear, 
-            check_income$PriorYear, 
-            check_loth_a$PriorYear, 
-            check_loth_b$PriorYear, 
-            check_recurrence$PriorYear)
-
-if_else(min(priors) == max(priors), 
-        paste("Year Prior =", min(priors)),
-        "Your Prior Dates do not all match.")
-if_else(min(starts) == max(starts), 
-   paste("Report Starts =", min(starts)),
-   "Your Start Dates do not all match.")
-if_else(min(ends) == max(ends), 
-        paste("Report Ends =", min(ends)),
-        "Your End Dates do not all match.")
-
-rm(list = ls(pattern = "check_"))
-
-spm_current_start_date <- min(starts)
-spm_current_end_date <- min(ends)
-
-# Checking that the 0700a was run correctly -PRIOR-------------------------
-
-check_loth_a <- read_xls("SPM_data/Prior/0700a.xls",
-                         sheet = 3,
-                         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "EffectiveDate" = 2,
-         "ReportEnd" = 3,
-         "PriorYear" = 4,
-         "ReportStart" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
-
-if(nrow(
-  read_xls("SPM_data/Prior/0700a.xls",
-           sheet = 3,
-           range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "EffectiveDate" = 2,
-         "ReportEnd" = 3,
-         "PriorYear" = 4,
-         "ReportStart" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30")) %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-print("the 0700a report was run incorrectly")
-
-
-# checking that 700b was run correctly -PRIOR------------------------------
-
-check_loth_b <- read_xls("SPM_data/Prior/0700b.xls",
-                         sheet = 3,
-                         range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "EffectiveDate" = 2,
-         "ReportEnd" = 3,
-         "PriorYear" = 4,
-         "ReportStart" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
-
-if(nrow(
-  check_loth_b %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0700b report was run incorrectly")
-
-
-# Checking that the 701 was run correctly -PRIOR---------------------------
-
-check_recurrence <- read_xls("SPM_data/Prior/0701.xls",
-                             sheet = how_many_worksheets_in_the_701,
+check_first_timers <-
+  function(CoC = "OH-507", subdirectory = "Current") {
+    
+    directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                           CoC == "OH-504" ~ "SPM_data_YO")
+    
+    first_timers <- read_xls(paste0(directory,
+                                    "/",
+                                    subdirectory,
+                                    "/0704.xls"),
+                             sheet = 4,
                              range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "EffectiveDate" = 3,
-         "PriorYear" = 4,
-         "Prior2Year" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(Prior2Year = as.integer(Prior2Year),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         Prior2Year = as.Date(Prior2Year, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+      select("Prompt" = 2, "Selection" = 3) %>%
+      head(n = 7L) %>%
+      spread(Prompt, Selection) %>%
+      select(
+        "EDA" = 1,
+        "ReportEnd" = 2,
+        "ReportStart" = 3,
+        "EffectiveDate" = 4,
+        "PriorYear" = 5,
+        "CoCInfo" = 6,
+        "Providers" = 7
+      ) %>%
+      mutate(
+        ReportStart = as.integer(ReportStart),
+        ReportEnd = as.integer(ReportEnd),
+        PriorYear = as.integer(PriorYear),
+        EffectiveDate = as.integer(EffectiveDate),
+        ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
+        ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
+        EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
+        PriorYear = as.Date(PriorYear, origin = "1899-12-30")
+      )
+    
+    rpt_0704 <- first_timers %>%
+      select(ReportStart, ReportEnd, PriorYear, EffectiveDate) %>%
+      mutate(CoCName = CoC,
+             CurrentOrPrior = subdirectory,
+             ReportName = "0704")
+    
+    assign(paste0(CoC, "_", subdirectory, "_rpt_0704"), 
+           rpt_0704, 
+           envir = .GlobalEnv)
+    
+    if (nrow(
+      first_timers %>%
+      filter(
+        EDA != "-Default Provider-" |
+        EffectiveDate != ReportEnd |
+        str_sub(CoCInfo, 1, 6) != CoC |
+        ReportEnd - years(1) != ReportStart |
+        ReportStart - years(1) != PriorYear
+      )
+    ) > 0)
+      print(paste("the", CoC, subdirectory, "0704 report was run incorrectly"))
+    else{
+      print(paste(CoC, subdirectory, "0704 ok"))
+    }
+  }
 
-if(nrow(
-  check_recurrence %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(2) != PriorYear |
-    ReportEnd - years(3) != Prior2Year
-  )
-) > 0)
-  print("the 701 report was run incorrectly")
+check_first_timers(CoC = "OH-507", subdirectory = "Current")
+check_first_timers(CoC = "OH-507", subdirectory = "Prior")
 
-# checking the homeless count report was run correctly -PRIOR--------------
-
-check_homeless_count <- read_xls("SPM_data/Prior/0702.xls",
-                                 sheet = 3,
-                                 range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
-
-if(nrow(
-  check_homeless_count %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0702 report was run incorrectly")
+check_first_timers(CoC = "OH-504", subdirectory = "Current")
+check_first_timers(CoC = "OH-504", subdirectory = "Prior")
 
 
-# Checking the 703 report was run correctly -PRIOR-------------------------
+# Checking the 706 report was run correctly -------------------------------
 
-check_income <- read_xls("SPM_data/Prior/0703.xls",
-                         sheet = how_many_worksheets_in_the_703,
-                         range = cell_cols("B2:e9")) %>%
-  select("Prompt" = 2, "Selection" = 5) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
 
-if(nrow(
-  check_income %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0703 report was run incorrectly")
+check_exits_to_ph <-
+  function(CoC = "OH-507", subdirectory = "Current") {
+    directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
+                           CoC == "OH-504" ~ "SPM_data_YO")
+    
+    exits_to_ph <- read_xls(
+      paste0(directory,
+             "/",
+             subdirectory,
+             "/0706.xls"),
+      sheet = 3,
+      range = cell_cols("B2:C9")
+    ) %>%
+      select("Prompt" = 2, "Selection" = 3) %>%
+      head(n = 7L) %>%
+      spread(Prompt, Selection) %>%
+      select(
+        "EDA" = 1,
+        "ReportEnd" = 2,
+        "ReportStart" = 3,
+        "EffectiveDate" = 4,
+        "PriorYear" = 5,
+        "CoCInfo" = 6,
+        "Providers" = 7
+      ) %>%
+      mutate(
+        ReportStart = as.integer(ReportStart),
+        ReportEnd = as.integer(ReportEnd),
+        PriorYear = as.integer(PriorYear),
+        EffectiveDate = as.integer(EffectiveDate),
+        ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
+        ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
+        EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
+        PriorYear = as.Date(PriorYear, origin = "1899-12-30")
+      )
+    
+    rpt_0706 <- exits_to_ph %>%
+      select(ReportStart, ReportEnd, PriorYear, EffectiveDate) %>%
+      mutate(CoCName = CoC,
+             CurrentOrPrior = subdirectory,
+             ReportName = "0706")
+    
+    assign(paste0(CoC, "_", subdirectory, "_rpt_0706"), 
+           rpt_0706, 
+           envir = .GlobalEnv)
+    
+    if (nrow(
+      exits_to_ph %>%
+      filter(
+        EDA != "-Default Provider-" |
+        EffectiveDate != ReportEnd |
+        str_sub(CoCInfo, 1, 6) != CoC |
+        ReportEnd - years(1) != ReportStart |
+        ReportStart - years(1) != PriorYear
+      )
+    ) > 0)
+      print(paste("the", CoC, subdirectory, "0706 report was run incorrectly"))
+    else{
+      print(paste(CoC, subdirectory, "0706 ok"))
+    }
+  }
 
-# Checking the 704 report was run correctly -PRIOR-------------------------
+check_exits_to_ph(CoC = "OH-507", subdirectory = "Current")
+check_exits_to_ph(CoC = "OH-507", subdirectory = "Prior")
 
-check_first_timers <- read_xls("SPM_data/Prior/0704.xls",
-                               sheet = 4,
-                               range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+check_exits_to_ph(CoC = "OH-504", subdirectory = "Current")
+check_exits_to_ph(CoC = "OH-504", subdirectory = "Prior")
 
-if(nrow(
-  check_first_timers %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0704 report was run incorrectly")
+# Check that ALL SPMs were run on the same date range ---------------------
 
-# Checking the 706 report was run correctly -PRIOR-------------------------
+current_rpts <- `OH-507_Current_rpt_0700a` %>%
+  full_join(`OH-507_Current_rpt_0700b`) %>%
+  full_join(`OH-507_Current_rpt_0701`) %>%
+  full_join(`OH-507_Current_rpt_0702`) %>%
+  full_join(`OH-507_Current_rpt_0703`) %>%
+  full_join(`OH-507_Current_rpt_0704`) %>%
+  full_join(`OH-504_Current_rpt_0700a`) %>%
+  full_join(`OH-504_Current_rpt_0700b`) %>%
+  full_join(`OH-504_Current_rpt_0701`) %>%
+  full_join(`OH-504_Current_rpt_0702`) %>%
+  full_join(`OH-504_Current_rpt_0703`) %>%
+  full_join(`OH-504_Current_rpt_0704`)
 
-check_exits_to_ph <- read_xls("SPM_data/Prior/0706.xls",
-                              sheet = 3,
-                              range = cell_cols("B2:C9")) %>%
-  select("Prompt" = 2, "Selection" = 3) %>%
-  head(n = 7L) %>%
-  spread(Prompt, Selection) %>%
-  select("EDA" = 1,
-         "ReportEnd" = 2,
-         "ReportStart" = 3,
-         "EffectiveDate" = 4,
-         "PriorYear" = 5,
-         "CoC" = 6,
-         "Providers" = 7) %>%
-  mutate(ReportStart = as.integer(ReportStart),
-         ReportEnd = as.integer(ReportEnd),
-         PriorYear = as.integer(PriorYear),
-         EffectiveDate = as.integer(EffectiveDate),
-         ReportStart = as.Date(ReportStart, origin = "1899-12-30"),
-         ReportEnd = as.Date(ReportEnd, origin = "1899-12-30"),
-         EffectiveDate = as.Date(EffectiveDate, origin = "1899-12-30"),
-         PriorYear = as.Date(PriorYear, origin = "1899-12-30"))
+prior_rpts <- `OH-507_Prior_rpt_0700a` %>%
+  full_join(`OH-507_Prior_rpt_0700b`) %>%
+  full_join(`OH-507_Prior_rpt_0701`) %>%
+  full_join(`OH-507_Prior_rpt_0702`) %>%
+  full_join(`OH-507_Prior_rpt_0703`) %>%
+  full_join(`OH-507_Prior_rpt_0704`) %>%
+  full_join(`OH-504_Prior_rpt_0700a`) %>%
+  full_join(`OH-504_Prior_rpt_0700b`) %>%
+  full_join(`OH-504_Prior_rpt_0701`) %>%
+  full_join(`OH-504_Prior_rpt_0702`) %>%
+  full_join(`OH-504_Prior_rpt_0703`) %>%
+  full_join(`OH-504_Prior_rpt_0704`)
 
-if(nrow(
-  check_exits_to_ph %>%
-  filter(
-    EDA != "-Default Provider-" |
-    EffectiveDate != ReportEnd |
-    CoC != coc |
-    ReportEnd - years(1) != ReportStart |
-    ReportStart - years(1) != PriorYear
-  )
-) > 0)
-  print("the 0706 report was run incorrectly")
+mahoning_current <- current_rpts %>%
+  filter(CoCName == "OH-504") %>%
+  mutate(CheckStart = if_else(min(ReportStart, na.rm = TRUE) ==
+                                max(ReportStart, na.rm = TRUE),
+                              0, 1),
+         CheckEnd = if_else(min(ReportEnd, na.rm = TRUE) ==
+                              max(ReportEnd, na.rm = TRUE),
+                            0, 1),
+         CheckPrior = if_else(min(PriorYear, na.rm = TRUE) ==
+                              max(PriorYear, na.rm = TRUE),
+                              0, 1),
+         CheckPrior2 = if_else(is.na(Prior2Year) | 
+                                 Prior2Year + years(1) == PriorYear,
+                               0, 1))
 
-# Check that ALL SPMs were run on the same date range -PRIOR---------------
+bos_current <- current_rpts %>%
+  filter(CoCName == "OH-507") %>%
+  mutate(CheckStart = if_else(min(ReportStart, na.rm = TRUE) ==
+                                max(ReportStart, na.rm = TRUE),
+                              0, 1),
+         CheckEnd = if_else(min(ReportEnd, na.rm = TRUE) ==
+                              max(ReportEnd, na.rm = TRUE),
+                            0, 1),
+         CheckPrior = if_else(min(PriorYear, na.rm = TRUE) ==
+                                max(PriorYear, na.rm = TRUE),
+                              0, 1),
+         CheckPrior2 = if_else(is.na(Prior2Year) | 
+                                 Prior2Year + years(1) == PriorYear,
+                               0, 1))
 
-starts <- c(check_exits_to_ph$ReportStart, 
-            check_first_timers$ReportStart, 
-            check_homeless_count$ReportStart, 
-            check_income$ReportStart, 
-            check_loth_a$ReportStart, 
-            check_loth_b$ReportStart, 
-            check_recurrence$ReportEnd - years(1))
+mahoning_prior <- prior_rpts %>%
+  filter(CoCName == "OH-504") %>%
+  mutate(CheckStart = if_else(min(ReportStart, na.rm = TRUE) ==
+                                max(ReportStart, na.rm = TRUE),
+                              0, 1),
+         CheckEnd = if_else(min(ReportEnd, na.rm = TRUE) ==
+                              max(ReportEnd, na.rm = TRUE),
+                            0, 1),
+         CheckPrior = if_else(min(PriorYear, na.rm = TRUE) ==
+                                max(PriorYear, na.rm = TRUE),
+                              0, 1),
+         CheckPrior2 = if_else(is.na(Prior2Year) | 
+                                 Prior2Year + years(1) == PriorYear,
+                               0, 1))
 
-ends <- c(check_exits_to_ph$ReportEnd, 
-          check_first_timers$ReportEnd, 
-          check_homeless_count$ReportEnd, 
-          check_income$ReportEnd, 
-          check_loth_a$ReportEnd, 
-          check_loth_b$ReportEnd, 
-          check_recurrence$ReportEnd)
+bos_prior <- prior_rpts %>%
+  filter(CoCName == "OH-507") %>%
+  mutate(CheckStart = if_else(min(ReportStart, na.rm = TRUE) ==
+                                max(ReportStart, na.rm = TRUE),
+                              0, 1),
+         CheckEnd = if_else(min(ReportEnd, na.rm = TRUE) ==
+                              max(ReportEnd, na.rm = TRUE),
+                            0, 1),
+         CheckPrior = if_else(min(PriorYear, na.rm = TRUE) ==
+                                max(PriorYear, na.rm = TRUE),
+                              0, 1),
+         CheckPrior2 = if_else(is.na(Prior2Year) | 
+                                 Prior2Year + years(1) == PriorYear,
+                               0, 1))
 
-priors <- c(check_exits_to_ph$PriorYear, 
-            check_first_timers$PriorYear, 
-            check_homeless_count$PriorYear, 
-            check_income$PriorYear, 
-            check_loth_a$PriorYear, 
-            check_loth_b$PriorYear, 
-            check_recurrence$PriorYear)
 
-if_else(min(priors) == max(priors), 
-        paste("Year Prior = ", min(priors)),
-        "Your Prior Dates do not all match.")
-if_else(min(starts) == max(starts), 
-        paste("Report Starts = ", min(starts)),
-        "Your Start Dates do not all match.")
-if_else(min(ends) == max(ends), 
-        paste("Report Ends = ", min(ends)),
-        "Your End Dates do not all match.")
 
-rm(list = ls(pattern = "check_"))
+if_else(
+  sum(mahoning_current$CheckStart) == 0,
+  paste(
+    "Mahoning Current Report Start =", 
+    min(mahoning_current$ReportStart, na.rm = TRUE)
+  ),
+  "Your Mahoning Current Start Dates do not all match."
+)
 
-spm_prior_start_date <- min(starts)
-spm_prior_end_date <- min(ends)
+if_else(
+  sum(mahoning_current$CheckEnd) == 0,
+  paste(
+    "Mahoning Current Report End =", 
+    min(mahoning_current$ReportEnd, na.rm = TRUE)
+  ),
+  "Your Mahoning Current End Dates do not all match."
+)
+
+if_else(
+  sum(mahoning_current$CheckPrior) == 0,
+  paste(
+    "Mahoning Current Report Prior Start =", 
+    min(mahoning_current$PriorYear, na.rm = TRUE)
+  ),
+  "Your Mahoning Current Prior Start Dates do not all match."
+)
+
+if_else(
+  sum(bos_current$CheckStart) == 0,
+  paste(
+    "BoS Current Report Start =", 
+    min(bos_current$ReportStart, na.rm = TRUE)
+  ),
+  "Your BOS Current Start Dates do not all match."
+)
+
+if_else(
+  sum(bos_current$CheckEnd) == 0,
+  paste(
+    "BoS Current Report End =", 
+    min(bos_current$ReportEnd, na.rm = TRUE)
+  ),
+  "Your BoS Current End Dates do not all match."
+)
+
+if_else(
+  sum(bos_current$CheckPrior) == 0,
+  paste(
+    "BoS Current Report Prior Start =", 
+    min(bos_current$PriorYear, na.rm = TRUE)
+  ),
+  "Your BoS Current Prior Start Dates do not all match."
+)
+
+rm(list = ls(pattern = "OH-"))
+rm(prior_rpts, current_rpts)
 
 # Reading in the data we need -CURRENT-------------------------------------
 
