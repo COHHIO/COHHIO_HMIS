@@ -36,14 +36,12 @@ stop_with_instructions <- function(...) {
 increment <- function(..., cenv = rlang::caller_env()) {
   # pre allocate file path for previous timer
   .lt_path <- "data/last_timer.rds"
-  if (stringr::str_detect(paste0(...),"^Done!")) {
-    cli::cli_process_done(cenv$.update)
-    saveRDS(cenv$.timer, .lt_path)
-    cli::col_blue("Timing data saved to ", .lt_path)
-    return(.lt_path)
-  }
+  
   # if the first step remove tracking objects from env (if there were previous failures)
   if (stringr::str_detect(paste0(...), "Importing raw")) suppressWarnings(rm(.update, .timer, .step, envir = cenv))
+  
+  # start the status progress process if its not active
+  if (is.null(cenv$.update)) cenv$.update <- cli::cli_process_start("Parsing COHHIO_HMIS data", .auto_close = FALSE, .envir = cenv)
   # if the last timer data exists load it and compute the total time from the previous run
   if (file.exists(.lt_path) && is.null(cenv$.last_timer)) {
     cenv$.last_timer <- readRDS(.lt_path)
@@ -51,8 +49,6 @@ increment <- function(..., cenv = rlang::caller_env()) {
     cenv$.total_steps<- tail(cenv$.last_timer, 1)$step
     cli::cli_status_update(cenv$.update, cli::col_blue("Expected time of completion: ", Sys.time() + cenv$.total_time))
   }
-  # start the status progress process if its not active
-  if (is.null(cenv$.update)) cenv$.update <- cli::cli_process_start("Parsing COHHIO_HMIS data", .auto_close = FALSE, .envir = cenv)
   # create the step object or increment it
   if (is.null(cenv$.step)) {
     cenv$.step <- 1 
@@ -67,16 +63,19 @@ increment <- function(..., cenv = rlang::caller_env()) {
   else {
     cenv$.timer <- rbind.data.frame(cenv$.timer, data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...)))
   }
-  
+  if (stringr::str_detect(paste0(...),"^Done!")) {
+    cli::cli_process_done(cenv$.update)
+    saveRDS(cenv$.timer, .lt_path)
+    cli::col_blue("Timing data saved to ", .lt_path)
+    return(.lt_path)
+  }
   # If no previous timer data, just give the elapsed time
   .elapsed <- round(difftime(tail(cenv$.timer, 1)$ts, head(cenv$.timer, 1)$ts, units = "mins"),2)
   if (is.null(cenv$.last_timer)) {
     cli::cli_status_update(cenv$.update, cli::col_grey("Time elapsed: ", .elapsed, " mins"))
   } else {
-    .elapsed <- difftime(head(cenv$.timer, 1)$ts, tail(cenv$.timer, 1)$ts, units = "mins")
-    cli::cli_status_update(cenv$.update,  cli::col_grey("Time elapsed: ", .elapsed," mins/n",paste0(.elapsed / cenv$.total_time * 100, "% complete\nApprox. completion at: ", ), head(cenv$.timer, 1)$ts + cenv$.total_time))
+    cli::cli_status_update(cenv$.update,  cli::cli_verbatim(cli::col_grey("Time elapsed: ", .elapsed," mins - ",paste0(round(as.numeric(.elapsed) / as.numeric(cenv$.total_time), 2) * 100, "% complete\nApprox. completion at: ", cenv$.total_time - .elapsed + Sys.time()))))
   }
-  
 }
 
 
