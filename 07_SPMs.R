@@ -134,10 +134,26 @@ check_loth_a <- function(CoC = "OH-507", subdirectory = "Current") {
            CurrentOrPrior = subdirectory,
            ReportName = "0700a")
   
-  assign(paste0(CoC, "_", subdirectory, "_rpt_0700a"), 
+  assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0700a"), 
          rpt_0700a, 
          envir = .GlobalEnv)
   
+  loth_ees <- read_xls(
+    paste0(directory,
+           "/",
+           subdirectory,
+           "/0700a.xls"),
+    sheet = 1,
+    range = cell_cols("B2:E4")
+  ) %>%
+    select("Metric1a" = 1, "ClientCount" = 2, "AvgLoT" = 3, "MedLoT" = 4) %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory)
+  
+  assign(paste0("Metric_1a_", str_remove(CoC, "-"), "_", subdirectory), 
+         loth_ees, 
+         envir = .GlobalEnv)
+
   if (nrow(
     loth_a %>%
     filter(
@@ -199,8 +215,29 @@ check_loth_b <- function(CoC = "OH-507", subdirectory = "Current"){
            CurrentOrPrior = subdirectory,
            ReportName = "0700b")
   
-  assign(paste0(CoC, "_", subdirectory, "_rpt_0700b"), 
+  assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0700b"), 
          rpt_0700b, 
+         envir = .GlobalEnv)
+  
+  loth_self_report <- read_xls(
+    paste0(directory,
+           "/",
+           subdirectory,
+           "/0700b.xls"),
+    sheet = 1,
+    range = cell_cols("B2:E4")
+  ) %>%
+    select(
+      "Metric1b" = 1,
+      "ClientCount" = 2,
+      "AvgLoT" = 3,
+      "MedLoT" = 4
+    ) %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory)  
+  
+  assign(paste0("Metric_1b_", str_remove(CoC, "-"), "_", subdirectory), 
+         loth_self_report, 
          envir = .GlobalEnv)
   
 if(nrow(
@@ -277,10 +314,32 @@ check_recurrence <-
              CurrentOrPrior = subdirectory,
              ReportName = "0701")
     
-    assign(paste0(CoC, "_", subdirectory, "_rpt_0701"), 
+    assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0701"), 
            rpt_0701, 
            envir = .GlobalEnv)
     
+    recurrence_data <- read_xls(
+      paste0(directory,
+             "/",
+             subdirectory,
+             "/0701.xls"),
+      sheet = what_sheet_is_701_data_on,
+      range = cell_rows(3:10)
+    ) %>%
+      select(
+        "ProjectType" = 1,
+        "ExitedToPHPast2Yrs" = 2,
+        "LessThan6mo" = 3,
+        "SixTo12mo" = 4,
+        "ThirteenTo24mo" = 5
+      ) %>%
+      mutate(CoCName = CoC,
+             CurrentPrior = subdirectory)  
+    
+    assign(paste0("Metric_2_", str_remove(CoC, "-"), "_", subdirectory), 
+           recurrence_data, 
+           envir = .GlobalEnv)
+
     if (nrow(
       recurrence %>%
       filter(
@@ -347,8 +406,22 @@ check_homeless_count <-
              CurrentOrPrior = subdirectory,
              ReportName = "0702")
     
-    assign(paste0(CoC, "_", subdirectory, "_rpt_0702"), 
-           rpt_0702, 
+    assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0702"),
+           rpt_0702,
+           envir = .GlobalEnv)
+    
+    homeless_count_data <- read_xls(
+      paste0(directory,
+             "/",
+             subdirectory,
+             "/0702.xls"),
+      sheet = 1,
+      range = cell_cols("B2:D6")
+    ) %>%
+      select("Type" = 1, "Count" = 3)
+    
+    assign(paste0("Metric_3_", str_remove(CoC, "-"), "_", subdirectory),
+           homeless_count_data,
            envir = .GlobalEnv)
     
     if (nrow(
@@ -424,8 +497,59 @@ check_income <- function(CoC = "OH-507", subdirectory = "Current") {
            CurrentOrPrior = subdirectory,
            ReportName = "0703")
   
-  assign(paste0(CoC, "_", subdirectory, "_rpt_0703"), 
+  assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0703"), 
          rpt_0703, 
+         envir = .GlobalEnv)
+  
+  income_data <- read_xls(paste0(directory,
+                                 "/",
+                                 subdirectory,
+                                 "/0703.xls"),
+                             sheet = 1) %>%
+    select("ClientsCounted" = 1, "Counts" = 3) %>%
+    filter(!is.na(ClientsCounted))
+  
+  income_empl_stayers <- income_data[c(1:3),] %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory,
+           Metric = "4.1")  
+  
+  income_non_empl_stayers <- income_data[c(5:7),] %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory,
+           Metric = "4.2") 
+  
+  income_total_stayers <- income_data[c(9:11),] %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory,
+           Metric = "4.3") 
+  
+  income_empl_leavers <- income_data[c(13:15),] %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory,
+           Metric = "4.4") 
+  
+  income_non_empl_leavers <- income_data[c(17:19),] %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory,
+           Metric = "4.5") 
+  
+  income_total_leavers <- income_data[c(21:23),] %>%
+    mutate(CoCName = CoC,
+           CurrentPrior = subdirectory,
+           Metric = "4.6") 
+  
+  income_data <- rbind(
+    income_empl_leavers,
+    income_empl_stayers,
+    income_non_empl_leavers,
+    income_non_empl_stayers,
+    income_total_leavers,
+    income_total_stayers
+  )
+  
+  assign(paste0("Metric_4_", str_remove(CoC, "-"), "_", subdirectory),
+         income_data,
          envir = .GlobalEnv)
   
   if (nrow(
@@ -493,7 +617,7 @@ check_first_timers <-
              CurrentOrPrior = subdirectory,
              ReportName = "0704")
     
-    assign(paste0(CoC, "_", subdirectory, "_rpt_0704"), 
+    assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0704"), 
            rpt_0704, 
            envir = .GlobalEnv)
     
@@ -565,7 +689,7 @@ check_exits_to_ph <-
              CurrentOrPrior = subdirectory,
              ReportName = "0706")
     
-    assign(paste0(CoC, "_", subdirectory, "_rpt_0706"), 
+    assign(paste0(str_remove(CoC, "-"), "_", subdirectory, "_rpt_0706"), 
            rpt_0706, 
            envir = .GlobalEnv)
     
@@ -593,31 +717,31 @@ check_exits_to_ph(CoC = "OH-504", subdirectory = "Prior")
 
 # Check that ALL SPMs were run on the same date range ---------------------
 
-current_rpts <- `OH-507_Current_rpt_0700a` %>%
-  full_join(`OH-507_Current_rpt_0700b`) %>%
-  full_join(`OH-507_Current_rpt_0701`) %>%
-  full_join(`OH-507_Current_rpt_0702`) %>%
-  full_join(`OH-507_Current_rpt_0703`) %>%
-  full_join(`OH-507_Current_rpt_0704`) %>%
-  full_join(`OH-504_Current_rpt_0700a`) %>%
-  full_join(`OH-504_Current_rpt_0700b`) %>%
-  full_join(`OH-504_Current_rpt_0701`) %>%
-  full_join(`OH-504_Current_rpt_0702`) %>%
-  full_join(`OH-504_Current_rpt_0703`) %>%
-  full_join(`OH-504_Current_rpt_0704`)
+current_rpts <- OH507_Current_rpt_0700a %>%
+  full_join(OH507_Current_rpt_0700b) %>%
+  full_join(OH507_Current_rpt_0701) %>%
+  full_join(OH507_Current_rpt_0702) %>%
+  full_join(OH507_Current_rpt_0703) %>%
+  full_join(OH507_Current_rpt_0704) %>%
+  full_join(OH504_Current_rpt_0700a) %>%
+  full_join(OH504_Current_rpt_0700b) %>%
+  full_join(OH504_Current_rpt_0701) %>%
+  full_join(OH504_Current_rpt_0702) %>%
+  full_join(OH504_Current_rpt_0703) %>%
+  full_join(OH504_Current_rpt_0704)
 
-prior_rpts <- `OH-507_Prior_rpt_0700a` %>%
-  full_join(`OH-507_Prior_rpt_0700b`) %>%
-  full_join(`OH-507_Prior_rpt_0701`) %>%
-  full_join(`OH-507_Prior_rpt_0702`) %>%
-  full_join(`OH-507_Prior_rpt_0703`) %>%
-  full_join(`OH-507_Prior_rpt_0704`) %>%
-  full_join(`OH-504_Prior_rpt_0700a`) %>%
-  full_join(`OH-504_Prior_rpt_0700b`) %>%
-  full_join(`OH-504_Prior_rpt_0701`) %>%
-  full_join(`OH-504_Prior_rpt_0702`) %>%
-  full_join(`OH-504_Prior_rpt_0703`) %>%
-  full_join(`OH-504_Prior_rpt_0704`)
+prior_rpts <- OH507_Prior_rpt_0700a %>%
+  full_join(OH507_Prior_rpt_0700b) %>%
+  full_join(OH507_Prior_rpt_0701) %>%
+  full_join(OH507_Prior_rpt_0702) %>%
+  full_join(OH507_Prior_rpt_0703) %>%
+  full_join(OH507_Prior_rpt_0704) %>%
+  full_join(OH504_Prior_rpt_0700a) %>%
+  full_join(OH504_Prior_rpt_0700b) %>%
+  full_join(OH504_Prior_rpt_0701) %>%
+  full_join(OH504_Prior_rpt_0702) %>%
+  full_join(OH504_Prior_rpt_0703) %>%
+  full_join(OH504_Prior_rpt_0704)
 
 mahoning_current <- current_rpts %>%
   filter(CoCName == "OH-504") %>%
@@ -679,8 +803,6 @@ bos_prior <- prior_rpts %>%
                                  Prior2Year + years(1) == PriorYear,
                                0, 1))
 
-
-
 if_else(
   sum(mahoning_current$CheckStart) == 0,
   paste(
@@ -740,71 +862,80 @@ rm(prior_rpts, current_rpts)
 
 # Reading in the data we need -CURRENT-------------------------------------
 
-loth_ees_current <- read_xls("SPM_data/Current/0700a.xls",
-                                 sheet = 1,
-                                 range = cell_cols("B2:E4"))
-
-loth_ees_current <-
-  'colnames<-'(loth_ees_current,
-               c(
-                 "Metric1a",
-                 "ClientCount",
-                 "AvgLoT",
-                 "MedLoT"
-               ))
+# loth_ees_current <- read_xls("SPM_data/Current/0700a.xls",
+#                                  sheet = 1,
+#                                  range = cell_cols("B2:E4"))
+# 
+# loth_ees_current <-
+#   'colnames<-'(loth_ees_current,
+#                c(
+#                  "Metric1a",
+#                  "ClientCount",
+#                  "AvgLoT",
+#                  "MedLoT"
+#                ))
   
-loth_self_report_current <- read_xls("SPM_data/Current/0700b.xls",
-                             sheet = 1,
-                             range = cell_cols("B2:E4"))
-
-loth_self_report_current <-
-  'colnames<-'(loth_self_report_current,
-               c(
-                 "Metric1b",
-                 "ClientCount",
-                 "AvgLoT",
-                 "MedLoT"
-               ))
+# loth_self_report_current <- read_xls("SPM_data/Current/0700b.xls",
+#                              sheet = 1,
+#                              range = cell_cols("B2:E4"))
+# 
+# loth_self_report_current <-
+#   'colnames<-'(loth_self_report_current,
+#                c(
+#                  "Metric1b",
+#                  "ClientCount",
+#                  "AvgLoT",
+#                  "MedLoT"
+#                ))
 
 # PLEASE NOTE SHEET 2 IS A CUSTOM MODIFICATION TO THE ART REPORT THAT BREAKS 
 # OUT PSH AND RRH. CONTACT GD FOR INFO ON HOW TO MAKE THIS MODIFICATION.
-recurrence_current <- read_xls("SPM_data/Current/0701.xls",
-                             sheet = what_sheet_is_701_data_on,
-                             range = cell_cols("B4:F10"))
+# recurrence_current <- read_xls("SPM_data/Current/0701.xls",
+#                                sheet = what_sheet_is_701_data_on,
+#                                range = cell_cols("B4:F10"))
+# 
+# recurrence_current <- recurrence_current[-1,]
+# 
+# recurrence_current <-
+#   'colnames<-'(
+#     recurrence_current,
+#     c(
+#       "ProjectType",
+#       "ExitedToPHPast2Yrs",
+#       "LessThan6mo",
+#       "SixTo12mo",
+#       "ThirteenTo24mo"
+#     )
+#   )
 
-recurrence_current <- recurrence_current[-1, ]
+# homeless_count_current <- read_xls("SPM_data/Current/0702.xls",
+#                            sheet = 1,
+#                            range = cell_cols("B2:D6"))
+# 
+# homeless_count_current <- 'colnames<-'(homeless_count_current, c("Type", "Prior", "Current"))
+# 
+# homeless_count_current <- homeless_count_current[, c(1, 3)]
 
-recurrence_current <- 'colnames<-'(recurrence_current, c("ProjectType", "ExitedToPHPast2Yrs", 
-                           "LessThan6mo", "SixTo12mo", "ThirteenTo24mo"))
-
-homeless_count_current <- read_xls("SPM_data/Current/0702.xls",
-                           sheet = 1,
-                           range = cell_cols("B2:D6"))
-
-homeless_count_current <- 'colnames<-'(homeless_count_current, c("Type", "Prior", "Current"))
-
-homeless_count_current <- homeless_count_current[, c(1, 3)]
-
-income_current <- read_xls("SPM_data/Current/0703.xls",
-                   sheet = 1)
-
-income_empl_stayers_current <- income_current[-c(1, 5:34), ] %>%
-  select("Metric4.1" = 1, "CurrentYear" = 3)
-
-income_non_empl_stayers_current <- income_current[-c(1:7, 11:34), ] %>%
-  select("Metric4.2" = 1, "CurrentYear" = 3)
-
-income_total_stayers_current <- income_current[-c(1:13, 17:34), ] %>%
-  select("Metric4.3" = 1, "CurrentYear" = 3)
-
-income_empl_leavers_current <- income_current[-c(1:19, 23:34), ] %>%
-  select("Metric4.4" = 1, "CurrentYear" = 3)
-
-income_non_empl_leavers_current <- income_current[-c(1:25, 29:34), ] %>%
-  select("Metric4.5" = 1, "CurrentYear" = 3)
-
-income_total_leavers_current <- income_current[-c(1:31), ] %>%
-  select("Metric4.6" = 1, "CurrentYear" = 3)
+# income_current <- read_xls("SPM_data/Current/0703.xls",
+#                    sheet = 1)
+# 
+# income_empl_stayers_current <- income_current[-c(1, 5:34), ] %>%
+#   select("Metric4.1" = 1, "CurrentYear" = 3)
+# 
+# income_non_empl_stayers_current <- income_current[-c(1:7, 11:34), ] %>%
+#   select("Metric4.2" = 1, "CurrentYear" = 3)
+# 
+# income_total_stayers_current <- income_current[-c(1:13, 17:34), ] %>%
+#   select("Metric4.3" = 1, "CurrentYear" = 3)
+# 
+# income_empl_leavers_current <- income_current[-c(1:19, 23:34), ] %>%
+#   select("Metric4.4" = 1, "CurrentYear" = 3)
+# 
+# income_non_empl_leavers_current <- income_current[-c(1:25, 29:34), ] %>%
+#   select("Metric4.5" = 1, "CurrentYear" = 3)
+# 
+# income_total_leavers_current <- income_current[-c(1:31), ] %>%
+#   select("Metric4.6" = 1, "CurrentYear" = 3)
 
 first_timers_current <- read_xls("SPM_data/Current/0704.xls",
                          sheet = 1)
