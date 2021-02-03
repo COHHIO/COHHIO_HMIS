@@ -196,6 +196,6 @@ rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE,
 
 rm(list = ls(pattern = "co_"))
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/Veterans.RData")
+save(list = ls(), file = "images/Veterans.RData", compress = FALSE)
 
 

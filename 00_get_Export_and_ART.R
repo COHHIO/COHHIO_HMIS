@@ -565,6 +565,6 @@ rm(small_client)
 
 # Save it out -------------------------------------------------------------
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/COHHIOHMIS.RData")
+save(list = ls(), file = "images/COHHIOHMIS.RData", compress = FALSE)
 
 

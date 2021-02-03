@@ -1946,5 +1946,5 @@ rm(list = ls()[!(ls() %in% c(
 
 # saving old data to "current" image so it all carries to the apps
 
-save.image("images/ProjectEvaluation.RData") 
+save(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
 

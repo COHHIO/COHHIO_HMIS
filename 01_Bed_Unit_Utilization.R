@@ -910,7 +910,7 @@ rm(list = ls(all.names = TRUE, pattern = "co_"))
 
 rm(Contacts, covid19, regions, ServiceAreas)
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/Utilization.RData")
+save(list = ls(), file = "images/Utilization.RData", compress = FALSE)
 
 
 

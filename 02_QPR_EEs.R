@@ -442,6 +442,6 @@ rm(covid19_status, covid19_plot)
 
 # Save it out -------------------------------------------------------------
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/QPR_EEs.RData")
+save(list = ls(), file = "images/QPR_EEs.RData", compress = FALSE)
 
 

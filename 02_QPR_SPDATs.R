@@ -166,5 +166,5 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
 rm(Entries, Scores, smallEnrollment, 
    SPDATsOnNonHoHs)
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/QPR_SPDATs.RData")
+save(list = ls(), file = "images/QPR_SPDATs.RData", compress = FALSE)
 

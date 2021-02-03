@@ -748,5 +748,5 @@ landing <- treemap(
 rm(list = ls()[!(ls() %in% c("active_list"))])
 
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/Active_List.RData")
+save(list = ls(), file = "images/Active_List.RData", compress = FALSE)
 

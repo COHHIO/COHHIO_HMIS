@@ -236,6 +236,6 @@ new_gpd <- entered_past_90 %>%
 # Save it out -------------------------------------------------------------
 
 # WARNING save.image does not save the environment properly, save must be used.
-save(list = ls(), file = "images/Vet_Active_List.RData")
+save(list = ls(), file = "images/Vet_Active_List.RData", compress = FALSE)
 
 

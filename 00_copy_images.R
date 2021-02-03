@@ -11,9 +11,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
-
-e <- environment()
+`%>%` <- dplyr::`%>%`
+e <- new.env()
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
+  message(paste0("Loading ", .x))
   load(.x, envir = e)
 })
 
@@ -183,10 +184,12 @@ data_prep <- function (objects, dir) {
   })
   # Create an accessor fn
   .fn <- function(x = as.character(match.call()[[1]]), path = "data/db", ext = ".feather") feather::read_feather(file.path(path, paste0(x, ifelse(grepl("^\\.",ext), ext, paste0(".",ext)))))
+  
   .is_df <- purrr::map_lgl(objects, is.data.frame)
   objects[.is_df] <- objects[.is_df] %>% 
     # Write the feather files
     purrr::imap(~ {
+      message(paste0("Saving ", .y, ".feather"))
       feather::write_feather(.x, file.path(.db, paste0(.y,".feather")))
       .x
     }) %>% 
@@ -197,9 +200,8 @@ data_prep <- function (objects, dir) {
   # Save the results
   save(
     list = names(objects),
-    compress = "xz",
     envir = list2env(objects),
-    file = file.path(.dir, paste0(basename(dir), ".Rdata"))
+    file = file.path(.dir, paste0(basename(dir), ".RData"))
   )
 }
 
