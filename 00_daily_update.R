@@ -21,9 +21,6 @@
 # and code. This script checks that you've downloaded all the correct files in 
 # the correct way, runs them all, then copies the images to Rm/Rme.
 
-library(lubridate)
-library(tidyverse)
-
 # clearing the environment prior to running all the scripts
 rm(list = ls())
 
