@@ -30,7 +30,15 @@ rename_file <-
     if (!dir.exists(directory)) dir.create(directory)
     if (!dir.exists(file.path(directory, subdirectory))) dir.create(file.path(directory, subdirectory))
     # substitute the pattern to make the filename with regex
-    filename <- gsub("[(?:\\.1)\\(\\)\\s\\-]+", "", pattern, perl = TRUE)
+    filename <- case_when(
+      pattern == "(0700 -)" ~ "0700a",
+      pattern == "(0700.1b)" ~ "0700b",
+      pattern == "(0701 -)" ~ "0701",
+      pattern == "(0702 -)" ~ "0702",
+      pattern == "(0703 -)" ~ "0703",
+      pattern == "(0704 -)" ~ "0704",
+      pattern == "(0706 -)" ~ "0706"
+    )
     # make the filename with the system-specified separator using file.path and use full.names to get the full path to the file
     .file <- list.files(file.path(directory, subdirectory),
                pattern = pattern, full.names = TRUE)
@@ -62,8 +70,6 @@ expand.grid(
 
 # OPEN ALL YOUR EXCEL FILES AND PRESS ENABLE EDITING BEFORE PROCEEDING
 # I think {openxlsx} has a means of doing this from R
-
-
 
 # 0700a - Length of Time Homeless (using EEs) -----------------------------
 
