@@ -24,6 +24,10 @@
 # clearing the environment prior to running all the scripts
 rm(list = ls())
 
+# some preliminary parameters
+
+source("00_dates.R")
+
 stop_with_instructions <- function(...) {
   cli::cli_alert_danger(cli::col_red(paste0(..., collapse = "\n")))
   cli::cli_alert_info("See instructions for details:\nhttps://docs.google.com/document/d/1iT_dgf0HtBzGOO8PqFNvyS_djA78JcYZsWaeZQYJC9E/edit#heading=h.xvdv7715aoi1")
@@ -89,9 +93,6 @@ if (!rlang::is_empty(.)) {
 
 
 
-# some preliminary parameters
-
-source("00_dates.R")
 
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")

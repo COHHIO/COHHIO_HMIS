@@ -1002,39 +1002,33 @@ spm_prior_end_date <- min(bos_prior$ReportEnd, na.rm = TRUE) - days(1)
   
 rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
-save.image("images/SPM_data.RData") 
 
-# BoS Current
 
-write_xlsx(
-  x = list(
-    measure1a = spm_Metric_1a_OH507_Current,
-    measure1b = spm_Metric_1b_OH507_Current,
-    measure2 = spm_Metric_2_OH507_Current,
-    measure3 = spm_Metric_3_OH507_Current,
-    measure4 = spm_Metric_4_OH507_Current,
-    measure5 = spm_Metric_5_OH507_Current,
-    measure7a = spm_Metric_7_OH507_Current
-  ),
-  "random_data/bos_spms.xlsx"
-)
 
-# Mahoning Current
+purrr::iwalk(c("random_data/bos_spms.xlsx" = 4, # BoS Current
+              "random_data/mah_spms.xlsx" = 7 # Mahoning Current
+              )
+            , ~{
+  if (!dir.exists(dirname(.y))) dir.create(dirname(.y))
+  eval(parse(text = paste0("writexl::write_xlsx(
+    x = list(
+      measure1a = spm_Metric_1a_OH50",.x,"_Current,
+      measure1b = spm_Metric_1b_OH50",.x,"_Current,
+      measure2 = spm_Metric_2_OH50",.x,"_Current,
+      measure3 = spm_Metric_3_OH50",.x,"_Current,
+      measure4 = spm_Metric_4_OH50",.x,"_Current,
+      measure5 = spm_Metric_5_OH50",.x,"_Current,
+      measure7a = spm_Metric_7_OH50",.x,"_Current
+    ),
+    .y
+    )")))
+  
+})
 
-write_xlsx(
-if (!dir.exists(dirname(.bos_path))) dir.create(dirname(.bos_path))
-.bos_path <- "random_data/bos_spms.xlsx"
-  x = list(
-    measure1a = spm_Metric_1a_OH504_Current,
-    measure1b = spm_Metric_1b_OH504_Current,
-    measure2 = spm_Metric_2_OH504_Current,
-    measure3 = spm_Metric_3_OH504_Current,
-    measure4 = spm_Metric_4_OH504_Current,
-    measure5 = spm_Metric_5_OH504_Current,
-    measure7a = spm_Metric_7_OH504_Current
-  ),
-  "random_data/mah_spms.xlsx"
-)
+
+
+
+
 
 save(list = ls(), file = "images/SPM_data.RData", compress = FALSE)
 
