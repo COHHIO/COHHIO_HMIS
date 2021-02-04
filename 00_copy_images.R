@@ -45,7 +45,13 @@ data_prep <- function (nms, dir, e) {
     }
   })
   # Create an accessor fn
-  .fn <- function(x = as.character(match.call()[[1]]), path = "data/db", ext = ".feather") feather::read_feather(file.path(path, paste0(x, ifelse(grepl("^\\.",ext), ext, paste0(".",ext)))))
+  .fn <- function(x = as.character(match.call()[[1]]),
+                  path = "data/db",
+                  ext = ".feather")
+    feather::read_feather(file.path(path, paste0(x, ifelse(
+      grepl("^\\.", ext), ext, paste0(".", ext)
+    )))
+    )
   
   .is_df <- purrr::map_lgl(objects, is.data.frame)
   objects[.is_df] <- objects[.is_df] %>% 
@@ -57,13 +63,13 @@ data_prep <- function (nms, dir, e) {
     }) %>% 
     # overwrite the DFs with an accessor function.
     # This reads the feather file with the same name as the function
-    purrr::map(~.fn)  
+    purrr::map(~.fn)
+  # save a list of the data.frames that were replaced with accessor functions for reference while working on apps
   objects$df_nms <- names(objects)[.is_df]
   # Save the results
   
   saveRDS(
     objects,
-    compress = FALSE,
     file = file.path(.dir, paste0(basename(dir), ".rds"))
   )
 }
