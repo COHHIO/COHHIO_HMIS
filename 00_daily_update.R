@@ -80,12 +80,15 @@ increment <- function(..., cenv = rlang::caller_env()) {
 
 
 # extract archive and delete it
-if (file.info("data/Assessment.csv")$mtime < Sys.Date()) {
   . <- list.files("data", pattern = "7z$", full.names = TRUE)
-  if (!is.character(.)) stop_with_instructions("Please download the HUD CSV Export.")
+if (!rlang::is_empty(.)) {
   archive::archive_extract(., "data")
-  file.remove(.)
-}
+  if (Sys.info()["nodename"] == "STEPHEN-PC") 
+    fs::file_move(., fs::path(dirname(.), "zip", basename(.)))
+  else
+    file.remove(.)
+} else 
+  stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
 
 
 

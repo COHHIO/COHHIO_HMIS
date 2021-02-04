@@ -18,11 +18,61 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   load(.x, envir = e)
 })
 
+
+#' @title Send data to the respective app direcotry
+#' @description Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects as a `list` to an `rds` file in the `data/` directory.
+#' @param nms \code{(character)} vector of object names
+#' @param dir \code{(character)} file path to the application directory
+#' @param e \code{(environment)} in which to search
+#' @importFrom purrr map_lgl map imap walk
+#' @importFrom dplyr `%>%`
+
+data_prep <- function (nms, dir, e) {
+  .missing <- purrr::map_lgl(setNames(nms, nms), ~!exists(.x, envir = e, inherits = FALSE))   
+  if (any(.missing)) 
+    stop(paste0("00_copy_images missing objects: ", paste0(nms[.missing], collapse = ",")))
+   
+   objects <- rlang::env_get_list(e, nms, default = stop("00_copy_images: object missing"))
+  
+  # data directory
+  .dir <- file.path(dir, "data")
+  # db directory inside data directory
+  .db <- file.path(.dir, "db")
+  # make if not created
+  purrr::walk(c(.dir, .db), ~{
+    if (!dir.exists(.x)) {
+      dir.create(.x)
+    }
+  })
+  # Create an accessor fn
+  .fn <- function(x = as.character(match.call()[[1]]), path = "data/db", ext = ".feather") feather::read_feather(file.path(path, paste0(x, ifelse(grepl("^\\.",ext), ext, paste0(".",ext)))))
+  
+  .is_df <- purrr::map_lgl(objects, is.data.frame)
+  objects[.is_df] <- objects[.is_df] %>% 
+    # Write the feather files
+    purrr::imap(~ {
+      message(paste0("Saving ", .y, ".feather"))
+      feather::write_feather(.x, file.path(.db, paste0(.y,".feather")))
+      .x
+    }) %>% 
+    # overwrite the DFs with an accessor function.
+    # This reads the feather file with the same name as the function
+    purrr::map(~.fn)  
+  objects$df_nms <- names(objects)[.is_df]
+  # Save the results
+  
+  saveRDS(
+    objects,
+    compress = FALSE,
+    file = file.path(.dir, paste0(basename(dir), ".rds"))
+  )
+}
+
+
+
 ## to Rm:
 
- 
-.Rm <- rlang::env_get_list(e,
-  c("APs",
+.Rm <- c("APs",
   "bos_counties",
   "Client",
   "covid19",
@@ -79,12 +129,10 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   "utilization_unit",
   "validation",
   "veteran_current_in_project"
-  ),
-  default = stop("00_copy_images: object missing")
-)
+) %>% 
+  data_prep("../Rminor", e)
 
-.Rme <- rlang::env_get_list(e,
-  c("active_list",
+.Rme <- c("active_list",
   "aps_no_referrals",
   "Beds",
   "calc_2_yrs_prior_end",                  
@@ -159,53 +207,10 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   "utilization_bed",
   "validation",
   "veteran_active_list" 
-  ),
-  default = stop("00_copy_images: object missing")
-)
-directories <- c("../Rminor",
-                 "../Rminor_elevated")
-
-
-#' @title Send data to the respective app direcotry
-#' @description Takes a list of data objects to store that the app will use. Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects to an `RData` image in the `data/` directory.
-#' @param objects \code{(list)} with all data objects to be stored for the app's operation
-#' @param dir \code{(character)} file path to the application directory
-#' @importFrom dplyr `%>%`
-data_prep <- function (objects, dir) {
-  # data directory
-  .dir <- file.path(dir, "data")
-  # db directory inside data directory
-  .db <- file.path(.dir, "db")
-  # make if not created
-  purrr::walk(c(.dir, .db), ~{
-    if (!dir.exists(.x)) {
-      dir.create(.x)
-    }
-  })
-  # Create an accessor fn
-  .fn <- function(x = as.character(match.call()[[1]]), path = "data/db", ext = ".feather") feather::read_feather(file.path(path, paste0(x, ifelse(grepl("^\\.",ext), ext, paste0(".",ext)))))
-  
-  .is_df <- purrr::map_lgl(objects, is.data.frame)
-  objects[.is_df] <- objects[.is_df] %>% 
-    # Write the feather files
-    purrr::imap(~ {
-      message(paste0("Saving ", .y, ".feather"))
-      feather::write_feather(.x, file.path(.db, paste0(.y,".feather")))
-      .x
-    }) %>% 
-    # overwrite the DFs with an accessor function.
-    # This reads the feather file with the same name as the function
-    purrr::map(~.fn)  
-  objects$df_nms <- names(objects)[.is_df]
-  # Save the results
-  save(
-    list = names(objects),
-    envir = list2env(objects),
-    file = file.path(.dir, paste0(basename(dir), ".RData"))
-  )
-}
+  ) %>% 
+    data_prep("../Rminor_elevated", e)
 
 
 
-data_prep(.Rm, directories[1])
-data_prep(.Rme, directories[2])
+
+
