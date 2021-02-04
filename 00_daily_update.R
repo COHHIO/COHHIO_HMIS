@@ -116,7 +116,7 @@ if (stop == 0) {
   rm(list = ls())
 
   cat("working on SPMs\n")
-  # source("07_SPMs.R")
+  source("07_SPMs.R")
 
   rm(list = ls())
 
