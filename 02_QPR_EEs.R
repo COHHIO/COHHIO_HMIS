@@ -19,8 +19,8 @@ library(lubridate)
 library(janitor)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 
@@ -441,7 +441,7 @@ covid19_status_plot <- covid19_status %>%
 rm(covid19_status, covid19_plot)
 
 # Save it out -------------------------------------------------------------
-
-save.image("images/QPR_EEs.RData")
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/QPR_EEs.RData", compress = FALSE)
 
 

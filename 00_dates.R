@@ -87,4 +87,4 @@ calc_2_yrs_prior_range <- interval(ymd(calc_2_yrs_prior_start),
 
 
 
-
+save(list = ls(), file = "images/00_dates.RData", compress = FALSE)

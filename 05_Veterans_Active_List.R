@@ -16,8 +16,8 @@ library(tidyverse)
 library(lubridate)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 # Get all veterans and associated hh members ------------------------------
 
@@ -235,7 +235,7 @@ new_gpd <- entered_past_90 %>%
 
 # Save it out -------------------------------------------------------------
 
-save.image("images/Vet_Active_List.RData")
-
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Vet_Active_List.RData", compress = FALSE)
 
 

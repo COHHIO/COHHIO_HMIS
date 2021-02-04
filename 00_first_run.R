@@ -2,13 +2,17 @@
 if (!require(pacman))
   install.packages("pacman")
 pacman::p_load(char = c(
+  "cli",
+  "feather",
   "tidyverse",
   "lubridate",
   "readxl",
+  "rlang",
   "scales",
   "janitor",
   "devtools"
 ))
+remotes::install_github("jimhester/archive", dependencies = "Imports", upgrade = "always")
 
 # Install packages for Rminor
 if (!require(pacman))
@@ -47,7 +51,9 @@ pacman::p_load(
 )
 
 # Install HMIS package
-devtools::install_github("COHHIO/HMIS")
+devtools::install_github("COHHIO/HMIS", , dependencies = "Imports", upgrade = "always")
+
+
 
 # Create needed directories
 

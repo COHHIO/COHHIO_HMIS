@@ -17,8 +17,9 @@ library(lubridate)
 library(scales)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
+
 
 # despite the fact we're pulling in usually more than 2 years of data, the 
 # utilization reporting will only go back 2 years. (decision based on lack of
@@ -908,8 +909,8 @@ rm(list = ls(all.names = TRUE, pattern = "co_"))
 # outliers <- rbind(outliers_hi, outliers_lo)
 
 rm(Contacts, covid19, regions, ServiceAreas)
-
-save.image("images/Utilization.RData")
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Utilization.RData", compress = FALSE)
 
 
 

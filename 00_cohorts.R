@@ -32,8 +32,7 @@ library(tidyverse)
 library(lubridate)
 library(HMIS)
 
-load("images/COHHIOHMIS.RData")
-source("00_dates.R")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
 
 ReportStart <- ymd(calc_data_goes_back_to)
 ReportEnd <- ymd(meta_HUDCSV_Export_End)
@@ -381,8 +380,7 @@ project_types_w_beds <- c(1, 2, 3, 8, 9)
 # User Groups -------------------------------------------------------------
 
 COHHIO_admin_user_ids <- c(641, 835, 1041, 1239, 1563, 1624, 1628, 1868, 1698)
-
 # Save it out -------------------------------------------------------------
-
-save.image("images/cohorts.RData")
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/cohorts.RData")
 

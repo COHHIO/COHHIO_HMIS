@@ -19,8 +19,8 @@ library(treemap)
 library(plotly)
 library(HMIS)
 
-load("images/cohorts.RData")
-load("images/COHHIOHMIS.RData")
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 # clients currently entered into a homeless project in our system
 
@@ -747,6 +747,6 @@ active_list <- active_list %>%
 
 rm(list = ls()[!(ls() %in% c("active_list"))])
 
-save.image("images/Active_List.RData")
-
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Active_List.RData", compress = FALSE)
 

@@ -27,9 +27,10 @@ library(readxl)
 library(HMIS)
 
 # calling in HMIS-related functions that aren't in the HMIS pkg
+e <- environment()
+source("00_functions.R", local = e)
 
-source("00_functions.R")
-source("00_dates.R")
+if (!exists("meta_HUDCSV_Export_Date")) source("00_dates.R", local = e)
 
 # type "live" or "sample" or "yo"
 if(exists("dataset") == FALSE) {
@@ -563,8 +564,7 @@ Enrollment <- Enrollment %>%
 rm(small_client)
 
 # Save it out -------------------------------------------------------------
-
-save.image(file = "images/COHHIOHMIS.RData")
-
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/COHHIOHMIS.RData", compress = FALSE)
 
 

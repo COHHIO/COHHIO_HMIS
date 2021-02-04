@@ -25,8 +25,74 @@
 rm(list = ls())
 
 # some preliminary parameters
-stop <- 0
+
 source("00_dates.R")
+
+stop_with_instructions <- function(...) {
+  cli::cli_alert_danger(cli::col_red(paste0(..., collapse = "\n")))
+  cli::cli_alert_info("See instructions for details:\nhttps://docs.google.com/document/d/1iT_dgf0HtBzGOO8PqFNvyS_djA78JcYZsWaeZQYJC9E/edit#heading=h.xvdv7715aoi1")
+  stop("See above.", call. = FALSE)
+}
+
+increment <- function(..., cenv = rlang::caller_env()) {
+  # pre allocate file path for previous timer
+  .lt_path <- "data/last_timer.rds"
+  
+  # if the first step remove tracking objects from env (if there were previous failures)
+  if (stringr::str_detect(paste0(...), "Importing raw")) suppressWarnings(rm(.update, .timer, .step, envir = cenv))
+  
+  # start the status progress process if its not active
+  if (is.null(cenv$.update)) cenv$.update <- cli::cli_process_start("Parsing COHHIO_HMIS data", .auto_close = FALSE, .envir = cenv)
+  # if the last timer data exists load it and compute the total time from the previous run
+  if (file.exists(.lt_path) && is.null(cenv$.last_timer)) {
+    cenv$.last_timer <- readRDS(.lt_path)
+    cenv$.total_time <- difftime(tail(cenv$.last_timer, 1)$ts, head(cenv$.last_timer, 1)$ts, units = "mins")
+    cenv$.total_steps<- tail(cenv$.last_timer, 1)$step
+    cli::cli_status_update(cenv$.update, cli::col_blue("Expected time of completion: ", Sys.time() + cenv$.total_time))
+  }
+  # create the step object or increment it
+  if (is.null(cenv$.step)) {
+    cenv$.step <- 1 
+  } else {
+    cenv$.step <- cenv$.step + 1
+  }
+  
+  # send the status message to console
+  cli::cli_status_update(cenv$.update, msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 11)}: {paste0(...)}...\n")
+  
+  if (is.null(cenv$.timer)) cenv$.timer <- data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...))
+  else {
+    cenv$.timer <- rbind.data.frame(cenv$.timer, data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...)))
+  }
+  if (stringr::str_detect(paste0(...),"^Done!")) {
+    cli::cli_process_done(cenv$.update)
+    saveRDS(cenv$.timer, .lt_path)
+    cli::col_blue("Timing data saved to ", .lt_path)
+    return(.lt_path)
+  }
+  # If no previous timer data, just give the elapsed time
+  .elapsed <- round(difftime(tail(cenv$.timer, 1)$ts, head(cenv$.timer, 1)$ts, units = "mins"),2)
+  if (is.null(cenv$.last_timer)) {
+    cli::cli_status_update(cenv$.update, cli::col_grey("Time elapsed: ", .elapsed, " mins"))
+  } else {
+    cli::cli_status_update(cenv$.update,  cli::cli_verbatim(cli::col_grey("Time elapsed: ", .elapsed," mins - ",paste0(round(as.numeric(.elapsed) / as.numeric(cenv$.total_time), 2) * 100, "% complete\nApprox. completion at: ", cenv$.total_time - .elapsed + Sys.time()))))
+  }
+}
+
+
+# extract archive and delete it
+  . <- list.files("data", pattern = "7z$", full.names = TRUE)
+if (!rlang::is_empty(.)) {
+  archive::archive_extract(., "data")
+  if (Sys.info()["nodename"] == "STEPHEN-PC") 
+    fs::file_move(., fs::path(dirname(.), "zip", basename(.)))
+  else
+    file.remove(.)
+} else 
+  stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
+
+
+
 
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")
@@ -38,103 +104,60 @@ directory <- case_when(dataset == "live" ~ "data",
                        dataset == "sample" ~ "sampledata")
 
 # folder check
-
-if(meta_HUDCSV_Export_End != today()) {
-  stop <- 1
-  cat("The HUD CSV Export files are not up to date. Please be sure you unzipped the
-  export.\n")
-} else{
-  cat("OK\n")
-}
+# CHANGED The code on line 31 above does the extraction for the user now
+# if(meta_HUDCSV_Export_End != today()) {
+#   stop <- 1
+#   cat("The HUD CSV Export files are not up to date. Please be sure you unzipped the
+#   export.\n")
+# } else{
+#   cat("OK\n")
+# }
 
 if(ymd(meta_HUDCSV_Export_Start) != ymd(hc_data_goes_back_to) |
-   ymd(meta_HUDCSV_Export_End) != today()) {
-  stop <- 1
-  cat("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
-} else{
-  cat("OK\n")
-}
-
-if(meta_Rmisc_last_run_date != today()){
-  stop <- 1
-  cat("The RMisc2.xlsx file is not up to date. Please run this ART report and 
-  overwrite the current RMisc2.xlsx with the new one.\n")
-} else{cat("OK\n")}
-
-if(length(list.files(paste0("./", directory), pattern = "(odod_live_hudcsv)")) > 0){
-  stop <- 1
-  cat("Don't forget to delete the .7z file in your /data folder. It has PII in it!\n")
-} else {cat("OK\n")}
-
-# if the data folder passes all the tests above, let's run the scripts 
-if (stop == 0) {
-  rm(list = ls())
-
-  cat("Importing raw HMIS data..\n")
-  source("00_get_Export_and_ART.R")
-
-  rm(list = ls())
-
-  cat("working on Cohorts\n")
-  source("00_cohorts.R")
-
-  rm(list = ls())  
-
-  cat("working on Bed_Unit_Utilization\n")
-  source("01_Bed_Unit_Utilization.R")
-
-  rm(list = ls())
-
-  cat("working on QPR_SPDATs\n")
-  source("02_QPR_SPDATs.R")
-
-  rm(list = ls())
-
-  cat("working on QPR_EEs\n")
-  source("02_QPR_EEs.R")
-
-  rm(list = ls())
-
-  cat("working on Veterans\n")
-  source("03_Veterans.R")
-
-  rm(list = ls())
-
-  cat("working on Data Quality\n")
-  source("04_DataQuality.R")
-
-  rm(list = ls())
-
-  print("working on Project Evaluation")
-  source("05_Veterans_Active_List.R")
-  
-  # rm(list = ls())
-  # 
-  # print("working on Project Evaluation")
-  # source("06_Project_Evaluation.R")
-
-  rm(list = ls())
-
-  cat("working on SPMs\n")
-  source("07_SPMs.R")
-
-  rm(list = ls())
-
-  cat("working on Active List\n")
-  source("08_Active_List.R")
-  
-  rm(list = ls())
-
-  cat("copying images to app directories\n")
-  source("00_copy_images.R")
-
-  rm(list = ls())
-
-  cat("Done! All images are updated.\n")
-} else
-{
-  cat("Check your data folder for errors\n")
-}
+   ymd(meta_HUDCSV_Export_End) != today()) stop_with_instructions("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
 
 
+if(meta_Rmisc_last_run_date != today()) stop_with_instructions("The RMisc2.xlsx file is not up to date. Please run this ART report and overwrite the current RMisc2.xlsx with the new one.")
 
+
+increment("Importing raw HMIS data")
+COHHIO_HMIS <- environment()
+source("00_get_Export_and_ART.R", local = COHHIO_HMIS)
+
+increment("working on Cohorts")
+Cohorts <- rlang::child_env(COHHIO_HMIS)
+source("00_cohorts.R", local = Cohorts)
+
+increment("working on Bed_Unit_Utilization")
+source("01_Bed_Unit_Utilization.R", local = rlang::child_env(Cohorts))
+
+increment("working on QPR_SPDATs")
+source("02_QPR_SPDATs.R", local = rlang::child_env(COHHIO_HMIS))
+
+increment("working on QPR_EEs")
+source("02_QPR_EEs.R", local = rlang::child_env(Cohorts))
+
+increment("working on Veterans")
+source("03_Veterans.R", local = rlang::child_env(Cohorts))
+
+increment("working on Data Quality")
+source("04_DataQuality.R", local = rlang::child_env(Cohorts))
+
+increment("working on Project Evaluation")
+source("05_Veterans_Active_List.R", local = rlang::child_env(Cohorts))
+
+# rm(list = ls())
+# 
+# print("working on Project Evaluation")
+# source("06_Project_Evaluation.R", local = new.env())
+
+increment("working on SPMs")
+source("07_SPMs.R", local = new.env())
+
+increment("working on Active List")
+source("08_Active_List.R", local = rlang::child_env(Cohorts))
+
+increment("copying images to app directories")
+source("00_copy_images.R", local = rlang::child_env(Cohorts))
+
+increment("Done! All images are updated.")

@@ -17,10 +17,10 @@ library(janitor)
 library(lubridate)
 library(scales)
 library(HMIS)
-
-source("04_Guidance.R")
-load("images/COHHIOHMIS.RData")
-load("images/cohorts.RData")
+e <- environment()
+source("04_Guidance.R", local = e)
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("tay")) load("images/cohorts.RData")
 
 va_funded <- Funder %>%
   filter(Funder %in% c(27, 30, 33, 37:42, 45)) %>%
@@ -3407,6 +3407,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     rm(list = ls(pattern = "dq_data_"))
     rm(list = ls(pattern = "guidance_"))
 
+# WARNING save.image does not save the environment properly, save must be used.
+save(list = ls(), file = "images/Data_Quality.RData", compress = FALSE)
     
-    save.image("images/Data_Quality.RData")
 
