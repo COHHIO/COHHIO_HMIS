@@ -26,72 +26,43 @@ rename_file <-
            pattern = "(0700 -)") {
     directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
                            CoC == "OH-504" ~ "SPM_data_YO")
-    filename <- case_when(
-      pattern == "(0700 -)" ~ "0700a",
-      pattern == "(0700.1b)" ~ "0700b",
-      pattern == "(0701 -)" ~ "0701",
-      pattern == "(0702 -)" ~ "0702",
-      pattern == "(0703 -)" ~ "0703",
-      pattern == "(0704 -)" ~ "0704",
-      pattern == "(0706 -)" ~ "0706"
-    )
-    
-    if (file.exists(paste0(
-      directory,
-      "/",
-      subdirectory,
-      "/",
-      list.files(paste0("./", directory, "/", subdirectory),
-                 pattern = pattern)
-    ))) {
+    # create dirs if not created
+    if (!dir.exists(directory)) dir.create(directory)
+    if (!dir.exists(file.path(directory, subdirectory))) dir.create(file.path(directory, subdirectory))
+    # substitute the pattern to make the filename with regex
+    filename <- gsub("[(?:\\.1)\\(\\)\\s\\-]+", "", pattern, perl = TRUE)
+    # make the filename with the system-specified separator using file.path and use full.names to get the full path to the file
+    .file <- list.files(file.path(directory, subdirectory),
+               pattern = pattern, full.names = TRUE)
+    # list.files will only list existing files. If there are no files listed - file.exists will error. rlang::is_empty will check if the .file vector of paths from list.files is empty, if not, proceed to rename
+    if (!rlang::is_empty(.file)) {
       file.rename(
-        paste0(
-          directory,
-          "/",
-          subdirectory,
-          "/",
-          list.files(paste0("./", directory, "/", subdirectory),
-                     pattern = pattern)
-        ),
-        paste0(directory, "/", subdirectory, "/", filename, ".xls")
+        .file,
+        file.path(dirname(.file), paste0(filename, ".xls"))
       )
     }
   }
 
-
 # Renaming all the files to reasonable things -----------------------------
+expand.grid(
+  CoC = c("OH-507", "OH-504"),
+  subdirectory = c("Current", "Prior"),
+  pattern = c(
+    "(0700 -)",
+    "(0700.1b)",
+    "(0701 -)",
+    "(0702 -)",
+    "(0703 -)",
+    "(0704 -)",
+    "(0706 -)"
+  )
+, stringsAsFactors = FALSE) %>% 
+  purrr::pwalk(rename_file)
 
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0700 -)")
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0700.1b)")
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0701 -)")
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0702 -)")
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0703 -)")
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0704 -)")
-rename_file(CoC = "OH-507", subdirectory = "Current", pattern = "(0706 -)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0700 -)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0700.1b)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0701 -)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0702 -)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0703 -)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0704 -)")
-rename_file(CoC = "OH-507", subdirectory = "Prior", pattern = "(0706 -)")
-
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0700 -)")
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0700.1b)")
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0701 -)")
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0702 -)")
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0703 -)")
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0704 -)")
-rename_file(CoC = "OH-504", subdirectory = "Current", pattern = "(0706 -)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0700 -)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0700.1b)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0701 -)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0702 -)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0703 -)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0704 -)")
-rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0706 -)")
 
 # OPEN ALL YOUR EXCEL FILES AND PRESS ENABLE EDITING BEFORE PROCEEDING
+# I think {openxlsx} has a means of doing this from R
+
 
 
 # 0700a - Length of Time Homeless (using EEs) -----------------------------
@@ -166,7 +137,8 @@ check_loth_a <- function(CoC = "OH-507", subdirectory = "Current") {
       ReportStart - years(1) != PriorYear
     )
   ) > 0)
-    print(paste("the", CoC, subdirectory, "0700a report was run incorrectly"))
+    # should this throw an error instead?
+    stop(paste("the", CoC, subdirectory, "0700a report was run incorrectly"))
   else{
     print(paste(CoC, subdirectory, "0700a ok"))
   }
@@ -254,7 +226,7 @@ if(nrow(
     ReportStart - years(1) != PriorYear
   )
 ) > 0)
-  print(paste("the", CoC, subdirectory,"0700b report was run incorrectly"))
+  stop(paste("the", CoC, subdirectory,"0700b report was run incorrectly"))
   else{
     print(paste(CoC, subdirectory, "0700b ok"))
   }
@@ -355,7 +327,7 @@ check_recurrence <-
         ReportEnd - years(3) != Prior2Year
       )
     ) > 0)
-      print(paste("the", CoC, subdirectory, "0701 report was run incorrectly"))
+      stop(paste("the", CoC, subdirectory, "0701 report was run incorrectly"))
     else{
       print(paste(CoC, subdirectory, "0701 ok"))
     }
@@ -442,7 +414,7 @@ check_homeless_count <-
         ReportStart - years(1) != PriorYear
       )
     ) > 0)
-      print(paste("the", CoC, subdirectory, "0702 report was run incorrectly"))
+      stop(paste("the", CoC, subdirectory, "0702 report was run incorrectly"))
     else{
       print(paste(CoC, subdirectory, "0702 ok"))
     }
@@ -572,7 +544,7 @@ check_income <- function(CoC = "OH-507", subdirectory = "Current") {
       ReportStart - years(1) != PriorYear
     )
   ) > 0)
-    print(paste("the", CoC, subdirectory, "0703 report was run incorrectly"))
+    stop(paste("the", CoC, subdirectory, "0703 report was run incorrectly"))
   else{
     print(paste(CoC, subdirectory, "0703 ok"))
   }
@@ -666,7 +638,7 @@ check_first_timers <-
         ReportStart - years(1) != PriorYear
       )
     ) > 0)
-      print(paste("the", CoC, subdirectory, "0704 report was run incorrectly"))
+      stop(paste("the", CoC, subdirectory, "0704 report was run incorrectly"))
     else{
       print(paste(CoC, subdirectory, "0704 ok"))
     }
@@ -765,7 +737,7 @@ check_exits_to_ph <-
         ReportStart - years(1) != PriorYear
       )
     ) > 0)
-      print(paste("the", CoC, subdirectory, "0706 report was run incorrectly"))
+      stop(paste("the", CoC, subdirectory, "0706 report was run incorrectly"))
     else{
       print(paste(CoC, subdirectory, "0706 ok"))
     }
@@ -1010,7 +982,7 @@ purrr::iwalk(c("random_data/bos_spms.xlsx" = 4, # BoS Current
               )
             , ~{
   if (!dir.exists(dirname(.y))) dir.create(dirname(.y))
-  eval(parse(text = paste0("writexl::write_xlsx(
+  eval(str2expression(paste0("writexl::write_xlsx(
     x = list(
       measure1a = spm_Metric_1a_OH50",.x,"_Current,
       measure1b = spm_Metric_1b_OH50",.x,"_Current,

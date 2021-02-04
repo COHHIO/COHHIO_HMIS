@@ -58,11 +58,11 @@ increment <- function(..., cenv = rlang::caller_env()) {
   }
   
   # send the status message to console
-  cli::cli_status_update(cenv$.update, msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 11)}: {paste0(...)}...\n")
+  cli::cli_status_update(cenv$.update, msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 12)}: {paste0(...)}...\n")
   
   if (is.null(cenv$.timer)) cenv$.timer <- data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...))
   else {
-    cenv$.timer <- rbind.data.frame(cenv$.timer, data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...)))
+    cenv$.timer <- rbind(cenv$.timer, data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...)))
   }
   if (stringr::str_detect(paste0(...),"^Done!")) {
     cli::cli_process_done(cenv$.update)
@@ -81,15 +81,15 @@ increment <- function(..., cenv = rlang::caller_env()) {
 
 
 # extract archive and delete it
-  . <- list.files("data", pattern = "7z$", full.names = TRUE)
+  . <- list.files("data", pattern = "7z$", full.names = TRUE, recursive = FALSE)
 if (!rlang::is_empty(.)) {
   archive::archive_extract(., "data")
-  if (Sys.info()["nodename"] == "STEPHEN-PC") 
-    fs::file_move(., fs::path(dirname(.), "zip", basename(.)))
-  else
-    file.remove(.)
-} else 
+  file.remove(.)
+} else if (ncol(readr::read_csv("data/Client.csv")) != 33 && meta_HUDCSV_Export_End != Sys.Date()) {
   stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
+}
+
+  
 
 
 
