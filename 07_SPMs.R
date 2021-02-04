@@ -92,7 +92,9 @@ rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0704 -)")
 rename_file(CoC = "OH-504", subdirectory = "Prior", pattern = "(0706 -)")
 
 # OPEN ALL YOUR EXCEL FILES AND PRESS ENABLE EDITING BEFORE PROCEEDING
-# Checking that the 0700a was run correctly -------------------------------
+
+
+# 0700a - Length of Time Homeless (using EEs) -----------------------------
 
 check_loth_a <- function(CoC = "OH-507", subdirectory = "Current") {
   
@@ -177,7 +179,9 @@ check_loth_a(CoC = "OH-504", subdirectory = "Current")
 check_loth_a(CoC = "OH-504", subdirectory = "Prior")
 
 
-# checking that 700b was run correctly ------------------------------------
+
+# 0700b - Length of Time Homeless (self-report) ---------------------------
+
 
 check_loth_b <- function(CoC = "OH-507", subdirectory = "Current"){
   
@@ -263,7 +267,8 @@ check_loth_b(CoC = "OH-507", subdirectory = "Prior")
 check_loth_b(CoC = "OH-504", subdirectory = "Current")
 check_loth_b(CoC = "OH-504", subdirectory = "Prior")
 
-# Checking that the 701 was run correctly ---------------------------------
+
+# 0701 - Returns to Homelessness ------------------------------------------
 
 check_recurrence <-
   function(CoC = "OH-507", subdirectory = "Current") {
@@ -362,7 +367,8 @@ check_recurrence(CoC = "OH-507", subdirectory = "Prior")
 check_recurrence(CoC = "OH-504", subdirectory = "Current")
 check_recurrence(CoC = "OH-504", subdirectory = "Prior")
 
-# checking the homeless count report was run correctly --------------------
+
+# 0702 - Number of Homeless -----------------------------------------------
 
 check_homeless_count <-
   function(CoC = "OH-507", subdirectory = "Current") {
@@ -418,7 +424,9 @@ check_homeless_count <-
       sheet = 1,
       range = cell_cols("B2:D6")
     ) %>%
-      select("Type" = 1, "Count" = 3)
+      select("Type" = 1, "Count" = 3) %>%
+      mutate(CoCName = CoC,
+             CurrentPrior = subdirectory)  
     
     assign(paste0("spm_Metric_3_", str_remove(CoC, "-"), "_", subdirectory),
            homeless_count_data,
@@ -446,7 +454,9 @@ check_homeless_count(CoC = "OH-507", subdirectory = "Prior")
 check_homeless_count(CoC = "OH-504", subdirectory = "Current")
 check_homeless_count(CoC = "OH-504", subdirectory = "Prior")
 
-# Checking the 703 report was run correctly -------------------------------
+
+# 0703 - Employment Income Growth -----------------------------------------
+
 
 check_income <- function(CoC = "OH-507", subdirectory = "Current") {
   directory <- case_when(CoC == "OH-507" ~ "SPM_data_BoS",
@@ -574,7 +584,8 @@ check_income(CoC = "OH-507", subdirectory = "Prior")
 check_income(CoC = "OH-504", subdirectory = "Current")
 check_income(CoC = "OH-504", subdirectory = "Prior")
 
-# Checking the 704 report was run correctly -------------------------------
+
+# 0704 - Number who became homeless for the first time --------------------
 
 check_first_timers <-
   function(CoC = "OH-507", subdirectory = "Current") {
@@ -668,7 +679,8 @@ check_first_timers(CoC = "OH-504", subdirectory = "Current")
 check_first_timers(CoC = "OH-504", subdirectory = "Prior")
 
 
-# Checking the 706 report was run correctly -------------------------------
+
+# 0706 - Successful Placement ---------------------------------------------
 
 check_exits_to_ph <-
   function(CoC = "OH-507", subdirectory = "Current") {
@@ -764,6 +776,7 @@ check_exits_to_ph(CoC = "OH-507", subdirectory = "Prior")
 
 check_exits_to_ph(CoC = "OH-504", subdirectory = "Current")
 check_exits_to_ph(CoC = "OH-504", subdirectory = "Prior")
+
 
 # Check that ALL SPMs were run on the same date range ---------------------
 
@@ -907,9 +920,89 @@ if_else(
   "Your BoS Current Prior Start Dates do not all match."
 )
 
+spm_Metric_1a <- rbind(
+  spm_Metric_1a_OH504_Current,
+  spm_Metric_1a_OH504_Prior,
+  spm_Metric_1a_OH507_Current,
+  spm_Metric_1a_OH507_Prior
+) %>%
+  pivot_wider(id_cols = c(Metric1a, CoCName, CurrentPrior),
+              names_from = CurrentPrior,
+              values_from = c(ClientCount, AvgLoT, MedLoT))
+
+spm_Metric_1b <- rbind(
+  spm_Metric_1b_OH504_Current,
+  spm_Metric_1b_OH504_Prior,
+  spm_Metric_1b_OH507_Current,
+  spm_Metric_1b_OH507_Prior
+) %>%
+  pivot_wider(id_cols = c(Metric1b, CoCName, CurrentPrior),
+              names_from = CurrentPrior,
+              values_from = c(ClientCount, AvgLoT, MedLoT))
+
+spm_Metric_2 <- rbind(
+  spm_Metric_2_OH504_Current,
+  spm_Metric_2_OH504_Prior,
+  spm_Metric_2_OH507_Current,
+  spm_Metric_2_OH507_Prior
+) %>%
+  filter(ProjectType %in% c(
+    "Exit was from SO",
+    "Exit was from ES",
+    "Exit was from TH",
+    "Exit was from PSH",
+    "Exits from RRH",
+    "Exit was from SH",
+    "TOTAL Returns to Homelessness"
+  )) %>%
+  pivot_wider(id_cols = c(ProjectType, CoCName, CurrentPrior),
+              names_from = CurrentPrior,
+              values_from = c(ExitedToPHPast2Yrs, 
+                              LessThan6mo, 
+                              SixTo12mo,
+                              ThirteenTo24mo))
+
+spm_Metric_3 <- rbind(
+  spm_Metric_3_OH504_Current,
+  spm_Metric_3_OH504_Prior,
+  spm_Metric_3_OH507_Current,
+  spm_Metric_3_OH507_Prior
+) %>%
+  pivot_wider(id_cols = c(Type, CoCName, CurrentPrior),
+              names_from = CurrentPrior,
+              values_from = Count)
+
+spm_Metric_4 <- rbind(
+  spm_Metric_4_OH504_Current,
+  spm_Metric_4_OH504_Prior,
+  spm_Metric_4_OH507_Current,
+  spm_Metric_4_OH507_Prior
+) %>%
+  pivot_wider(id_cols = c(ClientsCounted, CoCName, CurrentPrior, Metric),
+              names_from = CurrentPrior,
+              values_from = Counts)
+
+spm_Metric_7 <- rbind(
+  spm_Metric_7_OH504_Current,
+  spm_Metric_7_OH504_Prior,
+  spm_Metric_7_OH507_Current,
+  spm_Metric_7_OH507_Prior
+) %>%
+  pivot_wider(id_cols = c(ClientsCounted, CoCName, CurrentPrior, Metric),
+              names_from = CurrentPrior,
+              values_from = Counts)
+
+spm_current_start_date <- min(bos_current$ReportStart, na.rm = TRUE)
+
+spm_current_end_date <- min(bos_current$ReportEnd, na.rm = TRUE) - days(1)
+
+spm_prior_start_date <- min(bos_prior$ReportStart, na.rm = TRUE) 
+
+spm_prior_end_date <- min(bos_prior$ReportEnd, na.rm = TRUE) - days(1)
+  
 rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
-# save.image("images/SPM_data.RData") not ready for this yet!
+save.image("images/SPM_data.RData") 
 
 # BoS Current
 
