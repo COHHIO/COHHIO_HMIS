@@ -11,6 +11,16 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
+
+# Create an accessor fn
+.fn <- function(x = as.character(match.call()[[1]]),
+                path = "data/db",
+                ext = ".feather"){
+  feather::read_feather(file.path(path, paste0(x, ifelse(
+    grepl("^\\.", ext), ext, paste0(".", ext)
+  )))
+  )}
+
 `%>%` <- dplyr::`%>%`
 e <- new.env()
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
@@ -44,14 +54,6 @@ data_prep <- function (nms, dir, e) {
       dir.create(.x)
     }
   })
-  # Create an accessor fn
-  .fn <- function(x = as.character(match.call()[[1]]),
-                  path = "data/db",
-                  ext = ".feather")
-    feather::read_feather(file.path(path, paste0(x, ifelse(
-      grepl("^\\.", ext), ext, paste0(".", ext)
-    )))
-    )
   
   .is_df <- purrr::map_lgl(objects, is.data.frame)
   objects[.is_df] <- objects[.is_df] %>% 
