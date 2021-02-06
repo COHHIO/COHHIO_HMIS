@@ -26,11 +26,12 @@ rm(list = ls())
 
 # some preliminary parameters
 
-source("00_dates.R")
-
 stop_with_instructions <- function(...) {
   cli::cli_alert_danger(cli::col_red(paste0(..., collapse = "\n")))
-  cli::cli_alert_info("See instructions for details:\nhttps://docs.google.com/document/d/1iT_dgf0HtBzGOO8PqFNvyS_djA78JcYZsWaeZQYJC9E/edit#heading=h.xvdv7715aoi1")
+  cli::cli_alert_info(
+    "See instructions for details:\n
+                      https://docs.google.com/document/d/1iT_dgf0HtBzGOO8PqFNvyS_djA78JcYZsWaeZQYJC9E/edit#heading=h.xvdv7715aoi1"
+  )
   stop("See above.", call. = FALSE)
 }
 
@@ -39,16 +40,24 @@ increment <- function(..., cenv = rlang::caller_env()) {
   .lt_path <- "data/last_timer.rds"
   
   # if the first step remove tracking objects from env (if there were previous failures)
-  if (stringr::str_detect(paste0(...), "Importing raw")) suppressWarnings(rm(.update, .timer, .step, envir = cenv))
+  if (stringr::str_detect(paste0(...), "Importing raw")) 
+    suppressWarnings(rm(.update, .timer, .step, envir = cenv))
   
-  # start the status progress process if its not active
-  if (is.null(cenv$.update)) cenv$.update <- cli::cli_process_start("Parsing COHHIO_HMIS data", .auto_close = FALSE, .envir = cenv)
+  # start the status progress process if it's not active
+  if (is.null(cenv$.update)) cenv$.update <- 
+      cli::cli_process_start("Parsing COHHIO_HMIS data", 
+                             .auto_close = FALSE, 
+                             .envir = cenv)
+  
   # if the last timer data exists load it and compute the total time from the previous run
   if (file.exists(.lt_path) && is.null(cenv$.last_timer)) {
     cenv$.last_timer <- readRDS(.lt_path)
-    cenv$.total_time <- difftime(tail(cenv$.last_timer, 1)$ts, head(cenv$.last_timer, 1)$ts, units = "mins")
+    cenv$.total_time <- difftime(tail(cenv$.last_timer, 1)$ts, 
+                                 head(cenv$.last_timer, 1)$ts, units = "mins")
     cenv$.total_steps<- tail(cenv$.last_timer, 1)$step
-    cli::cli_status_update(cenv$.update, cli::col_blue("Expected time of completion: ", Sys.time() + cenv$.total_time))
+    cli::cli_status_update(cenv$.update, 
+                           cli::col_blue("Expected time of completion: ", 
+                                         Sys.time() + cenv$.total_time))
   }
   # create the step object or increment it
   if (is.null(cenv$.step)) {
@@ -58,11 +67,16 @@ increment <- function(..., cenv = rlang::caller_env()) {
   }
   
   # send the status message to console
-  cli::cli_status_update(cenv$.update, msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 12)}: {paste0(...)}...\n")
+  cli::cli_status_update(cenv$.update, 
+                         msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 12)}: {paste0(...)}...\n")
   
-  if (is.null(cenv$.timer)) cenv$.timer <- data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...))
+  if (is.null(cenv$.timer)) cenv$.timer <- 
+    data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...))
   else {
-    cenv$.timer <- rbind(cenv$.timer, data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...)))
+    cenv$.timer <- rbind(cenv$.timer, 
+                         data.frame(ts = Sys.time(),
+                                    step = cenv$.step, 
+                                    msg = paste0(...)))
   }
   if (stringr::str_detect(paste0(...),"^Done!")) {
     cli::cli_process_done(cenv$.update)
@@ -71,29 +85,46 @@ increment <- function(..., cenv = rlang::caller_env()) {
     return(.lt_path)
   }
   # If no previous timer data, just give the elapsed time
-  .elapsed <- round(difftime(tail(cenv$.timer, 1)$ts, head(cenv$.timer, 1)$ts, units = "mins"),2)
+  .elapsed <- round(difftime(tail(cenv$.timer, 1)$ts, 
+                             head(cenv$.timer, 1)$ts, units = "mins"),2)
   if (is.null(cenv$.last_timer)) {
-    cli::cli_status_update(cenv$.update, cli::col_grey("Time elapsed: ", .elapsed, " mins"))
+    cli::cli_status_update(cenv$.update, 
+                           cli::col_grey("Time elapsed: ", .elapsed, " mins"))
   } else {
-    cli::cli_status_update(cenv$.update,  cli::cli_verbatim(cli::col_grey("Time elapsed: ", .elapsed," mins - ",paste0(round(as.numeric(.elapsed) / as.numeric(cenv$.total_time), 2) * 100, "% complete\nApprox. completion at: ", cenv$.total_time - .elapsed + Sys.time()))))
+    cli::cli_status_update(cenv$.update,
+                           cli::cli_verbatim(cli::col_grey(
+                             "Time elapsed: ",
+                             .elapsed,
+                             " mins - ",
+                             paste0(
+                               round(as.numeric(.elapsed) / 
+                                       as.numeric(cenv$.total_time), 2) * 100,
+                               "% complete\nApprox. completion at: ",
+                               cenv$.total_time - .elapsed + Sys.time()
+                             )
+                           )))
   }
 }
 
 
 # extract archive and delete it
-  . <- list.files("data", pattern = "7z$", full.names = TRUE, recursive = FALSE)
-if (!rlang::is_empty(.)) {
-  archive::archive_extract(., "data")
-  file.remove(.)
-} else if (ncol(readr::read_csv("data/Client.csv")) != 33 && meta_HUDCSV_Export_End != Sys.Date()) {
-  stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
-}
+  zip_file <- list.files("data", pattern = "7z$", 
+                         full.names = TRUE, 
+                         recursive = FALSE)
 
+  if (!rlang::is_empty(zip_file)) {
+    archive::archive_extract(zip_file, "data")
+    file.remove(zip_file)
+  } else if (ncol(readr::read_csv("data/Client.csv")) != 33 &&
+             read_csv("data/Export.csv",
+                      col_types = c("iicccccccTDDcciii")) %>%
+             mutate(ExportEndDate = ymd(ExportEndDate)) %>%
+             pull(ExportEndDate) != Sys.Date()) {
+    stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
+  }
   
-
-
-
-
+  source("00_dates.R")
+  
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")
 
@@ -114,10 +145,14 @@ directory <- case_when(dataset == "live" ~ "data",
 # }
 
 if(ymd(meta_HUDCSV_Export_Start) != ymd(hc_data_goes_back_to) |
-   ymd(meta_HUDCSV_Export_End) != today()) stop_with_instructions("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
+   ymd(meta_HUDCSV_Export_End) != today()) 
+  stop_with_instructions("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
 
 
-if(meta_Rmisc_last_run_date != today()) stop_with_instructions("The RMisc2.xlsx file is not up to date. Please run this ART report and overwrite the current RMisc2.xlsx with the new one.")
+if(meta_Rmisc_last_run_date != today()) 
+  stop_with_instructions("The RMisc2.xlsx file is not up to date. Please run 
+                         this ART report and overwrite the current RMisc2.xlsx 
+                         with the new one.")
 
 
 increment("Importing raw HMIS data")
@@ -161,3 +196,4 @@ increment("copying images to app directories")
 source("00_copy_images.R", local = rlang::child_env(Cohorts))
 
 increment("Done! All images are updated.")
+
