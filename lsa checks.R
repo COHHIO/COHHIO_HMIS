@@ -1,8 +1,11 @@
 load("images/Data_Quality.RData")
 load("images/COHHIOHMIS.RData")
+library(HMIS)
+library(tidyverse)
+library(lubridate)
 
 a <- dq_main %>%
-  filter(served_between(., "10012018", "09302020") &
+  filter(served_between(., "10012019", "09302020") &
            ProjectType %in% c(1, 2, 3, 8, 9, 13) &
            Issue %in% c(
              "Children Only Household",
@@ -13,7 +16,7 @@ a <- dq_main %>%
 write_csv(a, "random_data/hhs.csv")
 
 a <- dq_main %>%
-  filter(served_between(., "10012018", "09302020") &
+  filter(served_between(., "10012019", "09302020") &
            ProjectType %in% c(1, 2, 3, 8, 9, 13) &
            Issue %in% c(
              "Missing Client Location"
@@ -25,7 +28,7 @@ a <- dq_overlaps %>%
   left_join(Project[c("ProjectName", "ProjectType")], 
             by = c("PreviousProject" = "ProjectName")) %>%
   rename("PreviousProjectType" = "ProjectType") %>%
-  filter(served_between(., "10012018", "09302020") &
+  filter(served_between(., "10012019", "09302020") &
            RecentProjectType %in% c(1, 2, 3, 8, 9, 13) &
            PreviousProjectType %in% c(1, 2, 3, 8, 9, 13) &
            Issue %in% c(
