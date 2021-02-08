@@ -32,7 +32,10 @@ library(tidyverse)
 library(lubridate)
 library(HMIS)
 
-if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("Enrollment")) {
+  load("images/COHHIOHMIS.RData")
+  rlang::env_binding_lock(environment(), ls())
+}
 
 ReportStart <- ymd(calc_data_goes_back_to)
 ReportEnd <- ymd(meta_HUDCSV_Export_End)

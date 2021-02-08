@@ -160,26 +160,28 @@ COHHIO_HMIS <- environment()
 source("00_get_Export_and_ART.R", local = COHHIO_HMIS)
 
 increment("working on Cohorts")
-Cohorts <- rlang::child_env(COHHIO_HMIS)
+Cohorts <- rlang::env(COHHIO_HMIS)
+rlang::env_binding_lock(COHHIO_HMIS, ls(COHHIO_HMIS))
 source("00_cohorts.R", local = Cohorts)
+rlang::env_binding_lock(Cohorts, ls(Cohorts))
 
 increment("working on Bed_Unit_Utilization")
-source("01_Bed_Unit_Utilization.R", local = rlang::child_env(Cohorts))
+source("01_Bed_Unit_Utilization.R", local = rlang::env(Cohorts))
 
 increment("working on QPR_SPDATs")
-source("02_QPR_SPDATs.R", local = rlang::child_env(COHHIO_HMIS))
+source("02_QPR_SPDATs.R", local = rlang::env(COHHIO_HMIS))
 
 increment("working on QPR_EEs")
-source("02_QPR_EEs.R", local = rlang::child_env(Cohorts))
+source("02_QPR_EEs.R", local = rlang::env(Cohorts))
 
 increment("working on Veterans")
-source("03_Veterans.R", local = rlang::child_env(Cohorts))
+source("03_Veterans.R", local = rlang::env(Cohorts))
 
 increment("working on Data Quality")
-source("04_DataQuality.R", local = rlang::child_env(Cohorts))
+source("04_DataQuality.R", local = rlang::env(Cohorts))
 
 increment("working on Project Evaluation")
-source("05_Veterans_Active_List.R", local = rlang::child_env(Cohorts))
+source("05_Veterans_Active_List.R", local = rlang::env(Cohorts))
 
 # rm(list = ls())
 # 
@@ -190,10 +192,10 @@ increment("working on SPMs")
 source("07_SPMs.R", local = new.env())
 
 increment("working on Active List")
-source("08_Active_List.R", local = rlang::child_env(Cohorts))
+source("08_Active_List.R", local = rlang::env(Cohorts))
 
 increment("copying images to app directories")
-source("00_copy_images.R", local = rlang::child_env(Cohorts))
+source("00_copy_images.R", local = new.env())
 
 increment("Done! All images are updated.")
 
