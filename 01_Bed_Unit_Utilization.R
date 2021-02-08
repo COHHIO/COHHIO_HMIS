@@ -18,7 +18,10 @@ library(scales)
 library(HMIS)
 
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
-if (!exists("tay")) load("images/cohorts.RData")
+if (!exists("tay")) {
+  load("images/cohorts.RData")
+  rlang::env_binding_lock(environment(), ls())
+}
 
 
 # despite the fact we're pulling in usually more than 2 years of data, the 

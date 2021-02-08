@@ -20,7 +20,10 @@ library(janitor)
 library(HMIS)
 
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
-if (!exists("tay")) load("images/cohorts.RData")
+if (!exists("tay")) {
+  load("images/cohorts.RData")
+  rlang::env_binding_lock(environment(), ls())
+}
 
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 

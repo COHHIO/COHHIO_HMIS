@@ -20,7 +20,10 @@ library(HMIS)
 e <- environment()
 source("04_Guidance.R", local = e)
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
-if (!exists("tay")) load("images/cohorts.RData")
+if (!exists("tay")) {
+  load("images/cohorts.RData")
+  rlang::env_binding_lock(environment(), ls())
+}
 
 va_funded <- Funder %>%
   filter(Funder %in% c(27, 30, 33, 37:42, 45)) %>%

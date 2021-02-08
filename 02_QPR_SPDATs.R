@@ -23,7 +23,10 @@ library(janitor)
 library(HMIS)
 
 # loading the COHHIOHMIS data, dropping unnecessary objects
-if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if (!exists("Enrollment")) {
+  load("images/COHHIOHMIS.RData")
+  rlang::env_binding_lock(environment(), ls())
+}
 
 
 rm(Affiliation, CaseManagers, Client, EnrollmentCoC, EmploymentEducation, 
