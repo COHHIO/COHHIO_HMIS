@@ -161,7 +161,17 @@ Pstudied9th <- c(
   "deficient",
   "elicit",
   "illicit",
-  "innovation"
+  "innovation",
+  "analyze",
+  "formulate",
+  "intercede",
+  "cursory",
+  "interpret",
+  "dissent",
+  "beneficial",
+  "elude",
+  "mediate",
+  "animosity"
 )
 
 Plist9th <- setdiff(list9th, Pstudied9th)
