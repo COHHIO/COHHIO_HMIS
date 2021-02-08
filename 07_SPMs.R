@@ -755,7 +755,6 @@ check_exits_to_ph(CoC = "OH-507", subdirectory = "Prior")
 check_exits_to_ph(CoC = "OH-504", subdirectory = "Current")
 check_exits_to_ph(CoC = "OH-504", subdirectory = "Prior")
 
-
 # Check that ALL SPMs were run on the same date range ---------------------
 
 current_rpts <- OH507_Current_rpt_0700a %>%
@@ -980,9 +979,6 @@ spm_prior_end_date <- min(bos_prior$ReportEnd, na.rm = TRUE) - days(1)
   
 rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
-
-
-
 purrr::iwalk(c("random_data/bos_spms.xlsx" = 4, # BoS Current
               "random_data/mah_spms.xlsx" = 7 # Mahoning Current
               )
@@ -1002,11 +998,6 @@ purrr::iwalk(c("random_data/bos_spms.xlsx" = 4, # BoS Current
     )")))
   
 })
-
-
-
-
-
 
 save(list = ls(), file = "images/SPM_data.RData", compress = FALSE)
 
