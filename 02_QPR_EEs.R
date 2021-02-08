@@ -124,7 +124,8 @@ qpr_leavers <- smallProject %>%
     ),
     DaysinProject = difftime(ExitAdjust, EntryDate, units = "days")
   ) %>% 
-  filter(stayed_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)))
+  filter(stayed_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End))) %>% 
+  arrange(ProjectName)
 
 qpr_rrh_enterers <- smallProject %>%
   left_join(smallEnrollment, by = "ProjectID") %>%
