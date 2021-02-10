@@ -12,20 +12,11 @@
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
 
-# Create an accessor fn
+
 
 
 `%>%` <- dplyr::`%>%`
-e <- rlang::env(rlang::empty_env())
-e$.fn <- function(x = as.character(match.call()[[1]]),
-                path = "data/db",
-                ext = ".feather"){
-  feather::read_feather(file.path(path, paste0(x, ifelse(
-    grepl("^\\.", ext), ext, paste0(".", ext)
-  )))
-  )
-}
-rlang::fn_env(e$.fn) <- e
+
 
 rdata <- rlang::env(rlang::empty_env())
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
@@ -38,43 +29,62 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
 #' @description Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects as a `list` to an `rds` file in the `data/` directory.
 #' @param nms \code{(character)} vector of object names
 #' @param dir \code{(character)} file path to the application directory
-#' @param e \code{(environment)} in which to search
+#' @param e \code{(environment)} in which to search for `nms`
+#' @param accessor \code{(function)} that uses default parameters for loading a data object from disk. Overwrites the data object.
 #' @importFrom purrr map_lgl map imap walk
 #' @importFrom dplyr `%>%`
 
-data_prep <- function (nms, dir, e) {
-  .missing <- purrr::map_lgl(setNames(nms, nms), ~!exists(.x, envir = e, inherits = FALSE))   
-  if (any(.missing)) 
+data_prep <- function(nms,
+                      dir,
+                      e,
+                      # accessor fn with default settings
+                      accessor) {
+  .missing <- purrr::map_lgl(setNames(nms, nms), ~ !exists(.x, envir = e, inherits = FALSE))
+  if (any(.missing)) {
     stop(paste0("00_copy_images missing objects: ", paste0(nms[.missing], collapse = ",")))
-   
-   objects <- rlang::env_get_list(e, nms, default = stop("00_copy_images: object missing"))
-  
+  }
+
+  objects <- rlang::env_get_list(e, nms, default = stop("00_copy_images: object missing"))
+
   # data directory
   .dir <- file.path(dir, "data")
   # db directory inside data directory
   .db <- file.path(.dir, "db")
   # make if not created
-  purrr::walk(c(.dir, .db), ~{
+  purrr::walk(c(.dir, .db), ~ {
     if (!dir.exists(.x)) {
       dir.create(.x)
     }
   })
-  
+  if (missing(accessor)) {
+    accessor <- function(x = as.character(match.call()[[1]]),
+                         path = "data/db",
+                         ext = ".feather") {
+      feather::read_feather(
+        file.path(path, 
+                  paste0(x, 
+                         ifelse(grepl("^\\.", ext), ext, paste0(".", ext))
+                  )
+        )
+      )
+    }
+  } 
+  rlang::fn_env(accessor) <- rlang::env(baseenv())
   .is_df <- purrr::map_lgl(objects, is.data.frame)
-  objects[.is_df] <- objects[.is_df] %>% 
+  objects[.is_df] <- objects[.is_df] %>%
     # Write the feather files
     purrr::imap(~ {
       message(paste0("Saving ", .y, ".feather"))
-      feather::write_feather(.x, file.path(.db, paste0(.y,".feather")))
+      feather::write_feather(.x, file.path(.db, paste0(.y, ".feather")))
       .x
-    }) %>% 
+    }) %>%
     # overwrite the DFs with an accessor function.
     # This reads the feather file with the same name as the function
-    purrr::map(~e$.fn)
+    purrr::map(~accessor)
   # save a list of the data.frames that were replaced with accessor functions for reference while working on apps
   objects$df_nms <- names(objects)[.is_df]
   # Save the results
-  
+
   saveRDS(
     objects,
     file = file.path(.dir, paste0(basename(dir), ".rds"))
