@@ -195,6 +195,7 @@ increment("working on Active List")
 source("08_Active_List.R", local = rlang::env(Cohorts))
 
 increment("copying images to app directories")
+rm(Cohorts, COHHIO_HMIS)
 source("00_copy_images.R", local = new.env())
 
 increment("Done! All images are updated.")

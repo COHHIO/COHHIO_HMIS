@@ -12,22 +12,31 @@
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
 
+rm(list = ls())
+
 # Create an accessor fn
-.fn <- function(x = as.character(match.call()[[1]]),
-                path = "data/db",
-                ext = ".feather"){
-  feather::read_feather(file.path(path, paste0(x, ifelse(
-    grepl("^\\.", ext), ext, paste0(".", ext)
-  )))
-  )}
 
 `%>%` <- dplyr::`%>%`
-e <- new.env()
-purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
-  message(paste0("Loading ", .x))
-  load(.x, envir = e)
-})
 
+e <- rlang::env(rlang::empty_env())
+
+e$.fn <- function(x = as.character(match.call()[[1]]),
+                  path = "data/db",
+                  ext = ".feather") {
+  feather::read_feather(file.path(path, paste0(x, ifelse(
+    grepl("^\\.", ext), ext, paste0(".", ext)
+  ))))
+}
+
+purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~
+              {
+                message(paste0("Loading ", .x))
+                load(.x, envir = e)
+              })
+
+purrr::walk(ls(e, all.names = TRUE), ~{
+  if (class(get0(.x, envir = e))[1] == "environment") rm(list = .x, envir = e)
+})
 
 #' @title Send data to the respective app direcotry
 #' @description Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects as a `list` to an `rds` file in the `data/` directory.
@@ -65,7 +74,7 @@ data_prep <- function (nms, dir, e) {
     }) %>% 
     # overwrite the DFs with an accessor function.
     # This reads the feather file with the same name as the function
-    purrr::map(~.fn)
+    purrr::map(~e$.fn)
   # save a list of the data.frames that were replaced with accessor functions for reference while working on apps
   objects$df_nms <- names(objects)[.is_df]
   # Save the results
