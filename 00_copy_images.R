@@ -71,20 +71,35 @@ data_prep <- function(nms,
   } 
   rlang::fn_env(accessor) <- rlang::env(baseenv())
   .is_df <- purrr::map_lgl(objects, is.data.frame)
-  objects[.is_df] <- objects[.is_df] %>%
-    # Write the feather files
-    purrr::imap(~ {
-      message(paste0("Saving ", .y, ".feather"))
-      feather::write_feather(.x, file.path(.db, paste0(.y, ".feather")))
-      .x
-    }) %>%
-    # overwrite the DFs with an accessor function.
-    # This reads the feather file with the same name as the function
-    purrr::map(~accessor)
-  # save a list of the data.frames that were replaced with accessor functions for reference while working on apps
-  objects$df_nms <- names(objects)[.is_df]
-  # Save the results
-
+  if (any(.is_df)) {
+    objects[.is_df] <- objects[.is_df] %>%
+      # Write the feather files
+      purrr::imap(~ {
+        message(paste0("Saving ", .y, ".feather"))
+        feather::write_feather(.x, file.path(.db, paste0(.y, ".feather")))
+        .x
+      }) %>%
+      # overwrite the DFs with an accessor function.
+      # This reads the feather file with the same name as the function
+      purrr::map(~accessor)
+    # save a list of the data.frames that were replaced with accessor functions for reference while working on apps
+    objects$df_nms <- names(objects)[.is_df]
+    # Save the results
+  }
+  
+  if (any(.is_gg)) {
+    .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
+    objects[.is_gg] <- objects[.is_gg] %>%
+      # Write the images
+      purrr::imap(~ {
+        message(paste0("Saving ", .y, ".jpg"))
+        .p <- file.path(dir,  "inst", "app", "www", paste0(.y, ".jpg"))
+        ggplot2::ggsave(.p, .x, width = 800 / 72, height = 500 / 72, dpi = "screen", device = "jpeg", units = "in")
+        file.path("www", basename(.p))
+      })
+    objects$gg_nms <- names(objects)[.is_gg]
+  }
+  
   saveRDS(
     objects,
     file = file.path(.dir, paste0(basename(dir), ".rds"))
