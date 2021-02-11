@@ -93,7 +93,7 @@ data_prep <- function(nms,
       # Write the images
       purrr::imap(~ {
         message(paste0("Saving ", .y, ".jpg"))
-        .p <- file.path(dir,  "inst", "app", "www", paste0(.y, ".jpg"))
+        .p <- file.path(dir,  purrr::when(grepl("Rminor$", dir), . ~ c("inst", "app", "www"), ~ "www"), paste0(.y, ".jpg"))
         ggplot2::ggsave(.p, .x, width = 800 / 72, height = 500 / 72, dpi = "screen", device = "jpeg", units = "in")
         file.path("www", basename(.p))
       })
