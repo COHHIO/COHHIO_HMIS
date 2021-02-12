@@ -23,7 +23,7 @@
 
 # clearing the environment prior to running all the scripts
 rm(list = ls())
-
+library(dplyr)
 # some preliminary parameters
 
 stop_with_instructions <- function(...) {
@@ -78,10 +78,11 @@ increment <- function(..., cenv = rlang::caller_env()) {
                                     step = cenv$.step, 
                                     msg = paste0(...)))
   }
-  if (stringr::str_detect(paste0(...),"^Done!")) {
+  if (stringr::str_detect(paste0(...),"Done!")) {
+    cli::cat_boxx(cli::col_blue("Completed at ", Sys.time(),"\nTiming data saved to ", .lt_path), border_style = "single", padding  = 1, margin = 0, float = "center") 
     cli::cli_process_done(cenv$.update)
     saveRDS(cenv$.timer, .lt_path)
-    cli::col_blue("Timing data saved to ", .lt_path)
+    
     return(.lt_path)
   }
   # If no previous timer data, just give the elapsed time
@@ -116,10 +117,10 @@ increment <- function(..., cenv = rlang::caller_env()) {
     archive::archive_extract(zip_file, "data")
     file.remove(zip_file)
   } else if (ncol(readr::read_csv("data/Client.csv")) != 33 &&
-             read_csv("data/Export.csv",
+             readr::read_csv("data/Export.csv",
                       col_types = c("iicccccccTDDcciii")) %>%
-             mutate(ExportEndDate = ymd(ExportEndDate)) %>%
-             pull(ExportEndDate) != Sys.Date()) {
+             dplyr::mutate(ExportEndDate = lubridate::ymd(ExportEndDate)) %>%
+             dplyr::pull(ExportEndDate) != Sys.Date()) {
     stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
   }
   
