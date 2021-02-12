@@ -12,11 +12,7 @@
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
 
-
-
-
 `%>%` <- dplyr::`%>%`
-
 
 rdata <- rlang::env(rlang::empty_env())
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
@@ -24,6 +20,9 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   load(.x, envir = rdata)
 })
 
+purrr::walk(ls(e, all.names = TRUE), ~{
+  if (class(get0(.x, envir = e))[1] == "environment") rm(list = .x, envir = e)
+})
 
 #' @title Send data to the respective app directory
 #' @description Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects as a `list` to an `rds` file in the `data/` directory.
@@ -71,6 +70,7 @@ data_prep <- function(nms,
   } 
   rlang::fn_env(accessor) <- rlang::env(baseenv())
   .is_df <- purrr::map_lgl(objects, is.data.frame)
+
   if (any(.is_df)) {
     objects[.is_df] <- objects[.is_df] %>%
       # Write the feather files
@@ -99,6 +99,7 @@ data_prep <- function(nms,
       })
     objects$gg_nms <- names(objects)[.is_gg]
   }
+
   
   saveRDS(
     objects,
