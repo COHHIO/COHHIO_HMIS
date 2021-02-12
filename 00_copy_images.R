@@ -17,7 +17,6 @@
 
 `%>%` <- dplyr::`%>%`
 
-
 rdata <- rlang::env(rlang::empty_env())
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   message(paste0("Loading ", .x))
