@@ -345,7 +345,7 @@ missing_vaccine <- served_in_date_range %>%
 
 # Dose Warnings -----------------------------------------------------------
 
-dose_date_impossible <- doses %>%
+dose_date_error <- doses %>%
   filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us)) %>%
   left_join(served_in_date_range, by = "PersonalID") %>%
   mutate(Type = "Error",
@@ -353,7 +353,7 @@ dose_date_impossible <- doses %>%
          Guidance = "Vaccination date precedes the vaccine being available in the US.") %>%
   select(all_of(vars_we_want))
 
-dose_date_questionable <- doses %>%
+dose_date_warning <- doses %>%
   group_by(PersonalID) %>%
   summarise(Doses = n()) %>%
   ungroup() %>%
@@ -2948,12 +2948,15 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       conflicting_income_exit,
       conflicting_ncbs_entry,
       conflicting_ncbs_exit,
+      differing_manufacturers,
       dkr_client_veteran_info,
       dkr_destination,
       dkr_living_situation,
       dkr_LoS,
       dkr_months_times_homeless,
       dkr_residence_prior,
+      dose_date_error,
+      dose_date_warning,
       dq_dob,
       dq_ethnicity,
       dq_gender,
@@ -2994,6 +2997,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
+      missing_vaccine,
       no_bos_rrh,
       no_bos_psh,
       no_bos_th,
@@ -3018,6 +3022,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
       # ssvf_hp_screen,      
+      unknown_manufacturer_error,
+      unknown_manufacturer_warning,
       unlikely_ncbs_entry,
       veteran_missing_year_entered,
       veteran_missing_year_separated,
