@@ -293,21 +293,25 @@ HHMoveIn <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
   filter(ProjectType %in% c(3, 9, 13)) %>%
   mutate(
+    AssumedMoveIn = if_else(
+      ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
+        ProjectType %in% c(3, 9),
+      1,
+      0
+    ),
     ValidMoveIn = case_when(
-      # prior to 2017, PSH didn't use move-in dates, so we're overwriting 
-      # those PSH move-in dates with the Entry Date        
-      (ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
-         ProjectType %in% c(3, 9))  ~ EntryDate,
-      # the Move-In Dates must fall between the Entry and ExitAdjust to be 
+      AssumedMoveIn == 1 ~ EntryDate,
+      AssumedMoveIn == 0 &
+        ProjectType %in% c(3, 9) &
+        ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(ExitAdjust) > ymd(MoveInDate) ~ MoveInDate,
+      # the Move-In Dates must fall between the Entry and ExitAdjust to be
       # considered valid and for PSH the hmid cannot = ExitDate
-      ymd(EntryDate) <= ymd(MoveInDate) & 
-        (ymd(MoveInDate) < ymd(ExitAdjust) &
-           ProjectType %in% c(3, 9)) |
-        (ymd(MoveInDate) <= ymd(ExitAdjust) &
-           ProjectType == 13)
-      ~ MoveInDate
+      ymd(MoveInDate) <= ymd(ExitAdjust) &
+        ymd(MoveInDate) >= ymd(EntryDate) &
+        ProjectType == 13 ~ MoveInDate
     )
-  ) %>%
+  ) %>% 
   filter(!is.na(ValidMoveIn)) %>%
   group_by(HouseholdID) %>%
   mutate(HHMoveIn = min(ValidMoveIn)) %>%
