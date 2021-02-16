@@ -11,19 +11,12 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
-
 `%>%` <- dplyr::`%>%`
-
 rdata <- rlang::env(rlang::empty_env())
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   message(paste0("Loading ", .x))
   load(.x, envir = rdata)
 })
-
-purrr::walk(ls(e, all.names = TRUE), ~{
-  if (class(get0(.x, envir = e))[1] == "environment") rm(list = .x, envir = e)
-})
-
 #' @title Send data to the respective app directory
 #' @description Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects as a `list` to an `rds` file in the `data/` directory.
 #' @param nms \code{(character)} vector of object names
@@ -32,7 +25,6 @@ purrr::walk(ls(e, all.names = TRUE), ~{
 #' @param accessor \code{(function)} that uses default parameters for loading a data object from disk. Overwrites the data object.
 #' @importFrom purrr map_lgl map imap walk
 #' @importFrom dplyr `%>%`
-
 data_prep <- function(nms,
                       dir,
                       e,
@@ -42,9 +34,7 @@ data_prep <- function(nms,
   if (any(.missing)) {
     stop(paste0("00_copy_images missing objects: ", paste0(nms[.missing], collapse = ",")))
   }
-
   objects <- rlang::env_get_list(e, nms, default = stop("00_copy_images: object missing"))
-
   # data directory
   .dir <- file.path(dir, "data")
   # db directory inside data directory
@@ -70,7 +60,6 @@ data_prep <- function(nms,
   } 
   rlang::fn_env(accessor) <- rlang::env(baseenv())
   .is_df <- purrr::map_lgl(objects, is.data.frame)
-
   if (any(.is_df)) {
     objects[.is_df] <- objects[.is_df] %>%
       # Write the feather files
@@ -86,174 +75,162 @@ data_prep <- function(nms,
     objects$df_nms <- names(objects)[.is_df]
     # Save the results
   }
-  
-  if (any(.is_gg)) {
     .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
+  if (any(.is_gg)) {
     objects[.is_gg] <- objects[.is_gg] %>%
       # Write the images
       purrr::imap(~ {
         message(paste0("Saving ", .y, ".jpg"))
         .p <- file.path(dir,  purrr::when(grepl("Rminor$", dir), . ~ file.path("inst", "app", "www"), ~ "www"), paste0(.y, ".jpg"))
-        ggplot2::ggsave(.p, .x, width = 800 / 72, height = 500 / 72, dpi = "screen", device = "jpeg", units = "in")
+        ggplot2::ggsave(.p, .x, width = 800 / 72, height = 500 / 72, device = "jpeg", units = "in")
         file.path("www", basename(.p))
       })
     objects$gg_nms <- names(objects)[.is_gg]
   }
-
-  
   saveRDS(
     objects,
     file = file.path(.dir, paste0(basename(dir), ".rds"))
   )
 }
-
-
 ## to Rm:
-
 .Rm <- c("APs",
-  "bos_counties",
-  "BoS_PIT",
-  "calc_2_yrs_prior_end",                  
-  "calc_2_yrs_prior_range",                
-  "calc_2_yrs_prior_start",                
-  "calc_data_goes_back_to",                
-  "calc_full_date_range",                  
-  "Client",
-  "covid19",
-  "covid19_priority_plot",
-  "covid19_status_plot",
-  "current_tay_hohs",
-  # "FileEnd",
-  "goals",
-  "hc_began_collecting_covid_data",        
-  "hc_check_dq_back_to",                   
-  "hc_data_goes_back_to",    
-  "hc_project_eval_start",
-  "hc_project_eval_end",
-  "hc_psh_started_collecting_move_in_date",
-  "Mah_PIT",
-  "meta_HUDCSV_Export_Date",               
-  "meta_HUDCSV_Export_End",                
-  "meta_HUDCSV_Export_Start",              
-  "meta_Rmisc_last_run_date",  
-  "note_bed_utilization",
-  "note_calculation_utilization",
-  "note_qpr_dq_community_need",
-  "note_qpr_housed_county",
-  "note_qpr_served_county",
-  "note_unit_utilization",
-  "Organization",
-  "pe_validation_summary",
-  "project_type",
-  "qpr_benefits",
-  "qpr_income",
-  "qpr_leavers",
-  "qpr_rrh_enterers",
-  "qpr_spdats_county",
-  "qpr_spdats_project",
-  "qpr_spending",
-  "regions",
-  "ReportEnd",
-  "ReportStart",
-  "Scores",
-  "Services",
-  "spm_Metric_1b",
-  "spm_Metric_2",
-  "spm_Metric_7",
-  "spm_current_end_date",
-  "spm_current_start_date",
-  "spm_prior_end_date",
-  "spm_prior_start_date",
-  "summary_pe_final_scoring",
-  # "update_date",
-  "Users",
-  "utilization",
-  "utilization_bed",
-  "utilization_unit",
-  "validation",
-  "veteran_current_in_project"
+         "bos_counties",
+         "BoS_PIT",
+         "calc_2_yrs_prior_end",                  
+         "calc_2_yrs_prior_range",                
+         "calc_2_yrs_prior_start",                
+         "calc_data_goes_back_to",                
+         "calc_full_date_range",                  
+         "Client",
+         "covid19",
+         "covid19_priority_plot",
+         "covid19_status_plot",
+         "current_tay_hohs",
+         # "FileEnd",
+         "goals",
+         "hc_began_collecting_covid_data",        
+         "hc_check_dq_back_to",                   
+         "hc_data_goes_back_to",    
+         "hc_project_eval_start",
+         "hc_project_eval_end",
+         "hc_psh_started_collecting_move_in_date",
+         "Mah_PIT",
+         "meta_HUDCSV_Export_Date",               
+         "meta_HUDCSV_Export_End",                
+         "meta_HUDCSV_Export_Start",              
+         "meta_Rmisc_last_run_date",  
+         "note_bed_utilization",
+         "note_calculation_utilization",
+         "note_qpr_dq_community_need",
+         "note_qpr_housed_county",
+         "note_qpr_served_county",
+         "note_unit_utilization",
+         "Organization",
+         "pe_validation_summary",
+         "project_type",
+         "qpr_benefits",
+         "qpr_income",
+         "qpr_leavers",
+         "qpr_rrh_enterers",
+         "qpr_spdats_county",
+         "qpr_spdats_project",
+         "qpr_spending",
+         "regions",
+         "ReportEnd",
+         "ReportStart",
+         "Scores",
+         "Services",
+         "spm_Metric_1b",
+         "spm_Metric_2",
+         "spm_Metric_7",
+         "spm_current_end_date",
+         "spm_current_start_date",
+         "spm_prior_end_date",
+         "spm_prior_start_date",
+         "summary_pe_final_scoring",
+         # "update_date",
+         "Users",
+         "utilization",
+         "utilization_bed",
+         "utilization_unit",
+         "validation",
+         "veteran_current_in_project"
 ) %>% 
   data_prep("../Rminor", rdata)
-
 .Rme <- c("active_list",
-  "aps_no_referrals",
-  "Beds",
-  "calc_2_yrs_prior_end",                  
-  "calc_2_yrs_prior_range",                
-  "calc_2_yrs_prior_start",                
-  "calc_data_goes_back_to",                
-  "calc_full_date_range",                  
-  "Client",
-  "dq_main",
-  "dq_past_year",
-  "dq_unsheltered",
-  "data_APs",
-  "dq_overlaps",
-  "detail_eligibility",
-  "dq_plot_eligibility",
-  "dq_plot_errors",
-  "dq_plot_hh_errors",
-  "dq_plot_hh_no_spdat",
-  "dq_plot_outstanding_referrals",
-  "dq_plot_projects_errors",
-  "dq_plot_projects_warnings",
-  "dq_plot_unsheltered_high",
-  "dq_plot_warnings",
-  "dq_providers",
-  # "FileActualStart",
-  # "FileEnd",
-  # "FileStart",
-  "hc_began_collecting_covid_data",        
-  "hc_check_dq_back_to",                   
-  "hc_data_goes_back_to",  
-  "hc_project_eval_start",
-  "hc_project_eval_end",
-  "hc_psh_started_collecting_move_in_date",
-  "HUD_specs",
-  "living_situation",
-  "meta_HUDCSV_Export_Date",               
-  "meta_HUDCSV_Export_End",                
-  "meta_HUDCSV_Export_Start",              
-  "meta_Rmisc_last_run_date",  
-  "Organization",
-  "pe_increase_income",
-  "pe_exits_to_ph",
-  "pe_homeless_history_index",
-  "pe_length_of_stay",
-  "pe_benefits_at_exit",
-  "pe_entries_no_income",
-  "pe_long_term_homeless",
-  "pe_res_prior",
-  "pe_own_housing",
-  "pe_validation_summary",
-  "pe_scored_at_ph_entry",
-  "qpr_income",
-  "qpr_benefits",
-  "qpr_leavers",
-  "qpr_rrh_enterers",
-  "qpr_spending",
-  "qpr_spdats_project",
-  "qpr_spdats_county",
-  "ReportEnd",
-  "ReportStart",
-  "Referrals",
-  "regions",
-  "responsible_providers",
-  "Scores",
-  "summary_pe_final_scoring",
-  # "update_date",
-  "unsheltered_by_month",
-  "unsh_overlaps",
-  "Users",
-  "utilizers_clients",
-  "utilization",
-  "utilization_bed",
-  "validation",
-  "veteran_active_list" 
-  ) %>% 
-    data_prep("../Rminor_elevated", rdata)
-
-
-
-
-
+          "aps_no_referrals",
+          "Beds",
+          "calc_2_yrs_prior_end",                  
+          "calc_2_yrs_prior_range",                
+          "calc_2_yrs_prior_start",                
+          "calc_data_goes_back_to",                
+          "calc_full_date_range",                  
+          "Client",
+          "dq_main",
+          "dq_past_year",
+          "dq_unsheltered",
+          "data_APs",
+          "dq_overlaps",
+          "detail_eligibility",
+          "dq_plot_eligibility",
+          "dq_plot_errors",
+          "dq_plot_hh_errors",
+          "dq_plot_hh_no_spdat",
+          "dq_plot_outstanding_referrals",
+          "dq_plot_projects_errors",
+          "dq_plot_projects_warnings",
+          "dq_plot_unsheltered_high",
+          "dq_plot_warnings",
+          "dq_providers",
+          # "FileActualStart",
+          # "FileEnd",
+          # "FileStart",
+          "hc_began_collecting_covid_data",        
+          "hc_check_dq_back_to",                   
+          "hc_data_goes_back_to",  
+          "hc_project_eval_start",
+          "hc_project_eval_end",
+          "hc_psh_started_collecting_move_in_date",
+          "HUD_specs",
+          "living_situation",
+          "meta_HUDCSV_Export_Date",               
+          "meta_HUDCSV_Export_End",                
+          "meta_HUDCSV_Export_Start",              
+          "meta_Rmisc_last_run_date",  
+          "Organization",
+          "pe_increase_income",
+          "pe_exits_to_ph",
+          "pe_homeless_history_index",
+          "pe_length_of_stay",
+          "pe_benefits_at_exit",
+          "pe_entries_no_income",
+          "pe_long_term_homeless",
+          "pe_res_prior",
+          "pe_own_housing",
+          "pe_validation_summary",
+          "pe_scored_at_ph_entry",
+          "qpr_income",
+          "qpr_benefits",
+          "qpr_leavers",
+          "qpr_rrh_enterers",
+          "qpr_spending",
+          "qpr_spdats_project",
+          "qpr_spdats_county",
+          "ReportEnd",
+          "ReportStart",
+          "Referrals",
+          "regions",
+          "responsible_providers",
+          "Scores",
+          "summary_pe_final_scoring",
+          # "update_date",
+          "unsheltered_by_month",
+          "unsh_overlaps",
+          "Users",
+          "utilizers_clients",
+          "utilization",
+          "utilization_bed",
+          "validation",
+          "veteran_active_list" 
+) %>% 
+  data_prep("../Rminor_elevated", rdata)
