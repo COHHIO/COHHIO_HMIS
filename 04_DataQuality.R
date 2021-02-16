@@ -313,20 +313,24 @@ dq_veteran <- served_in_date_range %>%
 # Missing Vaccine data ----------------------------------------------------
 dose_counts <- doses %>%
   count(PersonalID) %>%
-  select(PersonalID, "Doses" = 2)
+  select(PersonalID, "Doses" = n)
 
-missing_vaccine <- served_in_date_range %>%
+missing_vaccine_exited <- served_in_date_range %>%
   left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
             by = "PersonalID") %>%
   left_join(dose_counts, by = "PersonalID") %>%
   filter(
     !ProjectID %in% c(mahoning_projects) &
-    ProjectID != 1695 &
+      !is.na(ExitDate) &
+      ProjectID != 1695 &
       (
         is.na(ExitDate) |
           ymd(ExitDate) >= ymd(hc_bos_start_vaccine_data)
       ) &
-      is.na(ConsentToVaccine) &
+      (
+        ConsentToVaccine == "Data not collected (HUD)" |
+          is.na(ConsentToVaccine)
+      ) &
       is.na(Doses) &
       (ProjectType %in% c(1, 2, 4, 8) |
          (
@@ -334,14 +338,49 @@ missing_vaccine <- served_in_date_range %>%
              is.na(MoveInDateAdjust)
          ))
   ) %>% 
-  mutate(Type = "Error",
-         Issue = "Missing Vaccine Data",
+  mutate(Type = "Warning",
+         Issue = "Vaccine data not collected and client has exited",
          Guidance = "Client was literally homeless on Feb 5th, 2021 or later and 
-         is missing their Vaccine Data. Please see 
+         is missing their Vaccine Data, and the client has exited the project. 
+         If you are unable to follow up with the client, leave the client as is.
+         Please see the guidance
          <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\">
-         for more information.") %>%
+         for more information</a>.") %>%
   select(all_of(vars_we_want))
 
+missing_vaccine_current <- served_in_date_range %>%
+  left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
+            by = "PersonalID") %>%
+  left_join(dose_counts, by = "PersonalID") %>%
+  filter(
+    !ProjectID %in% c(mahoning_projects) &
+      is.na(ExitDate) &
+      ProjectID != 1695 &
+      (
+        is.na(ExitDate) |
+          ymd(ExitDate) >= ymd(hc_bos_start_vaccine_data)
+      ) &
+      (
+        ConsentToVaccine == "Data not collected (HUD)" |
+          is.na(ConsentToVaccine)
+      ) &
+      is.na(Doses) &
+      (ProjectType %in% c(1, 2, 4, 8) |
+         (
+           ProjectType %in% c(3, 9, 13) &
+             is.na(MoveInDateAdjust)
+         ))
+  ) %>% 
+  mutate(
+    Type = "Error",
+    Issue = "Vaccine data not collected on current client",
+    Guidance = "Client was literally homeless on Feb 5th, 2021 or later and is 
+    missing their Vaccine Data, and since the client has not exited the project, 
+    this data can still be collected.
+    Please see <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
+    for more information</a>."
+  ) %>%
+  select(all_of(vars_we_want))
 
 # Dose Warnings -----------------------------------------------------------
 
@@ -1846,7 +1885,7 @@ check_eligibility <- served_in_date_range %>%
     rm(ees_with_spdats)
     
     # Missing Income at Entry -------------------------------------------------
-    IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
+    # IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
     
     missing_income_entry <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -2537,7 +2576,7 @@ check_eligibility <- served_in_date_range %>%
     # Because a lot of these records are stray Services due to there being no
     # Entry Exit at all, this can't be shown in the same data set as all the other
     # errors. I'm going to have to make this its own thing. :(
-    stray_services <- stray_services %>%
+    stray_services_warning <- stray_services %>%
       mutate(Issue = "Service Not Attached to an Entry Exit",
              Type = "Warning",
              Guidance = "This Service does not fall between any project stay,
@@ -2997,7 +3036,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
-      missing_vaccine,
+      missing_vaccine_current,
+      missing_vaccine_exited,
       no_bos_rrh,
       no_bos_psh,
       no_bos_th,
@@ -3152,12 +3192,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     # Controls what is shown in the CoC-wide DQ tab ---------------------------
     
     # for CoC-wide DQ tab
-    
-    ReportStart <- format.Date(hc_check_dq_back_to, "%m-%d-%Y")
-    ReportEnd <- format.Date(today(), "%m-%d-%Y")
-    
+
     dq_past_year <- dq_main %>%
-      filter(served_between(., ReportStart, ReportEnd)) %>%
+      filter(served_between(., format.Date(hc_check_dq_back_to, "%m-%d-%Y"), 
+                            format.Date(today(), "%m-%d-%Y"))) %>%
       left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
     
     # for project evaluation reporting
@@ -3506,7 +3544,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_percent_ami,      
       ssvf_served_in_date_range,      
       staging_outstanding_referrals,
-      stray_services,
+      stray_services_warning,
       unlikely_ncbs_entry,
       unsheltered_enrollments,
       unsheltered_not_unsheltered,
