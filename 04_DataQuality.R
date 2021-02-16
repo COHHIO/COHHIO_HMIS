@@ -310,7 +310,114 @@ dq_veteran <- served_in_date_range %>%
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
+# Missing Vaccine data ----------------------------------------------------
+dose_counts <- doses %>%
+  count(PersonalID) %>%
+  select(PersonalID, "Doses" = 2)
 
+missing_vaccine <- served_in_date_range %>%
+  left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
+            by = "PersonalID") %>%
+  left_join(dose_counts, by = "PersonalID") %>%
+  filter(
+    !ProjectID %in% c(mahoning_projects) &
+    ProjectID != 1695 &
+      (
+        is.na(ExitDate) |
+          ymd(ExitDate) >= ymd(hc_bos_start_vaccine_data)
+      ) &
+      is.na(ConsentToVaccine) &
+      is.na(Doses) &
+      (ProjectType %in% c(1, 2, 4, 8) |
+         (
+           ProjectType %in% c(3, 9, 13) &
+             is.na(MoveInDateAdjust)
+         ))
+  ) %>% 
+  mutate(Type = "Error",
+         Issue = "Missing Vaccine Data",
+         Guidance = "Client was literally homeless on Feb 5th, 2021 or later and 
+         is missing their Vaccine Data. Please see 
+         <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\">
+         for more information.") %>%
+  select(all_of(vars_we_want))
+
+
+# Dose Warnings -----------------------------------------------------------
+
+dose_date_impossible <- doses %>%
+  filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us)) %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Error",
+         Issue = "Vaccine Date Incorrect",
+         Guidance = "Vaccination date precedes the vaccine being available in the US.") %>%
+  select(all_of(vars_we_want))
+
+dose_date_questionable <- doses %>%
+  group_by(PersonalID) %>%
+  summarise(Doses = n()) %>%
+  ungroup() %>%
+  filter(Doses > 1) %>%
+  left_join(doses, by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  mutate(LastDose = lag(COVID19DoseDate, order_by = COVID19DoseDate)) %>%
+  filter(!is.na(LastDose)) %>%
+  mutate(DaysBetweenDoses = difftime(COVID19DoseDate, LastDose)) %>%
+  filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us) | 
+    DaysBetweenDoses < 20 |
+           (COVID19VaccineManufacturer == "Moderna") &
+           DaysBetweenDoses < 27) %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Vaccine Dates or Vaccine Manufacturer Questionable",
+         Guidance = "One of the vaccine records' dates may be incorrect or the
+         vaccine manufacturer could be incorrect.") %>%
+  select(all_of(vars_we_want))
+
+differing_manufacturers <- doses %>%
+  group_by(PersonalID) %>%
+  summarise(Doses = n()) %>%
+  ungroup() %>%
+  filter(Doses > 1) %>%
+  left_join(doses, by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  mutate(
+    minManufacturer = min(COVID19VaccineManufacturer),
+    maxManufacturer = max(COVID19VaccineManufacturer),
+    differs = minManufacturer != maxManufacturer,
+    Type = "Error",
+    Issue = "Client received different vaccines",
+    Guidance = "The data is saying a single client received vaccines from different
+    manufacturers, but this is highly unlikely. Please correct the data in HMIS
+    or let us know if the client really received vaccines from different
+    manufacturers."
+  ) %>%
+  filter(differs == TRUE) %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  select(all_of(vars_we_want))
+
+unknown_manufacturer_error <- doses %>%
+  filter(str_starts(COVID19VaccineManufacturer, "Client doesn't know") &
+           COVID19VaccineDocumentation != "Self-report") %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Error",
+         Issue = "Incorrect Vaccine Manufacturer or incorrect Documentation Type",
+         Guidance = "If the vaccine documentation is Healthcare Provider or 
+         Vaccine card, then the manufacturer would be known and should be updated.") %>%
+  select(all_of(vars_we_want))
+
+unknown_manufacturer_warning <- doses %>%
+  filter(str_starts(COVID19VaccineManufacturer, "Client doesn't know") &
+           COVID19VaccineDocumentation == "Self-report") %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Unknown Vaccine Manufacturer",
+         Guidance = "If the client does not know the manufacturer of the vaccine,
+         please try to find another source for the information. Reporting relies
+         heavily on knowing the manufacturer of the vaccine your client recieved.
+         If you absolutely cannot find it, it is ok to leave this as is.") %>%
+  select(all_of(vars_we_want))
+  
 # Missing Client Location -------------------------------------------------
 
 missing_client_location <- served_in_date_range %>%
@@ -1017,8 +1124,8 @@ no_bos_rrh <- destination_rrh %>%
     Guidance = "The Exit Destination for this household indicates that they exited
     to Rapid Rehousing, but there is no RRH project stay on the client. If the 
     RRH project the household exited to is outside of the Balance of State or 
-    Mahoning CoCs, then no correction is necessary. If they received RRH services 
-    in the Balance of State CoC or Mahoning CoC, then this household is missing 
+    Mahoning County CoCs, then no correction is necessary. If they received RRH services 
+    in the Balance of State CoC or Mahoning County CoC, then this household is missing 
     their RRH project stay. If they did not actually receive RRH services at all, 
     the Destination should be corrected."
   ) %>% 
@@ -1037,8 +1144,8 @@ no_bos_psh <- destination_psh %>%
     Guidance = "The Exit Destination for this household indicates that they exited
     to Permanent Supportive Housing, but there is no PSH project stay on the 
     client. If the PSH project the household exited to is outside of the Balance 
-    of State CoC or Mahoning CoC, then no correction is necessary. If they 
-    entered PSH in the Balance of State CoC or Mahoning CoC, then this household 
+    of State CoC or Mahoning County CoC, then no correction is necessary. If they 
+    entered PSH in the Balance of State CoC or Mahoning County CoC, then this household 
     is missing their PSH project stay. If they did not actually enter PSH at all, 
     the Destination should be corrected."
   ) %>% 
@@ -1057,8 +1164,8 @@ no_bos_th <- destination_th %>%
     Guidance = "The Exit Destination for this household indicates that they exited
     to Transitional Housing, but there is no TH project stay on the client. If the 
     TH project that the household exited to is outside of the Balance of State 
-    CoC or Mahoning CoC, then no correction is necessary. If they went into a TH 
-    project in the Balance of State CoC or Mahoning CoC, then this household is 
+    CoC or Mahoning County CoC, then no correction is necessary. If they went into a TH 
+    project in the Balance of State CoC or Mahoning County CoC, then this household is 
     missing their TH project stay. If they did not actually enter Transitional 
     Housing at all, the Destination should be corrected."
   ) %>% 
@@ -1201,7 +1308,7 @@ check_eligibility <- served_in_date_range %>%
         the terms of your grant or speak with",
           if_else(
             ProjectID %in% c(mahoning_projects),
-            "the Mahoning CoC Coordinator",
+            "the Mahoning County CoC Coordinator",
             "the CoC team at COHHIO"
           ),
           "if you are unsure of eligibility criteria for your project type."
@@ -1252,7 +1359,7 @@ check_eligibility <- served_in_date_range %>%
              concern, but if there is a large number, please contact",
           if_else(
             ProjectID %in% c(mahoning_projects),
-            "the Mahoning CoC Coordinator",
+            "the Mahoning County CoC Coordinator",
             "the Balance of State CoC team at COHHIO"
           ),
           "to work out a way to improve client engagement."

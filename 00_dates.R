@@ -47,6 +47,8 @@ hc_check_eligibility_back_to <- mdy("10012016")
 
 hc_no_more_svcs_on_hh_members <- mdy("02012019")
 
+hc_first_vaccine_administered_in_us <- mdy("12142020")
+
 # Dates from Metadata -----------------------------------------------------
 
 meta_HUDCSV_Export_Date <- read_csv("data/Export.csv",
