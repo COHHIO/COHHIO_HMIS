@@ -56,7 +56,17 @@ Rstudied7th <- c(
   "allege",
   "tentative",
   "condor",
-  "formidable"
+  "formidable",
+  "derogatory",
+  "mitigate",
+  "inhabitants",
+  "prominent",
+  "bewildered",
+  "initiate",
+  "demeanor",
+  "sovereign",
+  "eligible",
+  "attribute"
 )
 
 Rlist7th <- setdiff(seventh_grade, Rstudied7th)
