@@ -341,10 +341,10 @@ missing_vaccine_exited <- served_in_date_range %>%
   mutate(Type = "Warning",
          Issue = "Vaccine data not collected and client has exited",
          Guidance = "Client was literally homeless on Feb 5th, 2021 or later and 
-         is missing their Vaccine Data, and the client has exited the project. 
-         If you are unable to follow up with the client, leave the client as is.
-         Please see the guidance
-         <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\">
+         is missing their vaccine data, and the client has exited the project. 
+         If you are unable to follow up with the client, leave the client as is. 
+         Please see the guidance 
+         <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
          for more information</a>.") %>%
   select(all_of(vars_we_want))
 
@@ -375,10 +375,11 @@ missing_vaccine_current <- served_in_date_range %>%
     Type = "Error",
     Issue = "Vaccine data not collected on current client",
     Guidance = "Client was literally homeless on Feb 5th, 2021 or later and is 
-    missing their Vaccine Data, and since the client has not exited the project, 
-    this data can still be collected.
-    Please see <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
-    for more information</a>."
+    missing their vaccine data. Because the client has not exited the project, 
+    this data can still be collected. Please see 
+    <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
+    for more information</a>.
+"
   ) %>%
   select(all_of(vars_we_want))
 
@@ -409,8 +410,10 @@ dose_date_warning <- doses %>%
   left_join(served_in_date_range, by = "PersonalID") %>%
   mutate(Type = "Warning",
          Issue = "Vaccine Dates or Vaccine Manufacturer Questionable",
-         Guidance = "One of the vaccine records' dates may be incorrect or the
-         vaccine manufacturer could be incorrect.") %>%
+         Guidance = "The number of days between vaccines doses does not match 
+         the vaccine manufacturer’s recommended timeline. One of the vaccine 
+         records' Vaccine Date or the Vaccine Manufacturer may be entered 
+         incorrectly.") %>%
   select(all_of(vars_we_want))
 
 differing_manufacturers <- doses %>%
@@ -426,10 +429,10 @@ differing_manufacturers <- doses %>%
     differs = minManufacturer != maxManufacturer,
     Type = "Error",
     Issue = "Client received different vaccines",
-    Guidance = "The data shows that the client received vaccines from different
-    manufacturers, but this is highly unlikely. Please correct the data in HMIS
-    or let us know if the client actually received vaccines from different
-    manufacturers."
+    Guidance = "The data shows that the client received vaccines from 
+    different manufacturers, but this is highly unlikely. Please correct the 
+    data in HMIS or let us know if the client actually received vaccines from 
+    different manufacturers."
   ) %>%
   filter(differs == TRUE) %>%
   left_join(served_in_date_range, by = "PersonalID") %>%
@@ -441,8 +444,9 @@ unknown_manufacturer_error <- doses %>%
   left_join(served_in_date_range, by = "PersonalID") %>%
   mutate(Type = "Error",
          Issue = "Incorrect Vaccine Manufacturer or Incorrect Documentation Type",
-         Guidance = "If the vaccine documentation is Healthcare Provider or 
-         Vaccine card, then the manufacturer would be known and should be updated.") %>%
+         Guidance = "If vaccine information was collected via Healthcare Provider 
+         or Vaccine card, then the vaccine manufacturer should be known and 
+         updated in HMIS.") %>%
   select(all_of(vars_we_want))
 
 unknown_manufacturer_warning <- doses %>%
@@ -451,9 +455,9 @@ unknown_manufacturer_warning <- doses %>%
   left_join(served_in_date_range, by = "PersonalID") %>%
   mutate(Type = "Warning",
          Issue = "Unknown Vaccine Manufacturer",
-         Guidance = "If the client does not know the manufacturer of the vaccine,
-         please try to find another source for the information. Reporting relies
-         heavily on knowing the manufacturer of the vaccine your client received.
+         Guidance = "If the client does not know the manufacturer of the vaccine, 
+         please try to find another source for the information. Reporting relies 
+         heavily on knowing the manufacturer of the vaccine your client received. 
          If you absolutely cannot find it, it is ok to leave as is.") %>%
   select(all_of(vars_we_want))
   
