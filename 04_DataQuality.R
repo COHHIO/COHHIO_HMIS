@@ -426,9 +426,9 @@ differing_manufacturers <- doses %>%
     differs = minManufacturer != maxManufacturer,
     Type = "Error",
     Issue = "Client received different vaccines",
-    Guidance = "The data is saying a single client received vaccines from different
+    Guidance = "The data shows that the client received vaccines from different
     manufacturers, but this is highly unlikely. Please correct the data in HMIS
-    or let us know if the client really received vaccines from different
+    or let us know if the client actually received vaccines from different
     manufacturers."
   ) %>%
   filter(differs == TRUE) %>%
@@ -440,7 +440,7 @@ unknown_manufacturer_error <- doses %>%
            COVID19VaccineDocumentation != "Self-report") %>%
   left_join(served_in_date_range, by = "PersonalID") %>%
   mutate(Type = "Error",
-         Issue = "Incorrect Vaccine Manufacturer or incorrect Documentation Type",
+         Issue = "Incorrect Vaccine Manufacturer or Incorrect Documentation Type",
          Guidance = "If the vaccine documentation is Healthcare Provider or 
          Vaccine card, then the manufacturer would be known and should be updated.") %>%
   select(all_of(vars_we_want))
@@ -453,8 +453,8 @@ unknown_manufacturer_warning <- doses %>%
          Issue = "Unknown Vaccine Manufacturer",
          Guidance = "If the client does not know the manufacturer of the vaccine,
          please try to find another source for the information. Reporting relies
-         heavily on knowing the manufacturer of the vaccine your client recieved.
-         If you absolutely cannot find it, it is ok to leave this as is.") %>%
+         heavily on knowing the manufacturer of the vaccine your client received.
+         If you absolutely cannot find it, it is ok to leave as is.") %>%
   select(all_of(vars_we_want))
   
 # Missing Client Location -------------------------------------------------
