@@ -23,14 +23,14 @@
 
 # clearing the environment prior to running all the scripts
 rm(list = ls())
+
 library(dplyr)
-# some preliminary parameters
 
 stop_with_instructions <- function(...) {
   cli::cli_alert_danger(cli::col_red(paste0(..., collapse = "\n")))
   cli::cli_alert_info(
     "See instructions for details:\n
-                      https://docs.google.com/document/d/1iT_dgf0HtBzGOO8PqFNvyS_djA78JcYZsWaeZQYJC9E/edit#heading=h.xvdv7715aoi1"
+    https://docs.google.com/document/d/1iT_dgf0HtBzGOO8PqFNvyS_djA78JcYZsWaeZQYJC9E/edit#heading=h.xvdv7715aoi1"
   )
   stop("See above.", call. = FALSE)
 }
