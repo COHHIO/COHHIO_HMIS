@@ -29,9 +29,8 @@ distribution <- covid19 %>%
 # Connecting Clients to their 2nd Doses -----------------------------------
 
 dose_counts <- doses %>%
-  group_by(PersonalID) %>%
-  summarise(DoseCount = n()) %>%
-  ungroup()
+  count(PersonalID) %>%
+  dplyr::rename("DoseCount" = n)
 
 one_dose <- dose_counts %>%
   filter(DoseCount == 1) %>%
