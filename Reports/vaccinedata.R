@@ -14,6 +14,8 @@
 
 library(tidyverse)
 library(lubridate)
+library(wordcloud)
+library(RColorBrewer)
 
 load("images/COHHIOHMIS.RData")
 load("images/cohorts.RData")
@@ -79,13 +81,39 @@ one_dose <- dose_counts %>%
 
 
 
-# Data Quality Issues -----------------------------------------------------
 
-multiple_doses <- dose_counts %>%
-  filter(DoseCount > 1) %>%
-  left_join(co_clients_served, by = "PersonalID")
+# Concerns ----------------------------------------------------------------
+
+concerns <- covid19 %>%
+  select(PersonalID, ConsentToVaccine, VaccineConcerns) %>%
+  filter(ConsentToVaccine != "Yes (HUD)" & !is.na(VaccineConcerns))
+
+text <- concerns$VaccineConcerns  
+
+text <- tolower(text)
+
+text <- str_replace(text, "affects", "effects")
+
+text <- removeWords(text, c("want", "doesn't", "the", "not", "don't", "and",
+                            "does", "vaccine", "vaccines", "about", "for",
+                            "did", "its", "will", "doesnt", "dont", "that",
+                            "was", "has", "hasn't", "hasnt", "into", "it's", 
+                            "would"))
 
 
+
+cloud <- Corpus(VectorSource(text))
+
+cloud <- tm_map(cloud, content_transformer(tolower)) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+
+wordcloud(cloud,            
+          colors=brewer.pal(8, "Dark2"), 
+          # rot.per = 1,
+          scale = c(4, .1),
+          fixed.asp = TRUE)
 
 
 
