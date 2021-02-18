@@ -959,6 +959,16 @@ spm_Metric_4 <- rbind(
               names_from = CurrentPrior,
               values_from = Counts)
 
+spm_Metric_5 <- rbind(
+  spm_Metric_5_OH504_Current,
+  spm_Metric_5_OH504_Prior,
+  spm_Metric_5_OH507_Current,
+  spm_Metric_5_OH507_Prior
+) %>%
+  pivot_wider(id_cols = c(ClientsCounted, CoCName, CurrentPrior, Metric),
+              names_from = CurrentPrior,
+              values_from = Counts)
+
 spm_Metric_7 <- rbind(
   spm_Metric_7_OH504_Current,
   spm_Metric_7_OH504_Prior,
@@ -976,28 +986,34 @@ spm_current_end_date <- min(bos_current$ReportEnd, na.rm = TRUE) - days(1)
 spm_prior_start_date <- min(bos_prior$ReportStart, na.rm = TRUE) 
 
 spm_prior_end_date <- min(bos_prior$ReportEnd, na.rm = TRUE) - days(1)
-  
-rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
-purrr::iwalk(c("random_data/bos_spms.xlsx" = 4, # BoS Current
-              "random_data/mah_spms.xlsx" = 7 # Mahoning Current
-              )
-            , ~{
-  if (!dir.exists(dirname(.y))) dir.create(dirname(.y))
-  eval(str2expression(paste0("writexl::write_xlsx(
-    x = list(
-      measure1a = spm_Metric_1a_OH50",.x,"_Current,
-      measure1b = spm_Metric_1b_OH50",.x,"_Current,
-      measure2 = spm_Metric_2_OH50",.x,"_Current,
-      measure3 = spm_Metric_3_OH50",.x,"_Current,
-      measure4 = spm_Metric_4_OH50",.x,"_Current,
-      measure5 = spm_Metric_5_OH50",.x,"_Current,
-      measure7a = spm_Metric_7_OH50",.x,"_Current
-    ),
-    .y
-    )")))
-  
-})
+report_dates <- rbind(current_rpts, prior_rpts) %>%
+  select(
+    CoCName,
+    ReportName,
+    CurrentOrPrior,
+    Prior2Year,
+    PriorYear,
+    ReportStart,
+    ReportEnd,
+    EffectiveDate
+  )
+
+write_xlsx(
+  x = list(
+    measure1a = spm_Metric_1a,
+    measure1b = spm_Metric_1b,
+    measure2 = spm_Metric_2,
+    measure3 = spm_Metric_3,
+    measure4 = spm_Metric_4,
+    measure5 = spm_Metric_5,
+    measure7a = spm_Metric_7,
+    dates = report_dates
+  ),
+  "random_data/all_spms.xlsx"
+)
+
+rm(list = setdiff(ls(), ls(pattern = "spm_")))
 
 save(list = ls(), file = "images/SPM_data.RData", compress = FALSE)
 
