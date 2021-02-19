@@ -37,9 +37,6 @@ if (!exists("Enrollment")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-ReportStart <- ymd(calc_data_goes_back_to)
-ReportEnd <- ymd(meta_HUDCSV_Export_End)
-
 vars_we_want <- c(
   "PersonalID",
   "EnrollmentID",
@@ -73,7 +70,7 @@ tay <- Enrollment %>%
 
 # Leaver and Stayer HoHs who were served during the reporting period
 co_hohs_served <-  Enrollment %>%
-  filter(served_between(., ReportStart, ReportEnd) &
+  filter(served_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))
@@ -86,7 +83,7 @@ summary_hohs_served <- co_hohs_served %>%
 # Leaver HoHs served during the reporting period
 co_hohs_served_leavers <-  Enrollment %>%
   filter(
-      exited_between(., ReportStart, ReportEnd) &
+      exited_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
       RelationshipToHoH == 1
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
@@ -100,7 +97,7 @@ summary_hohs_served_leavers <- co_hohs_served_leavers %>%
 #	Leavers	who were Served During Reporting Period	Deaths
 co_hohs_served_leavers_died <- Enrollment %>%
   filter(
-      exited_between(., ReportStart, ReportEnd) &
+      exited_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
       RelationshipToHoH == 1,
       Destination == 24
   ) %>% 
@@ -114,7 +111,7 @@ summary_hohs_served_leavers_died  <- co_hohs_served_leavers_died  %>%
 
 #	Leavers and Stayers	who were Served During Reporting Period	All
 co_clients_served <-  Enrollment %>%
-  filter(served_between(., ReportStart, ReportEnd)) %>%
+  filter(served_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End)) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))
 
@@ -125,7 +122,7 @@ summary_clients_served <- co_clients_served %>%
 
 #	Leavers and Stayers	who were Served During Reporting Period	Adults
 co_adults_served <-  Enrollment %>%
-  filter(served_between(., ReportStart, ReportEnd) &
+  filter(served_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))
@@ -138,7 +135,7 @@ summary_adults_served <- co_adults_served %>%
 #	Leavers and Stayers	who	Entered During Reporting Period	Adults
 
 co_adults_entered <-  Enrollment %>%
-  filter(entered_between(., ReportStart, ReportEnd) &
+  filter(entered_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))
@@ -151,7 +148,7 @@ summary_adults_entered <- co_adults_entered %>%
 #	Leavers and Stayers	who	Entered During Reporting Period	HoHs
 co_hohs_entered <- Enrollment %>%
   filter(
-    entered_between(., ReportStart, ReportEnd) &
+    entered_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
       RelationshipToHoH == 1
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
@@ -165,7 +162,7 @@ summary_hohs_entered <- co_hohs_entered %>%
 #	Leavers and Stayers	who were Served During Reporting Period (and Moved In)	All
 co_clients_moved_in <-  Enrollment %>%
   filter(
-    stayed_between(., ReportStart, ReportEnd)
+    stayed_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End)
   ) %>% 
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))
@@ -177,7 +174,7 @@ summary_clients_moved_in <- co_clients_moved_in %>%
 
 #	Leavers and Stayers	who were Served During Reporting Period (and Moved In)	Adults
 co_adults_moved_in <-  Enrollment %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
+  filter(stayed_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))	
@@ -189,8 +186,8 @@ summary_adults_moved_in <- co_adults_moved_in %>%
 
 #	Leavers	who were Served During Reporting Period (and Moved In)	All
 co_clients_moved_in_leavers <-  Enrollment %>%
-  filter(exited_between(., ReportStart, ReportEnd) &
-           stayed_between(., ReportStart, ReportEnd)) %>%
+  filter(exited_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
+           stayed_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End)) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))	
 
@@ -201,8 +198,8 @@ summary_clients_moved_in_leavers <- co_clients_moved_in_leavers %>%
 
 #	Leaver hohs	who were Served (and Moved In) During Reporting Period	HoHs
 co_hohs_moved_in_leavers <-  Enrollment %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
-           exited_between(., ReportStart, ReportEnd) &
+  filter(stayed_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
+           exited_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
            RelationshipToHoH == 1) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want))	
@@ -214,8 +211,8 @@ summary_hohs_moved_in_leavers <- co_hohs_moved_in_leavers %>%
 
 #	Leavers	who were Served During Reporting Period (and Moved In)	Adults
 co_adults_moved_in_leavers <-  Enrollment %>%
-  filter(exited_between(., ReportStart, ReportEnd) &
-           stayed_between(., ReportStart, ReportEnd) &
+  filter(exited_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
+           stayed_between(., ymd(calc_data_goes_back_to), meta_HUDCSV_Export_End) &
            AgeAtEntry > 17) %>%
   left_join(Client, by = "PersonalID") %>%
   select(all_of(vars_we_want)) 
