@@ -38,6 +38,7 @@ dose_counts <- doses %>%
   dplyr::rename("DoseCount" = n)
 
 most_recent_entries <- co_clients_served %>%
+  left_join(Enrollment[c("EnrollmentID", "CountyServed")], by = "EnrollmentID") %>%
   group_by(PersonalID) %>%
   slice_max(EntryDate) %>%
   slice_max(EnrollmentID)
@@ -89,6 +90,8 @@ vaccine_needs_second_dose <- dose_counts %>%
   ) %>%
   select(
     PersonalID,
+    HouseholdID,
+    CountyServed,
     COVID19VaccineManufacturer,
     AgeAtEntry,
     VeteranStatus,
