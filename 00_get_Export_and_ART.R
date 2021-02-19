@@ -470,6 +470,7 @@ rm(provider_extras)
   
 covid19 <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 6) %>%
+  filter(!PersonalID %in% c(5, 4216)) %>%
   mutate(
     COVID19AssessmentDate = ymd(as.Date(COVID19AssessmentDate,
                                         origin = "1899-12-30")),
@@ -498,7 +499,8 @@ covid19 <-
 doses <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 21) %>%
   mutate(
     COVID19DoseDate = ymd(as.Date(COVID19DoseDate,
-                                        origin = "1899-12-30")))
+                                        origin = "1899-12-30"))) %>%
+  filter(!PersonalID %in% c(5, 4216))
 
 # Services ----------------------------------------------------------------
 
