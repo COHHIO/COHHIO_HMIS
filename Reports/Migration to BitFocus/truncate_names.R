@@ -19,9 +19,9 @@ library(here)
 
 providers_set_to_migrate <- read_xlsx(here("random_data/reporting_groups.xlsx")) %>%
   select("Group" = 1, "ProjectName" = 2) %>%
-  filter(Group == "01 Providers Coming to Clarity")
+  filter(Group == "01 Providers Coming to Clarity") %>%
+  mutate(characters = nchar(ProjectName))
 
 provider_name_too_long <- providers_set_to_migrate %>%
-  mutate(characters = nchar(ProjectName), 
-         first50 = substr(ProjectName, 1, 50)) %>%
+  mutate(first50 = substr(ProjectName, 1, 50)) %>%
   filter(characters > 50)
