@@ -51,7 +51,7 @@ pacman::p_load(
 )
 
 # Install HMIS package
-devtools::install_github("COHHIO/HMIS", , dependencies = "Imports", upgrade = "always")
+devtools::install_github("COHHIO/HMIS", dependencies = "Imports", upgrade = "always")
 
 
 
