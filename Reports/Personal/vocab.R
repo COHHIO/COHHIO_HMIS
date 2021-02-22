@@ -66,7 +66,17 @@ Rstudied7th <- c(
   "demeanor",
   "sovereign",
   "eligible",
-  "attribute"
+  "attribute", 
+  "characterize",
+  "boycott",
+  "agitate",
+  "infuriate",
+  "bamboozle",
+  "connotation",
+  "abruptly",
+  "dawdle",
+  "antagonize",
+  "oppress" 
 )
 
 Rlist7th <- setdiff(seventh_grade, Rstudied7th)
@@ -120,7 +130,7 @@ Plist8th <- setdiff(list8th, Pstudied8th)
 
 sample(Rlist8th, 10)
 
-sample(Rlist8th, 10)
+sample(Plist8th, 10)
 
 ninth_grade <- c(
   "absolve", 	"escalate", 	"mediate",
@@ -181,7 +191,17 @@ Pstudied9th <- c(
   "beneficial",
   "elude",
   "mediate",
-  "animosity"
+  "animosity",
+  "pertinent",
+  "turmoil",
+  "implausible",
+  "rationale",
+  "falter",
+  "demonstrate",
+  "succumb",
+  "vulnerable",
+  "generate",
+  "incentive" 
 )
 
 Plist9th <- setdiff(list9th, Pstudied9th)
