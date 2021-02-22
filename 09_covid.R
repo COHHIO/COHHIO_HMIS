@@ -86,7 +86,25 @@ vaccine_needs_second_dose <- dose_counts %>%
         "Contact info:",
         VaccineContactInfo
       )
-    )
+    ),
+    DaysUntilNextDose = difftime(ymd(NextDoseNeededDate), today()),
+    VeteranStatus = case_when(VeteranStatus == 0 ~ "No",
+                              VeteranStatus == 1 ~ "Yes",
+                              TRUE ~ "Unknown"),
+    AgeAtEntry = case_when(
+      AgeAtEntry < 12 ~ "0-11",
+      AgeAtEntry < 16 ~ "12-15",
+      AgeAtEntry < 25 ~ "16-24",
+      AgeAtEntry < 65 ~ "25-64",
+      AgeAtEntry < 75 ~ "65-74",
+      AgeAtEntry < 85 ~ "75-84",
+      AgeAtEntry < 120 ~ "85+",
+      TRUE ~ "Unknown"
+    ), 
+    HowSoon = case_when(DaysUntilNextDose < 0 ~ "Overdue",
+                        DaysUntilNextDose < 4 ~ "3 days",
+                        DaysUntilNextDose < 8 ~ "7 days",
+                        DaysUntilNextDose < 29 ~ "Next week")
   ) %>%
   select(
     PersonalID,
@@ -96,6 +114,7 @@ vaccine_needs_second_dose <- dose_counts %>%
     AgeAtEntry,
     VeteranStatus,
     NextDoseNeededDate,
+    HowSoon,
     CurrentLocation
   )
 
