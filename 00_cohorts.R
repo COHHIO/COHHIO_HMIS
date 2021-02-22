@@ -327,10 +327,10 @@ BoS_PIT <- dplyr::tribble(
 
 Mah_PIT <- dplyr::tribble(
   ~Population, ~January2019Count, ~January2020Count,
-  "Total", 1, 1,
-  "Sheltered", 1, 1,
-  "Veterans", 1, 1,
-  "Chronic", 1, 1
+  "Total", 1, 100,
+  "Sheltered", 1, 88,
+  "Veterans", 1, 0,
+  "Chronic", 1, 6
 )
 
 
