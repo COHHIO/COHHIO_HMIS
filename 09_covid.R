@@ -37,20 +37,20 @@ most_recent_entries <- co_clients_served %>%
   slice_max(EntryDate) %>%
   slice_max(EnrollmentID)
 
-counties <- "county.map"
+data(county.map)
+
+counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
 
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
 vaccine_distribution_county <- covid19 %>%
   filter(ConsentToVaccine == "Yes (HUD)") %>%
-  mutate(
-    polyname = paste0("ohio,",tolower(CountyServed))
-  ) %>%  
-  count(polyname) %>%
-  right_join(counties %>% filter(str_starts(polyname, 'ohio')),
-             by = "polyname") %>%
+  rename("NAME" = CountyServed) %>%
+  count(NAME) %>%
+  right_join(counties, by = "NAME") %>%
   mutate(n = replace_na(n, 0)) %>%
-  select("region" = fips, "value" = n)
+  select(region, "value" = n) %>% 
+  unique()
 
 county_choropleth(vaccine_distribution_county,
                   state_zoom = "ohio",
@@ -235,7 +235,7 @@ rm(list = ls()[!(
   ls() %in% c(
     "vaccine_concerns_cloud",
     "vaccine_needs_second_dose",
-    "vaccine_distribution"
+    "vaccine_distribution_provider"
   )
 )])
 
