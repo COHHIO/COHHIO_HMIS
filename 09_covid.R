@@ -12,15 +12,17 @@
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
 
+library(ggplot2) 
 library(tidyverse)
 library(lubridate)
-library(wordcloud)
-library(leaflet)
+# library(wordcloud)
+# library(leaflet)
 # library(RColorBrewer)
+library(plotly)
 # library(tm)
 # library(urbnmapr)
-# library(choroplethr)
-# library(choroplethrMaps)
+library(choroplethr)
+library(choroplethrMaps)
 
 if (!exists("Enrollment"))
   load("images/COHHIOHMIS.RData")
@@ -34,28 +36,28 @@ most_recent_entries <- co_clients_served %>%
   group_by(PersonalID) %>%
   slice_max(EntryDate) %>%
   slice_max(EnrollmentID)
-# 
-# counties <- get_urbn_map("counties") %>% 
-#   filter(state_abbv == "OH") %>%
-#   mutate(county_fips = as.numeric(county_fips)) %>%
-#   select(county_name, county_fips) %>% unique()
+
+counties <- "county.map"
 
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
 vaccine_distribution_county <- covid19 %>%
   filter(ConsentToVaccine == "Yes (HUD)") %>%
-  select(PersonalID, CountyServed) %>%
   mutate(
-    county_name = paste(CountyServed, "County")
-  ) %>%
-  left_join(counties, by = "county_name") %>%
-  count(county_fips, county_name) %>%
-  select("region" = county_fips, "value" = n)
+    polyname = paste0("ohio,",tolower(CountyServed))
+  ) %>%  
+  count(polyname) %>%
+  right_join(counties %>% filter(str_starts(polyname, 'ohio')),
+             by = "polyname") %>%
+  mutate(n = replace_na(n, 0)) %>%
+  select("region" = fips, "value" = n)
 
+county_choropleth(vaccine_distribution_county,
+                  state_zoom = "ohio",
+                  num_colors = 1,
+                  title = "Would Consent to COVID-19 Vaccine",
+                  legend = "# of Adults and Children")
 
-
-# county_choropleth(vaccine_distribution_county,
-#                   state_zoom = "ohio")
 
 vaccine_distribution_provider <- covid19 %>%
   filter(ConsentToVaccine == "Yes (HUD)") %>%
