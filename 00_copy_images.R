@@ -225,9 +225,9 @@ data_prep <- function(nms,
           "utilizers_clients",
           "utilization",
           "utilization_bed",
-          "vaccine_distribution",
+          "vaccine_distribution_provider",
           "vaccine_needs_second_dose",
-          "vaccine_concerns_cloud",
+          # "vaccine_concerns_cloud",
           "validation",
           "veteran_active_list" 
 ) %>% 
