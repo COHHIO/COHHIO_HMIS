@@ -1,0 +1,204 @@
+---
+title: "Orgs Coming to BitFocus"
+author: "Genelle Denzin"
+date: "2/27/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(include = FALSE)
+library(tidyverse)
+library(lubridate)
+library(here)
+library(readxl)
+library(gt)
+
+```
+
+
+```{r gather}
+
+art_data <- read_xlsx(here("random_data/OrganizationsBitFocus.xlsx"), 
+                      sheet = 4) %>%
+  filter(!is.na(ProjectID)) %>% # dropping deleted providers
+  mutate(
+    MinEntry = as.Date(MinEntry, origin = "1899-12-30"),
+    MaxExit = as.Date(MaxExit, origin = "1899-12-30"),
+    OpenEEs = replace_na(OpenEEs, 0),
+    operating = if_else(operating == "Yes", 1, 0),
+    participating = if_else(participating == "Yes", 1, 0),
+    ce_or_vash = if_else(
+      str_detect(Project, "VASH") | ptc == "Coordinated Entry (HUD)",
+      1,
+      0
+    )
+  )
+
+raw_data_projects <- nrow(art_data)
+
+```
+
+## Migration to BitFocus
+
+This document aims to identify all Organizations in our system and separate them into three categories: Not Migrating, Migrating Active, and Migrating Inactive. BitFocus has agreed to waive fees for Organizations that have no Projects that are HMIS participating, so we need to definitively name those organizations for the contract.
+
+## Excluding Obsolete Projects
+
+We are starting with a `r raw_data_projects`-row dataset that includes all providers in ServicePoint minus deleted providers. 
+
+First I'm throwing out all projects with a Project Type of FHPP, Retired, Homelessness Prevention (non-HUD), HSP, or Direct Housing. None of these had recent data in them and will not be migrating. This way, all calculations going forward only will include projects that may be migrating. 
+
+# Excluding:
+
+```{r projecttypes}
+
+obsolete_ptcs <- art_data %>%
+  filter(
+    ptc %in% c(
+      "Family Homelessness Prevention Pilot (FHPP)",
+      "RETIRED (HUD)",
+      "Homelessness Prevention",
+      "Housing Stability Program (HSP)",
+      "Direct Housing"
+    )
+  )
+
+gt(
+  obsolete_ptcs %>%
+    select(
+      ProjectID,
+      Project,
+      MaxExit,
+      OpenEEs,
+      participating,
+      operating,
+      "project type" = ptc
+    )
+)
+
+projects_and_orgs <- anti_join(art_data, obsolete_ptcs, by = "ProjectID")
+
+obsolete_count <- nrow(obsolete_ptcs)
+
+starting_from <- nrow(projects_and_orgs)
+```
+
+`r obsolete_count` providers are being dropped from the data set since they have obsolete Project Types. Now there's a total of `r starting_from` projects.
+
+## Grouping by Organization
+
+Now we have `r starting_from` projects. Next we want to look within each Organization to determine if it needs to be migrated, and if so, whether it should be considered Active or Inactive. 
+
+Here we can see across all projects associated with a given Organization: the earliest Entry Date, the most recent Exit Date, whether there are any open Entry Exits, whether any projects within the organization are marked as Operating or Participating, and whether any projects are Coordinated Entry or VASH projects. We are going to use this data in further calculations. No records have been lost here, only grouped so that each Organization gets one row.
+
+```{r grouping, warning=FALSE}
+
+org_level <- projects_and_orgs %>%
+  group_by(Org) %>%
+  summarise(minEntry = min(ymd(MinEntry), na.rm = TRUE),
+            maxExit = max(ymd(MaxExit), na.rm = TRUE),
+            openEEs = sum(OpenEEs),
+            maxOperating = max(operating),
+            maxParticipating = max(participating),
+            CEorVASH = max(ce_or_vash))
+
+gt(org_level)
+
+orgs <- nrow(org_level)
+
+```
+
+
+At this point we have `r orgs` records in the dataset, representing `r starting_from` projects.
+
+## Separating out Orgs that are not coming over 
+
+These Organizations are not migrating. I'm defining this by looking at all organizations where there are no projects associated with them that are HMIS-participating, VASH, CE, there are no open Entry Exits, and the most recent Exit Date is before 5/1/2014 or there was no data entered ever.
+
+# Excluding:
+
+```{r notmigrating}
+
+not_migrating <- org_level %>%
+  mutate(nodata = str_detect(minEntry, "/")) %>%
+  filter((ymd(maxExit) <= ymd("20140501") | is.na(nodata)) &
+            openEEs == 0 &
+           maxParticipating == 0 &
+           maxOperating == 0 &
+           CEorVASH == 0) %>%
+  unique() 
+
+gt(not_migrating)
+
+not_migrating_count <- nrow(not_migrating)
+
+```
+
+We have at least `r not_migrating_count` organizations we definitely do not need to migrate to Clarity.
+
+## Orgs that are migrating but they are basically shell orgs
+
+Next we are examining the remaining Organizations to determine, since they are migrating, whether we should consider them Active or Inactive. After we removed the records above, now we are left with those who either have EEs in the past 7 years or have no data but maybe a VASH, CE, an HMIS-participating, or operating project.
+
+# Migrating Inactive
+
+```{r migratinginactive}
+possibly_migrating <- org_level %>%
+  anti_join(not_migrating, by = "Org")
+
+migrating_inactive <- possibly_migrating %>%
+  mutate(nodata = str_detect(minEntry, "/")) %>%
+  filter(openEEs == 0 &
+           is.na(nodata) &
+           CEorVASH == 0)
+
+gt(migrating_inactive)
+
+possibly_migrating_count <- nrow(possibly_migrating)
+migrating_inactive_count <- nrow(migrating_inactive)
+
+```
+
+Out of `r possibly_migrating_count` organizations that are possibly migrating to Clarity, `r migrating_inactive_count` are being counted here as inactive, or "shell" organizations.
+
+## Orgs that are migrating and have active data
+
+Theoretically, what should be left in the list are all the organizations we need to migrate and consider to be active for the purposes of the contract. This should include organizations with active data, Access Point projects, and VASH projects.
+
+# Migrating Active
+
+```{r migratingactive}
+migrating_active <- possibly_migrating %>%
+  anti_join(migrating_inactive, by = "Org")
+
+gt(migrating_active)
+
+migrating_active_count <- nrow(migrating_active)
+```
+
+Out of `r possibly_migrating_count` organizations that are possibly migrating to Clarity, `r migrating_active_count` are being counted here as active organizations.
+
+## Questionable Orgs
+
+Some of the organizations that landed in the Active bucket seem questionable, in that they have no projects with any open Entry Exits, and no operating or HMIS-participating projects associated.
+
+```{r questionable}
+questionable <- migrating_active %>%
+  filter(openEEs == 0 &
+           maxOperating == 0 &
+           maxParticipating == 0 &
+           CEorVASH == 0)
+
+gt(questionable)
+
+questionable_count <- nrow(questionable)
+```
+
+There are `r questionable_count` organizations that may need extra review.
+
+
+
+
