@@ -1,0 +1,27 @@
+Dynamic Prioritization
+========================================================
+author: Genelle Denzin
+date: March 9, 2021
+autosize: true
+font-family: 'Helvetica'
+
+Good Coordinated Entry 
+========================================================
+
+Good Coordinated Entry relies on good reporting.
+
+Slide With Code
+========================================================
+
+class: illustration
+
+```{r}
+summary(cars)
+```
+
+Slide With Plot
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```
