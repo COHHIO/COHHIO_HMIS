@@ -15,14 +15,14 @@
 library(ggplot2) 
 library(tidyverse)
 library(lubridate)
-# library(wordcloud)
-# library(leaflet)
-# library(RColorBrewer)
 library(plotly)
-# library(tm)
-# library(urbnmapr)
 library(choroplethr)
 library(choroplethrMaps)
+# library(wordcloud)
+# library(tm)
+# library(leaflet)
+# library(RColorBrewer)
+# library(urbnmapr)
 
 if (!exists("Enrollment"))
   load("images/COHHIOHMIS.RData")
@@ -86,7 +86,9 @@ vaccine_distribution_provider <- covid19 %>%
   ) %>%
   count(CurrentLocation)
 
-
+consent_yn <- covid19 %>%
+  filter(!is.na(ConsentToVaccine)) %>%
+  count(ConsentToVaccine)
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
@@ -168,7 +170,7 @@ vaccine_needs_second_dose <- dose_counts %>%
   )
 
  # Concerns ----------------------------------------------------------------
-
+# 
 # concerns <- covid19 %>%
 #   select(PersonalID, ConsentToVaccine, VaccineConcerns) %>%
 #   filter(ConsentToVaccine != "Yes (HUD)" & !is.na(VaccineConcerns))
@@ -227,9 +229,39 @@ vaccine_needs_second_dose <- dose_counts %>%
 #   colors = brewer.pal(8, "Dark2"),
 #   random.order = FALSE,
 #   random.color = FALSE,
-#   scale = c(4, .2),
-#   fixed.asp = TRUE
+#   scale = c(3, .2)
 # )
+
+
+# Who needs followup? -----------------------------------------------------
+
+load("images/Data_Quality.RData")
+
+served_since_02052021 <- co_clients_served %>%
+  filter(served_between(., hc_bos_start_vaccine_data, meta_HUDCSV_Export_End)) %>%
+  count(ProjectName) %>%
+  rename("totalserved" = n)
+
+exited <- missing_vaccine_exited %>%
+  count(ProjectName) %>%
+  rename("missingexited" = n)
+
+current <- missing_vaccine_current %>%
+  count(ProjectName) %>%
+  rename("missingcurrent" = n)
+
+all <- full_join(served_since_02052021, current, by = "ProjectName") %>%
+  full_join(exited, by = "ProjectName") %>%
+  mutate(missingcurrent = replace_na(missingcurrent, 0),
+         missingexited = replace_na(missingexited, 0),
+         allmissing = missingcurrent + missingexited,
+         percentmissing = allmissing/totalserved) 
+
+write_csv(all, "random_data/percentmissing.csv")
+
+# to update this, I'm saving this to DB > HMIS > Covid-19 Data Analysis for EM
+
+# cleanup -----------------------------------------------------------------
 
 rm(list = ls()[!(
   ls() %in% c(
