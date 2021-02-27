@@ -159,7 +159,6 @@ veteran_active_list <- vet_ees %>%
               ))) %>%
   left_join(hh_size, by = "HouseholdID") %>%
   rename("HouseholdSize" = n) %>%
-  # left_join(VeteranCE, by = c("PersonalID", "EnrollmentID")) %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   left_join(small_CLS, by = "PersonalID") %>%
   mutate(
