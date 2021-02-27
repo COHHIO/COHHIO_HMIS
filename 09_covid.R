@@ -26,6 +26,8 @@ library(choroplethrMaps)
 
 if (!exists("Enrollment"))
   load("images/COHHIOHMIS.RData")
+if(!exists("dq_main"))
+  load("images/Data_Quality.RData")
 if (!exists("tay")) {
   load("images/cohorts.RData")
   rlang::env_binding_lock(environment(), ls())
@@ -92,12 +94,8 @@ consent_yn <- covid19 %>%
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
-dose_counts <- doses %>%
-  count(PersonalID) %>%
-  dplyr::rename("DoseCount" = n)
-
 vaccine_needs_second_dose <- dose_counts %>%
-  filter(DoseCount == 1) %>%
+  filter(Doses == 1) %>%
   left_join(doses, by = "PersonalID") %>%
   left_join(most_recent_entries, by = "PersonalID") %>%
   mutate(
@@ -235,7 +233,6 @@ vaccine_needs_second_dose <- dose_counts %>%
 
 # Who needs followup? -----------------------------------------------------
 
-load("images/Data_Quality.RData")
 
 served_since_02052021 <- co_clients_served %>%
   filter(served_between(., hc_bos_start_vaccine_data, meta_HUDCSV_Export_End)) %>%
