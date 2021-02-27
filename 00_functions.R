@@ -176,6 +176,16 @@ replace_yes_no <- function(column_name) {
   if_else(column_name == "No" | is.na(column_name), 0, 1)
 }
 
+enhanced_yes_no_translator <- function(ReferenceNo) {
+  case_when(
+    ReferenceNo == 0 ~ "No",
+    ReferenceNo == 1 ~ "Yes",
+    ReferenceNo == 8 ~ "Client doesn't know",
+    ReferenceNo == 9 ~ "Client refused",
+    ReferenceNo == 99 ~ "Data not collected"
+  )
+}
+
 # this function translates the HUD .csv 1.7 and 1.8 lists 
 # and returns yes, no, or unknown as appropriate
 translate_HUD_yes_no <- function(column_name){

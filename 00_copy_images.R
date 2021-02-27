@@ -156,6 +156,9 @@ data_prep <- function(nms,
          "veteran_current_in_project"
 ) %>% 
   data_prep("../Rminor", rdata)
+
+# to Rme
+
 .Rme <- c("active_list",
           "aps_no_referrals",
           "Beds",
@@ -181,6 +184,7 @@ data_prep <- function(nms,
           "dq_plot_unsheltered_high",
           "dq_plot_warnings",
           "dq_providers",
+          "enhanced_yes_no_translator",
           "hc_began_collecting_covid_data",        
           "hc_check_dq_back_to",                   
           "hc_data_goes_back_to",  
@@ -205,6 +209,7 @@ data_prep <- function(nms,
           "pe_own_housing",
           "pe_validation_summary",
           "pe_scored_at_ph_entry",
+          "project_type",
           "qpr_income",
           "qpr_benefits",
           "qpr_leavers",
