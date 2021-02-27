@@ -35,18 +35,29 @@ org_level <- art_data %>%
             maxOperating = max(operating),
             maxParticipating = max(participating))
 
+
+# Separating Out Orgs that are coming over --------------------------------
+
+# orgs that have providers with data in them that's newer than 2014-05-01 or
+#   some project under the org is HMIS participating
+# definitely coming over
 orgs_data_7yrs <- org_level %>%
   filter(ymd(maxExit) > ymd("20140501")) %>%
   select(Org) %>%
   unique()
 
+# some provider in the org is HMIS participating
+# definitely coming over
 orgs_data_7yrs_participating <- orgs_data_7yrs %>%
   left_join(org_level, by = "Org") %>%
   filter(maxParticipating == 1)
 
+# no providers in the org are HMIS participating
+# maybe coming over
 orgs_data_7yrs_not_participating <- orgs_data_7yrs %>%
   left_join(org_level, by = "Org") %>%
   filter(maxParticipating == 0)
+
 
 orgs_data_old <- org_level %>%
   filter(ymd(maxExit) <= ymd("20140501")) %>%
