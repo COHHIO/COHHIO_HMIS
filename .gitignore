@@ -4,6 +4,7 @@
 .Ruserdata
 .DS_Store
 *.xml
+*.dcf
 *.html
 *.xls
 *.xlsx
