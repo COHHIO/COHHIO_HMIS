@@ -76,7 +76,17 @@ Rstudied7th <- c(
   "abruptly",
   "dawdle",
   "antagonize",
-  "oppress" 
+  "oppress",
+  "rudimentary",
+  "intimidate",
+  "admonish",
+  "chronological",
+  "devious",
+  "devastate",
+  "necessity",
+  "persuasive",
+  "concur",
+  "perceive" 
 )
 
 Rlist7th <- setdiff(seventh_grade, Rstudied7th)
