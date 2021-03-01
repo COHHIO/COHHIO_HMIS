@@ -104,7 +104,7 @@ Some identifiers in the data from ServicePoint to help categorize the organizati
   - **OpenEEs** is the number of Entry Exits with no Exit Date for that project
   - **ce_or_vash** returns 1 if the project is either an AP or a VASH project. These are indicated because while these projects are not currently entering Entry Exits, they will be in Clarity.
   
-```{r}
+```{r raw_display}
 gt(art_data %>%
      select(Org,
             ProjectID,
@@ -142,7 +142,7 @@ Here we can see across all projects associated with a given Organization:
 
 We are going to use this data in further calculations. No records have been lost here, only grouped so that each Organization gets one row.
 
-```{r grouping, warning=FALSE}
+```{r org_level, warning=FALSE}
 
 org_level <- art_data %>%
   group_by(Org) %>%
@@ -159,7 +159,7 @@ orgs <- nrow(org_level)
 
 At this point we have **`r orgs`** Organizations, representing `r raw_data_projects` projects.
 
-```{r}
+```{r org_level_display}
 
 gt(org_level) %>%
   tab_header(
@@ -203,7 +203,7 @@ not_migrating_count <- nrow(not_migrating)
 
 We have at least **`r not_migrating_count`** organizations we do not need to migrate to Clarity.
 
-```{r notmigrating}
+```{r not_migrating_display}
 gt(not_migrating %>% select(-nodata)) %>%
   tab_header(
     title = "Not Migrating",
@@ -244,7 +244,7 @@ Here we can see across all projects associated with a given Organization:
   - **maxOperating** and **maxParticipating** tells us whether any projects within the organization are marked as Operating and Participating
   - **CEorVASH** tells us if there are any Coordinated Entry APs or VASH projects under the Organization. 
 
-```{r}
+```{r migrating_inactive_display}
 gt(migrating_inactive %>% select(-nodata)) %>%
   tab_header(
     title = "Migrating Inactive",
@@ -280,7 +280,7 @@ migrating_active_count <- nrow(migrating_active)
 
 Out of `r possibly_migrating_count` organizations that are possibly migrating to Clarity, **`r migrating_active_count`** are being counted here as active organizations.
 
-```{r}
+```{r migrating_active_display}
 gt(migrating_active) %>%
   tab_header(
     title = "Migrating Active",
@@ -296,7 +296,7 @@ gt(migrating_active) %>%
 
 ### Maybe Add to Migrating Inactive
 
-```{r}
+```{r level2_no_children}
 
 level2_providers <- art_data %>%
   filter(Org == "Coalition on Homelessness and Housing in Ohio(1)" &
@@ -318,7 +318,7 @@ There are **`r referral_orgs_count`** projects that have no child-providers whic
 
 If we are wanting to add these into the Migrating Inactive category, then these would add to the `r migrating_inactive_count` other organizations we are already counting as Migrating Inactive for a total of **`r migrating_inactive_count + referral_orgs_count`**.
 
-```{r}
+```{r level2_no_children_display}
 gt(referral_orgs)  %>%
   tab_header(
     title = "Maybe Add to Migrating Inactive",
