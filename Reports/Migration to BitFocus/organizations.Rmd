@@ -40,10 +40,14 @@ art_data <-
     operating = if_else(operating == "Yes", 1, 0),
     participating = if_else(participating == "Yes", 1, 0),
     ce_or_vash = if_else(
-      str_detect(Project, "VASH") | ptc == "Coordinated Entry (HUD)",
+      str_detect(Project, "VASH") | (
+        ptc == "Coordinated Entry (HUD)" &
+          !ProjectID %in% c(213, 1989, 2025, 2041, 2044) # DV APs
+      ),
       1,
       0
     ),
+    
     obsolete_ptc = if_else(
       ptc %in% c(
         "Family Homelessness Prevention Pilot (FHPP)",
@@ -330,6 +334,25 @@ gt(referral_orgs)  %>%
   )
 ```
 
+### Level 2 Not Administrating Agency
+
+```{r}
+COHHIO_provider <- art_data %>%
+  filter(Org == "Coalition on Homelessness and Housing in Ohio(1)" &
+           ptc != "Administrating Agency")
+
+COHHIO_count <- nrow(COHHIO_provider)
+
+gt(COHHIO_provider)  %>%
+  tab_header(
+    title = "Organization is COHHIO but shouldn't be",
+    subtitle = paste(COHHIO_count, "records")
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+```
 
 
 ## {-}
