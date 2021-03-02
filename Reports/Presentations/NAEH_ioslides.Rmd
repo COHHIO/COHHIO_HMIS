@@ -1,0 +1,46 @@
+---
+title: "Data-driven Decision-Making in Prioritization"
+author: "Genelle Denzin"
+date: "3/2/2021"
+output: 
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+    logo: images/COHHIOlogo_5.16.jpg
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Intro {.colums-2 .smaller}
+
+**Genelle Denzin** *she/hers*
+Data Analyst
+
+Coalition on Homelessness and Housing in Ohio (COHHIO)
+
+* Based in Columbus, Ohio
+* Fiddler 
+* Lover of R
+
+## Ohio Balance of State & Mahoning County CoCs
+![80 of the 88 Counties in Ohio](images/MapBoS.png) ![Mahoning County CoC](images/MapMahoningCountyCoC.png)
+
+## Prioritization in the Ohio Balance of State CoC
+
+Our 80-county CoC was divided into 17 Homeless Planning Regions by a state agency for grant management purposes, so our Coordinated Entry is decentralized and mostly work through the Planning Region or County level.
+
+Ohio's Balance of State is populated and varied. 
+
+<div class="notes">
+It's hard to say a thing and have it apply to the entire geography. It's rural, suburban, and urban. Some places have a shelter, some places don't. In some places there is no PSH. We have only 4 counties covered by PATH Street Outreach.
+</div>
+
+## Our Approach to using Data for Prioritization
+
+
+
+
+
+
