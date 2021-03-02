@@ -334,26 +334,6 @@ gt(referral_orgs)  %>%
   )
 ```
 
-### Level 2 Not Administrating Agency
-
-```{r}
-COHHIO_provider <- art_data %>%
-  filter(Org == "Coalition on Homelessness and Housing in Ohio(1)" &
-           ptc != "Administrating Agency")
-
-COHHIO_count <- nrow(COHHIO_provider)
-
-gt(COHHIO_provider)  %>%
-  tab_header(
-    title = "Organization is COHHIO but shouldn't be",
-    subtitle = paste(COHHIO_count, "records")
-  ) %>%
-  tab_options(
-    table.width = pct(100),
-    table.font.size = pct(80)
-  )
-```
-
 
 ## {-}
 
