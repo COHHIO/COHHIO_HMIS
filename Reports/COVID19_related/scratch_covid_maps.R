@@ -10,7 +10,7 @@ oh_bos_507 <- st_read("Ohio/OH_507/OH_507.shp")
 oh_mah_504 <- st_read("Ohio/OH_504/OH_504.shp")
 ohio_counties <- st_read("Ohio/REFER_COUNTY.shp")
 
-tm_shape(ohio_counties) + 
+tm_shape(ohio_counties) +
   tm_fill(col = "gray") +
   tm_borders() +
   tm_shape(oh_bos_507) +
@@ -23,7 +23,7 @@ tm_shape(ohio_counties) +
     frame = FALSE
   )
 
-tm_shape(ohio_counties) + 
+tm_shape(ohio_counties) +
   tm_fill(col = "gray") +
   tm_borders() +
   tm_shape(oh_mah_504,
@@ -35,4 +35,3 @@ tm_shape(ohio_counties) +
     inner.margins = .08,
     frame = FALSE
   )
-
