@@ -15,6 +15,7 @@
 library(ggplot2) 
 library(tidyverse)
 library(lubridate)
+library(HMIS)
 library(plotly)
 library(choroplethr)
 library(choroplethrMaps)
@@ -98,6 +99,7 @@ vaccine_needs_second_dose <- dose_counts %>%
   filter(Doses == 1) %>%
   left_join(doses, by = "PersonalID") %>%
   left_join(most_recent_entries, by = "PersonalID") %>%
+  filter(COVID19VaccineManufacturer != "Johnson & Johnson") %>%
   mutate(
     NextDoseNeededDate = case_when(
       COVID19VaccineManufacturer == "Moderna" ~
