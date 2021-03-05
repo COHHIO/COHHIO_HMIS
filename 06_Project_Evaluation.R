@@ -1923,5 +1923,5 @@ write_csv(final_scores %>%
 
 # saving old data to "current" image so it all carries to the apps
 
-save(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
+save.image(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
 
