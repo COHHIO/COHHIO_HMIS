@@ -157,8 +157,8 @@ ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 
 # Staging -----------------------------------------------------------------
 
-keepers <- c(746, 15, 1353, 719, 737, 774, 208, 1566) 
-retired <- c(747, 1774, 1354, 718, 721, 738, 739, 548, 763, 764, 1323, 1579, 390)
+keepers <- c(15, 1353, 1566) 
+retired <- c(1774, 1579, 390)
 
 pe_coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
@@ -185,23 +185,13 @@ consolidations <- pe_coc_funded %>%
   filter(ProjectID %in% c(keepers, retired)) %>%
   mutate(
     AltProjectID = case_when(
-      ProjectID %in% c(718, 719, 721) ~ 3000,
-      ProjectID %in% c(1353, 1354, 390) ~ 3001,
-      ProjectID %in% c(746, 747) ~ 3002,
+      ProjectID %in% c(1353, 390) ~ 3001,
       ProjectID %in% c(1774, 15) ~ 3003,
-      ProjectID %in% c(737, 738, 739) ~ 3004,
-      ProjectID %in% c(548, 763, 764, 774) ~ 3005,
-      ProjectID %in% c(1323, 208) ~ 3006,
       ProjectID %in% c(1566, 1579) ~ 3007
     ),
     AltProjectName = case_when(
-      ProjectID %in% c(718, 719, 721) ~ "Butler County PSH Combined (718, 719, 721)",
-      ProjectID %in% c(1353, 1354, 390) ~ "Springfield SPC 1 Combined (1353, 1354, 390)",
-      ProjectID %in% c(746, 747) ~ "Jefferson County SPC Combined (746, 747)",
+      ProjectID %in% c(1353, 390) ~ "Springfield SPC 1 Combined (1353, 390)",
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined (1774, 15)",
-      ProjectID %in% c(737, 738, 739) ~ "Lake SPC Combined (737, 738, 739)",
-      ProjectID %in% c(548, 763, 764, 774) ~ "Trumbull SPC Vouchers Combined (548, 763, 764, 774)",
-      ProjectID %in% c(1323, 208) ~ "Warren SPC Combined (1323, 208)",
       ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined (1566, 1579)"
     )
   ) %>%
@@ -697,7 +687,7 @@ data_quality_flags <- data_quality_flags_detail %>%
   select(AltProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
 
 # CoC Scoring -------------------------------------------------------------
-docs_due <- mdy("04012020")
+docs_due <- mdy("04232021")
 
 lower_th <- 6000
 upper_th <- 10000
