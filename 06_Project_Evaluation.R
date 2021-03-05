@@ -19,15 +19,17 @@ library(readxl)
 library(HMIS)
 
 # loading old data to freeze data as of the deadline
-load("images/COHHIOHMIS.RData")
+
+if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
+if(!exists("dq_main")) load("images/Data_Quality.RData")
+if (!exists("tay")) {
+  load("images/cohorts.RData")
+  rlang::env_binding_lock(environment(), ls())
+}
+
 rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
    Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
-   regions, Scores, Services, stray_services, Users, VeteranCE)
-
-load("images/cohorts.RData")
-rm(summary)
-
-load("images/Data_Quality.RData")
+   regions, Scores, Services, stray_services, Users, VeteranCE, summary)
 
 # Points function ---------------------------------------------------------
 
@@ -1923,5 +1925,4 @@ write_csv(final_scores %>%
 
 # saving old data to "current" image so it all carries to the apps
 
-save.image(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
-
+save(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
