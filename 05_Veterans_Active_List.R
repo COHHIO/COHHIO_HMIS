@@ -58,8 +58,6 @@ vet_ees <- co_clients_served %>%
     DateVeteranIdentified,
     EntryDate,
     EntryAdjust,
-    HHEntry,
-    HHMoveIn,
     MoveInDateAdjust,
     ExitDate,
     ExitAdjust,
@@ -138,6 +136,72 @@ small_CLS <- Contacts %>%
                     Notes),
     Notes = gsub("c\\(\"", "", Notes),
     Notes = gsub("\"\\)", "", Notes)
+  )
+
+# Entry Exits -------------------------------------------------------------
+
+small_ees <- vet_ees %>%
+  filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
+           VeteranStatus == 1 &
+           (is.na(ExitDate) |
+              (
+                !Destination %in% c(perm_destinations) &
+                  ymd(ExitDate) >= today() - days(90)
+              ))) %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    Destination
+  ) %>%
+  unique() %>%
+  group_by(PersonalID) %>%
+  arrange(desc(EntryDate)) %>%
+  mutate(
+    EntryDate = format.Date(EntryDate, "%m-%d-%Y"),
+    MoveInDateAdjust = format.Date(MoveInDateAdjust, "%m-%d-%Y"),
+    ExitDate = format.Date(ExitDate, "%m-%d-%Y"),
+    Entries = paste(
+      "Entered",
+      ProjectName,
+      "on",
+      EntryDate,
+      case_when(
+        is.na(MoveInDateAdjust) & is.na(ExitDate) ~  if_else(
+          ProjectType %in% c(lh_project_types), "to present", "awaiting housing"),
+        !is.na(MoveInDateAdjust) & !is.na(ExitDate) ~
+          paste(
+            "Moved In on",
+            MoveInDateAdjust,
+            "and Exited on",
+            ExitDate,
+            "to",
+            living_situation(Destination)
+          ),
+        !is.na(MoveInDateAdjust) & is.na(ExitDate) ~ # should never happen but eh
+          paste("Moved In on",
+                MoveInDateAdjust,
+                "and is current"),
+        is.na(MoveInDateAdjust) & !is.na(ExitDate) ~
+          paste("Exited on", ExitDate,
+                "to", living_situation(Destination))
+      )
+    )
+  ) %>%
+  summarise(Entries = list(Entries)) %>%
+  ungroup() %>%
+  mutate(
+    Entries = as.character(Entries),
+    Entries = if_else(str_starts(Entries, "c"),
+                    str_replace_all(Entries, "\", \"", "<br>"),
+                    Entries),
+    Entries = gsub("c\\(\"", "", Entries),
+    Entries = gsub("\"\\)", "", Entries)
   )
 
 # Active List -------------------------------------------------------------
@@ -224,6 +288,27 @@ veteran_active_list <- vet_ees %>%
       )
   ) %>%
   left_join(responsible_providers, by = "County") %>%
+  unique()
+
+veteran_active_list_display <- veteran_active_list %>%
+  select(PersonalID,
+         HOMESID,
+         DateVeteranIdentified,
+         ListStatus,
+         VAEligible,
+         SSVFIneligible,
+         County,
+         PHTrack,
+         ExpectedPHDate,
+         Eligibility,
+         ActiveDateDisplay,
+         ActiveDate,
+         DaysActive,
+         HouseholdSize,
+         MostRecentOffer,
+         HousingPlan,
+         SSVFServiceArea) %>%
+  left_join(small_ees, by = "PersonalID") %>%
   unique()
 
 # Currently Homeless Vets -------------------------------------------------
