@@ -151,10 +151,6 @@ pe_score <- function(structure, value) {
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
-ReportYear <- "2020"
-ReportStart <- format.Date(mdy(paste0("0101", ReportYear)), "%m-%d-%Y")
-ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
-
 # Staging -----------------------------------------------------------------
 
 keepers <- c(15, 1353, 1566) 
@@ -165,9 +161,9 @@ pe_coc_funded <- Funder %>%
            ProjectID != 2069 &
            (ProjectID %in% c(keepers, retired) |
               (
-                ymd(StartDate) <= mdy(ReportEnd) &
+                ymd(StartDate) <= ymd(hc_project_eval_end) &
                   (is.na(EndDate) |
-                     ymd(EndDate) >= mdy(ReportEnd))
+                     ymd(EndDate) >= ymd(hc_project_eval_end))
               ))) %>% 
   select(ProjectID, Funder, StartDate, EndDate) %>%
   left_join(Project[c("ProjectID",
@@ -255,7 +251,7 @@ vars_to_the_apps <- c(
 # clients served during date range
 
 pe_clients_served <-  co_clients_served %>%
-  filter(served_between(., ReportStart, ReportEnd)) %>%
+  filter(served_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -280,7 +276,7 @@ pe_clients_served <-  co_clients_served %>%
 hoh_exits_to_deceased <- pe_clients_served %>%
   filter(Destination == 24 &
            RelationshipToHoH == 1 &
-           exited_between(., ReportStart, ReportEnd)) %>%
+           exited_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   group_by(AltProjectID) %>%
   summarise(HoHDeaths = n()) %>%
   ungroup() %>%
@@ -308,7 +304,7 @@ pe_adults_entered <-  co_adults_served %>%
   group_by(HouseholdID) %>%
   mutate(HHEntryDate = min(EntryDate)) %>%
   ungroup() %>%
-  filter(entered_between(., ReportStart, ReportEnd) & 
+  filter(entered_between(., hc_project_eval_start, hc_project_eval_end) & 
            EntryDate == HHEntryDate) %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate))
@@ -318,7 +314,7 @@ pe_adults_entered <-  co_adults_served %>%
 ## for vispdat measure
 
 pe_hohs_entered <-  co_hohs_entered %>%
-  filter(entered_between(., ReportStart, ReportEnd)) %>%
+  filter(entered_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -341,8 +337,8 @@ pe_hohs_entered <-  co_hohs_entered %>%
 
 pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
   filter(
-    stayed_between(., ReportStart, ReportEnd) &
-      exited_between(., ReportStart, ReportEnd)
+    stayed_between(., hc_project_eval_start, hc_project_eval_end) &
+      exited_between(., hc_project_eval_start, hc_project_eval_end)
   ) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
@@ -366,7 +362,7 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
 #Adults who moved in and were served during date range
 
 pe_adults_moved_in <-  co_adults_moved_in %>%
-  filter(stayed_between(., ReportStart, ReportEnd)) %>%
+  filter(stayed_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -389,8 +385,8 @@ pe_adults_moved_in <-  co_adults_moved_in %>%
 # Clients who moved in and exited during date range
 
 pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
-           exited_between(., ReportStart, ReportEnd)) %>%
+  filter(stayed_between(., hc_project_eval_start, hc_project_eval_end) &
+           exited_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -413,7 +409,7 @@ pe_clients_moved_in_leavers <-  co_clients_moved_in_leavers %>%
 # Heads of Household who were served during date range
 
 pe_hohs_served <- co_hohs_served %>%
-  filter(served_between(., ReportStart, ReportEnd)) %>%
+  filter(served_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -433,14 +429,14 @@ pe_hohs_served <- co_hohs_served %>%
   distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 pe_hohs_served_leavers <- pe_hohs_served %>%
-  filter(exited_between(., ReportStart, ReportEnd))
+  filter(exited_between(., hc_project_eval_start, hc_project_eval_end))
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
 
 pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
-  filter(stayed_between(., ReportStart, ReportEnd) &
-           exited_between(., ReportStart, ReportEnd)) %>%
+  filter(stayed_between(., hc_project_eval_start, hc_project_eval_end) &
+           exited_between(., hc_project_eval_start, hc_project_eval_end)) %>%
   select("PersonalID", "ProjectID", "EnrollmentID") %>%
   inner_join(pe_coc_funded, by = "ProjectID") %>%
   left_join(Client, by = "PersonalID") %>%
@@ -810,7 +806,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
   mutate(
     DestinationGroup = case_when(
-      is.na(Destination) | ymd(ExitAdjust) > mdy(ReportEnd) ~ 
+      is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
         "Still in Program at Report End Date",
       Destination %in% c(temp_destinations) ~ "Temporary",
       Destination %in% c(perm_destinations) ~ "Permanent",
@@ -836,7 +832,7 @@ pe_exits_to_ph <- pe_hohs_served %>%
     PersonalID = as.character(PersonalID)
   ) %>%
   filter((ProjectType %in% c(2, 8, 13) & 
-            exited_between(., ReportStart, ReportEnd)) |
+            exited_between(., hc_project_eval_start, hc_project_eval_end)) |
            ProjectType == 3) %>% # filtering out non-PSH stayers
   select(all_of(vars_to_the_apps), ExitsToPHDQ, Destination, DestinationGroup)
 
@@ -925,7 +921,7 @@ pe_own_housing <- pe_hohs_moved_in_leavers %>%
       TRUE ~ 0
     ),
     DestinationGroup = case_when(
-      is.na(Destination) | ymd(ExitAdjust) > mdy(ReportEnd) ~ 
+      is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
         "Still in Program at Report End Date",
       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
@@ -1617,9 +1613,6 @@ summary_pe_dq <- summary_pe_dq %>%
 # PSH
 # Decided in Feb meeting that we're going to use Adults Entered for this one
 
-# EM informed on 7/13/2020 that Project 1352 should get full points on this 
-# measure
-
 pe_long_term_homeless <- pe_adults_entered %>%
   right_join(pe_coc_funded %>% 
                select(ProjectType, AltProjectID, AltProjectName) %>%
@@ -1629,8 +1622,7 @@ pe_long_term_homeless <- pe_adults_entered %>%
   mutate(
     CurrentHomelessDuration = difftime(ymd(EntryDate), ymd(DateToStreetESSH),
                                        units = "days"),
-    MeetsObjective = if_else(
-      AltProjectID == 1352 | (
+    MeetsObjective = if_else((
         CurrentHomelessDuration >= 365 &
           !is.na(CurrentHomelessDuration)
       ) |
@@ -1905,31 +1897,29 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_scored_at_ph_entry',
   'summary_pe_utilization',
   'summary_pe_final_scoring',
-  'ReportStart',
-  'ReportEnd',
   'final_scores'
 ))])
 # commenting all this out since we don't want to overwrite these files after
 # the deadline
 
-# zero_divisors <- pe_validation_summary %>%
-#   filter(ClientsServed == 0 |
-#            HoHsEntered == 0 |
-#            HoHsServed == 0 |
-#            HoHsServedLeavers == 0 |
-#            AdultsMovedIn == 0 |
-#            AdultsEntered == 0 |
-#            ClientsMovedInLeavers == 0 |
-#            AdultMovedInLeavers == 0 |
-#            HoHsMovedInLeavers == 0) %>%
-#   select(-HoHDeaths)
+zero_divisors <- pe_validation_summary %>%
+  filter(ClientsServed == 0 |
+           HoHsEntered == 0 |
+           HoHsServed == 0 |
+           HoHsServedLeavers == 0 |
+           AdultsMovedIn == 0 |
+           AdultsEntered == 0 |
+           ClientsMovedInLeavers == 0 |
+           AdultMovedInLeavers == 0 |
+           HoHsMovedInLeavers == 0) %>%
+  select(-HoHDeaths)
 
-# write_csv(zero_divisors, "Reports/zero_divisors.csv")
-# 
-# write_csv(final_scores %>%
-#             select(OrganizationName,
-#                    AltProjectName,
-#                    TotalScore), "Reports/pe_final.csv")
+write_csv(zero_divisors, "random_data/zero_divisors.csv")
+
+write_csv(final_scores %>%
+            select(OrganizationName,
+                   AltProjectName,
+                   TotalScore), "random_data/pe_final.csv")
 
 # saving old data to "current" image so it all carries to the apps
 
