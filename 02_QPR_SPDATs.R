@@ -28,7 +28,6 @@ if (!exists("Enrollment")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-
 rm(Affiliation, CaseManagers, Client, EnrollmentCoC, EmploymentEducation, 
    Export, Exit, Funder, HealthAndDV, Disabilities, IncomeBenefits, Inventory, 
    Offers, Organization, ProjectCoC, Services, VeteranCE, Referrals, 
