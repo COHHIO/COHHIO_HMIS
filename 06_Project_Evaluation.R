@@ -151,7 +151,7 @@ pe_score <- function(structure, value) {
 # The specs for this report is here: 
 #https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
 
-ReportYear <- "2019"
+ReportYear <- "2020"
 ReportStart <- format.Date(mdy(paste0("0101", ReportYear)), "%m-%d-%Y")
 ReportEnd <- format.Date(mdy(paste0("1231", ReportYear)), "%m-%d-%Y")
 
