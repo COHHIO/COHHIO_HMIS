@@ -3204,7 +3204,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     
     # for project evaluation reporting
     
-    dq_2019 <- dq_main %>%
+    dq_for_pe <- dq_main %>%
       filter(served_between(., ymd(hc_project_eval_start), ymd(hc_project_eval_end))) %>%
       left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
     
