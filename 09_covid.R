@@ -144,8 +144,8 @@ vaccine_needs_second_dose <- dose_counts %>%
       AgeAtEntry < 12 ~ "0-11",
       AgeAtEntry < 16 ~ "12-15",
       AgeAtEntry < 25 ~ "16-24",
-      AgeAtEntry < 65 ~ "25-64",
-      AgeAtEntry < 75 ~ "65-74",
+      AgeAtEntry < 65 ~ "25-59",
+      AgeAtEntry < 75 ~ "60-74",
       AgeAtEntry < 85 ~ "75-84",
       AgeAtEntry < 120 ~ "85+",
       TRUE ~ "Unknown"
