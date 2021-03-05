@@ -583,7 +583,7 @@ rm(list = ls(pattern = "summary_"))
 # calculates how many clients have a qualifying error of whatever type. only
 # returns the providers with any qualifying errors.
 
-dq_flags_staging <- dq_2019 %>%
+dq_flags_staging <- dq_for_pe %>%
   right_join(pe_coc_funded, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
   mutate(
     GeneralFlag =
@@ -1579,7 +1579,7 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
 # HMIS Data Quality -------------------------------------------------------
 # PSH, TH, SH, RRH
 
-pe_dq <- dq_2019 %>%
+pe_dq <- dq_for_pe %>%
   filter(Type %in% c("Error", "High Priority") & 
            ProjectType %in% c(2, 3, 13, 8)) %>%
   inner_join(pe_coc_funded, by = c("ProjectName", "ProjectID", "ProjectType"))
@@ -1709,7 +1709,7 @@ pe_scored_at_ph_entry <- pe_hohs_entered %>%
              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = c("AltProjectName")) %>%
   left_join(
-    dq_2019 %>%
+    dq_for_pe %>%
       filter(Issue == "Non-DV HoHs Entering PH or TH without SPDAT") %>%
       select("PersonalID", "HouseholdID", "Issue"),
     by = c("PersonalID", "HouseholdID")
