@@ -175,19 +175,19 @@ source("02_QPR_SPDATs.R", local = rlang::env(COHHIO_HMIS))
 increment("working on QPR_EEs")
 source("02_QPR_EEs.R", local = rlang::env(Cohorts))
 
-increment("working on Veterans")
+increment("working on Veterans data")
 source("03_Veterans.R", local = rlang::env(Cohorts))
 
 increment("working on Data Quality")
-source("04_DataQuality.R", local = rlang::env(Cohorts))
+DataQuality <- rlang::env(Cohorts)
+source("04_DataQuality.R", local = rlang::env(DataQuality))
+rlang::env_binding_lock(DataQuality, ls(DataQuality))
 
-increment("working on Project Evaluation")
+increment("working on Veterans Active List")
 source("05_Veterans_Active_List.R", local = rlang::env(Cohorts))
 
-# rm(list = ls())
-# 
-# print("working on Project Evaluation")
-# source("06_Project_Evaluation.R", local = new.env())
+increment("working on Project Evaluation")
+source("06_Project_Evaluation.R", local = rlang::env(DataQuality))
 
 increment("working on SPMs")
 source("07_SPMs.R", local = new.env())
