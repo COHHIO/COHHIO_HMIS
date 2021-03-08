@@ -86,7 +86,17 @@ Rstudied7th <- c(
   "necessity",
   "persuasive",
   "concur",
-  "perceive" 
+  "perceive",
+  "treason",
+  "naive",
+  "consult",
+  "narrate",
+  "emphasize",
+  "impartial",
+  "deceitful",
+  "inevitable",
+  "diversity",
+  "mandatory" 
 )
 
 Rlist7th <- setdiff(seventh_grade, Rstudied7th)
@@ -132,7 +142,18 @@ list8th <- setdiff(eighth_grade, seventh_grade)
 
 Rstudied8th <- c("words")
 
-Pstudied8th <- c("words")
+Pstudied8th <- c(
+  "bizarre",
+  "profound",
+  "consistent",
+  "abhor",
+  "apprehend",
+  "gruesome",
+  "validate",
+  "perish",
+  "specific",
+  "similar"  
+)
 
 Rlist8th <- setdiff(list8th, Rstudied8th)
 
