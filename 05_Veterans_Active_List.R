@@ -105,8 +105,8 @@ most_recent_offer <- Offers %>%
            !is.na(PHTypeOffered)) %>%
   group_by(PersonalID) %>%
   slice_max(ymd(OfferDate)) %>% # same date
-  slice_max(OfferAccepted) %>% # both rejected/acceptedd
-  slice(1) %>% # pick 1 doesn't matter if those ^ are the same
+  slice_max(OfferAccepted) %>% # both rejected/accepted
+  slice(1) %>% # pick 1, doesn't matter if those ^ are the same
   ungroup() %>%
   unique()
 
