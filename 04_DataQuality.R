@@ -1018,7 +1018,7 @@ rm(list = ls(pattern = "Top*"),
 
 enrolled_in_rrh <- served_in_date_range %>%
   filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
-  mutate(RRH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(RRH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, 
          "RRHMoveIn" = MoveInDateAdjust, 
          RRH_range, 
@@ -1062,7 +1062,7 @@ should_be_rrh_destination <- served_in_date_range %>%
 
 enrolled_in_psh <- served_in_date_range %>%
   filter(ProjectType %in% c(3, 9) & !is.na(MoveInDateAdjust)) %>%
-  mutate(PSH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(PSH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, 
          PSH_range, 
          "PSHMoveIn" = MoveInDateAdjust,
@@ -1108,7 +1108,7 @@ should_be_psh_destination <- served_in_date_range %>%
 
 enrolled_in_th <- served_in_date_range %>%
   filter(ProjectType == 2) %>%
-  mutate(TH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(TH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, TH_range, "THProjectName" = ProjectName)
 
 should_be_th_destination <- served_in_date_range %>%
@@ -1132,7 +1132,7 @@ should_be_th_destination <- served_in_date_range %>%
 
 enrolled_in_sh <- served_in_date_range %>%
   filter(ProjectType == 8) %>%
-  mutate(SH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(SH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, SH_range, "SHProjectName" = ProjectName)
 
 should_be_sh_destination <- served_in_date_range %>%
