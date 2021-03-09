@@ -46,7 +46,7 @@ rm(
 
 projects_current_hmis <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID == 1695 | (
+  filter(ProjectID %in% c(1695, 2372) | (
     HMISParticipatingProject == 1 &
       operating_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
       (GrantType != "HOPWA" | is.na(GrantType))) 
