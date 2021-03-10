@@ -865,6 +865,20 @@ conflicting_disabilities <- served_in_date_range %>%
 
 rm(smallDisabilities)
 
+# Mahoning 60 days CE -----------------------------------------------------
+
+mahoning_ce_60_days <- served_in_date_range %>%
+  filter(ProjectID == 2372 &
+           EntryDate <= today() - days(60) &
+           is.na(ExitDate)) %>%
+  mutate(
+    Issue = "60 Days in Mahoning Coordinated Entry",
+    Type = "Warning",
+    Guidance = "If this household is \"unreachable\" as defined in the Mahoning County 
+    Coordinated Entry Policies and Procedures, they should be exited."
+  ) %>%
+  select(all_of(vars_we_want))
+
 # Extremely Long Stayers --------------------------------------------------
 
 th_stayers_bos <- served_in_date_range %>%
