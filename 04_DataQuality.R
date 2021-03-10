@@ -3087,6 +3087,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                (
                  ProjectType == 14 &
                    Issue %in% c(
+                     "60 Days in Mahoning Coordinated Entry",
                      "Access Point with Entry Exits",
                      "Missing Date of Birth Data Quality",
                      "Don't Know/Refused or Approx. Date of Birth",
