@@ -232,7 +232,6 @@ qpr_spending <- Services %>%
 
 rm(smallEnrollment,
    smallProject, 
-   regions, 
    smallMainstreamBenefits,
    incomeMostRecent,
    incomeAtEntry,
