@@ -22,10 +22,6 @@ if (!exists("tay")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
-   Export, Funder, HealthAndDV, IncomeBenefits, Offers, Organization, 
-   ProjectCoC, Scores, Services, Users, stray_services)
-
 # getting all the veterans
 Veterans <- Client %>%
   filter(VeteranStatus == 1) %>%
@@ -193,9 +189,7 @@ current_tay_hohs <- tay %>%
       )
   )
 
-rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 
-   Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, 
-   Referrals, CurrentVeteranCounts, Contacts, covid19, HUD_specs)
+rm(Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, CurrentVeteranCounts)
 
 rm(list = ls(pattern = "co_"))
 # WARNING save.image does not save the environment properly, save must be used.

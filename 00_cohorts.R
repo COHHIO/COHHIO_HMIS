@@ -279,39 +279,6 @@ APs <- Project %>%
 
 write_csv(APs, "public_data/aps.csv")
   
-# Clean up the house ------------------------------------------------------
-
-rm(
-  Affiliation,
-  CaseManagers,
-  Client,
-  Contacts,
-  covid19,
-  Disabilities,
-  EmploymentEducation,
-  Enrollment,
-  EnrollmentCoC,
-  Exit,
-  Export,
-  Funder,
-  HealthAndDV,
-  IncomeBenefits,
-  Inventory,
-  Organization,
-  Project,
-  ProjectCoC,
-  provider_geo,
-  Referrals,
-  regions,
-  stray_services,
-  Scores,
-  Services,
-  Users,
-  Offers,
-  vars_we_want,
-  VeteranCE
-)
-
 rm(list = ls(pattern = "summary_"))
 
 
