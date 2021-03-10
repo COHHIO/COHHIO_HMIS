@@ -29,19 +29,6 @@ va_funded <- Funder %>%
   filter(Funder %in% c(27, 30, 33, 37:42, 45)) %>%
   select(ProjectID)
 
-rm(
-  Affiliation,
-  EmploymentEducation,
-  EnrollmentCoC,
-  Exit,
-  Export,
-  Funder,
-  Offers,
-  ProjectCoC,
-  regions,
-  VeteranCE
-)
-
 # Providers to Check ------------------------------------------------------
 
 projects_current_hmis <- Project %>%
@@ -64,8 +51,6 @@ projects_current_hmis <- Project %>%
     ProjectCounty,
     ProjectRegion
   ) %>% unique()
-
-rm(Inventory, Organization)
 
 # Clients to Check --------------------------------------------------------
 
@@ -852,8 +837,6 @@ smallDisabilities <- Disabilities %>%
   )
 
 # Developmental & HIV/AIDS get automatically IndefiniteAndImpairs = 1 per FY2020
-
-rm(Disabilities)
 
 conflicting_disabilities <- served_in_date_range %>%
   select(all_of(vars_prep),
@@ -1816,8 +1799,6 @@ check_eligibility <- served_in_date_range %>%
       ungroup() %>%
       mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
     
-    rm(Scores)
-    
     entered_ph_without_spdat <-
       anti_join(served_in_date_range, ees_with_spdats, by = "EnrollmentID") %>%
       filter(
@@ -2513,7 +2494,7 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(IncomeBenefits, smallIncome)
+    rm(smallIncome)
     
     # Non HoHs w Svcs or Referrals --------------------------------------------
     # SSVF projects should be showing this as an Error, whereas non-SSVF projects
@@ -2546,8 +2527,6 @@ check_eligibility <- served_in_date_range %>%
              Type = "Error",
              Guidance = guidance_service_on_non_hoh) %>%
       select(all_of(vars_we_want))
-    
-    rm(Services)
     
     referrals_on_hh_members <- served_in_date_range %>%
       select(all_of(vars_prep),
@@ -2799,7 +2778,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(long_unsheltered, unsheltered_referred, Referrals)
+    rm(long_unsheltered, unsheltered_referred)
     
     # SSVF --------------------------------------------------------------------
     
@@ -3019,6 +2998,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       internal_old_outstanding_referrals,
       invalid_months_times_homeless,
       lh_without_spdat,
+      mahoning_ce_60_days,
       maybe_psh_destination,
       maybe_rrh_destination,
       missing_approx_date_homeless,
@@ -3190,8 +3170,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                                        "Error",
                                        "Warning"))
       )
-    
-    rm(Users)
     
     # Controls what is shown in the CoC-wide DQ tab ---------------------------
     
@@ -3471,7 +3449,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       CaseManagers,
       check_disability_ssi,
       check_eligibility,
-      Client,
       conflicting_disabilities,
       conflicting_health_insurance_entry,
       conflicting_health_insurance_exit,
@@ -3479,7 +3456,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       conflicting_income_exit,
       conflicting_ncbs_entry,
       conflicting_ncbs_exit,
-      Contacts,
       # detail_eligibility, # the app needs this; keep this commented out
       detail_missing_disabilities,
       dkr_living_situation,
@@ -3497,12 +3473,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       dq_ssn,
       dq_veteran,
       duplicate_ees,
-      Enrollment,
       entered_ph_without_spdat,
       extremely_long_stayers,
       future_ees,
       future_exits,
-      HealthAndDV,
       hh_issues,
       incorrect_ee_type,
       incorrect_path_contact_date,
@@ -3533,7 +3507,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       path_reason_missing,
       path_SOAR_missing_at_exit,
       path_status_determination,
-      Project,
       projects_current_hmis,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
