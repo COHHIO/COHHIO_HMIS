@@ -12,7 +12,7 @@ pacman::p_load(char = c(
   "janitor",
   "devtools"
 ))
-remotes::install_github("jimhester/archive", dependencies = "Imports", upgrade = "always")
+# remotes::install_github("jimhester/archive", dependencies = "Imports", upgrade = "always")
 
 # Install packages for Rminor
 if (!require(pacman))
