@@ -28,10 +28,6 @@ if (!exists("Enrollment")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-rm(Affiliation, CaseManagers, Client, EnrollmentCoC, EmploymentEducation, 
-   Export, Exit, Funder, HealthAndDV, Disabilities, IncomeBenefits, Inventory, 
-   Offers, Organization, ProjectCoC, Services, VeteranCE, Referrals, 
-   stray_services, Users)
 # more paring down, only taking what variables I need from Enrollment
 smallEnrollment <- Enrollment %>%
   left_join(Project, by = c("ProjectType", "ProjectID", "ProjectName")) %>%
@@ -51,8 +47,6 @@ smallEnrollment <- Enrollment %>%
 # Entries will give us all the times a hh has an Entry into a PH project
 Entries <- smallEnrollment %>%
   filter(ProjectType %in% c(3, 9, 13))
-
-rm(Enrollment, Project)
 
 note_qpr_served_county <- "The horizontal lines represent the average scores of Heads 
 of Household who were served in the County in a ES, TH, SH, or Outreach project 
@@ -165,8 +159,7 @@ SPDATsOnNonHoHs <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(ProjectName, PersonalID, EntryDate, ExitDate, Score) %>%
   arrange(ProjectName)
 
-rm(Entries, Scores, smallEnrollment, 
-   SPDATsOnNonHoHs)
+rm(Entries, smallEnrollment, SPDATsOnNonHoHs)
 # WARNING save.image does not save the environment properly, save must be used.
 save(list = ls(), file = "images/QPR_SPDATs.RData", compress = FALSE)
 

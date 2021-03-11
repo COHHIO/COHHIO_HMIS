@@ -134,7 +134,7 @@ vaccine_needs_second_dose <- dose_counts %>%
           VaccineContactInfo
         )
     ),
-    DaysUntilNextDose = difftime(ymd(NextDoseNeededDate), today()),
+    DaysUntilNextDose = ymd(NextDoseNeededDate) - today(),
     VeteranStatus = case_when(
       VeteranStatus == 0 ~ "No",
       VeteranStatus == 1 ~ "Yes",
@@ -152,9 +152,9 @@ vaccine_needs_second_dose <- dose_counts %>%
     ),
     HowSoon = case_when(
       DaysUntilNextDose < 0 ~ "Overdue",
-      DaysUntilNextDose < 4 ~ "3 days",
-      DaysUntilNextDose < 8 ~ "7 days",
-      DaysUntilNextDose < 29 ~ "Next week"
+      DaysUntilNextDose > 7 ~ "Next Week",
+      DaysUntilNextDose > 3 ~ "7 days",
+      DaysUntilNextDose >= 0 ~ "3 days"
     )
   ) %>%
   select(
@@ -166,6 +166,7 @@ vaccine_needs_second_dose <- dose_counts %>%
     VeteranStatus,
     NextDoseNeededDate,
     HowSoon,
+    DaysUntilNextDose,
     CurrentLocation
   )
 

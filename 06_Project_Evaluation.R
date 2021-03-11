@@ -27,10 +27,6 @@ if (!exists("tay")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
-   Export, HealthAndDV, Inventory, Offers, ProjectCoC, Referrals, 
-   regions, Scores, Services, stray_services, Users, VeteranCE, summary)
-
 # Points function ---------------------------------------------------------
 
 pe_score <- function(structure, value) {
