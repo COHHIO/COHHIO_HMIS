@@ -19,6 +19,7 @@ library(HMIS)
 library(plotly)
 library(choroplethr)
 library(choroplethrMaps)
+library(here)
 # library(wordcloud)
 # library(tm)
 # library(leaflet)
@@ -92,6 +93,32 @@ vaccine_distribution_provider <- covid19 %>%
 consent_yn <- covid19 %>%
   filter(!is.na(ConsentToVaccine)) %>%
   count(ConsentToVaccine)
+
+# trying something --------------------------------------------------------
+
+# library(rgdal)
+# 
+# oh_507 <- readOGR(dsn = here("Ohio/OH_507"),
+#                    layer="OH_507",
+#                    verbose = FALSE)
+# 
+# ohio_counties <- readOGR(dsn = here("Ohio/Counties"),
+#                          layer = "REFER_COUNTY")
+# 
+# library(leaflet)
+# 
+# mypalette <- colorFactor(
+#   palette = "viridis",
+#   domain = ohio_counties@data$COUNTY,
+#   na.color = "transparent"
+# )
+# 
+# m <- leaflet(ohio_counties) %>%
+#   addTiles() %>%
+#   setView(lat = 40, lng = -83, zoom = 7) %>%
+#   addPolygons(fillColor = ~mypalette(COUNTY), stroke = FALSE)
+# 
+# m
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
