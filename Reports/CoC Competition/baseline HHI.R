@@ -30,8 +30,8 @@ PSH <- ggplot(summary_pe_homeless_history_index %>%
   labs(title = "10 Possible Points",
        y = "Points",
        x = "PSH Projects") + 
-  scale_x_continuous(expand = c(0, 0)) + 
-  scale_y_continuous(expand = c(0, 0))
+  scale_x_continuous(expand = c(0, 0), limits = c(0,NA)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(-.5, 10.5))
 
 TH <- ggplot(summary_pe_homeless_history_index %>%
                filter(ProjectType == 2),
@@ -42,8 +42,8 @@ TH <- ggplot(summary_pe_homeless_history_index %>%
   labs(title = "10 Possible Points",
        y = NULL,
        x = "TH Projects") + 
-  scale_x_continuous(expand = c(0, 0)) + 
-  scale_y_continuous(expand = c(0, 0))
+  scale_x_continuous(expand = c(0, 0), limits = c(0,NA)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(-.5, 10.5))
 
 RRH <- ggplot(summary_pe_homeless_history_index %>%
                 filter(ProjectType == 13),
@@ -55,7 +55,7 @@ RRH <- ggplot(summary_pe_homeless_history_index %>%
        y = NULL,
        x = "RRH Projects") + 
   scale_x_continuous(expand = c(0, 0), limits = c(0,NA)) + 
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 10))
+  scale_y_continuous(expand = c(0, 0), limits = c(-.5, 10.5))
 
 PSH + TH + RRH 
 

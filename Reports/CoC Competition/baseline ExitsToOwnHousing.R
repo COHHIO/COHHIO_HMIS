@@ -31,7 +31,9 @@ TH <- ggplot(summary_pe_own_housing %>%
   theme_minimal() +
   labs(title = "5 Possible Points",
        y = "Points",
-       x = "TH Projects") 
+       x = "TH Projects")  + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0,NA)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(-.5, 5.5))
 
 RRH <- ggplot(summary_pe_own_housing %>%
                 filter(ProjectType == 13),
@@ -41,7 +43,9 @@ RRH <- ggplot(summary_pe_own_housing %>%
   theme_minimal() +
   labs(title = "5 Possible Points",
        y = NULL,
-       x = "RRH Projects")
+       x = "RRH Projects") + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0,NA)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(-.5, 5.5))
 
 TH + RRH 
 
