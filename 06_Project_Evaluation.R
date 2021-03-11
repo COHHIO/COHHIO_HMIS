@@ -24,6 +24,8 @@ if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
 if(!exists("dq_main")) load("images/Data_Quality.RData")
 if (!exists("tay")) {
   load("images/cohorts.RData")
+  # hc_project_eval_start <- mdy("01012019") # for comparison purposes
+  # hc_project_eval_end <- mdy("12312019")
   rlang::env_binding_lock(environment(), ls())
 }
 
@@ -1922,3 +1924,4 @@ write_csv(final_scores %>%
 # saving old data to "current" image so it all carries to the apps
 
 save(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
+
