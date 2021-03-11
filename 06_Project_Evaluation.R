@@ -359,25 +359,25 @@ pe_adults_moved_in_leavers <-  co_adults_moved_in_leavers %>%
 # increase income
 #Adults who moved in and were served during date range
 
-pe_adults_moved_in <-  co_adults_moved_in %>%
-  filter(stayed_between(., hc_project_eval_start, hc_project_eval_end)) %>%
-  select("PersonalID", "ProjectID", "EnrollmentID") %>%
-  inner_join(pe_coc_funded, by = "ProjectID") %>%
-  left_join(Client, by = "PersonalID") %>%
-  left_join(
-    Enrollment %>%
-      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
-    by = c(
-      "PersonalID",
-      "EnrollmentID",
-      "ProjectID",
-      "ProjectType",
-      "ProjectName"
-    )
-  ) %>%
-  select(all_of(vars_we_want)) %>%
-  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
-  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
+# pe_adults_moved_in <-  co_adults_moved_in %>%
+#   filter(stayed_between(., hc_project_eval_start, hc_project_eval_end)) %>%
+#   select("PersonalID", "ProjectID", "EnrollmentID") %>%
+#   inner_join(pe_coc_funded, by = "ProjectID") %>%
+#   left_join(Client, by = "PersonalID") %>%
+#   left_join(
+#     Enrollment %>%
+#       select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+#     by = c(
+#       "PersonalID",
+#       "EnrollmentID",
+#       "ProjectID",
+#       "ProjectType",
+#       "ProjectName"
+#     )
+#   ) %>%
+#   select(all_of(vars_we_want)) %>%
+#   arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+#   distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 # health insurance
 # Clients who moved in and exited during date range
@@ -475,14 +475,14 @@ summary_pe_adults_moved_in_leavers <- pe_adults_moved_in_leavers %>%
                                        as.integer(0),
                                        AdultMovedInLeavers))
 
-summary_pe_adults_moved_in <- pe_adults_moved_in %>%
-  group_by(AltProjectID) %>%
-  summarise(AdultsMovedIn = n()) %>%
-  ungroup() %>%
-  right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
-  mutate(AdultsMovedIn = if_else(is.na(AdultsMovedIn),
-                                 as.integer(0),
-                                 AdultsMovedIn))
+# summary_pe_adults_moved_in <- pe_adults_moved_in %>%
+#   group_by(AltProjectID) %>%
+#   summarise(AdultsMovedIn = n()) %>%
+#   ungroup() %>%
+#   right_join(pe_coc_funded["AltProjectID"] %>% unique(), by = "AltProjectID") %>%
+#   mutate(AdultsMovedIn = if_else(is.na(AdultsMovedIn),
+#                                  as.integer(0),
+#                                  AdultsMovedIn))
 
 summary_pe_clients_moved_in_leavers <- pe_clients_moved_in_leavers %>%
   group_by(AltProjectID) %>%
@@ -542,7 +542,7 @@ summary_pe_hohs_entered <- pe_hohs_entered %>%
 # totals at the alt-project level
 
 pe_validation_summary <- summary_pe_adults_entered %>%
-  full_join(summary_pe_adults_moved_in, by = "AltProjectID") %>%
+  # full_join(summary_pe_adults_moved_in, by = "AltProjectID") %>%
   full_join(summary_pe_hohs_served_leavers, by = "AltProjectID") %>%
   full_join(summary_pe_adults_moved_in_leavers, by = "AltProjectID") %>%
   full_join(summary_pe_clients_served, by = "AltProjectID") %>%
@@ -563,7 +563,7 @@ pe_validation_summary <- summary_pe_adults_entered %>%
     HoHsServed,
     HoHsServedLeavers,
     HoHDeaths,
-    AdultsMovedIn,
+    # AdultsMovedIn,
     AdultsEntered,
     ClientsMovedInLeavers,
     AdultMovedInLeavers,
@@ -1085,124 +1085,124 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
 # Accessing Mainstream Resources: Increase Total Income -------------------
 # PSH, TH, SH, RRH
 
-income_staging2 <-  pe_adults_moved_in %>%
-  right_join(pe_coc_funded %>% 
-               select(ProjectType, AltProjectID, AltProjectName) %>%
-               unique(), 
-             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
-  left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
-  select(PersonalID,
-         EnrollmentID,
-         EntryDate,
-         ExitDate,
-         TotalMonthlyIncome,
-         DateCreated,
-         DataCollectionStage) %>%
-  mutate(
-    DataCollectionStage = case_when(
-      DataCollectionStage == 1 ~ "Entry",
-      DataCollectionStage == 2 ~ "Update",
-      DataCollectionStage == 3 ~ "Exit",
-      DataCollectionStage == 5 ~ "Annual"
-    )
-  )
-  
-income_staging_fixed <- income_staging2 %>% 
-  filter(DataCollectionStage == "Entry") 
-
-income_staging_variable <- income_staging2 %>%
-  filter(DataCollectionStage %in% c("Update", "Annual", "Exit")) %>%
-  group_by(EnrollmentID) %>%
-  mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
-  filter(MaxUpdate == DateCreated) %>%
-  select(-MaxUpdate) %>%
-  distinct() %>%
-  ungroup() 
-
-income_staging <- rbind(income_staging_fixed, income_staging_variable) %>%
-  select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
-  unique()
-
-pe_increase_income <- income_staging %>%
-  pivot_wider(names_from = DataCollectionStage,
-              values_from = TotalMonthlyIncome) %>%
-  left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
-  left_join(data_quality_flags, by = "AltProjectName") %>%
-  mutate(
-    MostRecentIncome = case_when(
-      !is.na(Exit) ~ Exit,
-      !is.na(Update) ~ Update,
-      !is.na(Annual) ~ Annual
-    ),
-    IncomeAtEntry = if_else(is.na(Entry), 0, Entry),
-    IncomeMostRecent = if_else(is.na(MostRecentIncome), 
-                               IncomeAtEntry, 
-                               MostRecentIncome),
-    MeetsObjective = case_when(
-      IncomeMostRecent > IncomeAtEntry ~ 1,
-      IncomeMostRecent <= IncomeAtEntry ~ 0),
-    IncreasedIncomeDQ = if_else(General_DQ == 1 |
-                                  Income_DQ == 1, 1, 0),
-    PersonalID = as.character(PersonalID)
-  ) %>%  
-  select(
-    all_of(vars_to_the_apps),
-    IncreasedIncomeDQ,
-    IncomeAtEntry,
-    IncomeMostRecent
-  )
-
-rm(list = ls(pattern = "income_staging"))
-
-summary_pe_increase_income <- pe_increase_income %>%
-  group_by(ProjectType, AltProjectName, IncreasedIncomeDQ) %>%
-  summarise(IncreasedIncome = sum(MeetsObjective)) %>%
-  ungroup() %>%
-  right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
-  mutate(
-    IncreasedIncome = if_else(is.na(IncreasedIncome), 0, IncreasedIncome),
-    Structure = case_when(
-      ProjectType == 3 ~ "24_30_11",
-      ProjectType == 2 ~ "22_28_10",
-      ProjectType == 8 ~ "16_20_10",
-      ProjectType == 13 ~ "14_18_10"
-    ),
-    IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
-    IncreasedIncomeMath = if_else(
-      AdultsMovedIn != 0,
-      paste(
-        IncreasedIncome,
-        "increased income during their stay /",
-        AdultsMovedIn,
-        "adults who moved into the project's housing =",
-        percent(IncreasedIncomePercent, accuracy = 1)
-      ),
-      "All points granted because 0 adults moved into the project's housing"
-    ), 
-    IncreasedIncomePoints = case_when(
-      IncreasedIncomeDQ == 1 ~ 0,
-      AdultsMovedIn > 0 ~ pe_score(Structure, IncreasedIncomePercent),
-      ProjectType == 3 &
-      AdultsMovedIn == 0 &
-        (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 11,
-      ProjectType != 3 &
-        AdultsMovedIn == 0 &
-        (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 10
-    ), 
-    IncreasedIncomePossible = if_else(ProjectType == 3, 11, 10),
-    IncreasedIncomeCohort = "AdultsMovedIn"
-  ) %>%
-  select(
-    ProjectType,
-    AltProjectName,
-    IncreasedIncome,
-    IncreasedIncomeCohort,
-    IncreasedIncomeMath,
-    IncreasedIncomePercent,
-    IncreasedIncomePoints,
-    IncreasedIncomePossible,
-    IncreasedIncomeDQ
-  ) 
+# income_staging2 <-  pe_adults_moved_in %>%
+#   right_join(pe_coc_funded %>% 
+#                select(ProjectType, AltProjectID, AltProjectName) %>%
+#                unique(), 
+#              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
+#   left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
+#   select(PersonalID,
+#          EnrollmentID,
+#          EntryDate,
+#          ExitDate,
+#          TotalMonthlyIncome,
+#          DateCreated,
+#          DataCollectionStage) %>%
+#   mutate(
+#     DataCollectionStage = case_when(
+#       DataCollectionStage == 1 ~ "Entry",
+#       DataCollectionStage == 2 ~ "Update",
+#       DataCollectionStage == 3 ~ "Exit",
+#       DataCollectionStage == 5 ~ "Annual"
+#     )
+#   )
+#   
+# income_staging_fixed <- income_staging2 %>% 
+#   filter(DataCollectionStage == "Entry") 
+# 
+# income_staging_variable <- income_staging2 %>%
+#   filter(DataCollectionStage %in% c("Update", "Annual", "Exit")) %>%
+#   group_by(EnrollmentID) %>%
+#   mutate(MaxUpdate = max(ymd_hms(DateCreated))) %>%
+#   filter(MaxUpdate == DateCreated) %>%
+#   select(-MaxUpdate) %>%
+#   distinct() %>%
+#   ungroup() 
+# 
+# income_staging <- rbind(income_staging_fixed, income_staging_variable) %>%
+#   select(PersonalID, EnrollmentID, TotalMonthlyIncome, DataCollectionStage) %>%
+#   unique()
+# 
+# pe_increase_income <- income_staging %>%
+#   pivot_wider(names_from = DataCollectionStage,
+#               values_from = TotalMonthlyIncome) %>%
+#   left_join(pe_adults_moved_in, by = c("PersonalID", "EnrollmentID")) %>%
+#   left_join(data_quality_flags, by = "AltProjectName") %>%
+#   mutate(
+#     MostRecentIncome = case_when(
+#       !is.na(Exit) ~ Exit,
+#       !is.na(Update) ~ Update,
+#       !is.na(Annual) ~ Annual
+#     ),
+#     IncomeAtEntry = if_else(is.na(Entry), 0, Entry),
+#     IncomeMostRecent = if_else(is.na(MostRecentIncome), 
+#                                IncomeAtEntry, 
+#                                MostRecentIncome),
+#     MeetsObjective = case_when(
+#       IncomeMostRecent > IncomeAtEntry ~ 1,
+#       IncomeMostRecent <= IncomeAtEntry ~ 0),
+#     IncreasedIncomeDQ = if_else(General_DQ == 1 |
+#                                   Income_DQ == 1, 1, 0),
+#     PersonalID = as.character(PersonalID)
+#   ) %>%  
+#   select(
+#     all_of(vars_to_the_apps),
+#     IncreasedIncomeDQ,
+#     IncomeAtEntry,
+#     IncomeMostRecent
+#   )
+# 
+# rm(list = ls(pattern = "income_staging"))
+# 
+# summary_pe_increase_income <- pe_increase_income %>%
+#   group_by(ProjectType, AltProjectName, IncreasedIncomeDQ) %>%
+#   summarise(IncreasedIncome = sum(MeetsObjective)) %>%
+#   ungroup() %>%
+#   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
+#   mutate(
+#     IncreasedIncome = if_else(is.na(IncreasedIncome), 0, IncreasedIncome),
+#     Structure = case_when(
+#       ProjectType == 3 ~ "24_30_11",
+#       ProjectType == 2 ~ "22_28_10",
+#       ProjectType == 8 ~ "16_20_10",
+#       ProjectType == 13 ~ "14_18_10"
+#     ),
+#     IncreasedIncomePercent = IncreasedIncome / AdultsMovedIn,
+#     IncreasedIncomeMath = if_else(
+#       AdultsMovedIn != 0,
+#       paste(
+#         IncreasedIncome,
+#         "increased income during their stay /",
+#         AdultsMovedIn,
+#         "adults who moved into the project's housing =",
+#         percent(IncreasedIncomePercent, accuracy = 1)
+#       ),
+#       "All points granted because 0 adults moved into the project's housing"
+#     ), 
+#     IncreasedIncomePoints = case_when(
+#       IncreasedIncomeDQ == 1 ~ 0,
+#       AdultsMovedIn > 0 ~ pe_score(Structure, IncreasedIncomePercent),
+#       ProjectType == 3 &
+#       AdultsMovedIn == 0 &
+#         (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 11,
+#       ProjectType != 3 &
+#         AdultsMovedIn == 0 &
+#         (IncreasedIncomeDQ == 0 | is.na(IncreasedIncomeDQ)) ~ 10
+#     ), 
+#     IncreasedIncomePossible = if_else(ProjectType == 3, 11, 10),
+#     IncreasedIncomeCohort = "AdultsMovedIn"
+#   ) %>%
+#   select(
+#     ProjectType,
+#     AltProjectName,
+#     IncreasedIncome,
+#     IncreasedIncomeCohort,
+#     IncreasedIncomeMath,
+#     IncreasedIncomePercent,
+#     IncreasedIncomePoints,
+#     IncreasedIncomePossible,
+#     IncreasedIncomeDQ
+#   ) 
 
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
@@ -1781,8 +1781,8 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_homeless_history_index,
             by = c("ProjectType", "AltProjectName")) %>%
-  left_join(summary_pe_increase_income,
-            by = c("ProjectType", "AltProjectName")) %>%
+  # left_join(summary_pe_increase_income,
+  #           by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_length_of_stay,
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_long_term_homeless,
@@ -1810,7 +1810,7 @@ pe_final_scores <- pe_final_scores %>%
       ExitsToPHPoints +
       ScoredAtEntryPoints +
       MedianHHIPoints +
-      IncreasedIncomePoints +
+      # IncreasedIncomePoints +
       AverageLoSPoints +
       LongTermHomelessPoints +
       BenefitsAtExitPoints +
@@ -1875,7 +1875,7 @@ rm(list = ls()[!(ls() %in% c(
   'pe_exits_to_ph',
   'pe_final_scores',
   'pe_homeless_history_index',
-  'pe_increase_income',
+  # 'pe_increase_income',
   'pe_length_of_stay',
   'pe_long_term_homeless',
   'pe_own_housing',
@@ -1887,7 +1887,7 @@ rm(list = ls()[!(ls() %in% c(
   'summary_pe_entries_no_income',
   'summary_pe_exits_to_ph',
   'summary_pe_homeless_history_index',
-  'summary_pe_increase_income',
+  # 'summary_pe_increase_income',
   'summary_pe_length_of_stay',
   'summary_pe_long_term_homeless',
   'summary_pe_own_housing',
@@ -1905,7 +1905,7 @@ zero_divisors <- pe_validation_summary %>%
            HoHsEntered == 0 |
            HoHsServed == 0 |
            HoHsServedLeavers == 0 |
-           AdultsMovedIn == 0 |
+           # AdultsMovedIn == 0 |
            AdultsEntered == 0 |
            ClientsMovedInLeavers == 0 |
            AdultMovedInLeavers == 0 |
