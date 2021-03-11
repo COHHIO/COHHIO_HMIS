@@ -25,9 +25,9 @@ hc_data_goes_back_to <- mdy("01012019")
 
 hc_check_dq_back_to <- mdy("10012019") # the default ReportStart for DQ reporting
 
-hc_project_eval_start <- mdy("01012019")
+hc_project_eval_start <- mdy("01012020")
 
-hc_project_eval_end <- mdy("12312019")
+hc_project_eval_end <- mdy("12312020")
 
 hc_bos_start_vaccine_data <- mdy("02052021")
 
