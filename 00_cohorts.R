@@ -235,6 +235,8 @@ summary <- summary_clients_served %>%
   full_join(summary_adults_entered, by = "ProjectName") %>% 
   full_join(summary_hohs_served_leavers_died, by = "ProjectName")
 
+rm(vars_we_want)
+
 # APs ---------------------------------------------------------------------
 
 project_addresses <- ProjectCoC %>%
@@ -346,7 +348,10 @@ project_types_w_beds <- c(1, 2, 3, 8, 9)
 
 # User Groups -------------------------------------------------------------
 
+# HMIS Admins and CoC team UserIDs
+
 COHHIO_admin_user_ids <- c(641, 835, 1041, 1239, 1563, 1624, 1628, 1868, 1698)
+
 # Save it out -------------------------------------------------------------
 # WARNING save.image does not save the environment properly, save must be used.
 save(list = ls(), file = "images/cohorts.RData")
