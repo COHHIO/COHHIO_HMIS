@@ -39,7 +39,8 @@ increment <- function(..., cenv = rlang::caller_env()) {
   # pre allocate file path for previous timer
   .lt_path <- "data/last_timer.rds"
   
-  # if the first step remove tracking objects from env (if there were previous failures)
+  # if the first step remove tracking objects from env (if there were previous
+  # failures)
   if (stringr::str_detect(paste0(...), "Importing raw")) 
     suppressWarnings(rm(.update, .timer, .step, envir = cenv))
   
@@ -49,7 +50,8 @@ increment <- function(..., cenv = rlang::caller_env()) {
                              .auto_close = FALSE, 
                              .envir = cenv)
   
-  # if the last timer data exists load it and compute the total time from the previous run
+  # if the last timer data exists load it and compute the total time from the 
+  # previous run
   if (file.exists(.lt_path) && is.null(cenv$.last_timer)) {
     cenv$.last_timer <- readRDS(.lt_path)
     cenv$.total_time <- difftime(tail(cenv$.last_timer, 1)$ts, 
@@ -68,7 +70,9 @@ increment <- function(..., cenv = rlang::caller_env()) {
   
   # send the status message to console
   cli::cli_status_update(cenv$.update, 
-                         msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 12)}: {paste0(...)}...\n")
+                         msg = "Step {cenv$.step}/
+                         {rlang::`%||%`(cenv$.total_steps, 12)}: 
+                         {paste0(...)}...\n")
   
   if (is.null(cenv$.timer)) cenv$.timer <- 
     data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...))
@@ -79,7 +83,14 @@ increment <- function(..., cenv = rlang::caller_env()) {
                                     msg = paste0(...)))
   }
   if (stringr::str_detect(paste0(...),"Done!")) {
-    cli::cat_boxx(cli::col_blue("Completed at ", Sys.time(),"\nTiming data saved to ", .lt_path), border_style = "single", padding  = 1, margin = 0, float = "center") 
+    cli::cat_boxx(cli::col_blue("Completed at ", 
+                                Sys.time(),
+                                "\nTiming data saved to ", 
+                                .lt_path),
+                  border_style = "single", 
+                  padding  = 1, 
+                  margin = 0, 
+                  float = "center") 
     cli::cli_process_done(cenv$.update)
     saveRDS(cenv$.timer, .lt_path)
     
@@ -147,7 +158,8 @@ directory <- case_when(dataset == "live" ~ "data",
 
 if(ymd(meta_HUDCSV_Export_Start) != ymd(hc_data_goes_back_to) |
    ymd(meta_HUDCSV_Export_End) != today()) 
-  stop_with_instructions("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
+  stop_with_instructions("The HUD CSV Export was not run on the correct date range.
+                         Please rerun.\n")
 
 
 if(meta_Rmisc_last_run_date != today()) 
