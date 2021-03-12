@@ -38,12 +38,15 @@ orgs <- read_xlsx(here("data/RMisc2.xlsx"),
 
 providers_users <- users_eda_groups %>%
   left_join(eda_groups_providers, by = c("EDAGroupName" = "EDAGroup")) %>%
-  filter(!is.na(ProjectID)) %>%
+  filter(!is.na(ProjectID) &
+           ProjectID != 1695) %>%
   unique() %>%
   select(UserID, UserName, ProjectID) %>%
   left_join(orgs, by = "ProjectID") %>%
   mutate(OrgAdjust = case_when(OrganizationID == 1 ~ ProjectID,
                                TRUE ~ OrganizationID)) %>%
+  filter(!OrgAdjust %in% c(2361, 1027, 1032) &
+           !is.na(OrgAdjust)) %>%
   select(UserID, UserName, OrgAdjust) %>%
   left_join(orgs[c("ProjectID", "ProjectName")] %>%
               unique(), by = c("OrgAdjust" = "ProjectID")) %>%
@@ -51,4 +54,7 @@ providers_users <- users_eda_groups %>%
 
 user_count <- providers_users %>%
   count(OrgAdjust)
+
+users_in_more_than_1_org <- providers_users %>%
+  get_dupes(UserID, UserName)
 
