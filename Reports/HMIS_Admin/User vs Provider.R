@@ -1,0 +1,54 @@
+# COHHIO_HMIS
+# Copyright (C) 2021  Coalition on Homelessness and Housing in Ohio (COHHIO)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details at
+# <https://www.gnu.org/licenses/>.
+
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(here)
+
+users_eda_groups <- read_xlsx(here("data/RMisc2.xlsx"),
+                              sheet = 15) %>%
+  select(UserID, UserName, EDAGroupName) %>%
+  mutate(EDAGroupName = str_remove(EDAGroupName, "\\(.*\\)")) 
+
+eda_groups_providers <- read_xlsx(here("data/RMisc2.xlsx"),
+                                  sheet = 16) %>%
+  select(ProjectID, EDAGroup) %>%
+  mutate(EDAGroup = str_remove(EDAGroup, "\\(.*\\)"))
+
+orgs <- read_xlsx(here("data/RMisc2.xlsx"),
+                  sheet = 3) %>%
+  mutate(OrganizationID = str_extract(OrganizationName, "\\(.*\\)"),
+         OrganizationID = str_remove(OrganizationID, "[(]"),
+         OrganizationID = str_remove(OrganizationID, "[)]"),
+         OrganizationID = as.double(OrganizationID),
+         OrganizationName = str_remove(OrganizationName, "\\(.*\\)")) %>%
+  select(ProjectID, ProjectName, OrganizationID, OrganizationName)
+
+providers_users <- users_eda_groups %>%
+  left_join(eda_groups_providers, by = c("EDAGroupName" = "EDAGroup")) %>%
+  filter(!is.na(ProjectID)) %>%
+  unique() %>%
+  select(UserID, UserName, ProjectID) %>%
+  left_join(orgs, by = "ProjectID") %>%
+  mutate(OrgAdjust = case_when(OrganizationID == 1 ~ ProjectID,
+                               TRUE ~ OrganizationID)) %>%
+  select(UserID, UserName, OrgAdjust) %>%
+  left_join(orgs[c("ProjectID", "ProjectName")] %>%
+              unique(), by = c("OrgAdjust" = "ProjectID")) %>%
+  unique()
+
+user_count <- providers_users %>%
+  count(OrgAdjust)
+
