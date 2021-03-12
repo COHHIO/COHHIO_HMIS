@@ -209,10 +209,8 @@ coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
 coc_scoring <- coc_scoring %>%
   mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs),
          ChronicPrioritizationScore = as.double(ChronicPrioritizationScore),
-         CostPerExit = as.double(CostPerExit),
-         HousingFirstScore = as.double(HousingFirstScore),
-         OnTrackSpendingScoring = as.double(OnTrackSpendingScoring),
-         UnspentFundsScoring = as.double(UnspentFundsScoring)) 
+         PrioritizationWorkgroupScore = as.double(PrioritizationWorkgroupScore),
+         HousingFirstScore = as.double(HousingFirstScore)) 
 
 Project <- Project %>%
   select(-ProjectName) %>%

@@ -685,15 +685,6 @@ data_quality_flags <- data_quality_flags_detail %>%
 # CoC Scoring -------------------------------------------------------------
 docs_due <- mdy("04232021")
 
-lower_th <- 6000
-upper_th <- 10000
-
-lower_psh_sh <- 8000
-upper_psh_sh <- 12000
-
-lower_rrh <- 5000
-upper_rrh <- 9000
-
 summary_pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName", "ProjectID")) %>%
   select(
@@ -701,48 +692,15 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     ProjectID,
     AltProjectID,
     AltProjectName,
-    CostPerExit,
     DateReceivedPPDocs,
     HousingFirstScore,
     ChronicPrioritizationScore,
-    OnTrackSpendingScoring,
-    UnspentFundsScoring
+    PrioritizationWorkgroupScore
   ) %>%
   filter(!ProjectID %in% retired) %>%
   mutate(
-    CostPerExitScore = case_when(
-      (ProjectType == 2 &
-         CostPerExit <= lower_th) |
-        (ProjectType %in% c(3, 8) &
-           CostPerExit <= lower_psh_sh) |
-        (ProjectType == 13 &
-           CostPerExit <= lower_rrh) ~ 5, 
-      (ProjectType == 2 &
-         CostPerExit > lower_th &
-         CostPerExit <= upper_th) |
-        (
-          ProjectType %in% c(3, 8) &
-            CostPerExit > lower_psh_sh &
-            CostPerExit <= upper_psh_sh
-        ) |
-        (
-          ProjectType == 13 &
-            CostPerExit > lower_rrh &
-            CostPerExit <= upper_rrh
-        ) ~ 2, 
-      (ProjectType == 2 &
-         CostPerExit > upper_th) |
-        (ProjectType %in% c(3, 8) &
-           CostPerExit > upper_psh_sh) |
-        (ProjectType == 13 &
-           CostPerExit > upper_rrh) ~ 0 
-    ),
-    CostPerExitPossible = 5, 
-    CostPerExitMath = CostPerExit,
-    OnTrackSpendingPossible = 5,
-    OnTrackSpendingMath = OnTrackSpendingScoring,
-    UnspentFundsPossible = 5, 
-    UnspentFundsMath = UnspentFundsScoring,
+    PrioritizationWorkgroupPossible = 5, 
+    PrioritizationWorkgroupMath = PrioritizationWorkgroupScore,
     HousingFirstPossible = 15, 
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(docs_due) &
@@ -1801,9 +1759,7 @@ pe_final_scores <- summary_pe_final_scoring
 
 pe_final_scores$HousingFirstScore[is.na(pe_final_scores$HousingFirstScore)] <- 0
 pe_final_scores$ChronicPrioritizationScore[is.na(pe_final_scores$ChronicPrioritizationScore)] <- 0
-pe_final_scores$OnTrackSpendingScoring[is.na(pe_final_scores$OnTrackSpendingScoring)] <- 0
-pe_final_scores$UnspentFundsScoring[is.na(pe_final_scores$UnspentFundsScoring)] <- 0
-pe_final_scores$CostPerExitScore[is.na(pe_final_scores$CostPerExitScore)] <- 0
+pe_final_scores$PrioritizationWorkgroupScore[is.na(pe_final_scores$PrioritizationWorkgroupScore)] <- 0
 
 pe_final_scores <- pe_final_scores %>%
   mutate(
@@ -1820,9 +1776,7 @@ pe_final_scores <- pe_final_scores %>%
       LHResPriorPoints +
       HousingFirstScore +
       ChronicPrioritizationScore +
-      OnTrackSpendingScoring +
-      UnspentFundsScoring +
-      CostPerExitScore
+      PrioritizationWorkgroupScore 
   ) %>%
   select(ProjectType, 
          AltProjectName, 
