@@ -12,19 +12,13 @@
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
 
-library(ggplot2) 
+# library(ggplot2) 
 library(tidyverse)
 library(lubridate)
 library(HMIS)
-library(plotly)
-library(choroplethr)
-library(choroplethrMaps)
 library(here)
-# library(wordcloud)
-# library(tm)
-# library(leaflet)
-# library(RColorBrewer)
-# library(urbnmapr)
+library(sf)
+library(urbnmapr)
 
 if (!exists("Enrollment"))
   load("images/COHHIOHMIS.RData")
@@ -41,84 +35,58 @@ most_recent_entries <- co_clients_served %>%
   slice_max(EntryDate) %>%
   slice_max(EnrollmentID)
 
+counties <- get_urbn_map("counties", sf = TRUE)
+
+counties <- st_transform(counties, "+init=epsg:3857")
+
+counties <- counties %>%
+  mutate(county_name = str_remove(county_name, " County"))
+
 data(county.map)
 
-counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
+oh_counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
 
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
 vaccine_distribution_county <- covid19 %>%
   filter(ConsentToVaccine == "Yes (HUD)") %>%
-  rename("NAME" = CountyServed) %>%
-  count(NAME) %>%
-  right_join(counties, by = "NAME") %>%
+  rename("county_name" = CountyServed) %>%
+  count(county_name) %>%
+  right_join(counties, by = "county_name") %>%
   mutate(n = replace_na(n, 0)) %>%
-  select(region, "value" = n) %>% 
+  select(county_fips, "value" = n) %>% 
   unique()
-
-county_choropleth(vaccine_distribution_county,
-                  state_zoom = "ohio",
-                  num_colors = 1,
-                  title = "Would Consent to COVID-19 Vaccine",
-                  legend = "# of Adults and Children")
-
-
-vaccine_distribution_provider <- covid19 %>%
-  filter(ConsentToVaccine == "Yes (HUD)") %>%
-  select(PersonalID, CountyServed) %>%
-  left_join(most_recent_entries[c("PersonalID",
-                                  "EntryDate",
-                                  "ExitDate",
-                                  "ProjectName",
-                                  "Destination")], by = "PersonalID") %>%
-  mutate(
-    CurrentLocation = case_when(
-      is.na(EntryDate) ~ "Not currently enrolled in any homeless dedicated project.",
-      today() >= ymd(EntryDate) &
-        (ymd(ExitDate) > today()) |
-        is.na(ExitDate) ~ paste(
-          "Currently in",
-          ProjectName),
-      ymd(ExitDate) <= today() ~ paste(
-        "Exited",
-        ProjectName,
-        "on",
-        ExitDate,
-        "to",
-        living_situation(Destination))
-    )
-  ) %>%
-  count(CurrentLocation)
 
 consent_yn <- covid19 %>%
   filter(!is.na(ConsentToVaccine)) %>%
   count(ConsentToVaccine)
 
-# trying something --------------------------------------------------------
-
-# library(rgdal)
 # 
 # oh_507 <- readOGR(dsn = here("Ohio/OH_507"),
 #                    layer="OH_507",
 #                    verbose = FALSE)
-# 
+
 # ohio_counties <- readOGR(dsn = here("Ohio/Counties"),
 #                          layer = "REFER_COUNTY")
-# 
-# library(leaflet)
-# 
-# mypalette <- colorFactor(
-#   palette = "viridis",
-#   domain = ohio_counties@data$COUNTY,
-#   na.color = "transparent"
-# )
-# 
-# m <- leaflet(ohio_counties) %>%
-#   addTiles() %>%
-#   setView(lat = 40, lng = -83, zoom = 7) %>%
-#   addPolygons(fillColor = ~mypalette(COUNTY), stroke = FALSE)
-# 
-# m
+
+
+  
+household_data <- left_join(counties, countydata, by = "county_fips") %>%
+  filter(state_fips == 39) %>%
+  left_join(vaccine_distribution_county %>%
+            # mutate(region = as.character(region)) %>%
+            select(county_fips, value), by = "county_fips") 
+
+
+household_data %>%
+  ggplot() +
+  scale_fill_viridis_c(super = ScaleContinuous, direction = -1) +
+  geom_sf(aes(fill = value)) +
+  geom_sf_text(aes(label = str_remove(county_name, " County")), 
+               check_overlap = TRUE,
+               size = 3) +
+  labs(fill = "Would Consent") +
+  theme_void()
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
