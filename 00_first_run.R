@@ -46,14 +46,13 @@ pacman::p_load(
     "zoo",
     "DT",
     "writexl",
-    "viridis"
+    "viridis",
+    "glue"
   )
 )
 
 # Install HMIS package
 devtools::install_github("COHHIO/HMIS", dependencies = "Imports", upgrade = "always")
-
-
 
 # Create needed directories
 
