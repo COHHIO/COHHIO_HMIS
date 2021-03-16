@@ -66,7 +66,7 @@ Rstudied7th <- c(
   "demeanor",
   "sovereign",
   "eligible",
-  "attribute", 
+  "attribute",
   "characterize",
   "boycott",
   "agitate",
@@ -96,7 +96,17 @@ Rstudied7th <- c(
   "deceitful",
   "inevitable",
   "diversity",
-  "mandatory" 
+  "mandatory",
+  "competent",
+  "suspense",
+  "component",
+  "allocate",
+  "amendment",
+  "libel",
+  "alternative",
+  "industrious",
+  "adequate",
+  "negligent"
 )
 
 Rlist7th <- setdiff(seventh_grade, Rstudied7th)
