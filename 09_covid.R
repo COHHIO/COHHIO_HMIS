@@ -19,6 +19,7 @@ library(HMIS)
 library(here)
 library(sf)
 library(urbnmapr)
+library(choroplethrMaps)
 
 if (!exists("Enrollment"))
   load("images/COHHIOHMIS.RData")
@@ -260,9 +261,7 @@ write_csv(all, "random_data/percentmissing.csv")
 
 rm(list = ls()[!(
   ls() %in% c(
-    "vaccine_concerns_cloud",
-    "vaccine_needs_second_dose",
-    "vaccine_distribution_provider"
+    "vaccine_needs_second_dose"
   )
 )])
 
