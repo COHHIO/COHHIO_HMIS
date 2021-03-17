@@ -20,7 +20,6 @@ library(here)
 
 load(here("images/cohorts.RData"))
 
-
 users_eda_groups <- read_xlsx(here("data/RMisc2.xlsx"), 
                               sheet = 15) %>%
   select(UserID, UserEmail, EDAGroupName)
@@ -42,7 +41,7 @@ both <- providers_users %>%
   get_dupes(UserID) %>%
   select(UserID) %>% unique() %>%
   left_join(providers_users, by = "UserID") %>%
-  select(UserEmail) %>% unique()
+  select(UserEmail, UserID) %>% unique()
 
 mahoning_only <- providers_users %>%
   filter(coc == "mahoning") %>%
