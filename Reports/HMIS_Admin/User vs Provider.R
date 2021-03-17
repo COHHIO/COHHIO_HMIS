@@ -16,6 +16,7 @@ library(tidyverse)
 library(lubridate)
 library(janitor)
 library(here)
+library(readxl)
 
 users_eda_groups <- read_xlsx(here("data/RMisc2.xlsx"),
                               sheet = 15) %>%
@@ -58,3 +59,6 @@ user_count <- providers_users %>%
 users_in_more_than_1_org <- providers_users %>%
   get_dupes(UserID, UserName)
 
+mahoning_projects <-
+  c(696:697, 1327:1328, 1330:1331, 1392, 1638:1641, 1704, 1738, 2103, 2105,
+    2110, 2322:2336, 2338:2360, 2362:2385, 2437)
