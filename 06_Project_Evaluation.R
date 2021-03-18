@@ -154,7 +154,7 @@ pe_score <- function(structure, value) {
 # Staging -----------------------------------------------------------------
 
 keepers <- c(15, 1353, 1566) 
-retired <- c(1774, 1579, 390)
+retired <- c(1774, 390, 1579)
 
 pe_coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
