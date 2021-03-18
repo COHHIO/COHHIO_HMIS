@@ -12,7 +12,7 @@
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
 
-# library(ggplot2) 
+library(janitor)
 library(tidyverse)
 library(lubridate)
 library(HMIS)
@@ -49,6 +49,49 @@ oh_counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
 
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
+complete <- doses %>%
+  get_dupes(PersonalID) %>%
+  select(PersonalID) %>% 
+  unique() %>%
+  mutate(AlreadyVaccinated = "Yes")
+
+current <- Enrollment %>%
+  filter(AgeAtEntry >= 16 & 
+           ProjectType %in% c(lh_project_types) &
+           is.na(ExitDate)) %>%
+  select(CountyServed, PersonalID, ProjectName) %>%
+  left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")], 
+            by = "PersonalID") %>%
+  left_join(complete, by = "PersonalID") %>%
+  mutate(AlreadyVaccinated = if_else(is.na(AlreadyVaccinated), 
+                                     "Not acc. to HMIS", 
+                                     AlreadyVaccinated))
+
+total_sheltered_by_county <- current %>%
+  count(CountyServed) %>%
+  rename("TotalSheltered" = n) %>%
+  arrange(desc(TotalSheltered))
+
+would_consent <- current %>%
+  mutate(
+    ConsentToVaccine = if_else(is.na(ConsentToVaccine), 
+                               "Data not collected (HUD)", 
+                               ConsentToVaccine),
+    WouldConsent = case_when(
+      AlreadyVaccinated == "Yes" ~ "Already fully vaccinated",
+      ConsentToVaccine == "Yes (HUD)" ~ "Answered Yes to Consent question",
+      !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)") ~ "Consent Unknown",
+      ConsentToVaccine == "No (HUD)" ~ "Answered No to Consent question")) 
+
+would_consent_by_county <- would_consent %>%
+  count(CountyServed, WouldConsent) %>%
+  pivot_wider(names_from = WouldConsent,
+              values_from = n,
+              values_fill = 0)
+
+total_by_county <- total_sheltered_by_county %>%
+  left_join(would_consent_by_county, by = "CountyServed")
+
 vaccine_distribution_county <- covid19 %>%
   filter(ConsentToVaccine == "Yes (HUD)") %>%
   rename("county_name" = CountyServed) %>%
@@ -62,32 +105,28 @@ consent_yn <- covid19 %>%
   filter(!is.na(ConsentToVaccine)) %>%
   count(ConsentToVaccine)
 
-# 
-# oh_507 <- readOGR(dsn = here("Ohio/OH_507"),
-#                    layer="OH_507",
-#                    verbose = FALSE)
 
-# ohio_counties <- readOGR(dsn = here("Ohio/Counties"),
-#                          layer = "REFER_COUNTY")
-
-
-  
-household_data <- left_join(counties, countydata, by = "county_fips") %>%
+would_consent <- left_join(counties, countydata, by = "county_fips") %>%
   filter(state_fips == 39) %>%
   left_join(vaccine_distribution_county %>%
-            # mutate(region = as.character(region)) %>%
-            select(county_fips, value), by = "county_fips") 
+            select(county_fips, value), by = "county_fips") %>%
+  mutate(hover = paste0(county_name, ": ", value))
 
 
-household_data %>%
-  ggplot() +
-  scale_fill_viridis_c(super = ScaleContinuous, direction = -1) +
+consent_plot <- would_consent %>%
+  ggplot(aes(text = hover)) +
+  scale_fill_viridis_c(super = ScaleContinuous) +
   geom_sf(aes(fill = value)) +
-  geom_sf_text(aes(label = str_remove(county_name, " County")), 
+  geom_sf_text(aes(label = str_remove(county_name, " County")),
                check_overlap = TRUE,
-               size = 3) +
-  labs(fill = "Would Consent") +
+               size = 3,
+               color = "slategray3") +
+  labs(
+    title = "Would Consent to Vaccine") +
   theme_void()
+
+ggplotly(consent_plot,
+         tooltip = "text")
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
