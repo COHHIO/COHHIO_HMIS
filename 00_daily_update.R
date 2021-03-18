@@ -56,7 +56,7 @@ increment <- function(..., cenv = rlang::caller_env()) {
     cenv$.last_timer <- readRDS(.lt_path)
     cenv$.total_time <- difftime(tail(cenv$.last_timer, 1)$ts, 
                                  head(cenv$.last_timer, 1)$ts, units = "mins")
-    cenv$.total_steps<- tail(cenv$.last_timer, 1)$step
+    cenv$.total_steps <- tail(cenv$.last_timer, 1)$step
     cli::cli_status_update(cenv$.update, 
                            cli::col_blue("Expected time of completion: ", 
                                          Sys.time() + cenv$.total_time))
@@ -136,7 +136,7 @@ increment <- function(..., cenv = rlang::caller_env()) {
     stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
   }
   
-  source("00_dates.R")
+source("00_dates.R")
   
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")
