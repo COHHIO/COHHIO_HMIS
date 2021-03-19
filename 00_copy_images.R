@@ -90,33 +90,33 @@ data_prep <- function(object_names, directory, environment, accessor) {
     objects$df_nms <- names(objects)[.is_df]
     # Save the results
   }
-    .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
-    
-  if (any(.is_gg)) {
-      objects[.is_gg] <- objects[.is_gg] %>%
-        # Write the images
-        purrr::imap( ~ {
-          message(paste0("Saving ", .y, ".jpg"))
-          .p <-
-            file.path(directory,
-                      purrr::when(
-                        grepl("Rminor$", directory),
-                        . ~ file.path("inst", "app", "www"),
-                        ~ "www"
-                      ),
-                      paste0(.y, ".jpg"))
-          ggplot2::ggsave(
-            .p,
-            .x,
-            width = 800 / 72,
-            height = 500 / 72,
-            device = "jpeg",
-            units = "in"
-          )
-          file.path("www", basename(.p))
-        })
-      objects$gg_nms <- names(objects)[.is_gg]
-    }
+  #   .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
+  #   
+  # if (any(.is_gg)) {
+  #     objects[.is_gg] <- objects[.is_gg] %>%
+  #       # Write the images
+  #       purrr::imap( ~ {
+  #         message(paste0("Saving ", .y, ".jpg"))
+  #         .p <-
+  #           file.path(directory,
+  #                     purrr::when(
+  #                       grepl("Rminor$", directory),
+  #                       . ~ file.path("inst", "app", "www"),
+  #                       ~ "www"
+  #                     ),
+  #                     paste0(.y, ".jpg"))
+  #         ggplot2::ggsave(
+  #           .p,
+  #           .x,
+  #           width = 800 / 72,
+  #           height = 500 / 72,
+  #           device = "jpeg",
+  #           units = "in"
+  #         )
+  #         file.path("www", basename(.p))
+  #       })
+  #     objects$gg_nms <- names(objects)[.is_gg]
+  #   }
   saveRDS(
     objects,
     file = file.path(.dir, paste0(basename(directory), ".rds"))
