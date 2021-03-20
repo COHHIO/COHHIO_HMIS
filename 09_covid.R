@@ -62,8 +62,8 @@ most_recent_entries <- co_clients_served %>%
   left_join(Enrollment[c("EnrollmentID", "CountyServed")], by = "EnrollmentID") %>%
   group_by(PersonalID) %>%
   slice_max(EntryDate) %>%
-  slice_max(EnrollmentID)
-
+  slice_max(EnrollmentID) %>%
+  ungroup()
 
 # cohort of clients = current, over 16, and literally homeless in any ptc
 current_over16_lh <- most_recent_entries %>%
@@ -113,9 +113,9 @@ vaccine_distribution_county <- counties %>%
   mutate(across(7:11, ~replace_na(.x, 0)),
          hover = paste0(county_name, ": \n", 
                         total_lh,
-                        "literally homeless\n",
+                        " literally homeless\n",
                         answered_yes_to_consent_question,
-                        "would consent to vaccine")) 
+                        " would consent to vaccine")) 
 
 # creating plot
 consent_plot <- vaccine_distribution_county %>%
@@ -130,9 +130,9 @@ consent_plot <- vaccine_distribution_county %>%
     title = "Would Consent to Vaccine") +
   theme_void()
 
-# # making it usable
-# ggplotly(consent_plot,
-#          tooltip = "text")
+# making it usable
+ggplotly(consent_plot,
+         tooltip = "text")
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
