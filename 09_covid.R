@@ -108,7 +108,14 @@ totals_by_county <- total_lh_by_county %>%
 
 # creating sf data object with the pre-shaped data
 vaccine_distribution_county <- counties %>%
-  filter(state_fips == 39) %>%
+  filter(state_fips == 39, # Ohio
+         !county_fips %in% c(39113, # Montgomery
+                             39035, # Cuyahoga
+                             39049, # Franklin
+                             39153, # Summit
+                             39061, # Hamilton
+                             39095, # Lucas 
+                             39151)) %>% # Stark
   left_join(totals_by_county, by = "county_name") %>%
   mutate(across(7:11, ~replace_na(.x, 0)),
          hover = paste0(county_name, ": \n", 
@@ -118,16 +125,17 @@ vaccine_distribution_county <- counties %>%
                         " would consent to vaccine")) 
 
 # creating plot
-consent_plot <- vaccine_distribution_county %>%
-  ggplot(aes(text = hover)) +
-  scale_fill_viridis_c(super = ScaleContinuous) +
-  geom_sf(aes(fill = answered_yes_to_consent_question)) +
-  geom_sf_text(aes(label = str_remove(county_name, " County")),
+consent_plot <- ggplot(counties %>% filter(state_fips == 39)) + 
+  geom_sf() +
+  geom_sf(vaccine_distribution_county, 
+          mapping = aes(fill = total_lh, text = hover)) +  
+  geom_sf_text(counties %>% filter(state_fips == 39),
+               mapping = aes(label = county_name),
                check_overlap = TRUE,
                size = 3,
                color = "slategray3") +
-  labs(
-    title = "Would Consent to Vaccine") +
+  scale_fill_viridis_c(super = ScaleContinuous) +
+  labs(title = "Would Consent to Vaccine") +
   theme_void()
 
 # making it usable
