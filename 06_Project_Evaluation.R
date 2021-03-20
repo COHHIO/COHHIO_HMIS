@@ -156,7 +156,7 @@ pe_score <- function(structure, value) {
 keepers <- c(15, 1353, 1566) 
 retired <- c(1774, 390, 1579)
 
-pe_coc_funded <- Funder %>%
+coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
            ProjectID != 2069 &
            (ProjectID %in% c(keepers, retired) |
@@ -169,21 +169,23 @@ pe_coc_funded <- Funder %>%
   left_join(Project[c("ProjectID",
                       "ProjectName",
                       "ProjectType",
-                      "HMISParticipatingProject")], by = "ProjectID") %>%
-  filter(HMISParticipatingProject == 1) %>%
+                      "HMISParticipatingProject",
+                      "ProjectRegion")], by = "ProjectID") %>%
+  filter(HMISParticipatingProject == 1 &
+           ProjectRegion != "Mahoning County CoC") %>%
   select(ProjectType,
          ProjectName,
          ProjectID)
 
 # consolidated projects
 
-consolidations <- pe_coc_funded %>%
+consolidations <- coc_funded %>%
   filter(ProjectID %in% c(keepers, retired)) %>%
   mutate(
     AltProjectID = case_when(
-      ProjectID %in% c(1353, 390) ~ 3001,
-      ProjectID %in% c(1774, 15) ~ 3003,
-      ProjectID %in% c(1566, 1579) ~ 3007
+      ProjectID %in% c(1353, 390) ~ 3000,
+      ProjectID %in% c(1774, 15) ~ 3001,
+      ProjectID %in% c(1566, 1579) ~ 3002
     ),
     AltProjectName = case_when(
       ProjectID %in% c(1353, 390) ~ "Springfield SPC 1 Combined (1353, 390)",
@@ -195,7 +197,7 @@ consolidations <- pe_coc_funded %>%
 
 # filter to only CoC-funded projects (leaving out the SSO)
 
- pe_coc_funded <- pe_coc_funded %>%
+pe_coc_funded <- coc_funded %>%
   left_join(consolidations, by = c("ProjectID", "ProjectName")) %>%
   mutate(
     AltProjectID = if_else(is.na(AltProjectID), ProjectID, AltProjectID),
@@ -613,7 +615,8 @@ dq_flags_staging <- dq_for_pe %>%
     LoTHFlag =
       if_else(
         Issue %in% c("Missing Residence Prior",
-                     "Missing Months or Times Homeless"),
+                     "Missing Months or Times Homeless",
+                     "Incomplete Living Situation Data"),
         1,
         0
       )
