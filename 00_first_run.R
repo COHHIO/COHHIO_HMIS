@@ -64,7 +64,8 @@ pacman::p_load(
     "zoo",
     "DT",
     "writexl",
-    "viridis"
+    "viridis",
+    "glue"
   )
 )
 
@@ -72,8 +73,6 @@ pacman::p_load(
 devtools::install_github("COHHIO/HMIS", 
                          dependencies = "Imports", 
                          upgrade = "always")
-
-
 
 # Create needed directories
 

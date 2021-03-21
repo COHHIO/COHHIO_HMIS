@@ -1013,7 +1013,7 @@ rm(list = ls(pattern = "Top*"),
 
 # RRH mover inners only
 
-enrolled_in_rrh <- served_in_date_range %>%
+moved_in_rrh <- served_in_date_range %>%
   filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
   mutate(RRH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, 
@@ -1021,24 +1021,32 @@ enrolled_in_rrh <- served_in_date_range %>%
          RRH_range, 
          "RRHProjectName" = ProjectName)
 
-maybe_rrh_destination <- served_in_date_range %>%
-  left_join(enrolled_in_rrh, by = "PersonalID") %>%
-  filter(ProjectType != 13 &
-           ExitAdjust %within% RRH_range &
-           Destination != 31) %>%
-  mutate(
-    Issue = "Check Exit Destination (may be \"Rental by client, with RRH...\")",
-    Type = "Warning",
-    Guidance = "This household appears to have an Entry into an RRH project that
-    overlaps their Exit from your project. Typically this means the client moved
-    into a Rapid Rehousing unit after their stay with you. If that is true, the 
-    Destination should be \"Rental by client, with RRH...\". If you are sure the
-    current Destination is accurate, then please leave it the way it is."
-  ) %>% 
-  select(all_of(vars_we_want))
+enrolled_in_rrh <- served_in_date_range %>%
+  filter(ProjectType == 13) %>%
+  mutate(RRH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
+  select(PersonalID, 
+         "RRHMoveIn" = MoveInDateAdjust, 
+         RRH_range, 
+         "RRHProjectName" = ProjectName)
+
+# maybe_rrh_destination <- served_in_date_range %>%
+#   left_join(enrolled_in_rrh, by = "PersonalID") %>%
+#   filter(ProjectType != 13 &
+#            ExitAdjust %within% RRH_range &
+#            Destination != 31) %>%
+#   mutate(
+#     Issue = "Check Exit Destination (may be \"Rental by client, with RRH...\")",
+#     Type = "Warning",
+#     Guidance = "This household appears to have an Entry into an RRH project that
+#     overlaps their Exit from your project. Typically this means the client moved
+#     into a Rapid Rehousing unit after their stay with you. If that is true, the
+#     Destination should be \"Rental by client, with RRH...\". If you are sure the
+#     current Destination is accurate, then please leave it the way it is."
+#   ) %>%
+#   select(all_of(vars_we_want))
 
 should_be_rrh_destination <- served_in_date_range %>%
-  left_join(enrolled_in_rrh, by = "PersonalID") %>%
+  left_join(moved_in_rrh, by = "PersonalID") %>%
   filter(ProjectType != 13 &
            ExitDate == RRHMoveIn &
            Destination != 31) %>%
@@ -1050,7 +1058,7 @@ should_be_rrh_destination <- served_in_date_range %>%
     project does not indicate that the household exited to Rapid Rehousing. If
     the household exited to a Destination that was not \"Rental by client\", but
     it is a permanent destination attained through a Rapid Rehousing project, 
-    then this is no change needed. If this is not the case, then the Destination
+    then there is no change needed. If this is not the case, then the Destination
     should be \"Rental by client, with RRH or equivalent subsidy\"."
   ) %>% 
   select(all_of(vars_we_want))
@@ -3014,7 +3022,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       lh_without_spdat,
       mahoning_ce_60_days,
       maybe_psh_destination,
-      maybe_rrh_destination,
+      # maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_client_location,
       missing_county_served,
@@ -3137,7 +3145,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       internal_old_outstanding_referrals,
       lh_without_spdat,
       maybe_psh_destination,
-      maybe_rrh_destination,
+      # maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_destination,
       missing_county_served,

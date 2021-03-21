@@ -39,7 +39,8 @@ increment <- function(..., cenv = rlang::caller_env()) {
   # pre allocate file path for previous timer
   .lt_path <- "data/last_timer.rds"
   
-  # if the first step remove tracking objects from env (if there were previous failures)
+  # if the first step remove tracking objects from env (if there were previous
+  # failures)
   if (stringr::str_detect(paste0(...), "Importing raw")) 
     suppressWarnings(rm(.update, .timer, .step, envir = cenv))
   
@@ -49,12 +50,13 @@ increment <- function(..., cenv = rlang::caller_env()) {
                              .auto_close = FALSE, 
                              .envir = cenv)
   
-  # if the last timer data exists load it and compute the total time from the previous run
+  # if the last timer data exists load it and compute the total time from the 
+  # previous run
   if (file.exists(.lt_path) && is.null(cenv$.last_timer)) {
     cenv$.last_timer <- readRDS(.lt_path)
     cenv$.total_time <- difftime(tail(cenv$.last_timer, 1)$ts, 
                                  head(cenv$.last_timer, 1)$ts, units = "mins")
-    cenv$.total_steps<- tail(cenv$.last_timer, 1)$step
+    cenv$.total_steps <- tail(cenv$.last_timer, 1)$step
     cli::cli_status_update(cenv$.update, 
                            cli::col_blue("Expected time of completion: ", 
                                          Sys.time() + cenv$.total_time))
@@ -68,7 +70,9 @@ increment <- function(..., cenv = rlang::caller_env()) {
   
   # send the status message to console
   cli::cli_status_update(cenv$.update, 
-                         msg = "Step {cenv$.step}/{rlang::`%||%`(cenv$.total_steps, 12)}: {paste0(...)}...\n")
+                         msg = "Step {cenv$.step}/
+                         {rlang::`%||%`(cenv$.total_steps, 12)}: 
+                         {paste0(...)}...")
   
   if (is.null(cenv$.timer)) cenv$.timer <- 
     data.frame(ts = Sys.time(), step = cenv$.step, msg = paste0(...))
@@ -79,7 +83,15 @@ increment <- function(..., cenv = rlang::caller_env()) {
                                     msg = paste0(...)))
   }
   if (stringr::str_detect(paste0(...),"Done!")) {
-    cli::cat_boxx(cli::col_blue("Completed at ", Sys.time(),"\nTiming data saved to ", .lt_path), border_style = "single", padding  = 1, margin = 0, float = "center") 
+    cli::cat_rule()
+    cli::cat_boxx(cli::col_blue("Completed at ", 
+                                Sys.time(),
+                                "\nSee ", 
+                                .lt_path),
+                  border_style = "single", 
+                  padding  = 1, 
+                  margin = 0, 
+                  float = "center") 
     cli::cli_process_done(cenv$.update)
     saveRDS(cenv$.timer, .lt_path)
     
@@ -93,7 +105,7 @@ increment <- function(..., cenv = rlang::caller_env()) {
                            cli::col_grey("Time elapsed: ", .elapsed, " mins"))
   } else {
     cli::cli_status_update(cenv$.update,
-                           cli::cli_verbatim(cli::col_grey(
+                           cli::cli_verbatim(cli::col_magenta(
                              "Time elapsed: ",
                              .elapsed,
                              " mins - ",
@@ -124,7 +136,7 @@ increment <- function(..., cenv = rlang::caller_env()) {
     stop_with_instructions("Please download the HUD CSV Export to the data/ folder.")
   }
   
-  source("00_dates.R")
+source("00_dates.R")
   
 # if there's not already an images directory, create it
 if (!dir.exists("images")) dir.create("images")
@@ -147,7 +159,8 @@ directory <- case_when(dataset == "live" ~ "data",
 
 if(ymd(meta_HUDCSV_Export_Start) != ymd(hc_data_goes_back_to) |
    ymd(meta_HUDCSV_Export_End) != today()) 
-  stop_with_instructions("The HUD CSV Export was not run on the correct date range. Please rerun.\n")
+  stop_with_instructions("The HUD CSV Export was not run on the correct date range.
+                         Please rerun.\n")
 
 
 if(meta_Rmisc_last_run_date != today()) 
@@ -156,51 +169,51 @@ if(meta_Rmisc_last_run_date != today())
                          with the new one.")
 
 
-increment("Importing raw HMIS data")
+increment("\nImporting raw HMIS data\n")
 COHHIO_HMIS <- environment()
 source("00_get_Export_and_ART.R", local = COHHIO_HMIS)
 
-increment("working on Cohorts")
+increment("\nworking on Cohorts\n")
 Cohorts <- rlang::env(COHHIO_HMIS)
 rlang::env_binding_lock(COHHIO_HMIS, ls(COHHIO_HMIS))
 source("00_cohorts.R", local = Cohorts)
 rlang::env_binding_lock(Cohorts, ls(Cohorts))
 
-increment("working on Bed_Unit_Utilization")
+increment("\nworking on Bed_Unit_Utilization\n")
 source("01_Bed_Unit_Utilization.R", local = rlang::env(Cohorts))
 
-increment("working on QPR_SPDATs")
+increment("\nworking on QPR_SPDATs\n")
 source("02_QPR_SPDATs.R", local = rlang::env(COHHIO_HMIS))
 
-increment("working on QPR_EEs")
+increment("\nworking on QPR_EEs\n")
 source("02_QPR_EEs.R", local = rlang::env(Cohorts))
 
-increment("working on Veterans data")
+increment("\nworking on Veterans data\n")
 source("03_Veterans.R", local = rlang::env(Cohorts))
 
-increment("working on Data Quality")
+increment("\nworking on Data Quality\n")
 DataQuality <- rlang::env(Cohorts)
 source("04_DataQuality.R", local = rlang::env(DataQuality))
 rlang::env_binding_lock(DataQuality, ls(DataQuality))
 
-increment("working on Veterans Active List")
+increment("\nworking on Veterans Active List\n")
 source("05_Veterans_Active_List.R", local = rlang::env(Cohorts))
 
-increment("working on Project Evaluation")
+increment("\nworking on Project Evaluation\n")
 source("06_Project_Evaluation.R", local = rlang::env(DataQuality))
 
-increment("working on SPMs")
+increment("\nworking on SPMs\n")
 source("07_SPMs.R", local = new.env())
 
-increment("working on Active List")
+increment("\nworking on Active List\n")
 source("08_Active_List.R", local = rlang::env(Cohorts))
 
-increment("getting covid vaccine data together")
+increment("\ngetting covid vaccine data together\n")
 source("09_covid.R", local = new.env())
 
-increment("copying images to app directories")
+increment("\ncopying images to app directories\n")
 rm(Cohorts, COHHIO_HMIS)
 source("00_copy_images.R", local = new.env())
 
-increment("Done! All images are updated.")
+increment("Done! All images are updated.\n")
 

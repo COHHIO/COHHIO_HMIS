@@ -322,7 +322,10 @@ priority <- covid19_plot %>%
     Priority = factor(Priority, levels = c("Needs Isolation/Quarantine", 
                                            "Has Health Risk(s)", 
                                            "No Known Risks or Exposure")),
-    Week = epiweek(COVID19AssessmentDate),
+    Week = paste0(year(COVID19AssessmentDate), 
+                  str_pad(epiweek(COVID19AssessmentDate), 
+                          width = 2,
+                          pad = "0")),
     WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
                          "%b %d, %Y")
   ) %>% 
@@ -407,7 +410,10 @@ covid19_status <- covid19_plot %>%
                  "May Have COVID-19",
                  "Positive")
     ),
-    Week = epiweek(COVID19AssessmentDate),
+    Week = paste0(year(COVID19AssessmentDate), 
+                  str_pad(epiweek(COVID19AssessmentDate), 
+                          width = 2,
+                          pad = "0")),
     WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
                          "%b %d, %Y")
   ) %>% 

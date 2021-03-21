@@ -25,3 +25,4 @@ providers_set_to_migrate <- read_xlsx(here("random_data/reporting_groups.xlsx"))
 provider_name_too_long <- providers_set_to_migrate %>%
   mutate(first50 = substr(ProjectName, 1, 50)) %>%
   filter(characters > 50)
+

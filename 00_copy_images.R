@@ -11,32 +11,46 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Affero General Public License for more details at
 # <https://www.gnu.org/licenses/>.
-`%>%` <- dplyr::`%>%`
+
+library(dplyr)
+
+#creates empty environment called rdata
 rdata <- rlang::env(rlang::empty_env())
+
+#loads all images into rdata 
 purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   message(paste0("Loading ", .x))
   load(.x, envir = rdata)
 })
+
+# Function to copy image files to Rm and Rme ------------------------------
+
 #' @title Send data to the respective app directory
-#' @description Saves `data.frame`s to `feather` files in the `data/db` directory and all other objects as a `list` to an `rds` file in the `data/` directory.
-#' @param nms \code{(character)} vector of object names
-#' @param dir \code{(character)} file path to the application directory
-#' @param e \code{(environment)} in which to search for `nms`
-#' @param accessor \code{(function)} that uses default parameters for loading a data object from disk. Overwrites the data object.
+#' @description Saves `data.frame`s to `feather` files in the `data/db` directory 
+#' and all other objects as a `list` to an `rds` file in the `data/` directory.
+#' @param names \code{(character)} vector of object names
+#' @param directory \code{(character)} file path to the application directory
+#' @param environment \code{(environment)} in which to search for `names`
+#' @param accessor \code{(function)} that uses default parameters for loading a 
+#' data object from disk. Overwrites the data object.
 #' @importFrom purrr map_lgl map imap walk
 #' @importFrom dplyr `%>%`
-data_prep <- function(nms,
-                      dir,
-                      e,
-                      # accessor fn with default settings
-                      accessor) {
-  .missing <- purrr::map_lgl(setNames(nms, nms), ~ !exists(.x, envir = e, inherits = FALSE))
+data_prep <- function(object_names, directory, environment, accessor) {
+  .missing <- purrr::map_lgl(setNames(object_names, object_names), ~ 
+                               !exists(.x, envir = environment, inherits = FALSE))
+  
   if (any(.missing)) {
-    stop(paste0("00_copy_images missing objects: ", paste0(nms[.missing], collapse = ",")))
+    stop(paste0(
+      "00_copy_images missing objects: ",
+      paste0(object_names[.missing], collapse = ",")
+    ))
   }
-  objects <- rlang::env_get_list(e, nms, default = stop("00_copy_images: object missing"))
+  objects <-
+    rlang::env_get_list(environment, 
+                        object_names, 
+                        default = stop("00_copy_images: object missing"))
   # data directory
-  .dir <- file.path(dir, "data")
+  .dir <- file.path(directory, "data")
   # db directory inside data directory
   .db <- file.path(.dir, "db")
   # make if not created
@@ -71,27 +85,44 @@ data_prep <- function(nms,
       # overwrite the DFs with an accessor function.
       # This reads the feather file with the same name as the function
       purrr::map(~accessor)
-    # save a list of the data.frames that were replaced with accessor functions for reference while working on apps
+    # save a list of the data.frames that were replaced with accessor functions
+    # for reference while working on apps
     objects$df_nms <- names(objects)[.is_df]
     # Save the results
   }
-    .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
-  if (any(.is_gg)) {
-    objects[.is_gg] <- objects[.is_gg] %>%
-      # Write the images
-      purrr::imap(~ {
-        message(paste0("Saving ", .y, ".jpg"))
-        .p <- file.path(dir,  purrr::when(grepl("Rminor$", dir), . ~ file.path("inst", "app", "www"), ~ "www"), paste0(.y, ".jpg"))
-        ggplot2::ggsave(.p, .x, width = 800 / 72, height = 500 / 72, device = "jpeg", units = "in")
-        file.path("www", basename(.p))
-      })
-    objects$gg_nms <- names(objects)[.is_gg]
-  }
+  #   .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
+  #   
+  # if (any(.is_gg)) {
+  #     objects[.is_gg] <- objects[.is_gg] %>%
+  #       # Write the images
+  #       purrr::imap( ~ {
+  #         message(paste0("Saving ", .y, ".jpg"))
+  #         .p <-
+  #           file.path(directory,
+  #                     purrr::when(
+  #                       grepl("Rminor$", directory),
+  #                       . ~ file.path("inst", "app", "www"),
+  #                       ~ "www"
+  #                     ),
+  #                     paste0(.y, ".jpg"))
+  #         ggplot2::ggsave(
+  #           .p,
+  #           .x,
+  #           width = 800 / 72,
+  #           height = 500 / 72,
+  #           device = "jpeg",
+  #           units = "in"
+  #         )
+  #         file.path("www", basename(.p))
+  #       })
+  #     objects$gg_nms <- names(objects)[.is_gg]
+  #   }
   saveRDS(
     objects,
-    file = file.path(.dir, paste0(basename(dir), ".rds"))
+    file = file.path(.dir, paste0(basename(directory), ".rds"))
   )
 }
+
 ## to Rm:
 .Rm <- c("APs",
          "bos_counties",
@@ -196,7 +227,7 @@ data_prep <- function(nms,
           "meta_HUDCSV_Export_Start",              
           "meta_Rmisc_last_run_date",  
           "Organization",
-          "pe_increase_income",
+          # "pe_increase_income",
           "pe_exits_to_ph",
           "pe_homeless_history_index",
           "pe_length_of_stay",
@@ -226,7 +257,6 @@ data_prep <- function(nms,
           "utilizers_clients",
           "utilization",
           "utilization_bed",
-          "vaccine_distribution_provider",
           "vaccine_needs_second_dose",
           "validation",
           "veteran_active_list" 
