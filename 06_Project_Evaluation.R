@@ -1371,6 +1371,15 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
+score_matrix <- as.data.frame(matrix(
+  c(0, 1, 1, 2,
+    1, 1, 2, 2,
+    2, 2, 2, 3,
+    3, 3, 4, 4,
+    4, 5, 5, 6,
+    5, 6, 6, 7),
+  nrow = 6, ncol = 4, byrow = TRUE))
+
 pe_homeless_history_index <- pe_adults_entered %>%
   select(
     ProjectType,
@@ -1396,109 +1405,26 @@ pe_homeless_history_index <- pe_adults_entered %>%
                units = "days"),
       NULL
     ),
-    HHI = case_when(
-      DaysHomelessAtEntry > 364 |
-        (
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-            TimesHomelessPastThreeYears == 4
-        )  ~ 7,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-            TimesHomelessPastThreeYears %in% c(1, 2, 3)
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
-              TimesHomelessPastThreeYears == 4
-          )
-        ) ~ 6,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-            (
-              TimesHomelessPastThreeYears %in% c(8, 9, 99) |
-                is.na(TimesHomelessPastThreeYears)
-            )
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
-              TimesHomelessPastThreeYears %in% c(1, 2, 3)
-          )
-        ) ~ 5,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
-            TimesHomelessPastThreeYears %in% c(2, 3, 4)
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
-              (
-                TimesHomelessPastThreeYears %in% c(8, 9, 99) |
-                  is.na(TimesHomelessPastThreeYears)
-              )
-          )
-        ) ~ 4,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
-            TimesHomelessPastThreeYears == 4
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
-              (
-                TimesHomelessPastThreeYears %in% c(8, 9, 99, 1) |
-                  is.na(TimesHomelessPastThreeYears)
-              )
-          )
-        ) ~ 3,
-      DaysHomelessAtEntry <= 364 &
-        (((
-          is.na(TimesHomelessPastThreeYears) |
-            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
-        ) &
-          TimesHomelessPastThreeYears == 4
-        ) |
-          (
-            MonthsHomelessPastThreeYears == 101 &
-              TimesHomelessPastThreeYears %in% c(2, 3, 4)
-          ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
-              (
-                TimesHomelessPastThreeYears %in% c(1, 2, 3, 8, 9, 99) |
-                  is.na(TimesHomelessPastThreeYears)
-              )
-          )
-        ) ~ 2,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears == 101 &
-            (
-              is.na(TimesHomelessPastThreeYears) |
-                TimesHomelessPastThreeYears %in% c(1, 8, 9, 99)
-            )
-        ) |
-          ((
-            is.na(MonthsHomelessPastThreeYears) |
-              MonthsHomelessPastThreeYears %in% c(8, 9, 99)
-          ) &
-            TimesHomelessPastThreeYears %in% c(1, 2, 3)
-          )
-        ) ~ 1,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          is.na(MonthsHomelessPastThreeYears) |
-            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
-        ) &
-          (
-            TimesHomelessPastThreeYears %in% c(8, 9, 99) |
-              is.na(TimesHomelessPastThreeYears)
-          )
-        ) ~ 0,
-      TRUE ~ 0
+    NumMonthsLevel = case_when(
+      is.na(MonthsHomelessPastThreeYears) ~ 1,
+      MonthsHomelessPastThreeYears == 101 ~ 2,
+      MonthsHomelessPastThreeYears %in% c(102, 103, 104) ~ 3,
+      MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) ~ 4,
+      MonthsHomelessPastThreeYears %in% c(109, 110, 111) ~ 5,
+      MonthsHomelessPastThreeYears %in% c(112, 113) ~ 6
     ),
+    TimesLevel = case_when(
+      is.na(TimesHomelessPastThreeYears) ~ 1,
+      TimesHomelessPastThreeYears == 1 ~ 2,
+      TimesHomelessPastThreeYears %in% c(2, 3) ~ 3,
+      TimesHomelessPastThreeYears == 4 ~ 4
+    ),
+    HHI = if_else(DaysHomelessAtEntry >= 365, 7, 
+                  score_matrix[cbind(NumMonthsLevel, TimesLevel)]),
+    
     PersonalID = as.character(PersonalID)
-  )
+  ) %>%
+  select(-NumMonthsLevel, -TimesLevel)
 
 summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   group_by(ProjectType, AltProjectName, General_DQ) %>%
