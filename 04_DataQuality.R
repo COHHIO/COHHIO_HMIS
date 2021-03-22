@@ -387,7 +387,7 @@ dose_date_warning <- doses %>%
   group_by(PersonalID) %>%
   mutate(LastDose = lag(COVID19DoseDate, order_by = COVID19DoseDate)) %>%
   filter(!is.na(LastDose)) %>%
-  mutate(DaysBetweenDoses = difftime(COVID19DoseDate, LastDose)) %>%
+  mutate(DaysBetweenDoses = difftime(COVID19DoseDate, LastDose, units = "days")) %>%
   filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us) | 
     DaysBetweenDoses < 20 |
            (COVID19VaccineManufacturer == "Moderna") &
