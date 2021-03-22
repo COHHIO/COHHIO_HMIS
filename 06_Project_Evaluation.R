@@ -1718,37 +1718,15 @@ pe_final_scores <- pe_final_scores %>%
 # adding in Organization Name for publishing the final ranking
 # Org Names for the combined projects have to be done manually
 
-project_and_orgs <- Project %>%
-  select(ProjectID, ProjectName, OrganizationID)  %>%
-  left_join(Organization %>%
-              select(OrganizationID, OrganizationName), by = "OrganizationID")
-
-project_and_alt_project <- project_and_orgs %>%
-  left_join(consolidations, by = c("ProjectID", "ProjectName"))
+project_and_alt_project <- pe_coc_funded %>%
+  left_join(Project[c("ProjectID", "OrganizationID")], by = "ProjectID") %>%
+  left_join(Organization[c("OrganizationID", "OrganizationName")], 
+            by = "OrganizationID")
 
 final_scores <- pe_final_scores %>%
   select(AltProjectName, TotalScore) %>%
   left_join(project_and_alt_project, by = c("AltProjectName" = "ProjectName")) %>%
   select(OrganizationName, AltProjectName, TotalScore) %>%
-  mutate(OrganizationName = case_when(
-    AltProjectName == "Butler County PSH Combined (718, 719, 721)" ~ 
-      "Butler County Board of Commissioners",
-    AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ 
-      "Great Lakes Community Action Partnership",
-    AltProjectName == "Jefferson County SPC Combined (746, 747)" ~ 
-      "Coleman Professional Services",
-    AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ 
-      "Lake County ADAMHS Board",
-    AltProjectName == "Springfield SPC 1 Combined (1353, 1354, 390)" ~ 
-      "City of Springfield Ohio",
-    AltProjectName == "Trumbull SPC Vouchers Combined (548, 763, 764, 774)" ~ 
-      "Trumbull County Mental Health and Recovery Board",
-    AltProjectName == "Warren SPC Combined (1323, 208)" ~ 
-      "Warren Metropolitan Housing Authority", 
-    AltProjectName == "One Eighty PSH Plus Care Combined (1566, 1579)" ~ 
-      "OneEighty Inc.",
-    TRUE ~ OrganizationName
-  )) %>%
   arrange(desc(TotalScore))
 
 # Clean the House ---------------------------------------------------------
