@@ -158,7 +158,7 @@ retired <- c(1774, 390, 1579)
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
-           ProjectID != 2069 &
+           ProjectID != 2408 & # project too new
            (ProjectID %in% c(keepers, retired) |
               (
                 ymd(StartDate) <= ymd(hc_project_eval_end) &
@@ -591,7 +591,8 @@ dq_flags_staging <- dq_for_pe %>%
           "Incorrect Entry Exit Type", 
           "Children Only Household",
           "No Head of Household",
-          "Too Many Heads of Household"
+          "Too Many Heads of Household",
+          "Missing Relationship to Head of Household"
         ),
         1,
         0
