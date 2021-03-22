@@ -31,6 +31,8 @@ if (!exists("tay")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
+# ohio_counties <- st_read("Ohio/counties/REFER_COUNTY.shp")
+
 counties <- get_urbn_map("counties", sf = TRUE)
 
 counties <- st_transform(counties, "+init=epsg:3857")
@@ -43,13 +45,22 @@ data(county.map)
 oh_counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
 
 # Pinpointing where Vaccines are Wanted -----------------------------------
-# NEEDS NUANCE ADDED TO THROW OUT BAD DOSE INTERVALS 
+
 # who's already been vaccinated?
 complete <- doses %>%
-  get_dupes(PersonalID) %>%
+  group_by(PersonalID) %>%
+  summarise(Doses = n()) %>%
+  ungroup() %>%
+  filter(Doses > 1) %>%
+  left_join(doses, by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  mutate(LastDose = lag(COVID19DoseDate, order_by = COVID19DoseDate)) %>%
+  filter(!is.na(LastDose)) %>%
+  mutate(DaysBetweenDoses = difftime(COVID19DoseDate, LastDose, units = "days")) %>%
+  filter(DaysBetweenDoses >= 20) %>%
   select(PersonalID) %>% 
   unique() %>%
-  mutate(AlreadyVaccinated = "Yes")
+  mutate(FullyVaccinated = "Yes")
 
 # deduping enrollment data taking the most recent open enrollment
 most_recent_entries <- co_clients_served %>%
@@ -71,9 +82,9 @@ current_over16_lh <- most_recent_entries %>%
   left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
             by = "PersonalID") %>%
   left_join(complete, by = "PersonalID") %>%
-  mutate(AlreadyVaccinated = if_else(is.na(AlreadyVaccinated),
-                                     "Not acc. to HMIS",
-                                     AlreadyVaccinated))
+  mutate(FullyVaccinated = if_else(is.na(FullyVaccinated),
+                                   "Not acc. to HMIS",
+                                   FullyVaccinated))
 
 # getting total clients included per county
 total_lh_by_county <- current_over16_lh %>%
@@ -88,7 +99,7 @@ consent_status <- current_over16_lh %>%
                                "Data not collected (HUD)", 
                                ConsentToVaccine),
     Status = case_when(
-      AlreadyVaccinated == "Yes" ~ "Already fully vaccinated",
+      FullyVaccinated == "Yes" ~ "Fully vaccinated",
       ConsentToVaccine == "Yes (HUD)" ~ "Answered Yes to Consent question",
       !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)") ~ "Consent Unknown",
       ConsentToVaccine == "No (HUD)" ~ "Answered No to Consent question")) 
@@ -119,21 +130,29 @@ vaccine_distribution_county <- counties %>%
   left_join(totals_by_county, by = "county_name") %>%
   mutate(across(7:11, ~replace_na(.x, 0)),
          hover = paste0(county_name, ": \n", 
-                        total_lh,
-                        " literally homeless\n",
+                        consent_unknown,
+                        " + | Consent Unknown\n",
+                        answered_no_to_consent_question,
+                        " + | Would Not Consent\n",
                         answered_yes_to_consent_question,
-                        " would consent to vaccine")) 
+                        " + | Would Consent\n",
+                        fully_vaccinated,
+                        " + | Fully Vaccinated\n= ",
+                        total_lh,
+                        " | Total Over 16 and Literally Homeless")) 
 
 # creating plot
 consent_plot <- ggplot(counties %>% filter(state_fips == 39)) + 
   geom_sf() +
   geom_sf(vaccine_distribution_county, 
-          mapping = aes(fill = total_lh, text = hover)) +  
-  geom_sf_text(counties %>% filter(state_fips == 39),
-               mapping = aes(label = county_name),
-               check_overlap = TRUE,
-               size = 3,
-               color = "slategray3") +
+          mapping = aes(fill = total_lh)) +  
+  geom_sf_label(vaccine_distribution_county,
+                mapping = aes(label = hover)) +
+  # geom_sf_text(counties %>% filter(state_fips == 39),
+  #              mapping = aes(label = county_name),
+  #              check_overlap = TRUE,
+  #              size = 3,
+  #              color = "slategray3") +
   scale_fill_viridis_c(super = ScaleContinuous) +
   labs(title = "Would Consent to Vaccine") +
   theme_void()
@@ -141,6 +160,15 @@ consent_plot <- ggplot(counties %>% filter(state_fips == 39)) +
 # making it usable
 ggplotly(consent_plot,
          tooltip = "text")
+
+# # oh my god am I going to have to use straight plotly?!
+# plotly_vaccine_distribution_county <- ohio_counties %>%
+#   st_join(vaccine_distribution_county,
+#           by = c("FIPS_COUNT" = "county_fips"))
+# 
+# 
+# plot_ly(ohio_counties) %>%
+#   add_choropleth(vaccine_distribution_county)
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
