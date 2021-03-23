@@ -18,6 +18,8 @@ library(readxl)
 library(HMIS)
 library(tidyverse)
 
+source(here("00_dates.R"))
+
 # Get Pretty Names --------------------------------------------------------
 
 project_names <- read_xlsx(
@@ -55,6 +57,86 @@ Organization_improved <-
   dplyr::select(OrganizationID,
                 "OrganizationName" = ProjectName,
                 VictimServicesProvider:ExportID)
+
+write_csv(Organization_improved, here("data_to_Clarity/Organization.csv"), append = FALSE)
+
+# Move-In Date Madness ----------------------------------------------------
+
+Enrollment <-
+  read_csv(here("data_to_Clarity/Enrollment.csv"),
+           col_types =
+             "nnnDcnnnlnDnnnDDDnnnncccnnDnnnncnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnTTnTn")
+
+Exit <-
+  read_csv(here("data_to_Clarity/Exit.csv"),
+           col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn")
+
+small_exit <- Exit %>% dplyr::select(EnrollmentID, 
+                              ExitDate)
+
+EntryExits <- left_join(Enrollment, small_exit, by = "EnrollmentID") %>%
+  mutate(ExitAdjust = if_else(is.na(ExitDate) |
+                                ExitDate > today(),
+                              today(), ExitDate))
+
+small_project <- Project %>%
+  dplyr::select(ProjectID, ProjectType, ProjectName) 
+
+HHMoveIn <- EntryExits %>%
+  left_join(small_project, by = "ProjectID") %>%
+  filter(ProjectType %in% c(3, 9, 13)) %>%
+  mutate(
+    AssumedMoveIn = if_else(
+      ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
+        ProjectType %in% c(3, 9),
+      1,
+      0
+    ),
+    ValidMoveIn = case_when(
+      AssumedMoveIn == 1 ~ EntryDate,
+      AssumedMoveIn == 0 &
+        ProjectType %in% c(3, 9) &
+        ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(ExitAdjust) > ymd(MoveInDate) ~ MoveInDate,
+      # the Move-In Dates must fall between the Entry and ExitAdjust to be
+      # considered valid and for PSH the hmid cannot = ExitDate
+      ymd(MoveInDate) <= ymd(ExitAdjust) &
+        ymd(MoveInDate) >= ymd(EntryDate) &
+        ProjectType == 13 ~ MoveInDate
+    )
+  ) %>% 
+  filter(!is.na(ValidMoveIn)) %>%
+  group_by(HouseholdID) %>%
+  mutate(HHMoveIn = min(ValidMoveIn)) %>%
+  ungroup() %>%
+  dplyr::select(HouseholdID, HHMoveIn) %>%
+  unique()
+
+HHEntry <- EntryExits %>%
+  left_join(small_project, by = "ProjectID") %>%
+  group_by(HouseholdID) %>%
+  mutate(FirstEntry = min(EntryDate)) %>%
+  ungroup() %>%
+  dplyr::select(HouseholdID, "HHEntry" = FirstEntry) %>%
+  unique() %>%
+  left_join(HHMoveIn, by = "HouseholdID")
+
+Enrollment_improved <- EntryExits %>%
+  left_join(HHEntry, by = "HouseholdID") %>%
+  mutate(
+    MoveInDateAdjust = if_else(!is.na(HHMoveIn) &
+                                 ymd(HHMoveIn) <= ymd(ExitAdjust),
+                               if_else(ymd(EntryDate) <= ymd(HHMoveIn),
+                                       HHMoveIn, EntryDate),
+                               NA_real_)
+  ) %>%
+  dplyr::select(-ExitDate, -ExitAdjust, -HHEntry, -HHMoveIn, -MoveInDate) %>%
+  rename("MoveInDate" = MoveInDateAdjust) %>%
+  relocate(MoveInDate, .after = DateOfEngagement)
+
+write_csv(Enrollment_improved, 
+          here("data_to_Clarity/Enrollment.csv"), 
+          append = FALSE)
 
 
 
