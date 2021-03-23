@@ -161,14 +161,10 @@ consent_plot <- ggplot(counties %>% filter(state_fips == 39)) +
 ggplotly(consent_plot,
          tooltip = "text")
 
-# # oh my god am I going to have to use straight plotly?!
-# plotly_vaccine_distribution_county <- ohio_counties %>%
-#   st_join(vaccine_distribution_county,
-#           by = c("FIPS_COUNT" = "county_fips"))
-# 
-# 
-# plot_ly(ohio_counties) %>%
-#   add_choropleth(vaccine_distribution_county)
+
+# Trying Leaflet ----------------------------------------------------------
+
+
 
 # Connecting Clients to their 2nd Doses -----------------------------------
 
