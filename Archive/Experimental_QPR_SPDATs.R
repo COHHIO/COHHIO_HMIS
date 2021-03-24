@@ -15,14 +15,17 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
+library(HMIS)
 
-load("data/COHHIOHMIS.RData")
+load("images/COHHIOHMIS.RData")
 rm(Affiliation, Client, EnrollmentCoC, EmploymentEducation, Export, Exit, 
    Funder, HealthAndDV, Disabilities, IncomeBenefits, Geography, Inventory, 
    Offers, Organization, ProjectCoC, Services, VeteranCE)
 
 smallEnrollment <- Enrollment %>%
-  left_join(Project, by = "ProjectID") %>%
+  left_join(Project[c("ProjectID", 
+                      "OperatingStartDate",
+                      "OperatingEndDate")], by = "ProjectID") %>%
   select(
     EnrollmentID,
     PersonalID,
@@ -56,7 +59,7 @@ CountyData <-
   filter(
     ProjectType %in% c(1, 2, 4, 8) &
       RelationshipToHoH == 1 & 
-      ymd(StartDate) <= ymd(EntryDate) & 
+      ymd(ScoreDate) <= ymd(EntryDate) & 
       !CountyServed %in% c("Montgomery", 
                            "Cuyahoga", 
                            "Mahoning", 
@@ -67,12 +70,21 @@ CountyData <-
                            "Franklin",
                            "--Outside of Ohio--") &
       !is.na(CountyServed)) %>%
-  select(EnrollmentID, PersonalID, ProjectID, EntryDate, ExitDate, CountyServed, StartDate, Score) %>%
+  select(
+    EnrollmentID,
+    PersonalID,
+    ProjectID,
+    EntryDate,
+    ExitDate,
+    CountyServed,
+    ScoreDate,
+    Score
+  ) %>%
   group_by(PersonalID) %>%
   mutate(MaxEntry = max(ymd(EntryDate))) %>% # most recent EE
   filter(ymd(MaxEntry) == ymd(EntryDate)) %>%  
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>% # most recent score
-  filter(ymd(StartDate) == ymd(MaxScoreDate)) %>%
+  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>% # most recent score
+  filter(ymd(ScoreDate) == ymd(MaxScoreDate)) %>%
   mutate(MaxScore = max(Score)) %>% # highest score
   filter(Score == MaxScore) %>%
   ungroup() %>%
@@ -110,12 +122,10 @@ Ohio Balance of State, they will also not show here."
 SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
   select(-ProjectType,
          -OperatingStartDate,
-         -OperatingEndDate,
-         -SPDATRecordID,
-         -SPDATProvider) %>%
+         -OperatingEndDate) %>%
   filter(
     RelationshipToHoH == 1 &
-      (ymd(StartDate) <= ymd(EntryDate) | is.na(StartDate)) &
+      (ymd(ScoreDate) <= ymd(EntryDate) | is.na(ScoreDate)) &
       !CountyServed %in% c(
         "Montgomery",
         "Cuyahoga",
@@ -130,10 +140,10 @@ SPDATsByProject <- left_join(Entries, Scores, by = "PersonalID") %>%
       !is.na(CountyServed)
   ) %>%
   group_by(EnrollmentID) %>%
-  mutate(MaxScoreDate = max(ymd(StartDate))) %>%
-  filter(ymd(StartDate) == ymd(MaxScoreDate) | is.na(StartDate)) %>%
-  mutate(MaxScore = max(Score)) %>%
-  filter(Score == MaxScore | is.na(StartDate)) %>%
+  mutate(MaxScoreDate = max(ymd(ScoreDate))) %>%
+  filter(ymd(ScoreDate) == ymd(MaxScoreDate) | is.na(ScoreDate)) %>%
+  mutate(MaxScore = max(ScoreDate)) %>%
+  filter(Score == MaxScore | is.na(ScoreDate)) %>%
   distinct() %>%
   ungroup() %>%
   select(-MaxScoreDate, -MaxScore) %>%
@@ -177,7 +187,7 @@ rm(Entries, Scores, smallEnrollment)
 # Average VI-SPDAT Score of those who have an Entry into a Permanent Housing 
 # project type (RRH or PSH).
 
-Regions <- read_csv("data/Regions.csv") %>%
+Regions <- read_csv("public_data/Regions.csv") %>%
   mutate(RegionName = paste0("Homeless Planning Region ", Region))
 
 Compare <- 

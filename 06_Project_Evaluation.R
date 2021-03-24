@@ -158,7 +158,7 @@ retired <- c(1774, 390, 1579)
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
-           ProjectID != 2069 &
+           ProjectID != 2408 & # project too new
            (ProjectID %in% c(keepers, retired) |
               (
                 ymd(StartDate) <= ymd(hc_project_eval_end) &
@@ -591,7 +591,8 @@ dq_flags_staging <- dq_for_pe %>%
           "Incorrect Entry Exit Type", 
           "Children Only Household",
           "No Head of Household",
-          "Too Many Heads of Household"
+          "Too Many Heads of Household",
+          "Missing Relationship to Head of Household"
         ),
         1,
         0
@@ -1371,6 +1372,15 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
 # Community Need: Homeless History Index ----------------------------------
 # PSH, TH, SH, RRH
 
+score_matrix <- as.data.frame(matrix(
+  c(0, 1, 1, 2,
+    1, 1, 2, 2,
+    2, 2, 2, 3,
+    3, 3, 4, 4,
+    4, 5, 5, 6,
+    5, 6, 6, 7),
+  nrow = 6, ncol = 4, byrow = TRUE))
+
 pe_homeless_history_index <- pe_adults_entered %>%
   select(
     ProjectType,
@@ -1396,109 +1406,26 @@ pe_homeless_history_index <- pe_adults_entered %>%
                units = "days"),
       NULL
     ),
-    HHI = case_when(
-      DaysHomelessAtEntry > 364 |
-        (
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-            TimesHomelessPastThreeYears == 4
-        )  ~ 7,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-            TimesHomelessPastThreeYears %in% c(1, 2, 3)
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
-              TimesHomelessPastThreeYears == 4
-          )
-        ) ~ 6,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(112, 113) &
-            (
-              TimesHomelessPastThreeYears %in% c(8, 9, 99) |
-                is.na(TimesHomelessPastThreeYears)
-            )
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
-              TimesHomelessPastThreeYears %in% c(1, 2, 3)
-          )
-        ) ~ 5,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
-            TimesHomelessPastThreeYears %in% c(2, 3, 4)
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(109, 110, 111) &
-              (
-                TimesHomelessPastThreeYears %in% c(8, 9, 99) |
-                  is.na(TimesHomelessPastThreeYears)
-              )
-          )
-        ) ~ 4,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
-            TimesHomelessPastThreeYears == 4
-        ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) &
-              (
-                TimesHomelessPastThreeYears %in% c(8, 9, 99, 1) |
-                  is.na(TimesHomelessPastThreeYears)
-              )
-          )
-        ) ~ 3,
-      DaysHomelessAtEntry <= 364 &
-        (((
-          is.na(TimesHomelessPastThreeYears) |
-            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
-        ) &
-          TimesHomelessPastThreeYears == 4
-        ) |
-          (
-            MonthsHomelessPastThreeYears == 101 &
-              TimesHomelessPastThreeYears %in% c(2, 3, 4)
-          ) |
-          (
-            MonthsHomelessPastThreeYears %in% c(102, 103, 104) &
-              (
-                TimesHomelessPastThreeYears %in% c(1, 2, 3, 8, 9, 99) |
-                  is.na(TimesHomelessPastThreeYears)
-              )
-          )
-        ) ~ 2,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          MonthsHomelessPastThreeYears == 101 &
-            (
-              is.na(TimesHomelessPastThreeYears) |
-                TimesHomelessPastThreeYears %in% c(1, 8, 9, 99)
-            )
-        ) |
-          ((
-            is.na(MonthsHomelessPastThreeYears) |
-              MonthsHomelessPastThreeYears %in% c(8, 9, 99)
-          ) &
-            TimesHomelessPastThreeYears %in% c(1, 2, 3)
-          )
-        ) ~ 1,
-      DaysHomelessAtEntry <= 364 &
-        ((
-          is.na(MonthsHomelessPastThreeYears) |
-            MonthsHomelessPastThreeYears %in% c(8, 9, 99)
-        ) &
-          (
-            TimesHomelessPastThreeYears %in% c(8, 9, 99) |
-              is.na(TimesHomelessPastThreeYears)
-          )
-        ) ~ 0,
-      TRUE ~ 0
+    NumMonthsLevel = case_when(
+      is.na(MonthsHomelessPastThreeYears) ~ 1,
+      MonthsHomelessPastThreeYears == 101 ~ 2,
+      MonthsHomelessPastThreeYears %in% c(102, 103, 104) ~ 3,
+      MonthsHomelessPastThreeYears %in% c(105, 106, 107, 108) ~ 4,
+      MonthsHomelessPastThreeYears %in% c(109, 110, 111) ~ 5,
+      MonthsHomelessPastThreeYears %in% c(112, 113) ~ 6
     ),
+    TimesLevel = case_when(
+      is.na(TimesHomelessPastThreeYears) ~ 1,
+      TimesHomelessPastThreeYears == 1 ~ 2,
+      TimesHomelessPastThreeYears %in% c(2, 3) ~ 3,
+      TimesHomelessPastThreeYears == 4 ~ 4
+    ),
+    HHI = if_else(DaysHomelessAtEntry >= 365, 7, 
+                  score_matrix[cbind(NumMonthsLevel, TimesLevel)]),
+    
     PersonalID = as.character(PersonalID)
-  )
+  ) %>%
+  select(-NumMonthsLevel, -TimesLevel)
 
 summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   group_by(ProjectType, AltProjectName, General_DQ) %>%
@@ -1791,37 +1718,15 @@ pe_final_scores <- pe_final_scores %>%
 # adding in Organization Name for publishing the final ranking
 # Org Names for the combined projects have to be done manually
 
-project_and_orgs <- Project %>%
-  select(ProjectID, ProjectName, OrganizationID)  %>%
-  left_join(Organization %>%
-              select(OrganizationID, OrganizationName), by = "OrganizationID")
-
-project_and_alt_project <- project_and_orgs %>%
-  left_join(consolidations, by = c("ProjectID", "ProjectName"))
+project_and_alt_project <- pe_coc_funded %>%
+  left_join(Project[c("ProjectID", "OrganizationID")], by = "ProjectID") %>%
+  left_join(Organization[c("OrganizationID", "OrganizationName")], 
+            by = "OrganizationID")
 
 final_scores <- pe_final_scores %>%
   select(AltProjectName, TotalScore) %>%
   left_join(project_and_alt_project, by = c("AltProjectName" = "ProjectName")) %>%
   select(OrganizationName, AltProjectName, TotalScore) %>%
-  mutate(OrganizationName = case_when(
-    AltProjectName == "Butler County PSH Combined (718, 719, 721)" ~ 
-      "Butler County Board of Commissioners",
-    AltProjectName == "GLCAP PSH Combined (1774, 15)" ~ 
-      "Great Lakes Community Action Partnership",
-    AltProjectName == "Jefferson County SPC Combined (746, 747)" ~ 
-      "Coleman Professional Services",
-    AltProjectName == "Lake SPC Combined (737, 738, 739)" ~ 
-      "Lake County ADAMHS Board",
-    AltProjectName == "Springfield SPC 1 Combined (1353, 1354, 390)" ~ 
-      "City of Springfield Ohio",
-    AltProjectName == "Trumbull SPC Vouchers Combined (548, 763, 764, 774)" ~ 
-      "Trumbull County Mental Health and Recovery Board",
-    AltProjectName == "Warren SPC Combined (1323, 208)" ~ 
-      "Warren Metropolitan Housing Authority", 
-    AltProjectName == "One Eighty PSH Plus Care Combined (1566, 1579)" ~ 
-      "OneEighty Inc.",
-    TRUE ~ OrganizationName
-  )) %>%
   arrange(desc(TotalScore))
 
 # Clean the House ---------------------------------------------------------

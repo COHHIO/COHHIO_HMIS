@@ -16,6 +16,7 @@ Reports/*.csv
 Reports/Data_Warehouse/*.csv
 Reports/ohla_hotels_files
 threeyearsdata/
+data_to_Clarity/
 data/
 images/
 fy2020/
