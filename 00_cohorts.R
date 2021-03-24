@@ -258,6 +258,7 @@ APs <- Project %>%
     ProjectWebsite,
     ProjectTelNo
   ) %>%
+  unique() %>%
   mutate(OrgLink = if_else(!is.na(ProjectWebsite), paste0(
     "<a href='",
     ProjectWebsite,
