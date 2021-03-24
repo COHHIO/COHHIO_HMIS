@@ -1,5 +1,5 @@
 # COHHIO_HMIS
-# Copyright (C) 2020  Coalition on Homelessness and Housing in Ohio (COHHIO)
+# Copyright (C) 2021  Coalition on Homelessness and Housing in Ohio (COHHIO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -21,10 +21,6 @@ if (!exists("tay")) {
   load("images/cohorts.RData")
   rlang::env_binding_lock(environment(), ls())
 }
-
-rm(Affiliation, Disabilities, EmploymentEducation, EnrollmentCoC, Exit,
-   Export, Funder, HealthAndDV, IncomeBenefits, Offers, Organization, 
-   ProjectCoC, Scores, Services, Users, stray_services)
 
 # getting all the veterans
 Veterans <- Client %>%
@@ -193,9 +189,7 @@ current_tay_hohs <- tay %>%
       )
   )
 
-rm(Client, CaseManagers, Enrollment, Inventory, Project, regions, VeteranCE, 
-   Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, 
-   Referrals, CurrentVeteranCounts, Contacts, covid19, HUD_specs)
+rm(Veterans, CurrentVeterans, VeteranEngagement, VeteranHHs, CurrentVeteranCounts)
 
 rm(list = ls(pattern = "co_"))
 # WARNING save.image does not save the environment properly, save must be used.

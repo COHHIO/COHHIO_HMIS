@@ -15,17 +15,76 @@
 library(tidyverse)
 library(lubridate)
 library(here)
+library(readxl)
 
-load("images/COHHIOHMIS.RData")
+art_data <- read_xlsx(here("random_data/OrganizationsBitFocus.xlsx"), 
+                      sheet = 4) %>%
+  filter(!is.na(ProjectID)) %>% # dropping deleted providers
+  mutate(MinEntry = as.Date(MinEntry, origin = "1899-12-30"),
+         MaxExit = as.Date(MaxExit, origin = "1899-12-30"),
+         OpenEEs = replace_na(OpenEEs, 0),
+         operating = if_else(operating == "Yes", 1, 0),
+         participating = if_else(participating == "Yes", 1, 0))
 
-participating_providers <- Project %>%
-  filter(HMISParticipatingProject == 1)
+# the warnings are ok
+org_level <- art_data %>%
+  group_by(Org) %>%
+  summarise(minEntry = min(ymd(MinEntry), na.rm = TRUE),
+            maxExit = max(ymd(MaxExit), na.rm = TRUE),
+            openEEs = sum(OpenEEs),
+            maxOperating = max(operating),
+            maxParticipating = max(participating))
 
-participating_orgs <- participating_providers %>%
-  group_by(OrganizationID, OrganizationName) %>%
-  summarise(ParticipatingOrgs = n())
 
-orgs <- Organization %>%
-  select(OrganizationID, OrganizationName)
+# Separating Out Orgs that are coming over --------------------------------
+
+# orgs that have providers with data in them that's newer than 2014-05-01 
+# definitely coming over
+orgs_data_7yrs <- org_level %>%
+  filter(ymd(maxExit) > ymd("20140501")) %>%
+  select(Org) %>%
+  unique()
+
+# orgs where the most recent data entered is before 2014-05-01
+# definitely not coming over
+orgs_data_old <- org_level %>%
+  filter(ymd(maxExit) <= ymd("20140501")) %>%
+  select(Org) %>%
+  unique() 
+
+# Shell or Not-Shell ------------------------------------------------------
+
+# some provider in the org is HMIS participating
+# definitely coming over, all not-shell
+orgs_data_7yrs_participating <- orgs_data_7yrs %>%
+  left_join(org_level, by = "Org") %>%
+  filter(maxParticipating == 1)
 
 
+
+# no providers in the org are HMIS participating
+# maybe coming over
+orgs_data_7yrs_not_participating <- orgs_data_7yrs %>%
+  left_join(org_level, by = "Org") %>%
+  filter(maxParticipating == 0)
+
+
+
+VASH_only_orgs <- art_data %>%
+  mutate(VASH = if_else(str_detect(Project, "VASH"), 1, 0)) %>%
+  group_by(Org) %>%
+  summarise(total = n(),
+            vash = sum(VASH)) %>%
+  ungroup() %>%
+  filter(total - vash == 0) %>%
+  select(Org)
+
+non_participating_orgs <- art_data %>%
+  anti_join(orgs_data_7yrs, by = "Org") %>%
+  filter(str_starts(Project, "zz", negate = TRUE) &
+           participating == "No") %>%
+  # select(Org) %>%
+  unique()
+
+org_same_as_project <- art_data %>%
+  filter(Org == Project)

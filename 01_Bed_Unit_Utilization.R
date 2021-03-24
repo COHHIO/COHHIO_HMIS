@@ -1,5 +1,5 @@
 # COHHIO_HMIS
-# Copyright (C) 2020  Coalition on Homelessness and Housing in Ohio (COHHIO)
+# Copyright (C) 2021  Coalition on Homelessness and Housing in Ohio (COHHIO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -97,13 +97,6 @@ Utilizers <- left_join(Utilizers, small_project, by = "ProjectID") %>%
     ExitDate,
     ExitAdjust
   )
-
-# Cleaning up the house ---------------------------------------------------
-
-rm(Affiliation, Client, Disabilities, EmploymentEducation, EnrollmentCoC, Exit, 
-   Export, Funder, HealthAndDV, IncomeBenefits, Organization, 
-   ProjectCoC, Scores, Services, small_enrollment, small_inventory, small_project, 
-   Users, Offers, VeteranCE, CaseManagers, Referrals, HUD_specs, stray_services)
 
 # Client Utilization of Beds ----------------------------------------------
 
@@ -856,8 +849,7 @@ names(utilizers_clients) <-
     format.Date(int_start(TwentyfourthMonth), "%m%d%Y")
   )
 
-rm(Households, Clients, Capacity, Enrollment, Project, Inventory, 
-   small_inventory, small_project, providerids)
+rm(Households, Clients, Capacity, small_inventory, small_project, providerids)
 
 note_bed_utilization <- "Bed Utilization is the percentage of a project's 
 available beds being populated by individual clients."
@@ -911,7 +903,6 @@ rm(list = ls(all.names = TRUE, pattern = "co_"))
 # 
 # outliers <- rbind(outliers_hi, outliers_lo)
 
-rm(Contacts, covid19, regions, ServiceAreas)
 # WARNING save.image does not save the environment properly, save must be used.
 save(list = ls(), file = "images/Utilization.RData", compress = FALSE)
 

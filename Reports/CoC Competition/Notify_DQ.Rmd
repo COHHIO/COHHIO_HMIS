@@ -31,7 +31,7 @@ Hi!
 
 You are receiving this email because your HMIS login has permissions to enter data for `r if_else(nrow(how_many_providers) > 1, "providers that are", "a provider that is")` participating in the [Ohio Balance of State CoC Competition](https://cohhio.org/boscoc/coc-program/#gsc.tab=0) this year and losing points in the project ranking due to HMIS Data Quality.
 
-Please check [R minor elevated](https://ohiobalanceofstatecoc.shinyapps.io/Rminor_elevated/) > Data Quality > Provider-level to correct all Errors and High Priority issues. You do NOT need to resolve any of your Warnings for purposes of the CoC Competition Project Evaluation as those are not considered in the scoring.
+Please check [R minor elevated](https://ohiobalanceofstatecoc.shinyapps.io/Rminor_elevated/) > Data Quality > Provider-level to correct all Errors and High Priority issues. You do NOT need to resolve any of your Warnings for purposes of the CoC Competition Project Evaluation as those are not considered in the Data Quality scoring, though Warnings can help you identify places in your data that may need attention and could improve your overall score, depending on what the Warning is.
 
 The `r if_else(nrow(how_many_providers) > 1, "providers", "provider")` that will need to be corrected by **July 20th at 11:59pm** `r if_else(nrow(how_many_providers) > 1, "are", "is")`:
 

@@ -1,5 +1,5 @@
 # COHHIO_HMIS
-# Copyright (C) 2020  Coalition on Homelessness and Housing in Ohio (COHHIO)
+# Copyright (C) 2021  Coalition on Homelessness and Housing in Ohio (COHHIO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -207,7 +207,10 @@ coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                               sheet = 13)
 
 coc_scoring <- coc_scoring %>%
-  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs))
+  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs),
+         ChronicPrioritizationScore = as.double(ChronicPrioritizationScore),
+         PrioritizationWorkgroupScore = as.double(PrioritizationWorkgroupScore),
+         HousingFirstScore = as.double(HousingFirstScore)) 
 
 Project <- Project %>%
   select(-ProjectName) %>%
@@ -293,21 +296,25 @@ HHMoveIn <- Enrollment %>%
   left_join(small_project, by = "ProjectID") %>%
   filter(ProjectType %in% c(3, 9, 13)) %>%
   mutate(
+    AssumedMoveIn = if_else(
+      ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
+        ProjectType %in% c(3, 9),
+      1,
+      0
+    ),
     ValidMoveIn = case_when(
-      # prior to 2017, PSH didn't use move-in dates, so we're overwriting 
-      # those PSH move-in dates with the Entry Date        
-      (ymd(EntryDate) < hc_psh_started_collecting_move_in_date &
-         ProjectType %in% c(3, 9))  ~ EntryDate,
-      # the Move-In Dates must fall between the Entry and ExitAdjust to be 
+      AssumedMoveIn == 1 ~ EntryDate,
+      AssumedMoveIn == 0 &
+        ProjectType %in% c(3, 9) &
+        ymd(EntryDate) <= ymd(MoveInDate) &
+        ymd(ExitAdjust) > ymd(MoveInDate) ~ MoveInDate,
+      # the Move-In Dates must fall between the Entry and ExitAdjust to be
       # considered valid and for PSH the hmid cannot = ExitDate
-      ymd(EntryDate) <= ymd(MoveInDate) & 
-        (ymd(MoveInDate) < ymd(ExitAdjust) &
-           ProjectType %in% c(3, 9)) |
-        (ymd(MoveInDate) <= ymd(ExitAdjust) &
-           ProjectType == 13)
-      ~ MoveInDate
+      ymd(MoveInDate) <= ymd(ExitAdjust) &
+        ymd(MoveInDate) >= ymd(EntryDate) &
+        ProjectType == 13 ~ MoveInDate
     )
-  ) %>%
+  ) %>% 
   filter(!is.na(ValidMoveIn)) %>%
   group_by(HouseholdID) %>%
   mutate(HHMoveIn = min(ValidMoveIn)) %>%
@@ -466,6 +473,7 @@ rm(provider_extras)
   
 covid19 <-
   read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 6) %>%
+  filter(!PersonalID %in% c(5, 4216)) %>%
   mutate(
     COVID19AssessmentDate = ymd(as.Date(COVID19AssessmentDate,
                                         origin = "1899-12-30")),
@@ -494,7 +502,8 @@ covid19 <-
 doses <- read_xlsx(paste0(directory, "/RMisc2.xlsx"), sheet = 21) %>%
   mutate(
     COVID19DoseDate = ymd(as.Date(COVID19DoseDate,
-                                        origin = "1899-12-30")))
+                                        origin = "1899-12-30"))) %>%
+  filter(!PersonalID %in% c(5, 4216))
 
 # Services ----------------------------------------------------------------
 

@@ -25,10 +25,6 @@ if (!exists("tay")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-rm(Affiliation, CaseManagers, Disabilities, EmploymentEducation, EnrollmentCoC, 
-   Exit, Export, Funder, HealthAndDV, Offers, ProjectCoC, Scores, VeteranCE, 
-   Users, Referrals, stray_services, Inventory)
-
 # decided to continue to use a separate file for Goals (instead of building it
 # in a tribble) because this way the CoC team can review it more easily.
 goals <- read_csv("public_data/BoSGoals.csv", col_types = "cccdddddddd")
@@ -60,8 +56,6 @@ smallProject <- Project %>%
            ProjectType %in% c(1:4, 8:9, 12:14)) %>%
   mutate(
     FriendlyProjectName = if_else(is.na(ProjectAKA), ProjectName, ProjectAKA))
-
-rm(Project)
 
 smallEnrollment <- Enrollment %>% 
   select(
@@ -236,18 +230,12 @@ qpr_spending <- Services %>%
            !is.na(Amount)) %>%
   select(-RelationshipToHoH)
 
-rm(Client, 
-   Enrollment, 
-   Organization,
-   Services,
-   smallEnrollment,
+rm(smallEnrollment,
    smallProject, 
-   regions, 
    smallMainstreamBenefits,
    incomeMostRecent,
    incomeAtEntry,
-   smallIncomeDiff,
-   IncomeBenefits)
+   smallIncomeDiff)
 
 
 # COVID-19 plots for Rm ---------------------------------------------------
@@ -334,7 +322,10 @@ priority <- covid19_plot %>%
     Priority = factor(Priority, levels = c("Needs Isolation/Quarantine", 
                                            "Has Health Risk(s)", 
                                            "No Known Risks or Exposure")),
-    Week = epiweek(COVID19AssessmentDate),
+    Week = paste0(year(COVID19AssessmentDate), 
+                  str_pad(epiweek(COVID19AssessmentDate), 
+                          width = 2,
+                          pad = "0")),
     WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
                          "%b %d, %Y")
   ) %>% 
@@ -419,7 +410,10 @@ covid19_status <- covid19_plot %>%
                  "May Have COVID-19",
                  "Positive")
     ),
-    Week = epiweek(COVID19AssessmentDate),
+    Week = paste0(year(COVID19AssessmentDate), 
+                  str_pad(epiweek(COVID19AssessmentDate), 
+                          width = 2,
+                          pad = "0")),
     WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
                          "%b %d, %Y")
   ) %>% 

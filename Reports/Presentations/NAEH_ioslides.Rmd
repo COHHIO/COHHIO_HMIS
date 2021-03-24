@@ -1,0 +1,79 @@
+---
+title: "Data-driven Decision-Making in Prioritization"
+author: "Genelle Denzin"
+date: "3/2/2021"
+output: 
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+    logo: images/COHHIOlogo_5.16.jpg
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Intro {.colums-2 .smaller}
+
+**Genelle Denzin** *she/hers*
+Data Analyst
+
+Coalition on Homelessness and Housing in Ohio (COHHIO)
+
+* Based in Columbus, Ohio
+* Fiddler 
+* Lover of R
+
+<div class="notes>
+Part of a 4-person HMIS team, aiming to help two CoCs succeed in ending homelessness. 
+
+</div>
+
+## Ohio Balance of State & Mahoning County CoCs
+![80 of the 88 Counties in Ohio](images/MapBoS.png) ![Mahoning County CoC](images/MapMahoningCountyCoC.png)
+
+
+<div class="notes>
+BoS has a 3-person team, including the director, Mahoning is the County with a single coordinator doing everything else that we're not doing.
+
+</div>
+
+## Prioritization in the Ohio Balance of State CoC
+
+Our 80-county CoC was divided into 17 Homeless Planning Regions by a state agency for grant management purposes, so our Coordinated Entry is decentralized and mostly work through the Planning Region or County level.
+
+Ohio's Balance of State is populated and varied. 
+
+  * It's rural, suburban, and urban. 
+  * Some places have a shelter, some places don't. In some places there is no PSH. 
+  * We have only 4 counties covered by PATH Street Outreach.
+
+## Our Approach to using Data for Prioritization
+
+The intent is to give Regions the data they need to drive their decision making, taking into account HUD's Order of Priority, COVID-19 data they may be collecting, and local priorities.
+
+The BoS CoC uses the VI-SPDAT currently, but the CoC team is working to change that and we train our agencies to use it as one part of their decision making.
+
+The rest of it will come from our Prioritization Report in a Shiny app that I built to house all our custom reporting.
+
+## Our Prioritization Report
+
+I built our Prioritization Report as part of a free and open source project called R minor. It's written in R, thus the R, and I'm a musician in love with minor keys and COHHIO picked R minor from a list of other names we came up with, so that's what we call it. 
+
+It's 2 Shiny apps- R minor is public, R minor elevated is behind a login.
+
+The Prioritization Report is in R minor elevated because it has client-level data. It is updated every weekday morning with fresh data from our HMIS.
+
+## Usage
+
+Regional and County Coordinated Entry teams meet regularly to do case conferencing and review the Prioritization report. It looks different from Region to Region, but ultimately, the goal is to use the data in local meetings.
+
+## Accuracy
+
+All the code for R minor and R minor elevated is available on GitHub under an AGPL open source license. Gwen..
+
+
+
+
+
+

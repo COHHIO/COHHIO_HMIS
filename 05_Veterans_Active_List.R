@@ -30,16 +30,61 @@ responsible_providers <- ServiceAreas %>%
 vet_ees <- co_clients_served %>%
   filter(ProjectType %in% c(lh_at_entry_project_types)) %>%
   mutate(VeteranStatus = if_else(VeteranStatus == 1, 1, 0)) %>%
-  group_by(HouseholdID) %>%
+  group_by(HouseholdID) %>% # pulling in all Veterans & non-veteran hh members
   summarise(VetCount = sum(VeteranStatus)) %>%
   ungroup() %>%
   filter(VetCount > 0) %>%
   left_join(Enrollment, by = "HouseholdID") %>%
-  left_join(Client %>% select(PersonalID, VeteranStatus), by = "PersonalID") %>%
+  left_join(co_clients_served[c("PersonalID", "VeteranStatus")], by = "PersonalID") %>%
   left_join(Project[c("ProjectID", "ProjectCounty")], by = "ProjectID") %>%
-  filter((CountyServed %in% c(bos_counties) | is.na(CountyServed)) &
-           !ProjectID %in% c(1282)) %>%
-  select(1, 3:15, 17, 51, 67, 73, 75:92)
+  left_join(VeteranCE, 
+            by = c("PersonalID", "EnrollmentID", "ExpectedPHDate", "PHTrack")) %>%
+
+  mutate(
+    County = if_else(is.na(CountyServed), ProjectCounty, CountyServed)
+  ) %>%
+  filter((County %in% c(bos_counties) | 
+            County == "Mahoning") &
+           !ProjectID %in% c(1282)) %>% # i don't remember why i'm excluding this? 
+  select(
+    HouseholdID,
+    EnrollmentID,
+    PersonalID,
+    HOMESID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    ProjectCounty,
+    DateVeteranIdentified,
+    EntryDate,
+    EntryAdjust,
+    MoveInDateAdjust,
+    ExitDate,
+    ExitAdjust,
+    RelationshipToHoH,
+    LivingSituation,
+    ListStatus,
+    VAEligible,
+    SSVFIneligible,
+    LengthOfStay,
+    LOSUnderThreshold,
+    PreviousStreetESSH,
+    DateToStreetESSH,
+    TimesHomelessPastThreeYears,
+    MonthsHomelessPastThreeYears,
+    DisablingCondition,
+    AnnualPercentAMI,
+    VAMCStation,
+    UserCreating,
+    County,
+    PHTrack,
+    ExpectedPHDate,
+    Destination,
+    OtherDestination,
+    ClientLocation,
+    AgeAtEntry,
+    VeteranStatus
+  )
 
 # Currently in PSH/RRH ----------------------------------------------------
 
@@ -55,15 +100,22 @@ currently_housed_in_psh_rrh <- vet_ees %>%
 # Declined  ---------------------------------------------------------------
 
 most_recent_offer <- Offers %>%
+  filter(!is.na(AcceptDeclineDate) &
+           !is.na(OfferAccepted) &
+           !is.na(PHTypeOffered)) %>%
   group_by(PersonalID) %>%
-  slice_max(ymd(OfferDate)) %>%
-  ungroup()
+  slice_max(ymd(OfferDate)) %>% # same date
+  slice_max(OfferAccepted) %>% # both rejected/accepted
+  slice(1) %>% # pick 1, doesn't matter if those ^ are the same
+  ungroup() %>%
+  unique()
 
 declined <- vet_ees %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   filter(OfferAccepted == "No" &
            ymd(OfferDate) >= today() - days(14) &
-           VeteranStatus == 1)
+           VeteranStatus == 1) %>% 
+  unique()
 
 # Notes -------------------------------------------------------------------
 
@@ -86,11 +138,80 @@ small_CLS <- Contacts %>%
     Notes = gsub("\"\\)", "", Notes)
   )
 
+# Entry Exits -------------------------------------------------------------
 
+small_ees <- vet_ees %>%
+  filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
+           VeteranStatus == 1 &
+           (is.na(ExitDate) |
+              (
+                !Destination %in% c(perm_destinations) &
+                  ymd(ExitDate) >= today() - days(90)
+              ))) %>%
+  select(
+    PersonalID,
+    EnrollmentID,
+    ProjectID,
+    ProjectType,
+    ProjectName,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    Destination
+  ) %>%
+  unique() %>%
+  group_by(PersonalID) %>%
+  arrange(desc(EntryDate)) %>%
+  mutate(
+    EntryDate = format.Date(EntryDate, "%m-%d-%Y"),
+    MoveInDateAdjust = format.Date(MoveInDateAdjust, "%m-%d-%Y"),
+    ExitDate = format.Date(ExitDate, "%m-%d-%Y"),
+    Entries = paste(
+      "Entered",
+      ProjectName,
+      "on",
+      EntryDate,
+      case_when(
+        is.na(MoveInDateAdjust) & is.na(ExitDate) ~  if_else(
+          ProjectType %in% c(lh_project_types), "to present", "awaiting housing"),
+        !is.na(MoveInDateAdjust) & !is.na(ExitDate) ~
+          paste(
+            "Moved In on",
+            MoveInDateAdjust,
+            "and Exited on",
+            ExitDate,
+            "to",
+            living_situation(Destination)
+          ),
+        !is.na(MoveInDateAdjust) & is.na(ExitDate) ~ # should never happen but eh
+          paste("Moved In on",
+                MoveInDateAdjust,
+                "and is current"),
+        is.na(MoveInDateAdjust) & !is.na(ExitDate) ~
+          paste("Exited on", ExitDate,
+                "to", living_situation(Destination))
+      )
+    )
+  ) %>%
+  summarise(Entries = list(Entries)) %>%
+  ungroup() %>%
+  mutate(
+    Entries = as.character(Entries),
+    Entries = if_else(str_starts(Entries, "c"),
+                    str_replace_all(Entries, "\", \"", "<br>"),
+                    Entries),
+    Entries = gsub("c\\(\"", "", Entries),
+    Entries = gsub("\"\\)", "", Entries)
+  )
 
 # Active List -------------------------------------------------------------
 
 # stayers & people who exited in the past 90 days to a temp destination
+
+hh_size <- vet_ees %>%
+  select(HouseholdID, PersonalID) %>%
+  unique() %>%
+  count(HouseholdID)
 
 veteran_active_list <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
@@ -100,8 +221,8 @@ veteran_active_list <- vet_ees %>%
                 !Destination %in% c(perm_destinations) &
                   ymd(ExitDate) >= today() - days(90)
               ))) %>%
-  select(-PHTrack,-ExpectedPHDate) %>%
-  left_join(VeteranCE, by = c("PersonalID", "EnrollmentID")) %>%
+  left_join(hh_size, by = "HouseholdID") %>%
+  rename("HouseholdSize" = n) %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   left_join(small_CLS, by = "PersonalID") %>%
   mutate(
@@ -164,12 +285,31 @@ veteran_active_list <- vet_ees %>%
         ),
       "<br><br>Notes:<br>",
       Notes)
-      ),
-    County = if_else(is.na(CountyServed),
-                     ProjectCounty,
-                     CountyServed)
+      )
   ) %>%
-  left_join(responsible_providers, by = "County")
+  left_join(responsible_providers, by = "County") %>%
+  unique()
+
+veteran_active_list_display <- veteran_active_list %>%
+  select(PersonalID,
+         HOMESID,
+         DateVeteranIdentified,
+         ListStatus,
+         VAEligible,
+         SSVFIneligible,
+         County,
+         PHTrack,
+         ExpectedPHDate,
+         Eligibility,
+         ActiveDateDisplay,
+         ActiveDate,
+         DaysActive,
+         HouseholdSize,
+         MostRecentOffer,
+         HousingPlan,
+         SSVFServiceArea) %>%
+  left_join(small_ees, by = "PersonalID") %>%
+  unique()
 
 # Currently Homeless Vets -------------------------------------------------
 
@@ -183,13 +323,10 @@ entered_past_90 <- vet_ees %>%
   filter(entered_between(., format(today() - days(90), "%m%d%Y"),
                          format(today(), "%m%d%Y")))
 
-# Data Quality ------------------------------------------------------------
 
-# this is just an intersection of currently homeless vets and currently housed
-# in rrh and psh that would indicate a data quality issue, but these would 
-# already be on the Data Quality report as an Overlap, so why do we need this
-# here? We could flag any households with overlaps in the report. I could just
-# pull that from the dq_main in the app.
+# Veterans Missing Veteran Assessment -------------------------------------
+
+
 
 # Long Term -------------------------------------------------------
 

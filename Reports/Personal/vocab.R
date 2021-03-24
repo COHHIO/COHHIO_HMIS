@@ -56,7 +56,57 @@ Rstudied7th <- c(
   "allege",
   "tentative",
   "condor",
-  "formidable"
+  "formidable",
+  "derogatory",
+  "mitigate",
+  "inhabitants",
+  "prominent",
+  "bewildered",
+  "initiate",
+  "demeanor",
+  "sovereign",
+  "eligible",
+  "attribute",
+  "characterize",
+  "boycott",
+  "agitate",
+  "infuriate",
+  "bamboozle",
+  "connotation",
+  "abruptly",
+  "dawdle",
+  "antagonize",
+  "oppress",
+  "rudimentary",
+  "intimidate",
+  "admonish",
+  "chronological",
+  "devious",
+  "devastate",
+  "necessity",
+  "persuasive",
+  "concur",
+  "perceive",
+  "treason",
+  "naive",
+  "consult",
+  "narrate",
+  "emphasize",
+  "impartial",
+  "deceitful",
+  "inevitable",
+  "diversity",
+  "mandatory",
+  "competent",
+  "suspense",
+  "component",
+  "allocate",
+  "amendment",
+  "libel",
+  "alternative",
+  "industrious",
+  "adequate",
+  "negligent"
 )
 
 Rlist7th <- setdiff(seventh_grade, Rstudied7th)
@@ -102,7 +152,18 @@ list8th <- setdiff(eighth_grade, seventh_grade)
 
 Rstudied8th <- c("words")
 
-Pstudied8th <- c("words")
+Pstudied8th <- c(
+  "bizarre",
+  "profound",
+  "consistent",
+  "abhor",
+  "apprehend",
+  "gruesome",
+  "validate",
+  "perish",
+  "specific",
+  "similar"  
+)
 
 Rlist8th <- setdiff(list8th, Rstudied8th)
 
@@ -110,7 +171,7 @@ Plist8th <- setdiff(list8th, Pstudied8th)
 
 sample(Rlist8th, 10)
 
-sample(Rlist8th, 10)
+sample(Plist8th, 10)
 
 ninth_grade <- c(
   "absolve", 	"escalate", 	"mediate",
@@ -171,7 +232,17 @@ Pstudied9th <- c(
   "beneficial",
   "elude",
   "mediate",
-  "animosity"
+  "animosity",
+  "pertinent",
+  "turmoil",
+  "implausible",
+  "rationale",
+  "falter",
+  "demonstrate",
+  "succumb",
+  "vulnerable",
+  "generate",
+  "incentive" 
 )
 
 Plist9th <- setdiff(list9th, Pstudied9th)

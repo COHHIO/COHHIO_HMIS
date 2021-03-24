@@ -16,6 +16,7 @@ Reports/*.csv
 Reports/Data_Warehouse/*.csv
 Reports/ohla_hotels_files
 threeyearsdata/
+data_to_Clarity/
 data/
 images/
 fy2020/
@@ -27,3 +28,5 @@ COVID-19-Client-Data-Analysis_files/
 Reports/HMIS_Admin/*.csv
 /*csv
 random_data/
+7z.dll
+7z.exe

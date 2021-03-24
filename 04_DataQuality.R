@@ -1,5 +1,5 @@
 # COHHIO_HMIS
-# Copyright (C) 2020  Coalition on Homelessness and Housing in Ohio (COHHIO)
+# Copyright (C) 2021  Coalition on Homelessness and Housing in Ohio (COHHIO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -29,24 +29,11 @@ va_funded <- Funder %>%
   filter(Funder %in% c(27, 30, 33, 37:42, 45)) %>%
   select(ProjectID)
 
-rm(
-  Affiliation,
-  EmploymentEducation,
-  EnrollmentCoC,
-  Exit,
-  Export,
-  Funder,
-  Offers,
-  ProjectCoC,
-  regions,
-  VeteranCE
-)
-
 # Providers to Check ------------------------------------------------------
 
 projects_current_hmis <- Project %>%
   left_join(Inventory, by = "ProjectID") %>%
-  filter(ProjectID == 1695 | (
+  filter(ProjectID %in% c(1695, 2372) | (
     HMISParticipatingProject == 1 &
       operating_between(., ymd(calc_data_goes_back_to), ymd(meta_HUDCSV_Export_End)) &
       (GrantType != "HOPWA" | is.na(GrantType))) 
@@ -64,8 +51,6 @@ projects_current_hmis <- Project %>%
     ProjectCounty,
     ProjectRegion
   ) %>% unique()
-
-rm(Inventory, Organization)
 
 # Clients to Check --------------------------------------------------------
 
@@ -310,7 +295,157 @@ dq_veteran <- served_in_date_range %>%
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
+# Missing Vaccine data ----------------------------------------------------
+dose_counts <- doses %>%
+  count(PersonalID) %>%
+  select(PersonalID, "Doses" = n)
 
+missing_vaccine_exited <- served_in_date_range %>%
+  left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
+            by = "PersonalID") %>%
+  left_join(dose_counts, by = "PersonalID") %>%
+  filter(
+    !ProjectID %in% c(mahoning_projects) &
+      !is.na(ExitDate) &
+      ProjectID != 1695 &
+      (
+        is.na(ExitDate) |
+          ymd(ExitDate) >= ymd(hc_bos_start_vaccine_data)
+      ) &
+      (
+        ConsentToVaccine == "Data not collected (HUD)" |
+          is.na(ConsentToVaccine)
+      ) &
+      is.na(Doses) &
+      (ProjectType %in% c(1, 2, 4, 8) |
+         (
+           ProjectType %in% c(3, 9, 13) &
+             is.na(MoveInDateAdjust)
+         ))
+  ) %>% 
+  mutate(Type = "Warning",
+         Issue = "Vaccine data not collected and client has exited",
+         Guidance = "Client was literally homeless on Feb 5th, 2021 or later and 
+         is missing their vaccine data, and the client has exited the project. 
+         If you are unable to follow up with the client, leave the client as is. 
+         Please see the guidance 
+         <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
+         for more information</a>.") %>%
+  select(all_of(vars_we_want))
+
+missing_vaccine_current <- served_in_date_range %>%
+  left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
+            by = "PersonalID") %>%
+  left_join(dose_counts, by = "PersonalID") %>%
+  filter(
+    !ProjectID %in% c(mahoning_projects) &
+      is.na(ExitDate) &
+      ProjectID != 1695 &
+      (
+        is.na(ExitDate) |
+          ymd(ExitDate) >= ymd(hc_bos_start_vaccine_data)
+      ) &
+      (
+        ConsentToVaccine == "Data not collected (HUD)" |
+          is.na(ConsentToVaccine)
+      ) &
+      is.na(Doses) &
+      (ProjectType %in% c(1, 2, 4, 8) |
+         (
+           ProjectType %in% c(3, 9, 13) &
+             is.na(MoveInDateAdjust)
+         ))
+  ) %>% 
+  mutate(
+    Type = "Error",
+    Issue = "Vaccine data not collected on current client",
+    Guidance = "Client was literally homeless on Feb 5th, 2021 or later and is 
+    missing their vaccine data. Because the client has not exited the project, 
+    this data can still be collected. Please see 
+    <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
+    for more information</a>.
+"
+  ) %>%
+  select(all_of(vars_we_want))
+
+# Dose Warnings -----------------------------------------------------------
+
+dose_date_error <- doses %>%
+  filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us)) %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Error",
+         Issue = "Vaccine Date Incorrect",
+         Guidance = "Vaccination date precedes the vaccine being available in the US.") %>%
+  select(all_of(vars_we_want))
+
+dose_date_warning <- doses %>%
+  group_by(PersonalID) %>%
+  summarise(Doses = n()) %>%
+  ungroup() %>%
+  filter(Doses > 1) %>%
+  left_join(doses, by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  mutate(LastDose = lag(COVID19DoseDate, order_by = COVID19DoseDate)) %>%
+  filter(!is.na(LastDose)) %>%
+  mutate(DaysBetweenDoses = difftime(COVID19DoseDate, LastDose, units = "days")) %>%
+  filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us) | 
+    DaysBetweenDoses < 20 |
+           (COVID19VaccineManufacturer == "Moderna") &
+           DaysBetweenDoses < 27) %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Vaccine Dates or Vaccine Manufacturer Questionable",
+         Guidance = "The number of days between vaccines doses does not match 
+         the vaccine manufacturer’s recommended timeline. One of the vaccine 
+         records' Vaccine Date or the Vaccine Manufacturer may be entered 
+         incorrectly.") %>%
+  select(all_of(vars_we_want))
+
+differing_manufacturers <- doses %>%
+  group_by(PersonalID) %>%
+  summarise(Doses = n()) %>%
+  ungroup() %>%
+  filter(Doses > 1) %>%
+  left_join(doses, by = "PersonalID") %>%
+  group_by(PersonalID) %>%
+  mutate(
+    minManufacturer = min(COVID19VaccineManufacturer),
+    maxManufacturer = max(COVID19VaccineManufacturer),
+    differs = minManufacturer != maxManufacturer,
+    Type = "Error",
+    Issue = "Client received different vaccines",
+    Guidance = "The data shows that the client received vaccines from 
+    different manufacturers, but this is highly unlikely. Please correct the 
+    data in HMIS or let us know if the client actually received vaccines from 
+    different manufacturers."
+  ) %>%
+  filter(differs == TRUE) %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  select(all_of(vars_we_want))
+
+unknown_manufacturer_error <- doses %>%
+  filter(str_starts(COVID19VaccineManufacturer, "Client doesn't know") &
+           COVID19VaccineDocumentation != "Self-report") %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Error",
+         Issue = "Incorrect Vaccine Manufacturer or Incorrect Documentation Type",
+         Guidance = "If vaccine information was collected via Healthcare Provider 
+         or Vaccine card, then the vaccine manufacturer should be known and 
+         updated in HMIS.") %>%
+  select(all_of(vars_we_want))
+
+unknown_manufacturer_warning <- doses %>%
+  filter(str_starts(COVID19VaccineManufacturer, "Client doesn't know") &
+           COVID19VaccineDocumentation == "Self-report") %>%
+  left_join(served_in_date_range, by = "PersonalID") %>%
+  mutate(Type = "Warning",
+         Issue = "Unknown Vaccine Manufacturer",
+         Guidance = "If the client does not know the manufacturer of the vaccine, 
+         please try to find another source for the information. Reporting relies 
+         heavily on knowing the manufacturer of the vaccine your client received. 
+         If you absolutely cannot find it, it is ok to leave as is.") %>%
+  select(all_of(vars_we_want))
+  
 # Missing Client Location -------------------------------------------------
 
 missing_client_location <- served_in_date_range %>%
@@ -703,8 +838,6 @@ smallDisabilities <- Disabilities %>%
 
 # Developmental & HIV/AIDS get automatically IndefiniteAndImpairs = 1 per FY2020
 
-rm(Disabilities)
-
 conflicting_disabilities <- served_in_date_range %>%
   select(all_of(vars_prep),
          EnrollmentID,
@@ -731,6 +864,20 @@ conflicting_disabilities <- served_in_date_range %>%
   select(all_of(vars_we_want))
 
 rm(smallDisabilities)
+
+# Mahoning 60 days CE -----------------------------------------------------
+
+mahoning_ce_60_days <- served_in_date_range %>%
+  filter(ProjectID == 2372 &
+           EntryDate <= today() - days(60) &
+           is.na(ExitDate)) %>%
+  mutate(
+    Issue = "60 Days in Mahoning Coordinated Entry",
+    Type = "Warning",
+    Guidance = "If this household is \"unreachable\" as defined in the Mahoning County 
+    Coordinated Entry Policies and Procedures, they should be exited."
+  ) %>%
+  select(all_of(vars_we_want))
 
 # Extremely Long Stayers --------------------------------------------------
 
@@ -866,32 +1013,40 @@ rm(list = ls(pattern = "Top*"),
 
 # RRH mover inners only
 
-enrolled_in_rrh <- served_in_date_range %>%
+moved_in_rrh <- served_in_date_range %>%
   filter(ProjectType == 13 & !is.na(MoveInDateAdjust)) %>%
-  mutate(RRH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(RRH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, 
          "RRHMoveIn" = MoveInDateAdjust, 
          RRH_range, 
          "RRHProjectName" = ProjectName)
 
-maybe_rrh_destination <- served_in_date_range %>%
-  left_join(enrolled_in_rrh, by = "PersonalID") %>%
-  filter(ProjectType != 13 &
-           ExitAdjust %within% RRH_range &
-           Destination != 31) %>%
-  mutate(
-    Issue = "Check Exit Destination (may be \"Rental by client, with RRH...\")",
-    Type = "Warning",
-    Guidance = "This household appears to have an Entry into an RRH project that
-    overlaps their Exit from your project. Typically this means the client moved
-    into a Rapid Rehousing unit after their stay with you. If that is true, the 
-    Destination should be \"Rental by client, with RRH...\". If you are sure the
-    current Destination is accurate, then please leave it the way it is."
-  ) %>% 
-  select(all_of(vars_we_want))
+enrolled_in_rrh <- served_in_date_range %>%
+  filter(ProjectType == 13) %>%
+  mutate(RRH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
+  select(PersonalID, 
+         "RRHMoveIn" = MoveInDateAdjust, 
+         RRH_range, 
+         "RRHProjectName" = ProjectName)
+
+# maybe_rrh_destination <- served_in_date_range %>%
+#   left_join(enrolled_in_rrh, by = "PersonalID") %>%
+#   filter(ProjectType != 13 &
+#            ExitAdjust %within% RRH_range &
+#            Destination != 31) %>%
+#   mutate(
+#     Issue = "Check Exit Destination (may be \"Rental by client, with RRH...\")",
+#     Type = "Warning",
+#     Guidance = "This household appears to have an Entry into an RRH project that
+#     overlaps their Exit from your project. Typically this means the client moved
+#     into a Rapid Rehousing unit after their stay with you. If that is true, the
+#     Destination should be \"Rental by client, with RRH...\". If you are sure the
+#     current Destination is accurate, then please leave it the way it is."
+#   ) %>%
+#   select(all_of(vars_we_want))
 
 should_be_rrh_destination <- served_in_date_range %>%
-  left_join(enrolled_in_rrh, by = "PersonalID") %>%
+  left_join(moved_in_rrh, by = "PersonalID") %>%
   filter(ProjectType != 13 &
            ExitDate == RRHMoveIn &
            Destination != 31) %>%
@@ -903,7 +1058,7 @@ should_be_rrh_destination <- served_in_date_range %>%
     project does not indicate that the household exited to Rapid Rehousing. If
     the household exited to a Destination that was not \"Rental by client\", but
     it is a permanent destination attained through a Rapid Rehousing project, 
-    then this is no change needed. If this is not the case, then the Destination
+    then there is no change needed. If this is not the case, then the Destination
     should be \"Rental by client, with RRH or equivalent subsidy\"."
   ) %>% 
   select(all_of(vars_we_want))
@@ -912,7 +1067,7 @@ should_be_rrh_destination <- served_in_date_range %>%
 
 enrolled_in_psh <- served_in_date_range %>%
   filter(ProjectType %in% c(3, 9) & !is.na(MoveInDateAdjust)) %>%
-  mutate(PSH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(PSH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, 
          PSH_range, 
          "PSHMoveIn" = MoveInDateAdjust,
@@ -958,7 +1113,7 @@ should_be_psh_destination <- served_in_date_range %>%
 
 enrolled_in_th <- served_in_date_range %>%
   filter(ProjectType == 2) %>%
-  mutate(TH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(TH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, TH_range, "THProjectName" = ProjectName)
 
 should_be_th_destination <- served_in_date_range %>%
@@ -982,7 +1137,7 @@ should_be_th_destination <- served_in_date_range %>%
 
 enrolled_in_sh <- served_in_date_range %>%
   filter(ProjectType == 8) %>%
-  mutate(SH_range = interval(EntryDate, ExitAdjust)) %>%
+  mutate(SH_range = interval(EntryDate, ExitAdjust - days(1))) %>%
   select(PersonalID, SH_range, "SHProjectName" = ProjectName)
 
 should_be_sh_destination <- served_in_date_range %>%
@@ -1017,8 +1172,8 @@ no_bos_rrh <- destination_rrh %>%
     Guidance = "The Exit Destination for this household indicates that they exited
     to Rapid Rehousing, but there is no RRH project stay on the client. If the 
     RRH project the household exited to is outside of the Balance of State or 
-    Mahoning CoCs, then no correction is necessary. If they received RRH services 
-    in the Balance of State CoC or Mahoning CoC, then this household is missing 
+    Mahoning County CoCs, then no correction is necessary. If they received RRH services 
+    in the Balance of State CoC or Mahoning County CoC, then this household is missing 
     their RRH project stay. If they did not actually receive RRH services at all, 
     the Destination should be corrected."
   ) %>% 
@@ -1037,8 +1192,8 @@ no_bos_psh <- destination_psh %>%
     Guidance = "The Exit Destination for this household indicates that they exited
     to Permanent Supportive Housing, but there is no PSH project stay on the 
     client. If the PSH project the household exited to is outside of the Balance 
-    of State CoC or Mahoning CoC, then no correction is necessary. If they 
-    entered PSH in the Balance of State CoC or Mahoning CoC, then this household 
+    of State CoC or Mahoning County CoC, then no correction is necessary. If they 
+    entered PSH in the Balance of State CoC or Mahoning County CoC, then this household 
     is missing their PSH project stay. If they did not actually enter PSH at all, 
     the Destination should be corrected."
   ) %>% 
@@ -1057,8 +1212,8 @@ no_bos_th <- destination_th %>%
     Guidance = "The Exit Destination for this household indicates that they exited
     to Transitional Housing, but there is no TH project stay on the client. If the 
     TH project that the household exited to is outside of the Balance of State 
-    CoC or Mahoning CoC, then no correction is necessary. If they went into a TH 
-    project in the Balance of State CoC or Mahoning CoC, then this household is 
+    CoC or Mahoning County CoC, then no correction is necessary. If they went into a TH 
+    project in the Balance of State CoC or Mahoning County CoC, then this household is 
     missing their TH project stay. If they did not actually enter Transitional 
     Housing at all, the Destination should be corrected."
   ) %>% 
@@ -1201,7 +1356,7 @@ check_eligibility <- served_in_date_range %>%
         the terms of your grant or speak with",
           if_else(
             ProjectID %in% c(mahoning_projects),
-            "the Mahoning CoC Coordinator",
+            "the Mahoning County CoC Coordinator",
             "the CoC team at COHHIO"
           ),
           "if you are unsure of eligibility criteria for your project type."
@@ -1252,7 +1407,7 @@ check_eligibility <- served_in_date_range %>%
              concern, but if there is a large number, please contact",
           if_else(
             ProjectID %in% c(mahoning_projects),
-            "the Mahoning CoC Coordinator",
+            "the Mahoning County CoC Coordinator",
             "the Balance of State CoC team at COHHIO"
           ),
           "to work out a way to improve client engagement."
@@ -1666,8 +1821,6 @@ check_eligibility <- served_in_date_range %>%
       ungroup() %>%
       mutate(ScoreAdjusted = if_else(is.na(Score), 0, Score))
     
-    rm(Scores)
-    
     entered_ph_without_spdat <-
       anti_join(served_in_date_range, ees_with_spdats, by = "EnrollmentID") %>%
       filter(
@@ -1739,7 +1892,7 @@ check_eligibility <- served_in_date_range %>%
     rm(ees_with_spdats)
     
     # Missing Income at Entry -------------------------------------------------
-    IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
+    # IncomeBenefits <- IncomeBenefits %>% select(-DateCreated)
     
     missing_income_entry <- served_in_date_range %>%
       left_join(IncomeBenefits, by = c("PersonalID", "EnrollmentID")) %>%
@@ -2363,7 +2516,7 @@ check_eligibility <- served_in_date_range %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(IncomeBenefits, smallIncome)
+    rm(smallIncome)
     
     # Non HoHs w Svcs or Referrals --------------------------------------------
     # SSVF projects should be showing this as an Error, whereas non-SSVF projects
@@ -2397,8 +2550,6 @@ check_eligibility <- served_in_date_range %>%
              Guidance = guidance_service_on_non_hoh) %>%
       select(all_of(vars_we_want))
     
-    rm(Services)
-    
     referrals_on_hh_members <- served_in_date_range %>%
       select(all_of(vars_prep),
              RelationshipToHoH,
@@ -2430,7 +2581,7 @@ check_eligibility <- served_in_date_range %>%
     # Because a lot of these records are stray Services due to there being no
     # Entry Exit at all, this can't be shown in the same data set as all the other
     # errors. I'm going to have to make this its own thing. :(
-    stray_services <- stray_services %>%
+    stray_services_warning <- stray_services %>%
       mutate(Issue = "Service Not Attached to an Entry Exit",
              Type = "Warning",
              Guidance = "This Service does not fall between any project stay,
@@ -2649,7 +2800,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ) %>%
       select(all_of(vars_we_want))
     
-    rm(long_unsheltered, unsheltered_referred, Referrals)
+    rm(long_unsheltered, unsheltered_referred)
     
     # SSVF --------------------------------------------------------------------
     
@@ -2841,12 +2992,15 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       conflicting_income_exit,
       conflicting_ncbs_entry,
       conflicting_ncbs_exit,
+      differing_manufacturers,
       dkr_client_veteran_info,
       dkr_destination,
       dkr_living_situation,
       dkr_LoS,
       dkr_months_times_homeless,
       dkr_residence_prior,
+      dose_date_error,
+      dose_date_warning,
       dq_dob,
       dq_ethnicity,
       dq_gender,
@@ -2866,8 +3020,9 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       internal_old_outstanding_referrals,
       invalid_months_times_homeless,
       lh_without_spdat,
+      mahoning_ce_60_days,
       maybe_psh_destination,
-      maybe_rrh_destination,
+      # maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_client_location,
       missing_county_served,
@@ -2887,6 +3042,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       missing_ncbs_entry,
       missing_ncbs_exit,
       missing_residence_prior,
+      missing_vaccine_current,
+      missing_vaccine_exited,
       no_bos_rrh,
       no_bos_psh,
       no_bos_th,
@@ -2911,6 +3068,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_vamc,
       ssvf_missing_percent_ami,      
       # ssvf_hp_screen,      
+      unknown_manufacturer_error,
+      unknown_manufacturer_warning,
       unlikely_ncbs_entry,
       veteran_missing_year_entered,
       veteran_missing_year_separated,
@@ -2936,6 +3095,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                (
                  ProjectType == 14 &
                    Issue %in% c(
+                     "60 Days in Mahoning Coordinated Entry",
                      "Access Point with Entry Exits",
                      "Missing Date of Birth Data Quality",
                      "Don't Know/Refused or Approx. Date of Birth",
@@ -2985,7 +3145,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       internal_old_outstanding_referrals,
       lh_without_spdat,
       maybe_psh_destination,
-      maybe_rrh_destination,
+      # maybe_rrh_destination,
       missing_approx_date_homeless,
       missing_destination,
       missing_county_served,
@@ -3034,22 +3194,18 @@ unsheltered_by_month <- unsheltered_enrollments %>%
                                        "Warning"))
       )
     
-    rm(Users)
-    
     # Controls what is shown in the CoC-wide DQ tab ---------------------------
     
     # for CoC-wide DQ tab
-    
-    ReportStart <- format.Date(hc_check_dq_back_to, "%m-%d-%Y")
-    ReportEnd <- format.Date(today(), "%m-%d-%Y")
-    
+
     dq_past_year <- dq_main %>%
-      filter(served_between(., ReportStart, ReportEnd)) %>%
+      filter(served_between(., format.Date(hc_check_dq_back_to, "%m-%d-%Y"), 
+                            format.Date(today(), "%m-%d-%Y"))) %>%
       left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
     
     # for project evaluation reporting
     
-    dq_2019 <- dq_main %>%
+    dq_for_pe <- dq_main %>%
       filter(served_between(., ymd(hc_project_eval_start), ymd(hc_project_eval_end))) %>%
       left_join(Project[c("ProjectID", "ProjectName")], by = "ProjectName")
     
@@ -3316,7 +3472,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       CaseManagers,
       check_disability_ssi,
       check_eligibility,
-      Client,
       conflicting_disabilities,
       conflicting_health_insurance_entry,
       conflicting_health_insurance_exit,
@@ -3324,7 +3479,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       conflicting_income_exit,
       conflicting_ncbs_entry,
       conflicting_ncbs_exit,
-      Contacts,
       # detail_eligibility, # the app needs this; keep this commented out
       detail_missing_disabilities,
       dkr_living_situation,
@@ -3342,12 +3496,10 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       dq_ssn,
       dq_veteran,
       duplicate_ees,
-      Enrollment,
       entered_ph_without_spdat,
       extremely_long_stayers,
       future_ees,
       future_exits,
-      HealthAndDV,
       hh_issues,
       incorrect_ee_type,
       incorrect_path_contact_date,
@@ -3378,7 +3530,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       path_reason_missing,
       path_SOAR_missing_at_exit,
       path_status_determination,
-      Project,
       projects_current_hmis,
       referrals_on_hh_members,
       referrals_on_hh_members_ssvf,
@@ -3393,7 +3544,7 @@ unsheltered_by_month <- unsheltered_enrollments %>%
       ssvf_missing_percent_ami,      
       ssvf_served_in_date_range,      
       staging_outstanding_referrals,
-      stray_services,
+      stray_services_warning,
       unlikely_ncbs_entry,
       unsheltered_enrollments,
       unsheltered_not_unsheltered,

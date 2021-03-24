@@ -14,6 +14,7 @@
 
 library(lubridate)
 library(tidyverse)
+library(here)
 
 # hc = hard-coded here, used elsewhere
 # meta = result comes from meta data
@@ -25,9 +26,9 @@ hc_data_goes_back_to <- mdy("01012019")
 
 hc_check_dq_back_to <- mdy("10012019") # the default ReportStart for DQ reporting
 
-hc_project_eval_start <- mdy("01012019")
+hc_project_eval_start <- mdy("01012020")
 
-hc_project_eval_end <- mdy("12312019")
+hc_project_eval_end <- mdy("12312020")
 
 hc_bos_start_vaccine_data <- mdy("02052021")
 
@@ -47,30 +48,32 @@ hc_check_eligibility_back_to <- mdy("10012016")
 
 hc_no_more_svcs_on_hh_members <- mdy("02012019")
 
+hc_first_vaccine_administered_in_us <- mdy("12142020")
+
 # Dates from Metadata -----------------------------------------------------
 
-meta_HUDCSV_Export_Date <- read_csv("data/Export.csv",
+meta_HUDCSV_Export_Date <- read_csv(here("data/Export.csv"),
                                 col_types = c("iicccccccTDDcciii")) %>%
   mutate(ExportDate = ymd_hms(ExportDate)) %>%
   pull(ExportDate)
 
-meta_HUDCSV_Export_Start <- read_csv("data/Export.csv",
+meta_HUDCSV_Export_Start <- read_csv(here("data/Export.csv"),
                                      col_types = c("iicccccccTDDcciii")) %>%
   mutate(ExportStartDate = ymd(ExportStartDate)) %>%
   pull(ExportStartDate)
 
-meta_HUDCSV_Export_End <- read_csv("data/Export.csv",
+meta_HUDCSV_Export_End <- read_csv(here("data/Export.csv"),
                                    col_types = c("iicccccccTDDcciii")) %>%
   mutate(ExportEndDate = ymd(ExportEndDate)) %>%
   pull(ExportEndDate)
 
-meta_Rmisc_last_run_date <- floor_date(file.info("data/RMisc2.xlsx")$mtime, 
+meta_Rmisc_last_run_date <- floor_date(file.info(here("data/RMisc2.xlsx"))$mtime, 
                                        unit = "day")
 
 # Calculated Dates --------------------------------------------------------
 
 calc_data_goes_back_to <-
-  read_csv("data/Exit.csv",
+  read_csv(here("data/Exit.csv"),
            col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn") %>%
   mutate(ExitDate = ymd(ExitDate)) %>%
   arrange(ExitDate) %>%
@@ -89,4 +92,4 @@ calc_2_yrs_prior_range <- interval(ymd(calc_2_yrs_prior_start),
 
 
 
-save(list = ls(), file = "images/00_dates.RData", compress = FALSE)
+save(list = ls(), file = here("images/00_dates.RData"), compress = FALSE)

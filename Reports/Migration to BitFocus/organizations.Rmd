@@ -1,0 +1,341 @@
+---
+title: "Orgs Coming to BitFocus"
+author: "Genelle Denzin"
+date: "March 3, 2021"
+output:
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, echo=FALSE, include=FALSE, message=FALSE}
+
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+library(lubridate)
+library(here)
+library(readxl)
+library(gt)
+
+```
+
+## Migration to BitFocus
+
+This document aims to identify all Organizations in our system and separate them into three categories: Not Migrating, Migrating Active, and Migrating Inactive. BitFocus has agreed to waive fees for Organizations that have no Projects that are HMIS participating, so we need to definitively name those organizations for the contract.
+
+```{r gather}
+
+art_data <-
+  read_xlsx(here("random_data/OrganizationsBitFocus.xlsx"),
+            sheet = 4) %>%
+  filter(!is.na(ProjectID) & ProjectID != 1) %>% # dropping deleted providers and Provider ID 1
+  mutate(
+    MinEntry = as.Date(MinEntry, origin = "1899-12-30"),
+    MaxExit = as.Date(MaxExit, origin = "1899-12-30"),
+    OpenEEs = replace_na(OpenEEs, 0),
+    operating = if_else(operating == "Yes", 1, 0),
+    participating = if_else(participating == "Yes", 1, 0),
+    ce_or_vash = if_else(
+      str_detect(Project, "VASH") | (
+        ptc == "Coordinated Entry (HUD)" &
+          !ProjectID %in% c(213, 1989, 2025, 2041, 2044) # DV APs
+      ),
+      1,
+      0
+    ),
+    
+    obsolete_ptc = if_else(
+      ptc %in% c(
+        "Family Homelessness Prevention Pilot (FHPP)",
+        "RETIRED (HUD)",
+        "Homelessness Prevention",
+        "Housing Stability Program (HSP)",
+        "Direct Housing"
+      ),
+      1,
+      0
+    )
+  )
+
+raw_data_projects <- nrow(art_data)
+
+obsolete_count <- nrow(art_data %>%
+                         filter(obsolete_ptc == 1))
+
+ce_or_vash_count <- nrow(art_data %>%
+                           filter(ce_or_vash == 1))
+
+participating_count <- nrow(art_data %>%
+                           filter(participating == 1))
+
+operating_count <- nrow(art_data %>%
+                           filter(operating == 1))
+
+operating_and_participating_count <- nrow(art_data %>%
+                                            filter(operating == 1 &
+                                                     participating == 1))
+
+operating_not_participating_count <- nrow(art_data %>%
+                                            filter(operating == 1 &
+                                                     participating == 0))
+
+participating_not_operating <- nrow(art_data %>%
+                                         filter(operating == 0 &
+                                                   participating == 1))
+
+open_ees_count <- nrow(art_data %>%
+                         filter(OpenEEs > 0))
+
+```
+
+
+## Projects and Organizations {.tabset .tabset-pills}
+
+### Raw Data 
+
+We are starting with a **`r raw_data_projects`**-row dataset that includes all providers in ServicePoint minus deleted providers. 
+
+Some identifiers in the data from ServicePoint to help categorize the organizations go like this:
+
+  - **ptc** is Project Type
+  - **obsolete_ptc** returns 1 if the Project Type is one of the following: Family Homelessness Prevention Pilot (FHPP), RETIRED (HUD), Homelessness Prevention (the non-HUD one), Housing Stability Program (HSP), Direct Housing
+  - **MinEntry** is the first Entry Date ever recorded for that project
+  - **MaxExit** is the most recent Exit Date ever recorded for that project
+  - **OpenEEs** is the number of Entry Exits with no Exit Date for that project
+  - **ce_or_vash** returns 1 if the project is either an AP or a VASH project. These are indicated because while these projects are not currently entering Entry Exits, they will be in Clarity.
+  
+```{r raw_display}
+gt(art_data %>%
+     select(Org,
+            ProjectID,
+            Project,
+            ptc,
+            obsolete_ptc,
+            MinEntry,
+            MaxExit,
+            OpenEEs,
+            ce_or_vash)) %>%
+  tab_header(
+    title = "ALL Providers Except Deleted & Project ID 1",
+    subtitle = paste(raw_data_projects, "records")
+  ) %>%
+  tab_source_note(
+    source_note = "Source: ART report in Public > SysAdmin > Organizations of Providers BitFocus"
+  )  %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+```
+
+### Organizations
+
+Now we want to look within each Organization to determine if it needs to be migrated, and if so, whether it should be considered Active or Inactive. 
+
+Here we can see across all projects associated with a given Organization: 
+
+  - **minEntry** is the earliest Entry Date entered by any project under this Organization
+  - **maxExit** is the most recent Exit Date entered by any project under this Organization
+  - **openEEs** tells us whether there are any open Entry Exits in any project under this Organization
+  - **maxOperating** and **maxParticipating** tells us whether any projects within the organization are marked as Operating and Participating
+  - **CEorVASH** tells us if there are any Coordinated Entry APs or VASH projects under the Organization. 
+
+We are going to use this data in further calculations. No records have been lost here, only grouped so that each Organization gets one row.
+
+```{r org_level, warning=FALSE}
+
+org_level <- art_data %>%
+  group_by(Org) %>%
+  summarise(minEntry = min(ymd(MinEntry), na.rm = TRUE),
+            maxExit = max(ymd(MaxExit), na.rm = TRUE),
+            openEEs = sum(OpenEEs),
+            maxOperating = max(operating),
+            maxParticipating = max(participating),
+            CEorVASH = max(ce_or_vash))
+
+orgs <- nrow(org_level)
+
+```
+
+At this point we have **`r orgs`** Organizations, representing `r raw_data_projects` projects.
+
+```{r org_level_display}
+
+gt(org_level) %>%
+  tab_header(
+    title = "ALL Organizations",
+    subtitle = paste(orgs, "records")
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+
+```
+
+
+### Not Migrating
+
+These Organizations are not migrating. I'm defining this by looking at all organizations where there are no projects associated with them that are HMIS-participating, VASH, CE, there are no open Entry Exits, and the most recent Exit Date is before 5/1/2014 or there was no data entered ever.
+
+Here we can see across all projects associated with a given Organization: 
+
+  - **minEntry** is the earliest Entry Date entered by any project under this Organization
+  - **maxExit** is the most recent Exit Date entered by any project under this Organization
+  - **openEEs** tells us whether there are any open Entry Exits in any project under this Organization
+  - **maxOperating** and **maxParticipating** tells us whether any projects within the organization are marked as Operating and Participating
+  - **CEorVASH** tells us if there are any Coordinated Entry APs or VASH projects under the Organization. 
+
+```{r notmigratingcount}
+
+not_migrating <- org_level %>%
+  mutate(nodata = str_detect(minEntry, "/")) %>%
+  filter((ymd(maxExit) <= ymd("20140501") | is.na(nodata)) &
+            openEEs == 0 &
+           maxParticipating == 0 &
+           maxOperating == 0 &
+           CEorVASH == 0) %>%
+  unique() 
+
+not_migrating_count <- nrow(not_migrating)
+
+```
+
+We have at least **`r not_migrating_count`** organizations we do not need to migrate to Clarity.
+
+```{r not_migrating_display}
+gt(not_migrating %>% select(-nodata)) %>%
+  tab_header(
+    title = "Not Migrating",
+    subtitle = paste(not_migrating_count, "records")
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+
+```
+
+### Migrating Inactive
+```{r migratinginactive}
+possibly_migrating <- org_level %>%
+  anti_join(not_migrating, by = "Org")
+
+migrating_inactive <- possibly_migrating %>%
+  mutate(nodata = str_detect(minEntry, "/")) %>%
+  filter(maxParticipating == 0 &
+           CEorVASH == 0 &
+           openEEs == 0)
+
+possibly_migrating_count <- nrow(possibly_migrating)
+migrating_inactive_count <- nrow(migrating_inactive)
+
+```
+
+Next we are examining the `r possibly_migrating_count` remaining Organizations to determine, since they are migrating, whether we should consider them Active or Inactive. After we removed the records above, now we are left with those who either have EEs in the past 7 years or have no data but maybe a VASH, CE, an HMIS-participating, or operating project.
+
+Out of `r possibly_migrating_count` organizations that are possibly migrating to Clarity, **`r migrating_inactive_count`** are being counted here as inactive, or "shell" organizations.
+
+Here we can see across all projects associated with a given Organization: 
+
+  - **minEntry** is the earliest Entry Date entered by any project under this Organization
+  - **maxExit** is the most recent Exit Date entered by any project under this Organization
+  - **openEEs** tells us whether there are any open Entry Exits in any project under this Organization
+  - **maxOperating** and **maxParticipating** tells us whether any projects within the organization are marked as Operating and Participating
+  - **CEorVASH** tells us if there are any Coordinated Entry APs or VASH projects under the Organization. 
+
+```{r migrating_inactive_display}
+gt(migrating_inactive %>% select(-nodata)) %>%
+  tab_header(
+    title = "Migrating Inactive",
+    subtitle = paste(migrating_inactive_count, "records out of", possibly_migrating_count,
+                     "migrating")
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+
+```
+
+
+### Migrating Active
+
+Theoretically, what should be left in the list are all the organizations we need to migrate and consider to be active for the purposes of the contract. This should include organizations with active data, Access Point projects, and VASH projects.
+
+Here we can see across all projects associated with a given Organization: 
+
+  - **minEntry** is the earliest Entry Date entered by any project under this Organization
+  - **maxExit** is the most recent Exit Date entered by any project under this Organization
+  - **openEEs** tells us whether there are any open Entry Exits in any project under this Organization
+  - **maxOperating** and **maxParticipating** tells us whether any projects within the organization are marked as Operating and Participating
+  - **CEorVASH** tells us if there are any Coordinated Entry APs or VASH projects under the Organization. 
+
+```{r migratingactive}
+migrating_active <- possibly_migrating %>%
+  anti_join(migrating_inactive, by = "Org")
+
+migrating_active_count <- nrow(migrating_active)
+```
+
+Out of `r possibly_migrating_count` organizations that are possibly migrating to Clarity, **`r migrating_active_count`** are being counted here as active organizations.
+
+```{r migrating_active_display}
+gt(migrating_active) %>%
+  tab_header(
+    title = "Migrating Active",
+    subtitle = paste(migrating_active_count, "records out of", possibly_migrating_count,
+                     "migrating")
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+
+```
+
+### Maybe Add to Migrating Inactive
+
+```{r level2_no_children}
+
+level2_providers <- art_data %>%
+  filter(Org == "Coalition on Homelessness and Housing in Ohio(1)" &
+           ptc == "Administrating Agency" &
+           str_starts(Project, "zz", negate = TRUE)) %>%
+  select("Org" = Project)
+
+referral_orgs <-
+  anti_join(level2_providers,
+            art_data,
+            by = "Org") %>%
+  arrange(Org)
+
+referral_orgs_count <- nrow(referral_orgs)
+
+```
+
+There are **`r referral_orgs_count`** projects that have no child-providers which could be considered to be Organizations, even if they do not show as Organizations in ServicePoint technically. This lists those projects that are not zz'd.
+
+If we are wanting to add these into the Migrating Inactive category, then these would add to the `r migrating_inactive_count` other organizations we are already counting as Migrating Inactive for a total of **`r migrating_inactive_count + referral_orgs_count`**.
+
+```{r level2_no_children_display}
+gt(referral_orgs)  %>%
+  tab_header(
+    title = "Maybe Add to Migrating Inactive",
+    subtitle = paste(referral_orgs_count, "records")
+  ) %>%
+  tab_options(
+    table.width = pct(100),
+    table.font.size = pct(80)
+  )
+```
+
+
+## {-}
+
+
+
