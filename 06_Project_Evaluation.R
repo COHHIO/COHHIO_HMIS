@@ -863,88 +863,88 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     ExitsToPHCohort
   )
 
-# Housing Stability: Moved into Own Housing -------------------------------
-# TH, SH, RRH
-
-pe_own_housing <- pe_hohs_moved_in_leavers %>%
-  right_join(pe_coc_funded %>% 
-               select(ProjectType, AltProjectID, AltProjectName) %>%
-               unique(), 
-             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
-  left_join(data_quality_flags, by = "AltProjectName") %>%
-  filter(ProjectType != 3) %>%
-  mutate(
-    MeetsObjective = case_when(
-      Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 1,
-      !Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 0
-    ),
-    OwnHousingDQ = case_when(
-      General_DQ == 1 ~ 1,
-      TRUE ~ 0
-    ),
-    DestinationGroup = case_when(
-      is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
-        "Still in Program at Report End Date",
-      Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
-      Destination %in% c(22:23) ~ "Shared Housing",
-      Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
-      Destination == 24 ~ "Deceased"
-    ),
-    PersonalID = as.character(PersonalID)
-  ) %>% 
-  select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
-
-summary_pe_own_housing <- pe_own_housing %>%
-  group_by(ProjectType, AltProjectName, OwnHousingDQ) %>%
-  summarise(OwnHousing = sum(MeetsObjective)) %>%
-  ungroup() %>%
-  right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
-  mutate(
-    HoHsMovedInLeavers = HoHsMovedInLeavers - HoHDeaths,
-    OwnHousing = if_else(is.na(OwnHousing), 0, OwnHousing),
-    Structure = if_else(ProjectType != 3, "72_80_5", NULL),
-    OwnHousingPercent = if_else(ProjectType != 3,
-                                OwnHousing / HoHsMovedInLeavers,
-                                NULL),
-    OwnHousingMath = case_when(
-      HoHsMovedInLeavers == 0 &
-        ProjectType != 3 ~
-        "All points granted because this project had 0 Heads of Household Leavers who Moved into Housing",
-      ProjectType == 3 &
-        (HoHsMovedInLeavers == 0 | HoHsMovedInLeavers != 0) ~ "",
-      HoHsMovedInLeavers != 0 & ProjectType != 3 ~ paste(
-        OwnHousing,
-        "exited to their own permanent housing /",
-        HoHsMovedInLeavers,
-        "heads of household leavers who moved into housing =",
-        percent(OwnHousingPercent, accuracy = 1)
-      )
-    ), 
-    OwnHousingPoints = if_else(
-      HoHsMovedInLeavers == 0 & ProjectType != 3,
-      10,
-      pe_score(Structure, OwnHousingPercent)
-    ),
-    OwnHousingPoints = if_else(is.nan(OwnHousingPercent) &
-                                 ProjectType != 3, 5, OwnHousingPoints),
-    OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
-                                 is.na(OwnHousingDQ) |
-                                   OwnHousingDQ == 0 ~ OwnHousingPoints),
-    OwnHousingPoints = if_else(is.na(OwnHousingPoints), 0, OwnHousingPoints),
-    OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
-    OwnHousingCohort = "HoHsMovedInLeavers"
-  ) %>%
-  select(ProjectType,
-         AltProjectName,
-         OwnHousingCohort,
-         OwnHousing,
-         OwnHousingMath,
-         OwnHousingPercent,
-         OwnHousingPoints,
-         OwnHousingPossible,
-         OwnHousingDQ)
+# # Housing Stability: Moved into Own Housing -------------------------------
+# # TH, SH, RRH
+# 
+# pe_own_housing <- pe_hohs_moved_in_leavers %>%
+#   right_join(pe_coc_funded %>% 
+#                select(ProjectType, AltProjectID, AltProjectName) %>%
+#                unique(), 
+#              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
+#   left_join(data_quality_flags, by = "AltProjectName") %>%
+#   filter(ProjectType != 3) %>%
+#   mutate(
+#     MeetsObjective = case_when(
+#       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 1,
+#       !Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 0
+#     ),
+#     OwnHousingDQ = case_when(
+#       General_DQ == 1 ~ 1,
+#       TRUE ~ 0
+#     ),
+#     DestinationGroup = case_when(
+#       is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
+#         "Still in Program at Report End Date",
+#       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
+#       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
+#       Destination %in% c(22:23) ~ "Shared Housing",
+#       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
+#       Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
+#       Destination == 24 ~ "Deceased"
+#     ),
+#     PersonalID = as.character(PersonalID)
+#   ) %>% 
+#   select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
+# 
+# summary_pe_own_housing <- pe_own_housing %>%
+#   group_by(ProjectType, AltProjectName, OwnHousingDQ) %>%
+#   summarise(OwnHousing = sum(MeetsObjective)) %>%
+#   ungroup() %>%
+#   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
+#   mutate(
+#     HoHsMovedInLeavers = HoHsMovedInLeavers - HoHDeaths,
+#     OwnHousing = if_else(is.na(OwnHousing), 0, OwnHousing),
+#     Structure = if_else(ProjectType != 3, "72_80_5", NULL),
+#     OwnHousingPercent = if_else(ProjectType != 3,
+#                                 OwnHousing / HoHsMovedInLeavers,
+#                                 NULL),
+#     OwnHousingMath = case_when(
+#       HoHsMovedInLeavers == 0 &
+#         ProjectType != 3 ~
+#         "All points granted because this project had 0 Heads of Household Leavers who Moved into Housing",
+#       ProjectType == 3 &
+#         (HoHsMovedInLeavers == 0 | HoHsMovedInLeavers != 0) ~ "",
+#       HoHsMovedInLeavers != 0 & ProjectType != 3 ~ paste(
+#         OwnHousing,
+#         "exited to their own permanent housing /",
+#         HoHsMovedInLeavers,
+#         "heads of household leavers who moved into housing =",
+#         percent(OwnHousingPercent, accuracy = 1)
+#       )
+#     ), 
+#     OwnHousingPoints = if_else(
+#       HoHsMovedInLeavers == 0 & ProjectType != 3,
+#       10,
+#       pe_score(Structure, OwnHousingPercent)
+#     ),
+#     OwnHousingPoints = if_else(is.nan(OwnHousingPercent) &
+#                                  ProjectType != 3, 5, OwnHousingPoints),
+#     OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
+#                                  is.na(OwnHousingDQ) |
+#                                    OwnHousingDQ == 0 ~ OwnHousingPoints),
+#     OwnHousingPoints = if_else(is.na(OwnHousingPoints), 0, OwnHousingPoints),
+#     OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
+#     OwnHousingCohort = "HoHsMovedInLeavers"
+#   ) %>%
+#   select(ProjectType,
+#          AltProjectName,
+#          OwnHousingCohort,
+#          OwnHousing,
+#          OwnHousingMath,
+#          OwnHousingPercent,
+#          OwnHousingPoints,
+#          OwnHousingPossible,
+#          OwnHousingDQ)
 
 # Accessing Mainstream Resources: Benefits -----------------------------------
 # PSH, TH, SH, RRH
