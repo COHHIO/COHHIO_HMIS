@@ -809,8 +809,8 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
     Structure = case_when(
-      ProjectType == 3 ~ "80_90_12",
-      ProjectType %in% c(2, 13) ~ "75_83_10",
+      ProjectType == 3 ~ "80_90_10",
+      ProjectType %in% c(2, 13) ~ "65_75_10",
       ProjectType == 8 ~ "67_75_10"
     ),
     ExitsToPHPercent = if_else(
