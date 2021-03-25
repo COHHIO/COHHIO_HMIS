@@ -1171,7 +1171,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
 # Housing Stability: Length of Time Homeless ------------------------------
 # TH, SH, RRH
 
-pe_length_of_stay <- pe_clients_moved_in_leavers %>%
+pe_length_of_stay <- pe_hohs_moved_in_leavers %>%
   right_join(pe_coc_funded %>% 
                select(ProjectType, AltProjectID, AltProjectName) %>%
                unique(), 

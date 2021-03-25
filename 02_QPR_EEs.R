@@ -322,28 +322,30 @@ priority <- covid19_plot %>%
     Priority = factor(Priority, levels = c("Needs Isolation/Quarantine", 
                                            "Has Health Risk(s)", 
                                            "No Known Risks or Exposure")),
-    Week = paste0(year(COVID19AssessmentDate), 
-                  str_pad(epiweek(COVID19AssessmentDate), 
-                          width = 2,
-                          pad = "0")),
-    WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
-                         "%b %d, %Y")
+    Month = paste0(year(COVID19AssessmentDate),
+                   str_pad(
+                     month(COVID19AssessmentDate),
+                     width = 2,
+                     pad = "0"
+                   )), 
+    Month = as.numeric(factor(Month)),
+    MonthOf = format.Date(COVID19AssessmentDate, "%b %Y")
   ) %>% 
-  filter(Week != epiweek(today()))
+  filter(month(COVID19AssessmentDate) != month(today()))
 
 priority_plot <- priority %>%
-  dplyr::select(PersonalID, WeekOf, Week, Priority) %>%
-  group_by(WeekOf, Week, Priority) %>%
+  dplyr::select(PersonalID, MonthOf, Month, Priority) %>%
+  group_by(MonthOf, Month, Priority) %>%
   summarise(Clients = n()) %>%
-  arrange(Week)
+  arrange(Month)
 
 covid19_priority_plot <- priority_plot %>%
-  ggplot(aes(x = reorder(WeekOf, Week), y = Clients,
+  ggplot(aes(x = reorder(MonthOf, Month), y = Clients,
              fill = Priority, label = Clients)) +
   scale_fill_brewer(palette = "GnBu", direction = -1) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(x = "Week of", y = "Clients Assessed") +
+  labs(x = "Month of", y = "Clients Assessed") +
   theme(legend.title=element_blank(),
         legend.position = "top",
         legend.text = element_text(size = 11),
@@ -409,28 +411,30 @@ covid19_status <- covid19_plot %>%
       levels = c("No Current Indications",
                  "May Have COVID-19",
                  "Positive")
-    ),
-    Week = paste0(year(COVID19AssessmentDate), 
-                  str_pad(epiweek(COVID19AssessmentDate), 
-                          width = 2,
-                          pad = "0")),
-    WeekOf = format.Date(floor_date(COVID19AssessmentDate, unit = "week"),
-                         "%b %d, %Y")
+    ), 
+    Month = paste0(year(COVID19AssessmentDate),
+                   str_pad(
+                     month(COVID19AssessmentDate),
+                     width = 2,
+                     pad = "0"
+                   )), 
+    Month = as.numeric(factor(Month)),
+    MonthOf = format.Date(COVID19AssessmentDate, "%b %Y")
   ) %>% 
-  filter(Week != epiweek(today()))
+  filter(month(COVID19AssessmentDate) != month(today()))
 
 covid19_status_plot <- covid19_status %>%
-  select(PersonalID, WeekOf, Week, COVID19Status) %>%
-  group_by(WeekOf, Week, COVID19Status) %>%
+  select(PersonalID, MonthOf, Month, COVID19Status) %>%
+  group_by(MonthOf, Month, COVID19Status) %>%
   summarise(Clients = n()) %>%
-  arrange(Week) %>%
-  ggplot(aes(x = reorder(WeekOf, Week), y = Clients,
+  arrange(Month) %>%
+  ggplot(aes(x = reorder(MonthOf, Month), y = Clients,
              fill = COVID19Status)) +
   geom_bar(stat = "identity", 
            position = position_stack(reverse = TRUE)) +  
   scale_fill_manual(values = c("#e0ecf4", "#9ebcda", "#8856a7")) +
   theme_minimal() +
-  labs(x = "Week of", y = "Clients Assessed") +
+  labs(x = "Month of", y = "Clients Assessed") +
   theme(legend.title=element_blank(),
         legend.position = "top",
         legend.text = element_text(size = 11),
