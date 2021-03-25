@@ -33,118 +33,118 @@ if (!exists("tay")) {
 
 pe_score <- function(structure, value) {
   case_when(
-    structure == "24_30_11" & value >= .3 ~ 11,
-    structure == "24_30_11" & value >= .27 & value < .3 ~ 8,
-    structure == "24_30_11" & value >= .24 & value < .27 ~ 5,
-    structure == "24_30_11" & value < .24 ~ 0,
-    structure == "75_85_12" & value >= .85 ~ 12,
-    structure == "75_85_12" & value >= .8 & value < .85 ~ 9,
-    structure == "75_85_12" & value >= .75 & value < .8 ~ 5,
-    structure == "75_85_12" & value < .75 ~ 0,
-    structure == "80_90_12" & value >= .9 ~ 12,
-    structure == "80_90_12" & value >= .85 & value < .9 ~ 9,
-    structure == "80_90_12" & value >= .8 & value < .85 ~ 5,
-    structure == "80_90_12" & value < .8 ~ 0,
-    structure == "0_730_10" & value <= 730 ~ 10,
-    structure == "0_730_10" & value > 730 ~ 0,
-    structure == "75_85_10" & value >= .85 ~ 10,
-    structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5,
-    structure == "75_85_10" & value >= .75 & value < .8 ~ 5,
-    structure == "75_85_10" & value < .75 ~ 0,
-    structure == "20_90_10" & value >= .9 ~ 10,
-    structure == "20_90_10" & value >= .75 & value < .9 ~ 8,
-    structure == "20_90_10" & value >= .5 & value < .75 ~ 6,
-    structure == "20_90_10" & value >= .3 & value < .5 ~ 4,
-    structure == "20_90_10" & value >= .2 & value < .3 ~ 2,
-    structure == "20_90_10" & value < .2 ~ 0,
-    structure == "2_6_10" & value <= .02 ~ 10,
-    structure == "2_6_10" & value <= .04 & value > .02 ~ 7.5,
-    structure == "2_6_10" & value <= .06 & value > .04 ~ 5,
-    structure == "2_6_10" & value > .06 ~ 0,
-    structure == "5_9_10" & value <= .05 ~ 10,
-    structure == "5_9_10" & value <= .08 & value > .05 ~ 7.5,
-    structure == "5_9_10" & value <= .09 & value > .08 ~ 5,
-    structure == "5_9_10" & value > .09 ~ 0,
-    structure == "75_83_10" & value >= .83 ~ 10,
-    structure == "75_83_10" & value >= .79 & value < .83 ~ 7.5,
-    structure == "75_83_10" & value >= .75 & value < .79 ~ 5,
-    structure == "75_83_10" & value < .75 ~ 0,
-    structure == "72_80_5" & value >= .8 ~ 5,
-    structure == "72_80_5" & value >= .76 & value < .8 ~ 3,
-    structure == "72_80_5" & value >= .72 & value < .76 ~ 2,
-    structure == "72_80_5" & value < .72 ~ 0,
-    structure == "7_12_10" & value <= .07 ~ 10,
-    structure == "7_12_10" & value <= .09 & value > .07 ~ 7.5,
-    structure == "7_12_10" & value <= .12 & value > .09 ~ 5,
-    structure == "7_12_10" & value > .12 ~ 0,
-    structure == "12_17_10" & value <= .12 ~ 10,
-    structure == "12_17_10" & value > 12 & value <= .14 ~ 7.5,
-    structure == "12_17_10" & value > .14 & value <= 17 ~ 5,
-    structure == "12_17_10" & value > .17 ~ 0,
-    structure == "22_28_10" & value >= .28 ~ 10,
-    structure == "22_28_10" & value >= .26 & value < .28 ~ 7.5,
-    structure == "22_28_10" & value >= .22 & value < .26 ~ 5,
-    structure == "22_28_10" & value < .22 ~ 0,
-    structure == "0_7_10_PSH" & value >= 6 & value <= 7 ~ 10,
-    structure == "0_7_10_PSH" & value >= 5 & value < 6 ~ 9,
-    structure == "0_7_10_PSH" & value >= 3 & value < 5 ~ 8,
-    structure == "0_7_10_PSH" & value >= 2 & value < 3 ~ 5,
-    structure == "0_7_10_PSH" & value >= 1 & value < 2 ~ 2,
-    structure == "0_7_10_PSH" & value < 1 ~ 0,
-    structure == "200_280_10" & value <= 200 ~ 10,
-    structure == "200_280_10" & value <= 240 & value > 200 ~ 7.5,
-    structure == "200_280_10" & value <= 280 & value > 240 ~ 5,
-    structure == "200_280_10" & value > 280 ~ 0,
-    structure == "67_75_10" & value >= .75 ~ 10,
-    structure == "67_75_10" & value >= .71 & value < .75 ~ 7.5,
-    structure == "67_75_10" & value >= .67 & value < .71 ~ 5,
-    structure == "67_75_10" & value < .67 ~ 0,
-    structure == "0_7_10" & value >= 4 & value <= 7 ~ 10,
-    structure == "0_7_10" & value >= 3 & value < 4 ~ 8,
-    structure == "0_7_10" & value >= 2 & value < 3 ~ 7,
-    structure == "0_7_10" & value >= 1 & value < 2 ~ 5,
-    structure == "0_7_10" & value < 1 ~ 0,
-    structure == "15_19_10" & value <= .15 ~ 10,
-    structure == "15_19_10" & value <= .17 & value > .15 ~ 7.5,
-    structure == "15_19_10" & value <= .19 & value > .17 ~ 5,
-    structure == "15_19_10" & value > .19 ~ 0,
-    structure == "20_24_10" & value <= .2 ~ 10,
-    structure == "20_24_10" & value <= .22 & value > .2 ~ 7.5,
-    structure == "20_24_10" & value <= .24 & value > .22 ~ 5,
-    structure == "20_24_10" & value > .24 ~ 0,
-    structure == "16_20_10" & value >= .2 ~ 10,
-    structure == "16_20_10" & value < .2 & value >= .18 ~ 7.5,
-    structure == "16_20_10" & value < .18 & value >= .16 ~ 5,
-    structure == "16_20_10" & value < .16 ~ 0,
-    structure == "260_340_10" & value <= 260 ~ 10,
-    structure == "260_340_10" & value > 260 & value <= 300 ~ 7.5,
-    structure == "260_340_10" & value > 300 & value <= 340 ~ 5,
-    structure == "260_340_10" & value > 340 ~ 0,
-    structure == "0_100_10" & value == 1 ~ 10,
-    structure == "0_100_10" & value < 1 ~ 0,
-    structure == "14_18_10" & value >=  .18 ~ 10,
-    structure == "14_18_10" & value < .18 & value >= .16 ~ 7.5,
-    structure == "14_18_10" & value < .16 & value >= .14 ~ 5,
-    structure == "14_18_10" & value < .14 ~ 0,
-    structure == "150_210_10" & value <= 150 ~ 10,
-    structure == "150_210_10" & value <= 170 & value > 150 ~ 7.5,
-    structure == "150_210_10" & value <= 210 & value > 170 ~ 5,
-    structure == "150_210_10" & value > 210 ~ 0,
-    structure == "80_90_10" & value >= .9 ~ 10,
-    structure == "80_90_10" & value >= .85 & value < .9 ~ 7.5,
-    structure == "80_90_10" & value >= .8 & value < .85 ~ 5,
-    structure == "80_90_10" & value < .8 ~ 0,
-    structure == "34_40_10" & value >= .4 ~ 10,
-    structure == "34_40_10" & value >= .37 & value < .4 ~ 7.5,
-    structure == "34_40_10" & value >= .34 & value < .37 ~ 5,
-    structure == "34_40_10" & value < .34 ~ 0,
-    structure == "24_30_10" & value >= .3 ~ 10,
-    structure == "24_30_10" & value >= .27 & value < .3 ~ 7.5,
-    structure == "24_30_10" & value >= .24 & value < .27 ~ 5,
-    structure == "24_30_10" & value < .24 ~ 0,
-    structure == "90_100_5" & value == 1 ~ 5,
-    structure == "90_100_5" & value >= .9 & value < 1 ~ 2,
-    structure == "90_100_5" & value < .9 ~ 0
+    structure == "34_40_6" & value >= .4 ~ 6, # GD
+    structure == "34_40_6" & value >= .37 & value < .4 ~ 4, # GD
+    structure == "34_40_6" & value >= .34 & value < .37 ~ 2, # GD
+    structure == "34_40_6" & value < .34 ~ 0, # GD
+    structure == "65_75_10" & value >= .75 ~ 12, # GD
+    structure == "65_75_10" & value >= .7 & value < .75 ~ 9, # GD
+    structure == "65_75_10" & value >= .65 & value < .7 ~ 5, # GD
+    structure == "65_75_10" & value < .65 ~ 0, # GD
+    # structure == "80_90_12" & value >= .9 ~ 12,
+    # structure == "80_90_12" & value >= .85 & value < .9 ~ 9,
+    # structure == "80_90_12" & value >= .8 & value < .85 ~ 5,
+    # structure == "80_90_12" & value < .8 ~ 0,
+    structure == "0_730_10" & value <= 730 ~ 10, # GD
+    structure == "0_730_10" & value > 730 ~ 0, # GD
+    structure == "75_85_10" & value >= .85 ~ 10, # GD
+    structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5, # GD
+    structure == "75_85_10" & value >= .75 & value < .8 ~ 5, # GD
+    structure == "75_85_10" & value < .75 ~ 0, # GD
+    structure == "20_90_10" & value >= .9 ~ 10, # GD
+    structure == "20_90_10" & value >= .75 & value < .9 ~ 8, # GD
+    structure == "20_90_10" & value >= .5 & value < .75 ~ 6, # GD
+    structure == "20_90_10" & value >= .3 & value < .5 ~ 4, # GD
+    structure == "20_90_10" & value >= .2 & value < .3 ~ 2, # GD
+    structure == "20_90_10" & value < .2 ~ 0, # GD
+    # structure == "2_6_10" & value <= .02 ~ 10,
+    # structure == "2_6_10" & value <= .04 & value > .02 ~ 7.5,
+    # structure == "2_6_10" & value <= .06 & value > .04 ~ 5,
+    # structure == "2_6_10" & value > .06 ~ 0,
+    # structure == "5_9_10" & value <= .05 ~ 10,
+    # structure == "5_9_10" & value <= .08 & value > .05 ~ 7.5,
+    # structure == "5_9_10" & value <= .09 & value > .08 ~ 5,
+    # structure == "5_9_10" & value > .09 ~ 0,
+    # structure == "75_83_10" & value >= .83 ~ 10,
+    # structure == "75_83_10" & value >= .79 & value < .83 ~ 7.5,
+    # structure == "75_83_10" & value >= .75 & value < .79 ~ 5,
+    # structure == "75_83_10" & value < .75 ~ 0,
+    # structure == "72_80_5" & value >= .8 ~ 5,
+    # structure == "72_80_5" & value >= .76 & value < .8 ~ 3,
+    # structure == "72_80_5" & value >= .72 & value < .76 ~ 2,
+    # structure == "72_80_5" & value < .72 ~ 0,
+    # structure == "7_12_10" & value <= .07 ~ 10,
+    # structure == "7_12_10" & value <= .09 & value > .07 ~ 7.5,
+    # structure == "7_12_10" & value <= .12 & value > .09 ~ 5,
+    # structure == "7_12_10" & value > .12 ~ 0,
+    # structure == "12_17_10" & value <= .12 ~ 10,
+    # structure == "12_17_10" & value > 12 & value <= .14 ~ 7.5,
+    # structure == "12_17_10" & value > .14 & value <= 17 ~ 5,
+    # structure == "12_17_10" & value > .17 ~ 0,
+    # structure == "22_28_10" & value >= .28 ~ 10,
+    # structure == "22_28_10" & value >= .26 & value < .28 ~ 7.5,
+    # structure == "22_28_10" & value >= .22 & value < .26 ~ 5,
+    # structure == "22_28_10" & value < .22 ~ 0,
+    structure == "0_7_10_PSH" & value >= 6 & value <= 7 ~ 10, # GD
+    structure == "0_7_10_PSH" & value >= 5 & value < 6 ~ 9, # GD
+    structure == "0_7_10_PSH" & value >= 3 & value < 5 ~ 8, # GD
+    structure == "0_7_10_PSH" & value >= 2 & value < 3 ~ 5, # GD
+    structure == "0_7_10_PSH" & value >= 1 & value < 2 ~ 2, # GD
+    structure == "0_7_10_PSH" & value < 1 ~ 0, # GD
+    structure == "200_280_10" & value <= 200 ~ 10,#
+    structure == "200_280_10" & value <= 240 & value > 200 ~ 7.5,#
+    structure == "200_280_10" & value <= 280 & value > 240 ~ 5,#
+    structure == "200_280_10" & value > 280 ~ 0,#
+    structure == "67_75_10" & value >= .75 ~ 10,#
+    structure == "67_75_10" & value >= .71 & value < .75 ~ 7.5,#
+    structure == "67_75_10" & value >= .67 & value < .71 ~ 5,#
+    structure == "67_75_10" & value < .67 ~ 0,#
+    structure == "0_7_10" & value >= 4 & value <= 7 ~ 10,#
+    structure == "0_7_10" & value >= 3 & value < 4 ~ 8,#
+    structure == "0_7_10" & value >= 2 & value < 3 ~ 7,#
+    structure == "0_7_10" & value >= 1 & value < 2 ~ 5,#
+    structure == "0_7_10" & value < 1 ~ 0,#
+    # structure == "15_19_10" & value <= .15 ~ 10,
+    # structure == "15_19_10" & value <= .17 & value > .15 ~ 7.5,
+    # structure == "15_19_10" & value <= .19 & value > .17 ~ 5,
+    # structure == "15_19_10" & value > .19 ~ 0,
+    # structure == "20_24_10" & value <= .2 ~ 10,
+    # structure == "20_24_10" & value <= .22 & value > .2 ~ 7.5,
+    # structure == "20_24_10" & value <= .24 & value > .22 ~ 5,
+    # structure == "20_24_10" & value > .24 ~ 0,
+    # structure == "16_20_10" & value >= .2 ~ 10,
+    # structure == "16_20_10" & value < .2 & value >= .18 ~ 7.5,
+    # structure == "16_20_10" & value < .18 & value >= .16 ~ 5,
+    # structure == "16_20_10" & value < .16 ~ 0,
+    # structure == "260_340_10" & value <= 260 ~ 10,
+    # structure == "260_340_10" & value > 260 & value <= 300 ~ 7.5,
+    # structure == "260_340_10" & value > 300 & value <= 340 ~ 5,
+    # structure == "260_340_10" & value > 340 ~ 0,
+    # structure == "0_100_10" & value == 1 ~ 10,
+    # structure == "0_100_10" & value < 1 ~ 0,
+    # structure == "14_18_10" & value >=  .18 ~ 10,
+    # structure == "14_18_10" & value < .18 & value >= .16 ~ 7.5,
+    # structure == "14_18_10" & value < .16 & value >= .14 ~ 5,
+    # structure == "14_18_10" & value < .14 ~ 0,
+    # structure == "150_210_10" & value <= 150 ~ 10,
+    # structure == "150_210_10" & value <= 170 & value > 150 ~ 7.5,
+    # structure == "150_210_10" & value <= 210 & value > 170 ~ 5,
+    # structure == "150_210_10" & value > 210 ~ 0,
+    structure == "80_90_10" & value >= .9 ~ 10,#
+    structure == "80_90_10" & value >= .85 & value < .9 ~ 7.5,#
+    structure == "80_90_10" & value >= .8 & value < .85 ~ 5,#
+    structure == "80_90_10" & value < .8 ~ 0,#
+    structure == "34_40_10" & value >= .4 ~ 10,#
+    structure == "34_40_10" & value >= .37 & value < .4 ~ 7.5,#
+    structure == "34_40_10" & value >= .34 & value < .37 ~ 5,#
+    structure == "34_40_10" & value < .34 ~ 0,#
+    structure == "24_30_10" & value >= .3 ~ 10,#
+    structure == "24_30_10" & value >= .27 & value < .3 ~ 7.5,#
+    structure == "24_30_10" & value >= .24 & value < .27 ~ 5,#
+    structure == "24_30_10" & value < .24 ~ 0,#
+    structure == "90_100_5" & value == 1 ~ 5,#
+    structure == "90_100_5" & value >= .9 & value < 1 ~ 2,#
+    structure == "90_100_5" & value < .9 ~ 0#
   )
 }
 
