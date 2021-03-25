@@ -17,10 +17,10 @@ library(tidyverse)
 library(lubridate)
 library(HMIS)
 library(here)
-library(sf)
-library(urbnmapr)
-library(choroplethrMaps)
-library(plotly)
+# library(sf)
+# library(urbnmapr)
+# library(choroplethrMaps)
+# library(plotly)
 
 if (!exists("Enrollment"))
   load("images/COHHIOHMIS.RData")
@@ -32,17 +32,17 @@ if (!exists("tay")) {
 }
 
 # ohio_counties <- st_read("Ohio/counties/REFER_COUNTY.shp")
-
-counties <- get_urbn_map("counties", sf = TRUE)
-
-counties <- st_transform(counties, "+init=epsg:3857")
-
-counties <- counties %>%
-  mutate(county_name = str_remove(county_name, " County"))
-
-data(county.map)
-
-oh_counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
+# 
+# counties <- get_urbn_map("counties", sf = TRUE)
+# 
+# counties <- st_transform(counties, "+init=epsg:3857")
+# 
+# counties <- counties %>%
+#   mutate(county_name = str_remove(county_name, " County"))
+# 
+# data(county.map)
+# 
+# oh_counties <- county.map %>% filter(STATE == 39) %>% select(NAME, region)
 
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
@@ -142,24 +142,24 @@ vaccine_distribution_county <- counties %>%
                         " | Total Over 16 and Literally Homeless")) 
 
 # creating plot
-consent_plot <- ggplot(counties %>% filter(state_fips == 39)) + 
-  geom_sf() +
-  geom_sf(vaccine_distribution_county, 
-          mapping = aes(fill = total_lh)) +  
-  geom_sf_label(vaccine_distribution_county,
-                mapping = aes(label = hover)) +
-  # geom_sf_text(counties %>% filter(state_fips == 39),
-  #              mapping = aes(label = county_name),
-  #              check_overlap = TRUE,
-  #              size = 3,
-  #              color = "slategray3") +
-  scale_fill_viridis_c(super = ScaleContinuous) +
-  labs(title = "Would Consent to Vaccine") +
-  theme_void()
+# consent_plot <- ggplot(counties %>% filter(state_fips == 39)) + 
+#   geom_sf() +
+#   geom_sf(vaccine_distribution_county, 
+#           mapping = aes(fill = total_lh)) +  
+#   geom_sf_label(vaccine_distribution_county,
+#                 mapping = aes(label = hover)) +
+#   # geom_sf_text(counties %>% filter(state_fips == 39),
+#   #              mapping = aes(label = county_name),
+#   #              check_overlap = TRUE,
+#   #              size = 3,
+#   #              color = "slategray3") +
+#   scale_fill_viridis_c(super = ScaleContinuous) +
+#   labs(title = "Would Consent to Vaccine") +
+#   theme_void()
 
-# making it usable
-ggplotly(consent_plot,
-         tooltip = "text")
+# # making it usable
+# ggplotly(consent_plot,
+#          tooltip = "text")
 
 
 # Trying Leaflet ----------------------------------------------------------
