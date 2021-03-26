@@ -47,6 +47,11 @@ if (!exists("tay")) {
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
 # who's already been vaccinated?
+
+one_dose_and_done <- doses %>%
+  filter(COVID19VaccineManufacturer == "Johnson & Johnson") %>%
+  select(PersonalID) %>% unique()
+
 complete <- doses %>%
   group_by(PersonalID) %>%
   summarise(Doses = n()) %>%
@@ -60,7 +65,9 @@ complete <- doses %>%
   filter(DaysBetweenDoses >= 20) %>%
   select(PersonalID) %>% 
   unique() %>%
-  mutate(FullyVaccinated = "Yes")
+  rbind(one_dose_and_done) %>%
+  mutate(HasAllDoses = "Yes") %>%
+  unique()
 
 # deduping enrollment data taking the most recent open enrollment
 most_recent_entries <- co_clients_served %>%
