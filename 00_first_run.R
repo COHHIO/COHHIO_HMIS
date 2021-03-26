@@ -25,12 +25,18 @@ pacman::p_load(char = c(
   "rlang",
   "scales",
   "janitor",
-  "devtools"
+  "devtools",
+  "",
+  "sf",
+  "choroplethrMaps",
+  "plotly"
 ))
-
-# remotes::install_github("jimhester/archive",
-#                         dependencies = "Imports",
-#                         upgrade = "always")
+remotes::install_github("UrbanInstitute/urbnmapr",
+                        dependencies = "Imports",
+                        upgrade = "always")
+remotes::install_github("jimhester/archive",
+                        dependencies = "Imports",
+                        upgrade = "always")
 
 # Install packages for Rminor
 if (!require(pacman))
