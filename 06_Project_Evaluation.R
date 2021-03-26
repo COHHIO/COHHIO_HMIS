@@ -1675,8 +1675,8 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_benefits_at_exit,
             by = c("ProjectType", "AltProjectName")) %>%
-  left_join(summary_pe_own_housing,
-            by = c("ProjectType", "AltProjectName")) %>%
+  # left_join(summary_pe_own_housing,
+  #           by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_res_prior,
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "AltProjectName"))
@@ -1698,7 +1698,7 @@ pe_final_scores <- pe_final_scores %>%
       AverageLoSPoints +
       LongTermHomelessPoints +
       BenefitsAtExitPoints +
-      OwnHousingPoints +
+      # OwnHousingPoints +
       LHResPriorPoints +
       HousingFirstScore +
       ChronicPrioritizationScore +
@@ -1738,7 +1738,7 @@ rm(list = ls()[!(ls() %in% c(
   # 'pe_increase_income',
   'pe_length_of_stay',
   'pe_long_term_homeless',
-  'pe_own_housing',
+  # 'pe_own_housing',
   'pe_res_prior',
   'pe_scored_at_ph_entry',
   'pe_validation_summary',
@@ -1750,7 +1750,7 @@ rm(list = ls()[!(ls() %in% c(
   # 'summary_pe_increase_income',
   'summary_pe_length_of_stay',
   'summary_pe_long_term_homeless',
-  'summary_pe_own_housing',
+  # 'summary_pe_own_housing',
   'summary_pe_res_prior',
   'summary_pe_scored_at_ph_entry',
   'summary_pe_utilization',
