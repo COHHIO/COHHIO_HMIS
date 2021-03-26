@@ -235,7 +235,7 @@ data_prep <- function(object_names, directory, environment, accessor) {
           "pe_entries_no_income",
           "pe_long_term_homeless",
           "pe_res_prior",
-          "pe_own_housing",
+          # "pe_own_housing",
           "pe_validation_summary",
           "pe_scored_at_ph_entry",
           "project_type",
