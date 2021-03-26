@@ -118,29 +118,29 @@ totals_by_county <- total_lh_by_county %>%
   rename("county_name" = county_served)
 
 # creating sf data object with the pre-shaped data
-vaccine_distribution_county <- counties %>%
-  filter(state_fips == 39, # Ohio
-         !county_fips %in% c(39113, # Montgomery
-                             39035, # Cuyahoga
-                             39049, # Franklin
-                             39153, # Summit
-                             39061, # Hamilton
-                             39095, # Lucas 
-                             39151)) %>% # Stark
-  left_join(totals_by_county, by = "county_name") %>%
-  mutate(across(7:11, ~replace_na(.x, 0)),
-         hover = paste0(county_name, ": \n", 
-                        consent_unknown,
-                        " + | Consent Unknown\n",
-                        answered_no_to_consent_question,
-                        " + | Would Not Consent\n",
-                        answered_yes_to_consent_question,
-                        " + | Would Consent\n",
-                        fully_vaccinated,
-                        " + | Fully Vaccinated\n= ",
-                        total_lh,
-                        " | Total Over 16 and Literally Homeless")) 
-
+# vaccine_distribution_county <- counties %>%
+#   filter(state_fips == 39, # Ohio
+#          !county_fips %in% c(39113, # Montgomery
+#                              39035, # Cuyahoga
+#                              39049, # Franklin
+#                              39153, # Summit
+#                              39061, # Hamilton
+#                              39095, # Lucas 
+#                              39151)) %>% # Stark
+#   left_join(totals_by_county, by = "county_name") %>%
+#   mutate(across(7:11, ~replace_na(.x, 0)),
+#          hover = paste0(county_name, ": \n", 
+#                         consent_unknown,
+#                         " + | Consent Unknown\n",
+#                         answered_no_to_consent_question,
+#                         " + | Would Not Consent\n",
+#                         answered_yes_to_consent_question,
+#                         " + | Would Consent\n",
+#                         fully_vaccinated,
+#                         " + | Fully Vaccinated\n= ",
+#                         total_lh,
+#                         " | Total Over 16 and Literally Homeless")) 
+# 
 # creating plot
 # consent_plot <- ggplot(counties %>% filter(state_fips == 39)) + 
 #   geom_sf() +
