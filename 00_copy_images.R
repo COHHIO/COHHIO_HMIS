@@ -258,6 +258,7 @@ data_prep <- function(object_names, directory, environment, accessor) {
           "utilization",
           "utilization_bed",
           "vaccine_needs_second_dose",
+          "vaccine_status",
           "validation",
           "veteran_active_list" 
 ) %>% 
