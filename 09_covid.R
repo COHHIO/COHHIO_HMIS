@@ -290,7 +290,15 @@ vaccine_status <- co_clients_served %>%
       ConsentToVaccine == "No (HUD)" ~ "Not vaccinated, would not consent",
       !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)") ~ 
         "Not vaccinated, consent unknown"
-    )
+    ),
+    VaccineStatus = factor(VaccineStatus, levels = c(
+      "Fully vaccinated",
+      "Has all doses",
+      "Needs 2nd dose",
+      "Not vaccinated, would consent",
+      "Not vaccinated, would not consent",
+      "Not vaccinated, consent unknown"
+    ))
   ) %>%
   select(
     PersonalID,
