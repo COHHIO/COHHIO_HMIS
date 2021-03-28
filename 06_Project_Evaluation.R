@@ -687,7 +687,6 @@ data_quality_flags <- data_quality_flags_detail %>%
   select(AltProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
 
 # CoC Scoring -------------------------------------------------------------
-docs_due <- mdy("04232021")
 
 summary_pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName", "ProjectID")) %>%
@@ -707,40 +706,40 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     PrioritizationWorkgroupMath = PrioritizationWorkgroupScore,
     HousingFirstPossible = 15, 
     HousingFirstDQ = case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(HousingFirstScore) ~ 3,
       is.na(DateReceivedPPDocs) &
         is.na(HousingFirstScore) ~ 2,
       is.na(DateReceivedPPDocs) &
         !is.na(HousingFirstScore) ~ 4,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ 5
     ),
     HousingFirstScore = case_when(
         is.na(DateReceivedPPDocs) |
           is.na(HousingFirstScore) ~ -10,
-        ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10,
-        ymd(DateReceivedPPDocs) <= ymd(docs_due) ~ HousingFirstScore
+        ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ -10,
+        ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~ HousingFirstScore
       ), 
     HousingFirstMath = HousingFirstScore,
     ChronicPrioritizationDQ = case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
       is.na(DateReceivedPPDocs) &
         is.na(ChronicPrioritizationScore) ~ 2,
       is.na(DateReceivedPPDocs) &
         !is.na(ChronicPrioritizationScore) ~ 4,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ 5
     ),
     ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL), 
     ChronicPrioritizationScore = #if_else(ProjectType == 3, 0, NULL), 
       case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         ProjectType == 3 &
         !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
       is.na(DateReceivedPPDocs) &
         ProjectType == 3 &
         is.na(ChronicPrioritizationScore) ~ -5,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) &
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) &
         ProjectType == 3 ~ -5
     ), 
     ChronicPrioritizationMath = ChronicPrioritizationScore
