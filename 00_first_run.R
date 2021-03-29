@@ -31,12 +31,14 @@ pacman::p_load(char = c(
   "choroplethrMaps",
   "plotly"
 ))
+
 remotes::install_github("UrbanInstitute/urbnmapr",
                         dependencies = "Imports",
                         upgrade = "always")
-remotes::install_github("jimhester/archive",
-                        dependencies = "Imports",
-                        upgrade = "always")
+
+# remotes::install_github("jimhester/archive",
+#                         dependencies = "Imports",
+#                         upgrade = "always")
 
 # Install packages for Rminor
 if (!require(pacman))
@@ -85,3 +87,10 @@ devtools::install_github("COHHIO/HMIS",
 if(!dir.exists("data")) dir.create("data")
 if(!dir.exists("images")) dir.create("images")
 if(!dir.exists("random_data")) dir.create("random_data")
+if(!dir.exists("SPM_data_BoS")) dir.create("SPM_data_BoS")
+if(!dir.exists("SPM_data_YO")) dir.create("SPM_data_YO")
+if(!dir.exists("SPM_data_YO/Current")) dir.create("SPM_data_YO/Current")
+if(!dir.exists("SPM_data_YO/Prior")) dir.create("SPM_data_YO/Prior")
+if(!dir.exists("SPM_data_BoS/Current")) dir.create("SPM_data_BoS/Current")
+if(!dir.exists("SPM_data_BoS/Prior")) dir.create("SPM_data_BoS/Prior")
+
