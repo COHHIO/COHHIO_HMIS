@@ -261,7 +261,36 @@ vaccine_needs_second_dose <- dose_counts %>%
 
 # Client Statuses ---------------------------------------------------------
 
-vaccine_status <- co_clients_served %>%
+get_county_from_provider <- co_clients_served %>%
+  left_join(Project %>%
+              select(ProjectName, ProjectCounty), by = "ProjectName") %>%
+  mutate(
+    CountyGuessed = if_else(is.na(CountyServed) |
+                              CountyServed == "--Outside of Ohio--", 1, 0),
+    CountyServed = case_when(
+      CountyGuessed == 1 &
+        ProjectName != "Unsheltered Clients - OUTREACH" ~ ProjectCounty,
+      CountyGuessed == 0 ~ CountyServed,
+      TRUE ~ "Unsheltered in unknown County"
+    ),
+    ProjectCounty = NULL
+  )
+
+co_clients_served_county_guesses <- get_county_from_provider %>%
+  left_join(Enrollment %>%
+              select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
+  mutate(
+    UserID = gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE)
+  ) %>%
+  left_join(Users %>%
+              mutate(UserID = as.character(UserID)) %>%
+              select(UserID, UserCounty), by = "UserID") %>%
+  mutate(CountyServed = if_else(CountyServed == "Unsheltered in unknown County",
+                                UserCounty,
+                                CountyServed)) %>%
+  select(-starts_with("User"))
+
+vaccine_status <- co_clients_served_county_guesses %>%
   left_join(complete %>% select(-LastDose), by = "PersonalID") %>%
   mutate(HasAllDoses = if_else(is.na(HasAllDoses), "No", HasAllDoses)) %>%
   left_join(vaccine_needs_second_dose[c("PersonalID", "HouseholdID", "HowSoon")],
