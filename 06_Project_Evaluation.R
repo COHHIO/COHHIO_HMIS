@@ -153,8 +153,8 @@ pe_score <- function(structure, value) {
 
 # Staging -----------------------------------------------------------------
 
-keepers <- c(15, 1353, 1566) 
-retired <- c(1774, 390, 1579)
+keepers <- c(15, 1353, 1566, 2068) 
+retired <- c(1774, 390, 1579, 2069)
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
@@ -185,12 +185,14 @@ consolidations <- coc_funded %>%
     AltProjectID = case_when(
       ProjectID %in% c(1353, 390) ~ 3000,
       ProjectID %in% c(1774, 15) ~ 3001,
-      ProjectID %in% c(1566, 1579) ~ 3002
+      ProjectID %in% c(1566, 1579) ~ 3002,
+      ProjectID %in% c(2068, 2069) ~ 3003
     ),
     AltProjectName = case_when(
       ProjectID %in% c(1353, 390) ~ "Springfield SPC 1 Combined (1353, 390)",
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined (1774, 15)",
-      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined (1566, 1579)"
+      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined (1566, 1579)",
+      ProjectID %in% c(2068, 2069) ~ "Licking - Region 9 RRH"
     )
   ) %>%
   select(ProjectID, ProjectName, AltProjectID, AltProjectName)
