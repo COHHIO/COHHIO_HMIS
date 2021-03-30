@@ -161,7 +161,7 @@ Project <-
 provider_extras <- read_xlsx(
   paste0(directory, "/RMisc2.xlsx"),
   sheet = 3,
-  col_types = c("numeric", replicate(9, "text"))
+  col_types = c("numeric", replicate(16, "text"))
   ) %>% 
   mutate(
     ProjectRegion = if_else(
