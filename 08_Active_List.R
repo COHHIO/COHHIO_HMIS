@@ -15,7 +15,7 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
-library(treemap)
+# library(treemap)
 library(plotly)
 library(HMIS)
 
