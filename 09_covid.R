@@ -258,7 +258,6 @@ vaccine_needs_second_dose <- dose_counts %>%
     CurrentLocation
   )
 
-
 # Client Statuses ---------------------------------------------------------
 
 get_county_from_provider <- co_clients_served %>%
@@ -299,7 +298,7 @@ vaccine_status <- co_clients_served_county_guesses %>%
             by = c("PersonalID")) %>%
   mutate(
     ConsentToVaccine = if_else(is.na(ConsentToVaccine), 
-                               "Data not collected (HUD)", 
+                               "Data not collected", 
                                ConsentToVaccine),
     AgeAtEntry = case_when(
       AgeAtEntry < 12 ~ "0-11",
@@ -317,8 +316,9 @@ vaccine_status <- co_clients_served_county_guesses %>%
       !is.na(HowSoon) ~ "Needs 2nd dose",
       ConsentToVaccine == "Yes (HUD)" ~ "Not vaccinated, would consent",
       ConsentToVaccine == "No (HUD)" ~ "Not vaccinated, would not consent",
-      !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)") ~ 
-        "Not vaccinated, consent unknown"
+      !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)", "Data not collected") ~ 
+        "Not vaccinated, consent unknown",
+      ConsentToVaccine == "Data not collected" ~ "Data not collected"
     ),
     VaccineStatus = factor(VaccineStatus, levels = c(
       "Fully vaccinated",
@@ -326,7 +326,8 @@ vaccine_status <- co_clients_served_county_guesses %>%
       "Needs 2nd dose",
       "Not vaccinated, would consent",
       "Not vaccinated, would not consent",
-      "Not vaccinated, consent unknown"
+      "Not vaccinated, consent unknown",
+      "Data not collected"
     ))
   ) %>%
   select(
