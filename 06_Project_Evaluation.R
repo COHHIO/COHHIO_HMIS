@@ -647,7 +647,20 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
   filter(!ProjectID %in% retired) %>%
   mutate(
     PrioritizationWorkgroupPossible = 5, 
-    PrioritizationWorkgroupMath = PrioritizationWorkgroupScore,
+    PrioritizationWorkgroupMath = case_when(
+      today() <= ymd(hc_project_eval_docs_due) & 
+        is.na(DateReceivedPPDocs) ~
+        paste0("Relevant documentation due ", hc_project_eval_docs_due, "."),
+      today() > ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0("Documentation was due ", hc_project_eval_docs_due,
+               ". This will be updated once the documents are received by COHHIO."),
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
+        "Documentation received past deadline.",
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
+        "Your documentation was reviewed by the CoC team and scored. Please contact 
+      ohioboscoc@cohhio.org if you have questions about your scoring."
+    ),
     HousingFirstPossible = 15, 
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
@@ -664,7 +677,20 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ -10,
         ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~ HousingFirstScore
       ), 
-    HousingFirstMath = HousingFirstScore,
+    HousingFirstMath = case_when(
+      today() <= ymd(hc_project_eval_docs_due) & 
+        is.na(DateReceivedPPDocs) ~
+        paste0("Relevant documentation due ", hc_project_eval_docs_due, "."),
+      today() > ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0("Documentation was due ", hc_project_eval_docs_due,
+              ". This will be updated once the documents are received by COHHIO."),
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
+        "Documentation received past deadline.",
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
+        "Your documentation was reviewed by the CoC team and scored. Please contact 
+      ohioboscoc@cohhio.org if you have questions about your scoring."
+      ),
     ChronicPrioritizationDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
@@ -686,7 +712,20 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) &
         ProjectType == 3 ~ -5
     ), 
-    ChronicPrioritizationMath = ChronicPrioritizationScore
+    ChronicPrioritizationMath = case_when(
+      today() <= ymd(hc_project_eval_docs_due) & 
+        is.na(DateReceivedPPDocs) ~
+        paste0("Relevant documentation due ", hc_project_eval_docs_due, "."),
+      today() > ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0("Documentation was due ", hc_project_eval_docs_due,
+               ". This will be updated once the documents are received by COHHIO."),
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
+        "Documentation received past deadline.",
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
+        "Your documentation was reviewed by the CoC team and scored. Please contact 
+      ohioboscoc@cohhio.org if you have questions about your scoring."
+    )
   ) 
 
 # 2 = Documents not yet received
