@@ -855,7 +855,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
          HoHsServed == 0) |
         (ProjectType != 3 &
            HoHsServedLeavers == 0),
-      if_else(ProjectType == 3, 12, 10),
+      if_else(ProjectType == 3, 8, 13),
       pe_score(Structure, ExitsToPHPercent)
     ),
     ExitsToPHPossible = if_else(ProjectType == 3, 8, 13),
