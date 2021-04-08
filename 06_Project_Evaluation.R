@@ -805,9 +805,9 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
     HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
-    Structure = case_when(
-      ProjectType == 3 ~ "80_90_10",
-      ProjectType %in% c(2, 13) ~ "65_75_10"
+    Structure = case_when( 
+      ProjectType == 3 ~ "80_90_8", #
+      ProjectType %in% c(2, 13) ~ "65_75_13"
     ),
     ExitsToPHPercent = if_else(
       ProjectType == 3,
@@ -1002,7 +1002,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
-    Structure = "75_85_10",
+    Structure = if_else(ProjectType == 3, "75_85_8", "75_85_10"), #
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
     BenefitsAtExitMath = if_else(
       AdultMovedInLeavers == 0,
@@ -1193,7 +1193,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     Structure = case_when(
-      ProjectType == 2 ~ "200_280_10",
+      ProjectType == 2 ~ "200_280_10", #
       ProjectType == 13 ~ "0_730_10"
     ),
     AverageLoSPoints = case_when(
@@ -1251,8 +1251,9 @@ summary_pe_res_prior <- pe_res_prior %>%
   mutate(
     LHResPrior = if_else(is.na(LHResPrior), 0, LHResPrior),
     Structure = case_when(
-      ProjectType %in% c(3, 13) ~ "75_85_10",
-      ProjectType == 2 ~ "67_75_10"
+      ProjectType == 3 ~ "75_85_8", #
+      ProjectType == 2 ~ "67_75_12",
+      ProjectType == 13 ~ "75_85_12"
     ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
     LHResPriorMath = if_else(
@@ -1324,7 +1325,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntry = if_else(is.na(NoIncomeAtEntry),
                               0,
                               NoIncomeAtEntry),
-    Structure = case_when(ProjectType == 3 ~ "34_40_6",
+    Structure = case_when(ProjectType == 3 ~ "34_40_6", #
                           ProjectType == 13 ~ "34_40_10", 
                           ProjectType == 2 ~ "24_30_10"),
     NoIncomeAtEntryDQ = if_else(is.na(NoIncomeAtEntryDQ), 0, NoIncomeAtEntryDQ),
@@ -1426,7 +1427,7 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
-    Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
+    Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"), #
     MedianHHIMath = if_else(
       AdultsEntered == 0,
       "All points granted since 0 adults entered this project during the reporting period",
@@ -1532,7 +1533,7 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
     LongTermHomeless = if_else(is.na(LongTermHomeless),
                               0,     
                               LongTermHomeless),
-    Structure = if_else(ProjectType == 3, "20_90_10", NULL),
+    Structure = if_else(ProjectType == 3, "20_90_10", NULL), #
     LongTermHomelessPercent = if_else(AdultsEntered > 0,
                                       LongTermHomeless / AdultsEntered,
                                       NULL),    
@@ -1606,7 +1607,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntry = if_else(is.na(ScoredAtEntry),
                             0,
                             ScoredAtEntry), 
-    Structure = if_else(ProjectType %in% c(2, 3, 13), "90_100_5", NULL),
+    Structure = "90_100_5", #
     ScoredAtEntryPercent = if_else(HoHsEntered > 0,
                                    ScoredAtEntry / HoHsEntered,
                                    NULL),    
