@@ -14,7 +14,7 @@
 
 library(dplyr)
 
-#creates empty environment called rdata
+# creates empty environment called rdata
 rdata <- rlang::env(rlang::empty_env())
 
 #loads all images into rdata 
