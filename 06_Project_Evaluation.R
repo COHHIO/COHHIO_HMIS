@@ -382,8 +382,26 @@ pe_hohs_served <- co_hohs_served %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
-pe_hohs_served_leavers <- pe_hohs_served %>%
-  filter(exited_between(., hc_project_eval_start, hc_project_eval_end))
+pe_hohs_served_leavers <- co_hohs_served %>%
+  filter(served_between(., hc_project_eval_start, hc_project_eval_end) &
+           exited_between(., hc_project_eval_start, hc_project_eval_end)) %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
+  left_join(Client, by = "PersonalID") %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
+  select(all_of(vars_we_want)) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
