@@ -33,60 +33,68 @@ if (!exists("tay")) {
 
 pe_score <- function(structure, value) {
   case_when(
-    structure == "34_40_6" & value >= .4 ~ 6, 
-    structure == "34_40_6" & value >= .37 ~ 4, 
-    structure == "34_40_6" & value >= .34 ~ 2, 
-    structure == "34_40_6" & value < .34 ~ 0, 
-    structure == "65_75_10" & value >= .75 ~ 12, 
-    structure == "65_75_10" & value >= .7 ~ 9, 
-    structure == "65_75_10" & value >= .65 ~ 5, 
-    structure == "65_75_10" & value < .65 ~ 0, 
-    structure == "0_730_10" & value <= 730 ~ 10, 
-    structure == "0_730_10" & value > 730 ~ 0, 
-    structure == "75_85_10" & value >= .85 ~ 10, 
-    structure == "75_85_10" & value >= .8 ~ 7.5, 
-    structure == "75_85_10" & value >= .75 ~ 5, 
-    structure == "75_85_10" & value < .75 ~ 0, 
-    structure == "20_90_10" & value >= .9 ~ 10, 
-    structure == "20_90_10" & value >= .75 ~ 8, 
-    structure == "20_90_10" & value >= .5 ~ 6, 
-    structure == "20_90_10" & value >= .3 ~ 4, 
-    structure == "20_90_10" & value >= .2 ~ 2, 
-    structure == "20_90_10" & value < .2 ~ 0, 
-    structure == "0_7_10_PSH" & value >= 6 ~ 10,     #  maximum value is 7
-    structure == "0_7_10_PSH" & value >= 5 ~ 9, 
-    structure == "0_7_10_PSH" & value >= 3 ~ 8, 
-    structure == "0_7_10_PSH" & value >= 2 ~ 5, 
-    structure == "0_7_10_PSH" & value >= 1 ~ 2, 
-    structure == "0_7_10_PSH" & value < 1 ~ 0, 
-    structure == "200_280_10" & value <= 200 ~ 10, 
-    structure == "200_280_10" & value <= 240 ~ 7.5, 
-    structure == "200_280_10" & value <= 280 ~ 5, 
-    structure == "200_280_10" & value > 280 ~ 0, 
-    structure == "67_75_10" & value >= .75 ~ 10, 
-    structure == "67_75_10" & value >= .71 ~ 7.5, 
-    structure == "67_75_10" & value >= .67 ~ 5, 
-    structure == "67_75_10" & value < .67 ~ 0, 
-    structure == "0_7_10" & value >= 4 ~ 10,         #  maximum value is 7
-    structure == "0_7_10" & value >= 3 ~ 8, 
-    structure == "0_7_10" & value >= 2 ~ 7, 
-    structure == "0_7_10" & value >= 1 ~ 5, 
-    structure == "0_7_10" & value < 1 ~ 0, 
-    structure == "80_90_10" & value >= .9 ~ 10, 
-    structure == "80_90_10" & value >= .85 ~ 7.5, 
-    structure == "80_90_10" & value >= .8 ~ 5, 
-    structure == "80_90_10" & value < .8 ~ 0, 
-    structure == "34_40_10" & value >= .4 ~ 10, 
-    structure == "34_40_10" & value >= .37 ~ 7.5, 
-    structure == "34_40_10" & value >= .34 ~ 5, 
-    structure == "34_40_10" & value < .34 ~ 0, 
-    structure == "24_30_10" & value >= .3 ~ 10, 
-    structure == "24_30_10" & value >= .27 ~ 7.5, 
-    structure == "24_30_10" & value >= .24 ~ 5, 
-    structure == "24_30_10" & value < .24 ~ 0, 
-    structure == "90_100_5" & value == 1 ~ 5, 
-    structure == "90_100_5" & value >= .9 ~ 2, 
-    structure == "90_100_5" & value < .9 ~ 0 
+    structure == "34_40_6" & value >= .4 ~ 6, # psh
+    structure == "34_40_6" & value >= .37 ~ 4, # psh
+    structure == "34_40_6" & value >= .34 ~ 2, # psh
+    structure == "34_40_6" & value < .34 ~ 0, # psh
+    structure == "65_75_13" & value >= .75 ~ 13, # th rrh
+    structure == "65_75_13" & value >= .7 ~ 10, # th rrh
+    structure == "65_75_13" & value >= .65 ~ 7, # th rrh
+    structure == "65_75_13" & value < .65 ~ 0, # th rrh
+    structure == "0_730_10" & value <= 730 ~ 10, # rrh
+    structure == "0_730_10" & value > 730 ~ 0, # rrh
+    structure == "75_85_10" & value >= .85 ~ 10, # th rrh
+    structure == "75_85_10" & value >= .8 ~ 7.5, # th rrh
+    structure == "75_85_10" & value >= .75 ~ 5, # th rrh 
+    structure == "75_85_10" & value < .75 ~ 0, # th rrh 
+    structure == "20_90_10" & value >= .9 ~ 10, # psh
+    structure == "20_90_10" & value >= .75 ~ 8, # psh
+    structure == "20_90_10" & value >= .5 ~ 6, # psh
+    structure == "20_90_10" & value >= .3 ~ 4, # psh
+    structure == "20_90_10" & value >= .2 ~ 2, # psh
+    structure == "20_90_10" & value < .2 ~ 0, # psh
+    structure == "0_7_10_PSH" & value >= 6 ~ 10, # psh
+    structure == "0_7_10_PSH" & value >= 5 ~ 9,  # psh
+    structure == "0_7_10_PSH" & value >= 3 ~ 8,  # psh
+    structure == "0_7_10_PSH" & value >= 2 ~ 5,  # psh
+    structure == "0_7_10_PSH" & value >= 1 ~ 2,  # psh
+    structure == "0_7_10_PSH" & value < 1 ~ 0,  # psh
+    structure == "200_280_10" & value <= 200 ~ 10, # th
+    structure == "200_280_10" & value <= 240 ~ 7.5, # th
+    structure == "200_280_10" & value <= 280 ~ 5, # th
+    structure == "200_280_10" & value > 280 ~ 0, # th
+    structure == "67_75_12" & value >= .75 ~ 12, # th
+    structure == "67_75_12" & value >= .71 ~ 9, # th
+    structure == "67_75_12" & value >= .67 ~ 6, # th
+    structure == "67_75_12" & value < .67 ~ 0, # th
+    structure == "0_7_10" & value >= 4 ~ 10, # th rrh
+    structure == "0_7_10" & value >= 3 ~ 8, # th rrh
+    structure == "0_7_10" & value >= 2 ~ 7, # th rrh
+    structure == "0_7_10" & value >= 1 ~ 5, # th rrh
+    structure == "0_7_10" & value < 1 ~ 0, # th rrh
+    structure == "80_90_8" & value >= .9 ~ 8, # psh
+    structure == "80_90_8" & value >= .85 ~ 6, # psh
+    structure == "80_90_8" & value >= .8 ~ 4, # psh
+    structure == "80_90_8" & value < .8 ~ 0, # psh
+    structure == "34_40_10" & value >= .4 ~ 10, # rrh
+    structure == "34_40_10" & value >= .37 ~ 7.5, # rrh
+    structure == "34_40_10" & value >= .34 ~ 5, # rrh
+    structure == "34_40_10" & value < .34 ~ 0, # rrh
+    structure == "24_30_10" & value >= .3 ~ 10, # th
+    structure == "24_30_10" & value >= .27 ~ 7.5, # th
+    structure == "24_30_10" & value >= .24 ~ 5, # th
+    structure == "24_30_10" & value < .24 ~ 0, # th
+    structure == "90_100_5" & value == 1 ~ 5, # all
+    structure == "90_100_5" & value >= .9 ~ 2, # all
+    structure == "90_100_5" & value < .9 ~ 0, # all
+    structure == "75_85_8" & value >= .85 ~ 8, # psh
+    structure == "75_85_8" & value >= .8 ~ 6, # psh
+    structure == "75_85_8" & value >= .75 ~ 4, # psh 
+    structure == "75_85_8" & value < .75 ~ 0, # psh
+    structure == "75_85_12" & value >= .85 ~ 12, # rrh
+    structure == "75_85_12" & value >= .8 ~ 9, # rrh
+    structure == "75_85_12" & value >= .75 ~ 6, # rrh 
+    structure == "75_85_12" & value < .75 ~ 0 # rrh
   )
 }
 
