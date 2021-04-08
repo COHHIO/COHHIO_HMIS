@@ -1416,7 +1416,7 @@ pe_homeless_history_index <- pe_adults_entered %>%
     ),
     HHI = if_else(DaysHomelessAtEntry >= 365, 7, 
                   score_matrix[cbind(NumMonthsLevel, TimesLevel)]),
-    
+    HHI = replace_na(HHI, 0), # when null I'm seeing client wasn't even eligible
     PersonalID = as.character(PersonalID)
   ) %>%
   select(-NumMonthsLevel, -TimesLevel)
