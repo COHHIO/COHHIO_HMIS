@@ -840,7 +840,7 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
       if_else(ProjectType == 3, 12, 10),
       pe_score(Structure, ExitsToPHPercent)
     ),
-    ExitsToPHPossible = if_else(ProjectType == 3, 12, 10),
+    ExitsToPHPossible = if_else(ProjectType == 3, 8, 13),
     ExitsToPHPoints = if_else(
       ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
       ExitsToPHPoints,
@@ -1019,7 +1019,7 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
     BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
                                if_else(ProjectType == 3, 12, 10),
                                pe_score(Structure, BenefitsAtExit)),
-    BenefitsAtExitPossible = if_else(ProjectType == 3, 12, 10),
+    BenefitsAtExitPossible = if_else(ProjectType == 3, 8, 10),
     BenefitsAtExitPoints = case_when(
       BenefitsAtExitDQ == 1 ~ 0,
       is.na(BenefitsAtExitDQ) |
@@ -1206,7 +1206,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
       "All points granted because this project had 0 leavers who moved into the project's housing",
       paste(as.integer(AverageDays), "average days")
     ), 
-    AverageLoSPossible = if_else(ProjectType %in% c(2, 8, 13), 10, NULL),
+    AverageLoSPossible = if_else(ProjectType != 3, 10, NULL),
     AverageLoSDQ = case_when(
       General_DQ == 1 & ProjectType %in% c(2, 8, 13) ~ 1,
       General_DQ == 0 & ProjectType %in% c(2, 8, 13) ~ 0),
@@ -1274,7 +1274,7 @@ summary_pe_res_prior <- pe_res_prior %>%
     LHResPriorPoints = case_when(
       LHResPriorDQ == 1 ~ 0, 
       LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
-    LHResPriorPossible = 10,
+    LHResPriorPossible = if_else(ProjectType == 3, 8, 12),
     LHResPriorCohort = "AdultsEntered"
   ) %>%
   select(
@@ -1343,7 +1343,7 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     ), 
     NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
                      pe_score(Structure, NoIncomeAtEntryPercent)),
-    NoIncomeAtEntryPossible = 10,
+    NoIncomeAtEntryPossible = if_else(ProjectType == 3, 6, 10),
     NoIncomeAtEntryPoints = case_when(
       NoIncomeAtEntryDQ == 1 ~ 0,
       NoIncomeAtEntryDQ == 0 |
@@ -1634,7 +1634,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryPoints = if_else(is.na(ScoredAtEntryPoints), 
                                   0, 
                                   ScoredAtEntryPoints),
-    ScoredAtEntryPossible = if_else(ProjectType %in% c(2, 3, 13), 5, NULL),
+    ScoredAtEntryPossible = 5,
     ScoredAtEntryCohort = "HoHsEntered"
   ) %>%
   select(
