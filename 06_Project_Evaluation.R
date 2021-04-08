@@ -1016,9 +1016,11 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
       )
     ), 
     BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
-    BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
-                               if_else(ProjectType == 3, 12, 10),
-                               pe_score(Structure, BenefitsAtExit)),
+    BenefitsAtExitPoints = case_when(
+      AdultMovedInLeavers == 0 & ProjectType == 3 ~ 8, 
+      AdultMovedInLeavers == 0 & ProjectType != 3 ~ 10,
+      TRUE ~ pe_score(Structure, BenefitsAtExit)
+    ), 
     BenefitsAtExitPossible = if_else(ProjectType == 3, 8, 10),
     BenefitsAtExitPoints = case_when(
       BenefitsAtExitDQ == 1 ~ 0,
@@ -1268,9 +1270,10 @@ summary_pe_res_prior <- pe_res_prior %>%
       )
     ), 
     LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
-    LHResPriorPoints = if_else(AdultsEntered == 0,
-                               10,
-                               pe_score(Structure, LHResPriorPercent)),
+    LHResPriorPoints = case_when(
+      AdultsEntered == 0 & ProjectType == 3 ~ 8,
+      AdultsEntered == 0 & ProjectType != 3 ~ 12,
+      TRUE ~ pe_score(Structure, LHResPriorPercent)),
     LHResPriorPoints = case_when(
       LHResPriorDQ == 1 ~ 0, 
       LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
@@ -1341,8 +1344,10 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
         percent(NoIncomeAtEntryPercent, accuracy = 1)
       )
     ), 
-    NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
-                     pe_score(Structure, NoIncomeAtEntryPercent)),
+    NoIncomeAtEntryPoints = case_when(
+      AdultsEntered == 0 & ProjectType == 3 ~ 6,
+      AdultsEntered == 0 & ProjectType != 3 ~ 10,
+      TRUE ~ pe_score(Structure, NoIncomeAtEntryPercent)),
     NoIncomeAtEntryPossible = if_else(ProjectType == 3, 6, 10),
     NoIncomeAtEntryPoints = case_when(
       NoIncomeAtEntryDQ == 1 ~ 0,
