@@ -660,11 +660,11 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       today() <= ymd(hc_project_eval_docs_due) & 
         is.na(DateReceivedPPDocs) ~
         paste0("Documents either not yet received or not yet processed. They are due ",
-               hc_project_eval_docs_due, "."),
+               format(hc_project_eval_docs_due, "%A %b %e, %Y"), "."),
       today() > ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
         paste0("Documentation either not yet received or not yet processed by the 
-               CoC Team. They were due ", hc_project_eval_docs_due,
+               CoC Team. They were due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"),
                "."),
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
         "Documentation received past deadline.",
@@ -692,11 +692,11 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       today() <= ymd(hc_project_eval_docs_due) & 
         is.na(DateReceivedPPDocs) ~
         paste0("Documents either not yet received or not yet processed. They are 
-               due ", hc_project_eval_docs_due, "."),
+               due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"), "."),
       today() > ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
         paste0("Documentation either not yet received or not yet processed by the 
-               CoC Team. They were due ", hc_project_eval_docs_due,
+               CoC Team. They were due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"),
                "."),
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
         "Documentation received past deadline.",
@@ -729,11 +729,11 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       today() <= ymd(hc_project_eval_docs_due) & 
         is.na(DateReceivedPPDocs) ~
         paste0("Documents either not yet received or not yet processed. They are due ",
-               hc_project_eval_docs_due, "."),
+               format(hc_project_eval_docs_due, "%A %b %e, %Y"), "."),
       today() > ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
         paste0("Documentation either not yet received or not yet processed by the 
-               CoC Team. They were due ", hc_project_eval_docs_due,
+               CoC Team. They were due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"),
                "."),
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
         "Documentation received past deadline.",
