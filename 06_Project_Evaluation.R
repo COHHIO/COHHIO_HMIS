@@ -98,9 +98,6 @@ pe_score <- function(structure, value) {
   )
 }
 
-# The specs for (last year's) report is here: (will update once 2021 is out)
-#https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
-
 # Staging -----------------------------------------------------------------
 
 keepers <- c(15, 1353, 1566, 2068) 
@@ -260,10 +257,14 @@ pe_adults_entered <-  co_adults_served %>%
   ungroup() %>%
   filter(entered_between(., hc_project_eval_start, hc_project_eval_end) & 
            EntryDate == HHEntryDate) %>%
+  # group_by(PersonalID, AltProjectID) %>%
+  # arrange(desc(ymd(EntryDate))) %>%
+  # slice_head() %>%
+  # ungroup() %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate))
 
-# this one counts each entry 
+# counts each client's entry
 
 ## for vispdat measure
 
@@ -283,6 +284,9 @@ pe_hohs_entered <-  co_hohs_entered %>%
       "ProjectName"
     )
   ) %>%
+  # group_by(PersonalID, AltProjectID) %>%
+  # slice_min(order_by = ymd(EntryDate), with_ties = FALSE) %>%
+  # ungroup() %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate))
 
