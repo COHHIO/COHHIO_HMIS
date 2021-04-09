@@ -295,12 +295,14 @@ dq_veteran <- served_in_date_range %>%
   ) %>%
   filter(!is.na(Issue)) %>%
   select(all_of(vars_we_want))
+
 # Missing Vaccine data ----------------------------------------------------
 dose_counts <- doses %>%
   count(PersonalID) %>%
   select(PersonalID, "Doses" = n)
 
 missing_vaccine_exited <- served_in_date_range %>%
+  filter(served_between(., hc_bos_start_vaccine_data, today())) %>%
   left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
             by = "PersonalID") %>%
   left_join(dose_counts, by = "PersonalID") %>%
@@ -363,8 +365,7 @@ missing_vaccine_current <- served_in_date_range %>%
     missing their vaccine data. Because the client has not exited the project, 
     this data can still be collected. Please see 
     <a href = \"https://cohhio.org/boscoc/covid19/\" target = \"blank\"> 
-    for more information</a>.
-"
+    for more information</a>."
   ) %>%
   select(all_of(vars_we_want))
 
@@ -372,7 +373,9 @@ missing_vaccine_current <- served_in_date_range %>%
 
 dose_date_error <- doses %>%
   filter(COVID19DoseDate < ymd(hc_first_vaccine_administered_in_us)) %>%
-  left_join(served_in_date_range, by = "PersonalID") %>%
+  left_join(served_in_date_range %>%
+              filter(served_between(., hc_bos_start_vaccine_data, today())),
+            by = "PersonalID") %>%
   mutate(Type = "Error",
          Issue = "Vaccine Date Incorrect",
          Guidance = "Vaccination date precedes the vaccine being available in the US.") %>%
@@ -392,7 +395,9 @@ dose_date_warning <- doses %>%
     DaysBetweenDoses < 20 |
            (COVID19VaccineManufacturer == "Moderna") &
            DaysBetweenDoses < 27) %>%
-  left_join(served_in_date_range, by = "PersonalID") %>%
+  left_join(served_in_date_range %>%
+              filter(served_between(., hc_bos_start_vaccine_data, today())),
+                     by = "PersonalID") %>% 
   mutate(Type = "Warning",
          Issue = "Vaccine Dates or Vaccine Manufacturer Questionable",
          Guidance = "The number of days between vaccines doses does not match 
@@ -420,13 +425,17 @@ differing_manufacturers <- doses %>%
     different manufacturers."
   ) %>%
   filter(differs == TRUE) %>%
-  left_join(served_in_date_range, by = "PersonalID") %>%
+  left_join(served_in_date_range %>%
+              filter(served_between(., hc_bos_start_vaccine_data, today())), 
+            by = "PersonalID") %>%
   select(all_of(vars_we_want))
 
 unknown_manufacturer_error <- doses %>%
   filter(str_starts(COVID19VaccineManufacturer, "Client doesn't know") &
            COVID19VaccineDocumentation != "Self-report") %>%
-  left_join(served_in_date_range, by = "PersonalID") %>%
+  left_join(served_in_date_range %>%
+              filter(served_between(., hc_bos_start_vaccine_data, today())), 
+            by = "PersonalID") %>%
   mutate(Type = "Error",
          Issue = "Incorrect Vaccine Manufacturer or Incorrect Documentation Type",
          Guidance = "If vaccine information was collected via Healthcare Provider 
@@ -437,7 +446,9 @@ unknown_manufacturer_error <- doses %>%
 unknown_manufacturer_warning <- doses %>%
   filter(str_starts(COVID19VaccineManufacturer, "Client doesn't know") &
            COVID19VaccineDocumentation == "Self-report") %>%
-  left_join(served_in_date_range, by = "PersonalID") %>%
+  left_join(served_in_date_range %>%
+              filter(served_between(., hc_bos_start_vaccine_data, today())),
+            by = "PersonalID") %>%
   mutate(Type = "Warning",
          Issue = "Unknown Vaccine Manufacturer",
          Guidance = "If the client does not know the manufacturer of the vaccine, 
@@ -677,11 +688,13 @@ invalid_months_times_homeless <- served_in_date_range %>%
     TimesHomelessPastThreeYears,
     DateToStreetESSH
   ) %>%
-  filter((RelationshipToHoH == 1 | AgeAtEntry > 17) &
-           ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
-           TimesHomelessPastThreeYears == 1 &
-           !is.na(DateToStreetESSH)
-  ) %>%
+  filter(
+    ProjectType != 12 &
+      (RelationshipToHoH == 1 | AgeAtEntry > 17) &
+      ymd(EntryDate) >= ymd(hc_prior_living_situation_required) &
+      TimesHomelessPastThreeYears == 1 &
+      !is.na(DateToStreetESSH)
+  ) %>% 
   mutate(
     MonthHomelessnessBegan = floor_date(DateToStreetESSH, "month"),
     MonthEnteredProgram = floor_date(EntryDate, "month"),
