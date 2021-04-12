@@ -677,24 +677,30 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
   filter(!ProjectID %in% retired) %>%
   mutate(
     PrioritizationWorkgroupScore = replace_na(PrioritizationWorkgroupScore, 0),
-    PrioritizationWorkgroupPossible = 5, 
+    PrioritizationWorkgroupPossible = 5,
     PrioritizationWorkgroupMath = case_when(
-      today() <= ymd(hc_project_eval_docs_due) & 
+      today() <= ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
-        paste0("Documents either not yet received or not yet processed. They are due ",
-               format(hc_project_eval_docs_due, "%A %b %e, %Y"), "."),
+        paste0(
+          "Documents either not yet received or not yet processed. They are due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
       today() > ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
-        paste0("Documentation either not yet received or not yet processed by the 
-               CoC Team. They were due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"),
-               "."),
+        paste0(
+          "Documentation either not yet received or not yet processed by the
+               CoC Team. They were due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
         "Documentation received past deadline.",
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
-        "Your documentation was reviewed by the CoC team and scored. Please contact 
+        "Your documentation was reviewed by the CoC team and scored. Please contact
       ohioboscoc@cohhio.org if you have questions about your scoring."
     ),
-    HousingFirstPossible = 15, 
+    HousingFirstPossible = 15,
     HousingFirstDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(HousingFirstScore) ~ 3,
@@ -705,27 +711,34 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ 5
     ),
     HousingFirstScore = case_when(
-        is.na(DateReceivedPPDocs) |
-          is.na(HousingFirstScore) ~ -10,
-        ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ -10,
-        ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~ HousingFirstScore
-      ), 
+      is.na(DateReceivedPPDocs) |
+        is.na(HousingFirstScore) ~ -10,
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ -10,
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~ HousingFirstScore
+    ),
     HousingFirstMath = case_when(
-      today() <= ymd(hc_project_eval_docs_due) & 
+      today() <= ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
-        paste0("Documents either not yet received or not yet processed. They are 
-               due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"), "."),
+        paste0(
+          "Documents either not yet received or not yet processed. They are
+               due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
       today() > ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
-        paste0("Documentation either not yet received or not yet processed by the 
-               CoC Team. They were due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"),
-               "."),
+        paste0(
+          "Documentation either not yet received or not yet processed by the
+               CoC Team. They were due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
         "Documentation received past deadline.",
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
-        "Your documentation was reviewed by the CoC team and scored. Please contact 
+        "Your documentation was reviewed by the CoC team and scored. Please contact
       ohioboscoc@cohhio.org if you have questions about your scoring."
-      ),
+    ),
     ChronicPrioritizationDQ = case_when(
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
@@ -735,32 +748,38 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
         !is.na(ChronicPrioritizationScore) ~ 4,
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ 5
     ),
-    ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL), 
-    ChronicPrioritizationScore = #if_else(ProjectType == 3, 0, NULL), 
+    ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL),
+    ChronicPrioritizationScore =
       case_when(
-      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
-        ProjectType == 3 &
-        !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
-      is.na(DateReceivedPPDocs) &
-        ProjectType == 3 &
-        is.na(ChronicPrioritizationScore) ~ -5,
-      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) &
-        ProjectType == 3 ~ -5
-    ), 
+        ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
+          ProjectType == 3 &
+          !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
+        is.na(DateReceivedPPDocs) &
+          ProjectType == 3 &
+          is.na(ChronicPrioritizationScore) ~ -5,
+        ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) &
+          ProjectType == 3 ~ -5
+      ),
     ChronicPrioritizationMath = case_when(
-      today() <= ymd(hc_project_eval_docs_due) & 
+      today() <= ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
-        paste0("Documents either not yet received or not yet processed. They are due ",
-               format(hc_project_eval_docs_due, "%A %b %e, %Y"), "."),
+        paste0(
+          "Documents either not yet received or not yet processed. They are due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
       today() > ymd(hc_project_eval_docs_due) &
         is.na(DateReceivedPPDocs) ~
-        paste0("Documentation either not yet received or not yet processed by the 
-               CoC Team. They were due ", format(hc_project_eval_docs_due, "%A %b %e, %Y"),
-               "."),
+        paste0(
+          "Documentation either not yet received or not yet processed by the
+               CoC Team. They were due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
       ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
         "Documentation received past deadline.",
       ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
-        "Your documentation was reviewed by the CoC team and scored. Please contact 
+        "Your documentation was reviewed by the CoC team and scored. Please contact
       ohioboscoc@cohhio.org if you have questions about your scoring."
     )
   ) 
