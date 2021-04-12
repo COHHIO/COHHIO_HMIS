@@ -204,13 +204,15 @@ provider_services <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
   select(ProjectID, TargetPop, CountiesServed)
 
 coc_scoring <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
-                              sheet = 13)
+                              sheet = 13,
+                         col_types = c("numeric",
+                                       "numeric",
+                                       "numeric",
+                                       "numeric",
+                                       "numeric"))
 
 coc_scoring <- coc_scoring %>%
-  mutate(DateReceivedPPDocs = mdy(DateReceivedPPDocs),
-         ChronicPrioritizationScore = as.double(ChronicPrioritizationScore),
-         PrioritizationWorkgroupScore = as.double(PrioritizationWorkgroupScore),
-         HousingFirstScore = as.double(HousingFirstScore)) 
+  mutate(DateReceivedPPDocs = as.Date(DateReceivedPPDocs, origin = "1899-12-30")) 
 
 Project <- Project %>%
   select(-ProjectName) %>%
