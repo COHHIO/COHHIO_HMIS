@@ -804,6 +804,9 @@ pe_exits_to_ph <- pe_hohs_served %>%
                unique(), 
              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
+  filter((ProjectType %in% c(2, 8, 13) & 
+            exited_between(., hc_project_eval_start, hc_project_eval_end)) |
+           ProjectType == 3) %>% # filtering out non-PSH stayers
   mutate(
     DestinationGroup = case_when(
       is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
@@ -820,20 +823,13 @@ pe_exits_to_ph <- pe_hohs_served %>%
     ),
     MeetsObjective =
       case_when(
-        ProjectType %in% c(3, 9) &
-          DestinationGroup %in% c("Permanent", "Still in Program at Report End Date") ~ 1,
-        ProjectType %in% c(3, 9) &
-          (!DestinationGroup %in% c("Permanent", "Still in Program at Report End Date")) ~ 0,
-        ProjectType %in% c(2, 8, 13) &
-          DestinationGroup == "Permanent" ~ 1,
-        ProjectType %in% c(2, 8, 13) &
-          (DestinationGroup != "Permanent") ~ 0
+        DestinationGroup == "Permanent" |
+          (ProjectType == 3 &
+             DestinationGroup == "Still in Program at Report End Date") ~ 1,
+        TRUE ~ 0
       ),
     PersonalID = as.character(PersonalID)
   ) %>%
-  filter((ProjectType %in% c(2, 8, 13) & 
-            exited_between(., hc_project_eval_start, hc_project_eval_end)) |
-           ProjectType == 3) %>% # filtering out non-PSH stayers
   select(all_of(vars_to_the_apps), ExitsToPHDQ, Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
@@ -1018,12 +1014,7 @@ pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
       case_when(
         (BenefitsFromAnySource == 1 |
            InsuranceFromAnySource == 1) ~ 1,
-        (
-          BenefitsFromAnySource != 1 |
-            is.na(BenefitsFromAnySource) &
-            (InsuranceFromAnySource != 1 |
-               is.na(InsuranceFromAnySource)) ~ 0
-        )
+        TRUE ~ 0
       ),
     BenefitsAtExitDQ = if_else(General_DQ == 1 |
                                  Benefits_DQ == 1, 1, 0),
@@ -1213,7 +1204,7 @@ pe_length_of_stay <- pe_hohs_moved_in_leavers %>%
                unique(), 
              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
-  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate)),
+  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate), units = "days"),
          PersonalID = as.character(PersonalID)) %>%
   select(ProjectType,
          AltProjectName,
@@ -1251,8 +1242,7 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
     ), 
     AverageLoSPossible = if_else(ProjectType != 3, 10, NULL),
     AverageLoSDQ = case_when(
-      General_DQ == 1 & ProjectType %in% c(2, 8, 13) ~ 1,
-      General_DQ == 0 & ProjectType %in% c(2, 8, 13) ~ 0),
+      ProjectType %in% c(2, 8, 13) ~ General_DQ),
     AverageLoSPoints = case_when(
       AverageLoSDQ == 1 ~ 0, 
       AverageLoSDQ == 0 | is.na(AverageLoSDQ) ~ AverageLoSPoints),
