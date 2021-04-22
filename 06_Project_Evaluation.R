@@ -1712,6 +1712,7 @@ pe_final_scores <- summary_pe_final_scoring
 pe_final_scores$HousingFirstScore[is.na(pe_final_scores$HousingFirstScore)] <- 0
 pe_final_scores$ChronicPrioritizationScore[is.na(pe_final_scores$ChronicPrioritizationScore)] <- 0
 pe_final_scores$PrioritizationWorkgroupScore[is.na(pe_final_scores$PrioritizationWorkgroupScore)] <- 0
+pe_final_scores$AverageLoSPoints[is.na(pe_final_scores$AverageLoSPoints)] <- 0
 
 pe_final_scores <- pe_final_scores %>%
   mutate(
