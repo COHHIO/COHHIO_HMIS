@@ -1550,12 +1550,24 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     LongTermHomeless = if_else(is.na(LongTermHomeless),
-                              0,     
-                              LongTermHomeless),
-    Structure = if_else(ProjectType == 3, "20_90_10", NULL), #
+                               0,     
+                               LongTermHomeless),
     LongTermHomelessPercent = if_else(AdultsEntered > 0,
                                       LongTermHomeless / AdultsEntered,
-                                      NULL),    
+                                      NULL),
+    LongTermHomelessPercentJoin = if_else(is.na(LongTermHomelessPercent), 0, LongTermHomelessPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "long_term_homeless"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(LongTermHomelessPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= LongTermHomelessPercentJoin &
+                   maximum > LongTermHomelessPercentJoin,
+                 minimum < LongTermHomelessPercentJoin &
+                   maximum >= LongTermHomelessPercentJoin)) %>% 
+  mutate(
     LongTermHomelessMath = if_else(
       AdultsEntered == 0,
       "All points granted because 0 adults entered this project during the reporting period",
@@ -1568,14 +1580,13 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
       )
     ), 
     LongTermHomelessPoints = if_else(AdultsEntered == 0 &
-                                       ProjectType == 3, 10,
-                     pe_score(Structure, LongTermHomelessPercent)), 
+                                       ProjectType == 3, LongTermHomelessPossible,
+                                     points), 
     LongTermHomelessPoints = case_when(LTHomelessDQ == 0 |
                                          is.na(LTHomelessDQ) ~ LongTermHomelessPoints,
                                        LTHomelessDQ == 1 ~ 0), 
     LongTermHomelessPoints = if_else(is.na(LongTermHomelessPoints), 0, 
                                      LongTermHomelessPoints),
-    LongTermHomelessPossible = if_else(ProjectType == 3, 10, NULL),
     LongTermhomelessCohort = "AdultsEntered"
   ) %>%
   select(
@@ -1713,6 +1724,7 @@ pe_final_scores$HousingFirstScore[is.na(pe_final_scores$HousingFirstScore)] <- 0
 pe_final_scores$ChronicPrioritizationScore[is.na(pe_final_scores$ChronicPrioritizationScore)] <- 0
 pe_final_scores$PrioritizationWorkgroupScore[is.na(pe_final_scores$PrioritizationWorkgroupScore)] <- 0
 pe_final_scores$AverageLoSPoints[is.na(pe_final_scores$AverageLoSPoints)] <- 0
+pe_final_scores$LongTermHomelessPoints[is.na(pe_final_scores$LongTermHomelessPoints)] <- 0
 
 pe_final_scores <- pe_final_scores %>%
   mutate(
