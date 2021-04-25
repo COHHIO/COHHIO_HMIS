@@ -97,6 +97,8 @@ DataElementID,DataElement,ReferenceNo,Description
 2.06.1,FundingSource,44,HUD: CoC -  Joint Component TH/RRH
 2.06.1,FundingSource,45,VA: Grant Per Diem - Case Management/Housing Retention
 2.06.1,FundingSource,46,Local or Other Funding Source (Please Specify)
+2.06.1,FundingSource,47,HUD: ESG-CV
+2.06.1,FundingSource,48,HUD: HOPWA-CV
 2.07.4,HouseholdType,1,Households without children
 2.07.4,HouseholdType,3,Households with at least one adults and one child
 2.07.4,HouseholdType,4,Households with only children
