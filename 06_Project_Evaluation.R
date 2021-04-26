@@ -31,7 +31,7 @@ if (!exists("tay")) {
 
 # loading in scoring rubric
 
-scoring_rubric <- read_excel("random_data/scoring_rubric.xlsx") %>%
+scoring_rubric <- read_excel("public_data/scoring_rubric.xlsx") %>%
   mutate(maximum = as.double(maximum),
          minimum = as.double(minimum))
 
