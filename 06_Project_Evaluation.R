@@ -29,74 +29,11 @@ if (!exists("tay")) {
   rlang::env_binding_lock(environment(), ls())
 }
 
-# Points function ---------------------------------------------------------
+# loading in scoring rubric
 
-pe_score <- function(structure, value) {
-  case_when(
-    structure == "34_40_6" & value >= .4 ~ 6, # psh
-    structure == "34_40_6" & value >= .37 ~ 4, # psh
-    structure == "34_40_6" & value >= .34 ~ 2, # psh
-    structure == "34_40_6" & value < .34 ~ 0, # psh
-    structure == "65_75_13" & value >= .75 ~ 13, # th rrh
-    structure == "65_75_13" & value >= .7 ~ 10, # th rrh
-    structure == "65_75_13" & value >= .65 ~ 7, # th rrh
-    structure == "65_75_13" & value < .65 ~ 0, # th rrh
-    structure == "0_730_10" & value <= 730 ~ 10, # rrh
-    structure == "0_730_10" & value > 730 ~ 0, # rrh
-    structure == "75_85_10" & value >= .85 ~ 10, # th rrh
-    structure == "75_85_10" & value >= .8 ~ 7.5, # th rrh
-    structure == "75_85_10" & value >= .75 ~ 5, # th rrh 
-    structure == "75_85_10" & value < .75 ~ 0, # th rrh 
-    structure == "20_90_10" & value >= .9 ~ 10, # psh
-    structure == "20_90_10" & value >= .75 ~ 8, # psh
-    structure == "20_90_10" & value >= .5 ~ 6, # psh
-    structure == "20_90_10" & value >= .3 ~ 4, # psh
-    structure == "20_90_10" & value >= .2 ~ 2, # psh
-    structure == "20_90_10" & value < .2 ~ 0, # psh
-    structure == "0_7_10_PSH" & value >= 6 ~ 10, # psh
-    structure == "0_7_10_PSH" & value >= 5 ~ 9,  # psh
-    structure == "0_7_10_PSH" & value >= 3 ~ 8,  # psh
-    structure == "0_7_10_PSH" & value >= 2 ~ 5,  # psh
-    structure == "0_7_10_PSH" & value >= 1 ~ 2,  # psh
-    structure == "0_7_10_PSH" & value < 1 ~ 0,  # psh
-    structure == "200_280_10" & value <= 200 ~ 10, # th
-    structure == "200_280_10" & value <= 240 ~ 7.5, # th
-    structure == "200_280_10" & value <= 280 ~ 5, # th
-    structure == "200_280_10" & value > 280 ~ 0, # th
-    structure == "67_75_12" & value >= .75 ~ 12, # th
-    structure == "67_75_12" & value >= .71 ~ 9, # th
-    structure == "67_75_12" & value >= .67 ~ 6, # th
-    structure == "67_75_12" & value < .67 ~ 0, # th
-    structure == "0_7_10" & value >= 4 ~ 10, # th rrh
-    structure == "0_7_10" & value >= 3 ~ 8, # th rrh
-    structure == "0_7_10" & value >= 2 ~ 7, # th rrh
-    structure == "0_7_10" & value >= 1 ~ 5, # th rrh
-    structure == "0_7_10" & value < 1 ~ 0, # th rrh
-    structure == "80_90_8" & value >= .9 ~ 8, # psh
-    structure == "80_90_8" & value >= .85 ~ 6, # psh
-    structure == "80_90_8" & value >= .8 ~ 4, # psh
-    structure == "80_90_8" & value < .8 ~ 0, # psh
-    structure == "34_40_10" & value >= .4 ~ 10, # rrh
-    structure == "34_40_10" & value >= .37 ~ 7.5, # rrh
-    structure == "34_40_10" & value >= .34 ~ 5, # rrh
-    structure == "34_40_10" & value < .34 ~ 0, # rrh
-    structure == "24_30_10" & value >= .3 ~ 10, # th
-    structure == "24_30_10" & value >= .27 ~ 7.5, # th
-    structure == "24_30_10" & value >= .24 ~ 5, # th
-    structure == "24_30_10" & value < .24 ~ 0, # th
-    structure == "90_100_5" & value == 1 ~ 5, # all
-    structure == "90_100_5" & value >= .9 ~ 2, # all
-    structure == "90_100_5" & value < .9 ~ 0, # all
-    structure == "75_85_8" & value >= .85 ~ 8, # psh
-    structure == "75_85_8" & value >= .8 ~ 6, # psh
-    structure == "75_85_8" & value >= .75 ~ 4, # psh 
-    structure == "75_85_8" & value < .75 ~ 0, # psh
-    structure == "75_85_12" & value >= .85 ~ 12, # rrh
-    structure == "75_85_12" & value >= .8 ~ 9, # rrh
-    structure == "75_85_12" & value >= .75 ~ 6, # rrh 
-    structure == "75_85_12" & value < .75 ~ 0 # rrh
-  )
-}
+scoring_rubric <- read_excel("public_data/scoring_rubric.xlsx") %>%
+  mutate(maximum = as.double(maximum),
+         minimum = as.double(minimum))
 
 # Staging -----------------------------------------------------------------
 
@@ -842,47 +779,53 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
     HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
-    Structure = case_when( 
-      ProjectType == 3 ~ "80_90_8", #
-      ProjectType %in% c(2, 13) ~ "65_75_13"
-    ),
     ExitsToPHPercent = if_else(
       ProjectType == 3,
       ExitsToPH / HoHsServed,
       ExitsToPH / HoHsServedLeavers
     ),
-    ExitsToPHMath = case_when(
-      ProjectType == 3 & HoHsServed != 0 ~
-        paste(
-          ExitsToPH,
-          "exits to permanent housing or retention in PSH /",
-          HoHsServed,
-          "heads of household =",
-          percent(ExitsToPHPercent, accuracy = 1)
-        ),
-      ProjectType != 3 & HoHsServedLeavers != 0 ~
-        paste(
-          ExitsToPH,
-          "exits to permanent housing /",
-          HoHsServedLeavers,
-          "heads of household leavers =",
-          percent(ExitsToPHPercent, accuracy = 1)
-        )
-    ), 
-    ExitsToPHPoints = if_else(
-      (ProjectType == 3 &
-         HoHsServed == 0) |
-        (ProjectType != 3 &
-           HoHsServedLeavers == 0),
-      if_else(ProjectType == 3, 8, 13),
-      pe_score(Structure, ExitsToPHPercent)
-    ),
-    ExitsToPHPossible = if_else(ProjectType == 3, 8, 13),
-    ExitsToPHPoints = if_else(
-      ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
-      ExitsToPHPoints,
-      0
-    )
+    ExitsToPHPercentJoin = if_else(is.na(ExitsToPHPercent), 0, ExitsToPHPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "exits_to_ph"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(ExitsToPHPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= ExitsToPHPercentJoin &
+                   maximum > ExitsToPHPercentJoin,
+                 minimum < ExitsToPHPercentJoin &
+                   maximum >= ExitsToPHPercentJoin)) %>%
+  mutate(ExitsToPHMath = case_when(
+    ProjectType == 3 & HoHsServed != 0 ~
+      paste(
+        ExitsToPH,
+        "exits to permanent housing or retention in PSH /",
+        HoHsServed,
+        "heads of household =",
+        percent(ExitsToPHPercent, accuracy = 1)
+      ),
+    ProjectType != 3 & HoHsServedLeavers != 0 ~
+      paste(
+        ExitsToPH,
+        "exits to permanent housing /",
+        HoHsServedLeavers,
+        "heads of household leavers =",
+        percent(ExitsToPHPercent, accuracy = 1)
+      )
+  ), 
+  ExitsToPHPoints = if_else(
+    (ProjectType == 3 &
+       HoHsServed == 0) |
+      (ProjectType != 3 &
+         HoHsServedLeavers == 0),
+    ExitsToPHPossible, points
+  ),
+  ExitsToPHPoints = if_else(
+    ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
+    ExitsToPHPoints,
+    0
+  )
   ) %>%
   select(
     ProjectType,
@@ -1034,32 +977,41 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
-    Structure = if_else(ProjectType == 3, "75_85_8", "75_85_10"), #
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
-    BenefitsAtExitMath = if_else(
-      AdultMovedInLeavers == 0,
-      "All points granted because this project had no adult leavers who moved into the project's housing",
-      paste(
-        BenefitsAtExit,
-        "exited with benefits or health insurance /",
-        AdultMovedInLeavers,
-        "adult leavers who moved into the project's housing =",
-        percent(BenefitsAtExitPercent, accuracy = 1)
-      )
-    ), 
-    BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
-    BenefitsAtExitPoints = case_when(
-      AdultMovedInLeavers == 0 & ProjectType == 3 ~ 8, 
-      AdultMovedInLeavers == 0 & ProjectType != 3 ~ 10,
-      TRUE ~ pe_score(Structure, BenefitsAtExit)
-    ), 
-    BenefitsAtExitPossible = if_else(ProjectType == 3, 8, 10),
-    BenefitsAtExitPoints = case_when(
-      BenefitsAtExitDQ == 1 ~ 0,
-      is.na(BenefitsAtExitDQ) |
-        BenefitsAtExitDQ == 0 ~ BenefitsAtExitPoints
-    ), 
-    BenefitsAtExitCohort = "AdultMovedInLeavers"
+    BenefitsAtExitPercentJoin = if_else(is.na(BenefitsAtExitPercent), 0, BenefitsAtExitPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "benefits_at_exit"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(BenefitsAtExitPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= BenefitsAtExitPercentJoin &
+                   maximum > BenefitsAtExitPercentJoin,
+                 minimum < BenefitsAtExitPercentJoin &
+                   maximum >= BenefitsAtExitPercentJoin)) %>%
+  mutate(BenefitsAtExitMath = if_else(
+    AdultMovedInLeavers == 0,
+    "All points granted because this project had no adult leavers who moved into the project's housing",
+    paste(
+      BenefitsAtExit,
+      "exited with benefits or health insurance /",
+      AdultMovedInLeavers,
+      "adult leavers who moved into the project's housing =",
+      percent(BenefitsAtExitPercent, accuracy = 1)
+    )
+  ), 
+  BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
+  BenefitsAtExitPoints = case_when(
+    AdultMovedInLeavers == 0 ~ BenefitsAtExitPossible,
+    TRUE ~ points
+  ), 
+  BenefitsAtExitPoints = case_when(
+    BenefitsAtExitDQ == 1 ~ 0,
+    is.na(BenefitsAtExitDQ) |
+      BenefitsAtExitDQ == 0 ~ BenefitsAtExitPoints
+  ), 
+  BenefitsAtExitCohort = "AdultMovedInLeavers"
   ) %>%
   select(
     ProjectType,
@@ -1226,21 +1178,29 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
-    Structure = case_when(
-      ProjectType == 2 ~ "200_280_10", #
-      ProjectType == 13 ~ "0_730_10"
-    ),
+    AverageDaysJoin = if_else(is.na(AverageDays), 0, AverageDays)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "length_of_stay"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(AverageLoSPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= AverageDaysJoin &
+                   maximum > AverageDaysJoin,
+                 minimum < AverageDaysJoin &
+                   maximum >= AverageDaysJoin)) %>%
+  mutate(
     AverageLoSPoints = case_when(
       ClientsMovedInLeavers == 0 &
-        ProjectType != 3 ~ 10,
-      TRUE ~ pe_score(Structure, AverageDays)
+        ProjectType != 3 ~ AverageLoSPossible,
+      TRUE ~ points
     ),
     AverageLoSMath = if_else(
       ClientsMovedInLeavers == 0,
       "All points granted because this project had 0 leavers who moved into the project's housing",
       paste(as.integer(AverageDays), "average days")
     ), 
-    AverageLoSPossible = if_else(ProjectType != 3, 10, NULL),
     AverageLoSDQ = case_when(
       ProjectType %in% c(2, 8, 13) ~ General_DQ),
     AverageLoSPoints = case_when(
@@ -1283,33 +1243,38 @@ summary_pe_res_prior <- pe_res_prior %>%
                     "AltProjectName")) %>%
   mutate(
     LHResPrior = if_else(is.na(LHResPrior), 0, LHResPrior),
-    Structure = case_when(
-      ProjectType == 3 ~ "75_85_8", #
-      ProjectType == 2 ~ "67_75_12",
-      ProjectType == 13 ~ "75_85_12"
-    ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
-    LHResPriorMath = if_else(
-      AdultsEntered == 0,
-      "All points granted because this project has 0 adults who entered the project",
-      paste(
-        LHResPrior,
-        "coming from shelter or streets (unsheltered) /",
-        AdultsEntered,
-        "adults who entered the project during the reporting period =",
-        percent(LHResPriorPercent, accuracy = 1)
-      )
-    ), 
-    LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
-    LHResPriorPoints = case_when(
-      AdultsEntered == 0 & ProjectType == 3 ~ 8,
-      AdultsEntered == 0 & ProjectType != 3 ~ 12,
-      TRUE ~ pe_score(Structure, LHResPriorPercent)),
-    LHResPriorPoints = case_when(
-      LHResPriorDQ == 1 ~ 0, 
-      LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
-    LHResPriorPossible = if_else(ProjectType == 3, 8, 12),
-    LHResPriorCohort = "AdultsEntered"
+    LHResPriorPercentJoin = if_else(is.na(LHResPriorPercent), 0, LHResPriorPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "res_prior"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(LHResPriorPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= LHResPriorPercentJoin &
+                   maximum > LHResPriorPercentJoin,
+                 minimum < LHResPriorPercentJoin &
+                   maximum >= LHResPriorPercentJoin)) %>% 
+  mutate(LHResPriorMath = if_else(
+    AdultsEntered == 0,
+    "All points granted because this project has 0 adults who entered the project",
+    paste(
+      LHResPrior,
+      "coming from shelter or streets (unsheltered) /",
+      AdultsEntered,
+      "adults who entered the project during the reporting period =",
+      percent(LHResPriorPercent, accuracy = 1)
+    )
+  ), 
+  LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
+  LHResPriorPoints = case_when(
+    AdultsEntered == 0 ~ LHResPriorPossible,
+    TRUE ~ points),
+  LHResPriorPoints = case_when(
+    LHResPriorDQ == 1 ~ 0, 
+    LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
+  LHResPriorCohort = "AdultsEntered"
   ) %>%
   select(
     ProjectType,
@@ -1359,11 +1324,21 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntry = if_else(is.na(NoIncomeAtEntry),
                               0,
                               NoIncomeAtEntry),
-    Structure = case_when(ProjectType == 3 ~ "34_40_6", #
-                          ProjectType == 13 ~ "34_40_10", 
-                          ProjectType == 2 ~ "24_30_10"),
     NoIncomeAtEntryDQ = if_else(is.na(NoIncomeAtEntryDQ), 0, NoIncomeAtEntryDQ),
     NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
+    NoIncomeAtEntryPercentJoin = if_else(is.na(NoIncomeAtEntryPercent), 0, NoIncomeAtEntryPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "entries_no_income"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(NoIncomeAtEntryPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= NoIncomeAtEntryPercentJoin &
+                   maximum > NoIncomeAtEntryPercentJoin,
+                 minimum < NoIncomeAtEntryPercentJoin &
+                   maximum >= NoIncomeAtEntryPercentJoin)) %>%
+  mutate(
     NoIncomeAtEntryMath = if_else(
       AdultsEntered == 0,
       "All points granted because 0 adults entered this project during the reporting period",
@@ -1376,10 +1351,8 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
       )
     ), 
     NoIncomeAtEntryPoints = case_when(
-      AdultsEntered == 0 & ProjectType == 3 ~ 6,
-      AdultsEntered == 0 & ProjectType != 3 ~ 10,
-      TRUE ~ pe_score(Structure, NoIncomeAtEntryPercent)),
-    NoIncomeAtEntryPossible = if_else(ProjectType == 3, 6, 10),
+      AdultsEntered == 0 ~ NoIncomeAtEntryPossible,
+      TRUE ~ points),
     NoIncomeAtEntryPoints = case_when(
       NoIncomeAtEntryDQ == 1 ~ 0,
       NoIncomeAtEntryDQ == 0 |
@@ -1462,16 +1435,26 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   summarise(MedHHI = median(HHI)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "homeless_history_index"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(MedianHHIPossible = max(points),
+         MedHHIJoin = if_else(is.na(MedHHI), 0, MedHHI)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= MedHHIJoin &
+                   maximum > MedHHIJoin,
+                 minimum < MedHHIJoin &
+                   maximum >= MedHHIJoin)) %>%
   mutate(
-    Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"), #
     MedianHHIMath = if_else(
       AdultsEntered == 0,
       "All points granted since 0 adults entered this project during the reporting period",
       paste("Median Homeless History Index = ", MedHHI)
     ), 
-    MedianHHIPoints = if_else(AdultsEntered == 0, 10,
-                           pe_score(Structure, MedHHI)),
-    MedianHHIPossible = 10,
+    MedianHHIPoints = if_else(AdultsEntered == 0, MedianHHIPossible,
+                              points),
     MedianHHIDQ = if_else(General_DQ == 1, 1, 0),
     MedianHHIDQ = if_else(is.na(MedianHHIDQ), 0, MedianHHIDQ),
     MedianHHIPoints = case_when(MedianHHIDQ == 1 ~ 0, 
@@ -1567,12 +1550,24 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     LongTermHomeless = if_else(is.na(LongTermHomeless),
-                              0,     
-                              LongTermHomeless),
-    Structure = if_else(ProjectType == 3, "20_90_10", NULL), #
+                               0,     
+                               LongTermHomeless),
     LongTermHomelessPercent = if_else(AdultsEntered > 0,
                                       LongTermHomeless / AdultsEntered,
-                                      NULL),    
+                                      NULL),
+    LongTermHomelessPercentJoin = if_else(is.na(LongTermHomelessPercent), 0, LongTermHomelessPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "long_term_homeless"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(LongTermHomelessPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= LongTermHomelessPercentJoin &
+                   maximum > LongTermHomelessPercentJoin,
+                 minimum < LongTermHomelessPercentJoin &
+                   maximum >= LongTermHomelessPercentJoin)) %>% 
+  mutate(
     LongTermHomelessMath = if_else(
       AdultsEntered == 0,
       "All points granted because 0 adults entered this project during the reporting period",
@@ -1585,14 +1580,13 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
       )
     ), 
     LongTermHomelessPoints = if_else(AdultsEntered == 0 &
-                                       ProjectType == 3, 10,
-                     pe_score(Structure, LongTermHomelessPercent)), 
+                                       ProjectType == 3, LongTermHomelessPossible,
+                                     points), 
     LongTermHomelessPoints = case_when(LTHomelessDQ == 0 |
                                          is.na(LTHomelessDQ) ~ LongTermHomelessPoints,
                                        LTHomelessDQ == 1 ~ 0), 
     LongTermHomelessPoints = if_else(is.na(LongTermHomelessPoints), 0, 
                                      LongTermHomelessPoints),
-    LongTermHomelessPossible = if_else(ProjectType == 3, 10, NULL),
     LongTermhomelessCohort = "AdultsEntered"
   ) %>%
   select(
@@ -1643,10 +1637,22 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntry = if_else(is.na(ScoredAtEntry),
                             0,
                             ScoredAtEntry), 
-    Structure = "90_100_5", #
     ScoredAtEntryPercent = if_else(HoHsEntered > 0,
                                    ScoredAtEntry / HoHsEntered,
-                                   NULL),    
+                                   NULL),
+    ScoredAtEntryPercentJoin = if_else(is.na(ScoredAtEntryPercent), 0, ScoredAtEntryPercent)) %>%    
+  right_join(scoring_rubric %>%
+               filter(metric == "scored_at_ph_entry"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(ScoredAtEntryPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= ScoredAtEntryPercentJoin &
+                   maximum > ScoredAtEntryPercentJoin,
+                 minimum < ScoredAtEntryPercentJoin &
+                   maximum >= ScoredAtEntryPercentJoin)) %>% 
+  mutate(
     ScoredAtEntryMath = if_else(
       HoHsEntered == 0,
       "All points granted because 0 households entered the project during the reporting period",
@@ -1659,10 +1665,8 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
       )
     ), 
     ScoredAtEntryPoints = case_when(
-      HoHsEntered == 0 &
-        ProjectType %in% c(2, 3, 13) ~ 5,
-      HoHsEntered > 0 &
-        ProjectType %in% c(2, 3, 13) ~ pe_score(Structure, ScoredAtEntryPercent)),
+      HoHsEntered == 0 ~ ScoredAtEntryPossible,
+      HoHsEntered > 0 ~ points),
     ScoredAtEntryPoints = case_when(
       ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
       ScoredAtEntryDQ == 1 ~ 0,
@@ -1670,7 +1674,6 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryPoints = if_else(is.na(ScoredAtEntryPoints), 
                                   0, 
                                   ScoredAtEntryPoints),
-    ScoredAtEntryPossible = 5,
     ScoredAtEntryCohort = "HoHsEntered"
   ) %>%
   select(
@@ -1683,7 +1686,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryCohort,
     ScoredAtEntryPossible,
     ScoredAtEntryDQ
-  ) 
+  )
 
 # Final Scoring -----------------------------------------------------------
 
@@ -1720,6 +1723,8 @@ pe_final_scores <- summary_pe_final_scoring
 pe_final_scores$HousingFirstScore[is.na(pe_final_scores$HousingFirstScore)] <- 0
 pe_final_scores$ChronicPrioritizationScore[is.na(pe_final_scores$ChronicPrioritizationScore)] <- 0
 pe_final_scores$PrioritizationWorkgroupScore[is.na(pe_final_scores$PrioritizationWorkgroupScore)] <- 0
+pe_final_scores$AverageLoSPoints[is.na(pe_final_scores$AverageLoSPoints)] <- 0
+pe_final_scores$LongTermHomelessPoints[is.na(pe_final_scores$LongTermHomelessPoints)] <- 0
 
 pe_final_scores <- pe_final_scores %>%
   mutate(
