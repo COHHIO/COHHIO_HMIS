@@ -1818,6 +1818,8 @@ write_csv(final_scores %>%
                    AltProjectName,
                    TotalScore), "random_data/pe_final.csv")
 
+write_csv(pe_final_scores, "random_data/pe_final_all.csv")
+
 # saving old data to "current" image so it all carries to the apps
 
 save(list = ls(), file = "images/ProjectEvaluation.RData", compress = FALSE) 
