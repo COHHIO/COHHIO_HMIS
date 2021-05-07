@@ -30,6 +30,8 @@ hc_project_eval_start <- mdy("01012020")
 
 hc_project_eval_end <- mdy("12312020")
 
+hc_project_eval_docs_due <- mdy("04232021")
+
 hc_bos_start_vaccine_data <- mdy("02052021")
 
 hc_psh_started_collecting_move_in_date <- mdy("10012017") 

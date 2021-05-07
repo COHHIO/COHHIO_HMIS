@@ -47,6 +47,15 @@ if (!exists("tay")) {
 # Pinpointing where Vaccines are Wanted -----------------------------------
 
 # who's already been vaccinated?
+
+one_dose_and_done <- doses %>%
+  filter(COVID19VaccineManufacturer == "Johnson & Johnson") %>%
+  select(PersonalID, COVID19DoseDate) %>%
+  group_by(PersonalID) %>%
+  slice_max(COVID19DoseDate) %>%
+  select(PersonalID, "LastDose" = COVID19DoseDate) %>% 
+  unique() 
+
 complete <- doses %>%
   group_by(PersonalID) %>%
   summarise(Doses = n()) %>%
@@ -58,9 +67,17 @@ complete <- doses %>%
   filter(!is.na(LastDose)) %>%
   mutate(DaysBetweenDoses = difftime(COVID19DoseDate, LastDose, units = "days")) %>%
   filter(DaysBetweenDoses >= 20) %>%
-  select(PersonalID) %>% 
+  select(PersonalID, LastDose) %>% 
   unique() %>%
-  mutate(FullyVaccinated = "Yes")
+  rbind(one_dose_and_done) %>%
+  mutate(HasAllDoses = "Yes") %>%
+  unique() %>%
+  mutate(
+    FullyVaccinated = case_when(
+      ymd(LastDose) >= today() - days(14) ~ "No",
+      ymd(LastDose) < today() - days(14) ~ "Yes"
+    )
+  )
 
 # deduping enrollment data taking the most recent open enrollment
 most_recent_entries <- co_clients_served %>%
@@ -70,7 +87,6 @@ most_recent_entries <- co_clients_served %>%
               (ProjectType %in% c(ph_project_types) &
                  is.na(MoveInDateAdjust)))
   ) %>%
-  left_join(Enrollment[c("EnrollmentID", "CountyServed")], by = "EnrollmentID") %>%
   group_by(PersonalID) %>%
   slice_max(EntryDate) %>%
   slice_max(EnrollmentID) %>%
@@ -82,9 +98,9 @@ current_over16_lh <- most_recent_entries %>%
   left_join(covid19[c("PersonalID", "ConsentToVaccine", "VaccineConcerns")],
             by = "PersonalID") %>%
   left_join(complete, by = "PersonalID") %>%
-  mutate(FullyVaccinated = if_else(is.na(FullyVaccinated),
+  mutate(HasAllDoses = if_else(is.na(HasAllDoses),
                                    "Not acc. to HMIS",
-                                   FullyVaccinated))
+                                   HasAllDoses))
 
 # getting total clients included per county
 total_lh_by_county <- current_over16_lh %>%
@@ -99,7 +115,7 @@ consent_status <- current_over16_lh %>%
                                "Data not collected (HUD)", 
                                ConsentToVaccine),
     Status = case_when(
-      FullyVaccinated == "Yes" ~ "Fully vaccinated",
+      HasAllDoses == "Yes" ~ "Has All Doses",
       ConsentToVaccine == "Yes (HUD)" ~ "Answered Yes to Consent question",
       !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)") ~ "Consent Unknown",
       ConsentToVaccine == "No (HUD)" ~ "Answered No to Consent question")) 
@@ -118,29 +134,29 @@ totals_by_county <- total_lh_by_county %>%
   rename("county_name" = county_served)
 
 # creating sf data object with the pre-shaped data
-vaccine_distribution_county <- counties %>%
-  filter(state_fips == 39, # Ohio
-         !county_fips %in% c(39113, # Montgomery
-                             39035, # Cuyahoga
-                             39049, # Franklin
-                             39153, # Summit
-                             39061, # Hamilton
-                             39095, # Lucas 
-                             39151)) %>% # Stark
-  left_join(totals_by_county, by = "county_name") %>%
-  mutate(across(7:11, ~replace_na(.x, 0)),
-         hover = paste0(county_name, ": \n", 
-                        consent_unknown,
-                        " + | Consent Unknown\n",
-                        answered_no_to_consent_question,
-                        " + | Would Not Consent\n",
-                        answered_yes_to_consent_question,
-                        " + | Would Consent\n",
-                        fully_vaccinated,
-                        " + | Fully Vaccinated\n= ",
-                        total_lh,
-                        " | Total Over 16 and Literally Homeless")) 
-
+# vaccine_distribution_county <- counties %>%
+#   filter(state_fips == 39, # Ohio
+#          !county_fips %in% c(39113, # Montgomery
+#                              39035, # Cuyahoga
+#                              39049, # Franklin
+#                              39153, # Summit
+#                              39061, # Hamilton
+#                              39095, # Lucas 
+#                              39151)) %>% # Stark
+#   left_join(totals_by_county, by = "county_name") %>%
+#   mutate(across(7:11, ~replace_na(.x, 0)),
+#          hover = paste0(county_name, ": \n", 
+#                         consent_unknown,
+#                         " + | Consent Unknown\n",
+#                         answered_no_to_consent_question,
+#                         " + | Would Not Consent\n",
+#                         answered_yes_to_consent_question,
+#                         " + | Would Consent\n",
+#                         has_all_doses,
+#                         " + | Has All Doses\n= ",
+#                         total_lh,
+#                         " | Total Over 16 and Literally Homeless")) 
+# 
 # creating plot
 # consent_plot <- ggplot(counties %>% filter(state_fips == 39)) + 
 #   geom_sf() +
@@ -163,7 +179,6 @@ vaccine_distribution_county <- counties %>%
 
 
 # Trying Leaflet ----------------------------------------------------------
-
 
 
 # Connecting Clients to their 2nd Doses -----------------------------------
@@ -241,6 +256,92 @@ vaccine_needs_second_dose <- dose_counts %>%
     HowSoon,
     DaysUntilNextDose,
     CurrentLocation
+  )
+
+# Client Statuses ---------------------------------------------------------
+
+get_county_from_provider <- co_clients_served %>%
+  left_join(Project %>%
+              select(ProjectName, ProjectCounty), by = "ProjectName") %>%
+  mutate(
+    CountyGuessed = if_else(is.na(CountyServed) |
+                              CountyServed == "--Outside of Ohio--", 1, 0),
+    CountyServed = case_when(
+      CountyGuessed == 1 &
+        ProjectName != "Unsheltered Clients - OUTREACH" ~ ProjectCounty,
+      CountyGuessed == 0 ~ CountyServed,
+      TRUE ~ "Unsheltered in unknown County"
+    ),
+    ProjectCounty = NULL
+  )
+
+co_clients_served_county_guesses <- get_county_from_provider %>%
+  left_join(Enrollment %>%
+              select(EnrollmentID, UserCreating), by = "EnrollmentID") %>%
+  mutate(
+    UserID = gsub(pattern = '[^0-9\\.]', '', UserCreating, perl = TRUE)
+  ) %>%
+  left_join(Users %>%
+              mutate(UserID = as.character(UserID)) %>%
+              select(UserID, UserCounty), by = "UserID") %>%
+  mutate(CountyServed = if_else(CountyServed == "Unsheltered in unknown County",
+                                UserCounty,
+                                CountyServed)) %>%
+  select(-starts_with("User"))
+
+vaccine_status <- co_clients_served_county_guesses %>%
+  left_join(complete %>% select(-LastDose), by = "PersonalID") %>%
+  mutate(HasAllDoses = if_else(is.na(HasAllDoses), "No", HasAllDoses)) %>%
+  left_join(vaccine_needs_second_dose[c("PersonalID", "HouseholdID", "HowSoon")],
+            by = c("HouseholdID", "PersonalID")) %>% 
+  left_join(covid19[c("PersonalID", "ConsentToVaccine")], 
+            by = c("PersonalID")) %>%
+  mutate(
+    ConsentToVaccine = if_else(is.na(ConsentToVaccine), 
+                               "Data not collected", 
+                               ConsentToVaccine),
+    AgeAtEntry = case_when(
+      AgeAtEntry < 12 ~ "0-11",
+      AgeAtEntry < 16 ~ "12-15",
+      AgeAtEntry < 25 ~ "16-24",
+      AgeAtEntry < 65 ~ "25-59",
+      AgeAtEntry < 75 ~ "60-74",
+      AgeAtEntry < 85 ~ "75-84",
+      AgeAtEntry < 120 ~ "85+",
+      TRUE ~ "Unknown"
+    ),
+    VaccineStatus = case_when(
+      FullyVaccinated == "Yes" ~ "Fully vaccinated",
+      HasAllDoses == "Yes" ~ "Has all doses",
+      !is.na(HowSoon) ~ "Needs 2nd dose",
+      ConsentToVaccine == "Yes (HUD)" ~ "Not vaccinated, would consent",
+      ConsentToVaccine == "No (HUD)" ~ "Not vaccinated, would not consent",
+      !ConsentToVaccine %in% c("Yes (HUD)", "No (HUD)", "Data not collected") ~ 
+        "Not vaccinated, consent unknown",
+      ConsentToVaccine == "Data not collected" ~ "Data not collected"
+    ),
+    VaccineStatus = factor(VaccineStatus, levels = c(
+      "Fully vaccinated",
+      "Has all doses",
+      "Needs 2nd dose",
+      "Not vaccinated, would consent",
+      "Not vaccinated, would not consent",
+      "Not vaccinated, consent unknown",
+      "Data not collected"
+    ))
+  ) %>%
+  select(
+    PersonalID,
+    HouseholdID,
+    CountyServed,
+    ProjectName,
+    AgeAtEntry,
+    RelationshipToHoH,
+    VeteranStatus,
+    EntryDate,
+    MoveInDateAdjust,
+    ExitDate,
+    VaccineStatus
   )
 
  # Concerns ----------------------------------------------------------------
@@ -338,10 +439,12 @@ write_csv(all, "random_data/percentmissing.csv")
 
 rm(list = ls()[!(
   ls() %in% c(
-    "vaccine_needs_second_dose"
+    "vaccine_needs_second_dose",
+    "vaccine_status"
   )
 )])
 
 save(list = ls(),
      file = "images/COVID_vaccine.RData",
      compress = FALSE)
+

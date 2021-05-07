@@ -15,7 +15,7 @@
 library(tidyverse)
 library(lubridate)
 library(janitor)
-library(treemap)
+# library(treemap)
 library(plotly)
 library(HMIS)
 
@@ -564,14 +564,14 @@ active_list <- active_list %>%
 # referrals to a homeless project wouldn't mean anything on an Active List,
 # right?
 
-Referrals <- Referrals %>%
+small_referrals <- Referrals %>%
   left_join(Project %>% 
               select(ProjectName, "ReferToPTC" = ProjectType),
             by = c("Referred-ToProvider" = "ProjectName"))
 
 # isolates hhs with an Accepted Referral into a PSH or RRH project
 who_has_referrals <- active_list %>%
-  left_join(Referrals %>%
+  left_join(small_referrals %>%
               filter(ReferralDate >= today() - days(14) &
                        ReferralOutcome == "Accepted" &
                        ReferToPTC %in% c(3, 9, 13)) %>%

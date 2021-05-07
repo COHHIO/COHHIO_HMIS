@@ -40,6 +40,7 @@ if (!exists("Enrollment")) {
 vars_we_want <- c(
   "PersonalID",
   "EnrollmentID",
+  "CountyServed",
   "ProjectName",
   "ProjectID",
   "ProjectType",
