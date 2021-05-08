@@ -20,14 +20,12 @@ library(HMIS)
 
 # loading old data to freeze data as of the deadline
 
-if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
-if(!exists("dq_main")) load("images/Data_Quality.RData")
-if (!exists("tay")) {
-  load("images/cohorts.RData")
+  load("pe_dataset_final/images/COHHIOHMIS.RData")
+  load("pe_dataset_final/images/Data_Quality.RData")
+  load("pe_dataset_final/images/cohorts.RData")
   # hc_project_eval_start <- mdy("01012019") # for comparison purposes
   # hc_project_eval_end <- mdy("12312019")
   rlang::env_binding_lock(environment(), ls())
-}
 
 # loading in scoring rubric
 
