@@ -35,14 +35,18 @@ req_pkgs <- c(
   "scales",
   "janitor",
   "devtools",
-  "urbnmapr",
+  # "urbnmapr",
   "sf",
-  "choroplethrMaps",
+  # "choroplethrMaps",
   "plotly"
 )
+
 loaded <- purrr::map_lgl(req_pkgs, ~rlang::exec(require, package = .x))
+
 if (!all(loaded)) {
-  stop_with_instructions("You are missing the following packages that are required to run this script:", req_pkgs[!loaded])
+  stop_with_instructions(
+    "You are missing the following packages that are required to run this script:", 
+    req_pkgs[!loaded])
 }
 
 library(dplyr)
@@ -97,52 +101,58 @@ if(meta_Rmisc_last_run_date != today())
                          this ART report and overwrite the current RMisc2.xlsx 
                          with the new one.")
 
-
-increment("\nImporting raw HMIS data\n")
+increment("Importing raw HMIS data\n")
 COHHIO_HMIS <- environment()
 source("00_get_Export_and_ART.R", local = COHHIO_HMIS)
 
-increment("\nworking on Cohorts\n")
+increment("working on Cohorts\n")
 Cohorts <- rlang::env(COHHIO_HMIS)
 rlang::env_binding_lock(COHHIO_HMIS, ls(COHHIO_HMIS))
 source("00_cohorts.R", local = Cohorts)
 rlang::env_binding_lock(Cohorts, ls(Cohorts))
 
-increment("\nworking on Bed_Unit_Utilization\n")
+increment("working on Bed_Unit_Utilization")
 source("01_Bed_Unit_Utilization.R", local = rlang::env(Cohorts))
 
-increment("\nworking on QPR_SPDATs\n")
+increment("working on QPR_SPDATs")
 source("02_QPR_SPDATs.R", local = rlang::env(COHHIO_HMIS))
 
-increment("\nworking on QPR_EEs\n")
+increment("working on QPR_EEs")
 source("02_QPR_EEs.R", local = rlang::env(Cohorts))
 
-increment("\nworking on Veterans data\n")
+increment("working on Veterans data")
 source("03_Veterans.R", local = rlang::env(Cohorts))
 
-increment("\nworking on Data Quality\n")
+increment("working on Data Quality")
 DataQuality <- rlang::env(Cohorts)
 source("04_DataQuality.R", local = rlang::env(DataQuality))
 rlang::env_binding_lock(DataQuality, ls(DataQuality))
 
-increment("\nworking on Veterans Active List\n")
+increment("working on Veterans Active List")
 source("05_Veterans_Active_List.R", local = rlang::env(Cohorts))
 
-increment("\nworking on Project Evaluation\n")
-source("06_Project_Evaluation.R", local = rlang::env(DataQuality))
-
-increment("\nworking on SPMs\n")
+increment("working on SPMs")
 source("07_SPMs.R", local = new.env())
 
-increment("\nworking on Active List\n")
+increment("working on Active List")
 source("08_Active_List.R", local = rlang::env(Cohorts))
 
-increment("\ngetting covid vaccine data together\n")
+increment("getting covid vaccine data together")
 source("09_covid.R", local = new.env())
 
-increment("\ncopying images to app directories\n")
+dir <- "pe_dataset_final"
+#files <- freeze_pe(dir)
+pe <- environment()
+purrr::walk(list.files(file.path(dir, "images"), full.names = TRUE), ~{
+  rlang::env_binding_unlock(pe, ls(pe, all.names = TRUE))
+  load(.x, envir = pe)
+})
+increment("working on Project Evaluation")
+source("06_Project_Evaluation.R", local = pe)
+
+# increment("copying images to app directories")
 rm(Cohorts, COHHIO_HMIS)
 source("00_copy_images.R", local = new.env())
 
-increment("Done! All images are updated.\n")
+increment("Done! All images are updated.")
 

@@ -42,7 +42,9 @@ Project_improved <-
          "ProjectCommonName" = ProjectAKA,
          OperatingStartDate:ExportID)
 
-write_csv(Project_improved, here("data_to_Clarity/Project.csv"), append = FALSE)
+write_csv(Project_improved, here("data_to_Clarity/Project.csv"), 
+          append = FALSE,
+          na = "")
 
 
 # Overwrite Organization Names --------------------------------------------
@@ -58,7 +60,9 @@ Organization_improved <-
                 "OrganizationName" = ProjectName,
                 VictimServicesProvider:ExportID)
 
-write_csv(Organization_improved, here("data_to_Clarity/Organization.csv"), append = FALSE)
+write_csv(Organization_improved, here("data_to_Clarity/Organization.csv"), 
+          append = FALSE,
+          na = "")
 
 # Move-In Date Madness ----------------------------------------------------
 
@@ -136,7 +140,48 @@ Enrollment_improved <- EntryExits %>%
 
 write_csv(Enrollment_improved, 
           here("data_to_Clarity/Enrollment.csv"), 
-          append = FALSE)
+          append = FALSE,
+          na = "")
+
+# Unquoting the other files -----------------------------------------------
+
+remove_quotes <- function(file) {
+  cat(file, sep = "\n")
+  x <- read_csv(here(paste0("data_to_Clarity/", file, ".csv")),
+                col_types = cols()) 
+
+  write_csv(x,
+            here(paste0("data_to_Clarity/", file, ".csv")),
+            append = FALSE,
+            na = "")
+}
+
+data.frame(
+  file = c(
+    "Affiliation",
+    "Assessment",
+    "AssessmentQuestions",
+    "AssessmentResults",
+    "Client",
+    "CurrentLivingSituation",
+    "Disabilities",
+    "EmploymentEducation",
+    "Enrollment",
+    "EnrollmentCoC",
+    "Event",
+    "Exit",
+    "Export",
+    "Funder",
+    "HealthAndDV",
+    "IncomeBenefits",
+    "Inventory",
+    "ProjectCoC",
+    "Services",
+    "User"
+  )
+) %>%
+  purrr::pwalk(remove_quotes)
+
 
 
 

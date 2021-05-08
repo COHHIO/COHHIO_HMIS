@@ -20,141 +20,23 @@ library(HMIS)
 
 # loading old data to freeze data as of the deadline
 
-if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
-if(!exists("dq_main")) load("images/Data_Quality.RData")
-if (!exists("tay")) {
-  load("images/cohorts.RData")
+  load("pe_dataset_final/images/COHHIOHMIS.RData")
+  load("pe_dataset_final/images/Data_Quality.RData")
+  load("pe_dataset_final/images/cohorts.RData")
   # hc_project_eval_start <- mdy("01012019") # for comparison purposes
   # hc_project_eval_end <- mdy("12312019")
   rlang::env_binding_lock(environment(), ls())
-}
 
-# Points function ---------------------------------------------------------
+# loading in scoring rubric
 
-pe_score <- function(structure, value) {
-  case_when(
-    structure == "24_30_11" & value >= .3 ~ 11,
-    structure == "24_30_11" & value >= .27 & value < .3 ~ 8,
-    structure == "24_30_11" & value >= .24 & value < .27 ~ 5,
-    structure == "24_30_11" & value < .24 ~ 0,
-    structure == "75_85_12" & value >= .85 ~ 12,
-    structure == "75_85_12" & value >= .8 & value < .85 ~ 9,
-    structure == "75_85_12" & value >= .75 & value < .8 ~ 5,
-    structure == "75_85_12" & value < .75 ~ 0,
-    structure == "80_90_12" & value >= .9 ~ 12,
-    structure == "80_90_12" & value >= .85 & value < .9 ~ 9,
-    structure == "80_90_12" & value >= .8 & value < .85 ~ 5,
-    structure == "80_90_12" & value < .8 ~ 0,
-    structure == "0_730_10" & value <= 730 ~ 10,
-    structure == "0_730_10" & value > 730 ~ 0,
-    structure == "75_85_10" & value >= .85 ~ 10,
-    structure == "75_85_10" & value >= .8 & value < .85 ~ 7.5,
-    structure == "75_85_10" & value >= .75 & value < .8 ~ 5,
-    structure == "75_85_10" & value < .75 ~ 0,
-    structure == "20_90_10" & value >= .9 ~ 10,
-    structure == "20_90_10" & value >= .75 & value < .9 ~ 8,
-    structure == "20_90_10" & value >= .5 & value < .75 ~ 6,
-    structure == "20_90_10" & value >= .3 & value < .5 ~ 4,
-    structure == "20_90_10" & value >= .2 & value < .3 ~ 2,
-    structure == "20_90_10" & value < .2 ~ 0,
-    structure == "2_6_10" & value <= .02 ~ 10,
-    structure == "2_6_10" & value <= .04 & value > .02 ~ 7.5,
-    structure == "2_6_10" & value <= .06 & value > .04 ~ 5,
-    structure == "2_6_10" & value > .06 ~ 0,
-    structure == "5_9_10" & value <= .05 ~ 10,
-    structure == "5_9_10" & value <= .08 & value > .05 ~ 7.5,
-    structure == "5_9_10" & value <= .09 & value > .08 ~ 5,
-    structure == "5_9_10" & value > .09 ~ 0,
-    structure == "75_83_10" & value >= .83 ~ 10,
-    structure == "75_83_10" & value >= .79 & value < .83 ~ 7.5,
-    structure == "75_83_10" & value >= .75 & value < .79 ~ 5,
-    structure == "75_83_10" & value < .75 ~ 0,
-    structure == "72_80_5" & value >= .8 ~ 5,
-    structure == "72_80_5" & value >= .76 & value < .8 ~ 3,
-    structure == "72_80_5" & value >= .72 & value < .76 ~ 2,
-    structure == "72_80_5" & value < .72 ~ 0,
-    structure == "7_12_10" & value <= .07 ~ 10,
-    structure == "7_12_10" & value <= .09 & value > .07 ~ 7.5,
-    structure == "7_12_10" & value <= .12 & value > .09 ~ 5,
-    structure == "7_12_10" & value > .12 ~ 0,
-    structure == "12_17_10" & value <= .12 ~ 10,
-    structure == "12_17_10" & value > 12 & value <= .14 ~ 7.5,
-    structure == "12_17_10" & value > .14 & value <= 17 ~ 5,
-    structure == "12_17_10" & value > .17 ~ 0,
-    structure == "22_28_10" & value >= .28 ~ 10,
-    structure == "22_28_10" & value >= .26 & value < .28 ~ 7.5,
-    structure == "22_28_10" & value >= .22 & value < .26 ~ 5,
-    structure == "22_28_10" & value < .22 ~ 0,
-    structure == "0_7_10_PSH" & value >= 6 & value <= 7 ~ 10,
-    structure == "0_7_10_PSH" & value >= 5 & value < 6 ~ 9,
-    structure == "0_7_10_PSH" & value >= 3 & value < 5 ~ 8,
-    structure == "0_7_10_PSH" & value >= 2 & value < 3 ~ 5,
-    structure == "0_7_10_PSH" & value >= 1 & value < 2 ~ 2,
-    structure == "0_7_10_PSH" & value < 1 ~ 0,
-    structure == "200_280_10" & value <= 200 ~ 10,
-    structure == "200_280_10" & value <= 240 & value > 200 ~ 7.5,
-    structure == "200_280_10" & value <= 280 & value > 240 ~ 5,
-    structure == "200_280_10" & value > 280 ~ 0,
-    structure == "67_75_10" & value >= .75 ~ 10,
-    structure == "67_75_10" & value >= .71 & value < .75 ~ 7.5,
-    structure == "67_75_10" & value >= .67 & value < .71 ~ 5,
-    structure == "67_75_10" & value < .67 ~ 0,
-    structure == "0_7_10" & value >= 4 & value <= 7 ~ 10,
-    structure == "0_7_10" & value >= 3 & value < 4 ~ 8,
-    structure == "0_7_10" & value >= 2 & value < 3 ~ 7,
-    structure == "0_7_10" & value >= 1 & value < 2 ~ 5,
-    structure == "0_7_10" & value < 1 ~ 0,
-    structure == "15_19_10" & value <= .15 ~ 10,
-    structure == "15_19_10" & value <= .17 & value > .15 ~ 7.5,
-    structure == "15_19_10" & value <= .19 & value > .17 ~ 5,
-    structure == "15_19_10" & value > .19 ~ 0,
-    structure == "20_24_10" & value <= .2 ~ 10,
-    structure == "20_24_10" & value <= .22 & value > .2 ~ 7.5,
-    structure == "20_24_10" & value <= .24 & value > .22 ~ 5,
-    structure == "20_24_10" & value > .24 ~ 0,
-    structure == "16_20_10" & value >= .2 ~ 10,
-    structure == "16_20_10" & value < .2 & value >= .18 ~ 7.5,
-    structure == "16_20_10" & value < .18 & value >= .16 ~ 5,
-    structure == "16_20_10" & value < .16 ~ 0,
-    structure == "260_340_10" & value <= 260 ~ 10,
-    structure == "260_340_10" & value > 260 & value <= 300 ~ 7.5,
-    structure == "260_340_10" & value > 300 & value <= 340 ~ 5,
-    structure == "260_340_10" & value > 340 ~ 0,
-    structure == "0_100_10" & value == 1 ~ 10,
-    structure == "0_100_10" & value < 1 ~ 0,
-    structure == "14_18_10" & value >=  .18 ~ 10,
-    structure == "14_18_10" & value < .18 & value >= .16 ~ 7.5,
-    structure == "14_18_10" & value < .16 & value >= .14 ~ 5,
-    structure == "14_18_10" & value < .14 ~ 0,
-    structure == "150_210_10" & value <= 150 ~ 10,
-    structure == "150_210_10" & value <= 170 & value > 150 ~ 7.5,
-    structure == "150_210_10" & value <= 210 & value > 170 ~ 5,
-    structure == "150_210_10" & value > 210 ~ 0,
-    structure == "80_90_10" & value >= .9 ~ 10,
-    structure == "80_90_10" & value >= .85 & value < .9 ~ 7.5,
-    structure == "80_90_10" & value >= .8 & value < .85 ~ 5,
-    structure == "80_90_10" & value < .8 ~ 0,
-    structure == "34_40_10" & value >= .4 ~ 10,
-    structure == "34_40_10" & value >= .37 & value < .4 ~ 7.5,
-    structure == "34_40_10" & value >= .34 & value < .37 ~ 5,
-    structure == "34_40_10" & value < .34 ~ 0,
-    structure == "24_30_10" & value >= .3 ~ 10,
-    structure == "24_30_10" & value >= .27 & value < .3 ~ 7.5,
-    structure == "24_30_10" & value >= .24 & value < .27 ~ 5,
-    structure == "24_30_10" & value < .24 ~ 0,
-    structure == "90_100_5" & value == 1 ~ 5,
-    structure == "90_100_5" & value >= .9 & value < 1 ~ 2,
-    structure == "90_100_5" & value < .9 ~ 0
-  )
-}
-
-# The specs for this report is here: 
-#https://cohhio.org/wp-content/uploads/2019/03/2019-CoC-Competition-Plan-and-Timeline-FINAL-merged-3.29.19.pdf
+scoring_rubric <- read_excel("public_data/scoring_rubric.xlsx") %>%
+  mutate(maximum = as.double(maximum),
+         minimum = as.double(minimum))
 
 # Staging -----------------------------------------------------------------
 
-keepers <- c(15, 1353, 1566) 
-retired <- c(1774, 390, 1579)
+keepers <- c(15, 1353, 1566, 2068) 
+retired <- c(1774, 390, 1579, 2069)
 
 coc_funded <- Funder %>%
   filter(Funder %in% c(1:7) &
@@ -185,12 +67,14 @@ consolidations <- coc_funded %>%
     AltProjectID = case_when(
       ProjectID %in% c(1353, 390) ~ 3000,
       ProjectID %in% c(1774, 15) ~ 3001,
-      ProjectID %in% c(1566, 1579) ~ 3002
+      ProjectID %in% c(1566, 1579) ~ 3002,
+      ProjectID %in% c(2068, 2069) ~ 3003
     ),
     AltProjectName = case_when(
       ProjectID %in% c(1353, 390) ~ "Springfield SPC 1 Combined (1353, 390)",
       ProjectID %in% c(1774, 15) ~ "GLCAP PSH Combined (1774, 15)",
-      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined (1566, 1579)"
+      ProjectID %in% c(1566, 1579) ~ "One Eighty PSH Plus Care Combined (1566, 1579)",
+      ProjectID %in% c(2068, 2069) ~ "Licking - Region 9 RRH"
     )
   ) %>%
   select(ProjectID, ProjectName, AltProjectID, AltProjectName)
@@ -308,10 +192,14 @@ pe_adults_entered <-  co_adults_served %>%
   ungroup() %>%
   filter(entered_between(., hc_project_eval_start, hc_project_eval_end) & 
            EntryDate == HHEntryDate) %>%
+  # group_by(PersonalID, AltProjectID) %>%
+  # arrange(desc(ymd(EntryDate))) %>%
+  # slice_head() %>%
+  # ungroup() %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate))
 
-# this one counts each entry 
+# counts each client's entry
 
 ## for vispdat measure
 
@@ -322,7 +210,7 @@ pe_hohs_entered <-  co_hohs_entered %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(
     Enrollment %>%
-      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+      select(-UserID, -DateCreated, -DateUpdated, -DateDeleted, -ExportID),
     by = c(
       "PersonalID",
       "EnrollmentID",
@@ -331,6 +219,9 @@ pe_hohs_entered <-  co_hohs_entered %>%
       "ProjectName"
     )
   ) %>%
+  # group_by(PersonalID, AltProjectID) %>%
+  # slice_min(order_by = ymd(EntryDate), with_ties = FALSE) %>%
+  # ungroup() %>%
   select(all_of(vars_we_want)) %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate))
 
@@ -430,8 +321,26 @@ pe_hohs_served <- co_hohs_served %>%
   arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
   distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
-pe_hohs_served_leavers <- pe_hohs_served %>%
-  filter(exited_between(., hc_project_eval_start, hc_project_eval_end))
+pe_hohs_served_leavers <- co_hohs_served %>%
+  filter(served_between(., hc_project_eval_start, hc_project_eval_end) &
+           exited_between(., hc_project_eval_start, hc_project_eval_end)) %>%
+  select("PersonalID", "ProjectID", "EnrollmentID") %>%
+  inner_join(pe_coc_funded, by = "ProjectID") %>%
+  left_join(Client, by = "PersonalID") %>%
+  left_join(
+    Enrollment %>%
+      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+    by = c(
+      "PersonalID",
+      "EnrollmentID",
+      "ProjectID",
+      "ProjectType",
+      "ProjectName"
+    )
+  ) %>%
+  select(all_of(vars_we_want)) %>%
+  arrange(PersonalID, AltProjectID, desc(EntryDate)) %>%
+  distinct(PersonalID, AltProjectName, .keep_all = TRUE) # no dupes w/in a project	
 
 # own housing and LoS
 # Heads of Household who moved in and exited during date range
@@ -444,7 +353,7 @@ pe_hohs_moved_in_leavers <-  co_hohs_moved_in_leavers %>%
   left_join(Client, by = "PersonalID") %>%
   left_join(
     Enrollment %>%
-      select(-UserID,-DateCreated,-DateUpdated,-DateDeleted,-ExportID),
+      select(-UserID, -DateCreated, -DateUpdated, -DateDeleted, -ExportID),
     by = c(
       "PersonalID",
       "EnrollmentID",
@@ -687,7 +596,6 @@ data_quality_flags <- data_quality_flags_detail %>%
   select(AltProjectName, General_DQ, Benefits_DQ, Income_DQ, LoTH_DQ)
 
 # CoC Scoring -------------------------------------------------------------
-docs_due <- mdy("04232021")
 
 summary_pe_coc_scoring <- pe_coc_funded %>%
   left_join(Project, by = c("ProjectType", "ProjectName", "ProjectID")) %>%
@@ -703,47 +611,112 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
   ) %>%
   filter(!ProjectID %in% retired) %>%
   mutate(
-    PrioritizationWorkgroupPossible = 5, 
-    PrioritizationWorkgroupMath = PrioritizationWorkgroupScore,
-    HousingFirstPossible = 15, 
+    PrioritizationWorkgroupScore = replace_na(PrioritizationWorkgroupScore, 0),
+    PrioritizationWorkgroupPossible = 5,
+    PrioritizationWorkgroupMath = case_when(
+      today() <= ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0(
+          "Documents either not yet received or not yet processed. They are due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
+      today() > ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0(
+          "Documentation either not yet received or not yet processed by the
+               CoC Team. They were due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
+        "Documentation received past deadline.",
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
+        "Your documentation was reviewed by the CoC team and scored. Please contact
+      ohioboscoc@cohhio.org if you have questions about your scoring."
+    ),
+    HousingFirstPossible = 15,
     HousingFirstDQ = case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(HousingFirstScore) ~ 3,
       is.na(DateReceivedPPDocs) &
         is.na(HousingFirstScore) ~ 2,
       is.na(DateReceivedPPDocs) &
         !is.na(HousingFirstScore) ~ 4,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ 5
     ),
     HousingFirstScore = case_when(
-        is.na(DateReceivedPPDocs) |
-          is.na(HousingFirstScore) ~ -10,
-        ymd(DateReceivedPPDocs) > ymd(docs_due) ~ -10,
-        ymd(DateReceivedPPDocs) <= ymd(docs_due) ~ HousingFirstScore
-      ), 
-    HousingFirstMath = HousingFirstScore,
+      is.na(DateReceivedPPDocs) |
+        is.na(HousingFirstScore) ~ -10,
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ -10,
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~ HousingFirstScore
+    ),
+    HousingFirstMath = case_when(
+      today() <= ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0(
+          "Documents either not yet received or not yet processed. They are
+               due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
+      today() > ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0(
+          "Documentation either not yet received or not yet processed by the
+               CoC Team. They were due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
+        "Documentation received past deadline.",
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
+        "Your documentation was reviewed by the CoC team and scored. Please contact
+      ohioboscoc@cohhio.org if you have questions about your scoring."
+    ),
     ChronicPrioritizationDQ = case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
         is.na(ChronicPrioritizationScore) ~ 3,
       is.na(DateReceivedPPDocs) &
         is.na(ChronicPrioritizationScore) ~ 2,
       is.na(DateReceivedPPDocs) &
         !is.na(ChronicPrioritizationScore) ~ 4,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) ~ 5
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~ 5
     ),
-    ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL), 
-    ChronicPrioritizationScore = #if_else(ProjectType == 3, 0, NULL), 
+    ChronicPrioritizationPossible = if_else(ProjectType == 3, 10, NULL),
+    ChronicPrioritizationScore =
       case_when(
-      ymd(DateReceivedPPDocs) <= ymd(docs_due) &
-        ProjectType == 3 &
-        !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
-      is.na(DateReceivedPPDocs) &
-        ProjectType == 3 &
-        is.na(ChronicPrioritizationScore) ~ -5,
-      ymd(DateReceivedPPDocs) > ymd(docs_due) &
-        ProjectType == 3 ~ -5
-    ), 
-    ChronicPrioritizationMath = ChronicPrioritizationScore
+        ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) &
+          ProjectType == 3 &
+          !is.na(ChronicPrioritizationScore) ~ ChronicPrioritizationScore,
+        is.na(DateReceivedPPDocs) &
+          ProjectType == 3 &
+          is.na(ChronicPrioritizationScore) ~ -5,
+        ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) &
+          ProjectType == 3 ~ -5
+      ),
+    ChronicPrioritizationMath = case_when(
+      today() <= ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0(
+          "Documents either not yet received or not yet processed. They are due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
+      today() > ymd(hc_project_eval_docs_due) &
+        is.na(DateReceivedPPDocs) ~
+        paste0(
+          "Documentation either not yet received or not yet processed by the
+               CoC Team. They were due ",
+          format(hc_project_eval_docs_due, "%A %b %e, %Y"),
+          "."
+        ),
+      ymd(DateReceivedPPDocs) > ymd(hc_project_eval_docs_due) ~
+        "Documentation received past deadline.",
+      ymd(DateReceivedPPDocs) <= ymd(hc_project_eval_docs_due) ~
+        "Your documentation was reviewed by the CoC team and scored. Please contact
+      ohioboscoc@cohhio.org if you have questions about your scoring."
+    )
   ) 
 
 # 2 = Documents not yet received
@@ -766,6 +739,9 @@ pe_exits_to_ph <- pe_hohs_served %>%
                unique(), 
              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
+  filter((ProjectType %in% c(2, 8, 13) & 
+            exited_between(., hc_project_eval_start, hc_project_eval_end)) |
+           ProjectType == 3) %>% # filtering out non-PSH stayers
   mutate(
     DestinationGroup = case_when(
       is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
@@ -782,20 +758,13 @@ pe_exits_to_ph <- pe_hohs_served %>%
     ),
     MeetsObjective =
       case_when(
-        ProjectType %in% c(3, 9) &
-          DestinationGroup %in% c("Permanent", "Still in Program at Report End Date") ~ 1,
-        ProjectType %in% c(3, 9) &
-          (!DestinationGroup %in% c("Permanent", "Still in Program at Report End Date")) ~ 0,
-        ProjectType %in% c(2, 8, 13) &
-          DestinationGroup == "Permanent" ~ 1,
-        ProjectType %in% c(2, 8, 13) &
-          (DestinationGroup != "Permanent") ~ 0
+        DestinationGroup == "Permanent" |
+          (ProjectType == 3 &
+             DestinationGroup == "Still in Program at Report End Date") ~ 1,
+        TRUE ~ 0
       ),
     PersonalID = as.character(PersonalID)
   ) %>%
-  filter((ProjectType %in% c(2, 8, 13) & 
-            exited_between(., hc_project_eval_start, hc_project_eval_end)) |
-           ProjectType == 3) %>% # filtering out non-PSH stayers
   select(all_of(vars_to_the_apps), ExitsToPHDQ, Destination, DestinationGroup)
 
 summary_pe_exits_to_ph <- pe_exits_to_ph %>%
@@ -808,48 +777,53 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     HoHsServedLeavers = HoHsServedLeavers - HoHDeaths,
     HoHsServed = HoHsServed - HoHDeaths,
     ExitsToPH = if_else(is.na(ExitsToPH), 0, ExitsToPH),
-    Structure = case_when(
-      ProjectType == 3 ~ "80_90_12",
-      ProjectType %in% c(2, 13) ~ "75_83_10",
-      ProjectType == 8 ~ "67_75_10"
-    ),
     ExitsToPHPercent = if_else(
       ProjectType == 3,
       ExitsToPH / HoHsServed,
       ExitsToPH / HoHsServedLeavers
     ),
-    ExitsToPHMath = case_when(
-      ProjectType == 3 & HoHsServed != 0 ~
-        paste(
-          ExitsToPH,
-          "exits to permanent housing or retention in PSH /",
-          HoHsServed,
-          "heads of household =",
-          percent(ExitsToPHPercent, accuracy = 1)
-        ),
-      ProjectType != 3 & HoHsServedLeavers != 0 ~
-        paste(
-          ExitsToPH,
-          "exits to permanent housing /",
-          HoHsServedLeavers,
-          "heads of household leavers =",
-          percent(ExitsToPHPercent, accuracy = 1)
-        )
-    ), 
-    ExitsToPHPoints = if_else(
-      (ProjectType == 3 &
-         HoHsServed == 0) |
-        (ProjectType != 3 &
-           HoHsServedLeavers == 0),
-      if_else(ProjectType == 3, 12, 10),
-      pe_score(Structure, ExitsToPHPercent)
-    ),
-    ExitsToPHPossible = if_else(ProjectType == 3, 12, 10),
-    ExitsToPHPoints = if_else(
-      ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
-      ExitsToPHPoints,
-      0
-    )
+    ExitsToPHPercentJoin = if_else(is.na(ExitsToPHPercent), 0, ExitsToPHPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "exits_to_ph"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(ExitsToPHPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= ExitsToPHPercentJoin &
+                   maximum > ExitsToPHPercentJoin,
+                 minimum < ExitsToPHPercentJoin &
+                   maximum >= ExitsToPHPercentJoin)) %>%
+  mutate(ExitsToPHMath = case_when(
+    ProjectType == 3 & HoHsServed != 0 ~
+      paste(
+        ExitsToPH,
+        "exits to permanent housing or retention in PSH /",
+        HoHsServed,
+        "heads of household =",
+        percent(ExitsToPHPercent, accuracy = 1)
+      ),
+    ProjectType != 3 & HoHsServedLeavers != 0 ~
+      paste(
+        ExitsToPH,
+        "exits to permanent housing /",
+        HoHsServedLeavers,
+        "heads of household leavers =",
+        percent(ExitsToPHPercent, accuracy = 1)
+      )
+  ), 
+  ExitsToPHPoints = if_else(
+    (ProjectType == 3 &
+       HoHsServed == 0) |
+      (ProjectType != 3 &
+         HoHsServedLeavers == 0),
+    ExitsToPHPossible, points
+  ),
+  ExitsToPHPoints = if_else(
+    ExitsToPHDQ == 0 | is.na(ExitsToPHDQ),
+    ExitsToPHPoints,
+    0
+  )
   ) %>%
   select(
     ProjectType,
@@ -863,88 +837,88 @@ summary_pe_exits_to_ph <- pe_exits_to_ph %>%
     ExitsToPHCohort
   )
 
-# Housing Stability: Moved into Own Housing -------------------------------
-# TH, SH, RRH
-
-pe_own_housing <- pe_hohs_moved_in_leavers %>%
-  right_join(pe_coc_funded %>% 
-               select(ProjectType, AltProjectID, AltProjectName) %>%
-               unique(), 
-             by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
-  left_join(data_quality_flags, by = "AltProjectName") %>%
-  filter(ProjectType != 3) %>%
-  mutate(
-    MeetsObjective = case_when(
-      Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 1,
-      !Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 0
-    ),
-    OwnHousingDQ = case_when(
-      General_DQ == 1 ~ 1,
-      TRUE ~ 0
-    ),
-    DestinationGroup = case_when(
-      is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
-        "Still in Program at Report End Date",
-      Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
-      Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
-      Destination %in% c(22:23) ~ "Shared Housing",
-      Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
-      Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
-      Destination == 24 ~ "Deceased"
-    ),
-    PersonalID = as.character(PersonalID)
-  ) %>% 
-  select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
-
-summary_pe_own_housing <- pe_own_housing %>%
-  group_by(ProjectType, AltProjectName, OwnHousingDQ) %>%
-  summarise(OwnHousing = sum(MeetsObjective)) %>%
-  ungroup() %>%
-  right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
-  mutate(
-    HoHsMovedInLeavers = HoHsMovedInLeavers - HoHDeaths,
-    OwnHousing = if_else(is.na(OwnHousing), 0, OwnHousing),
-    Structure = if_else(ProjectType != 3, "72_80_5", NULL),
-    OwnHousingPercent = if_else(ProjectType != 3,
-                                OwnHousing / HoHsMovedInLeavers,
-                                NULL),
-    OwnHousingMath = case_when(
-      HoHsMovedInLeavers == 0 &
-        ProjectType != 3 ~
-        "All points granted because this project had 0 Heads of Household Leavers who Moved into Housing",
-      ProjectType == 3 &
-        (HoHsMovedInLeavers == 0 | HoHsMovedInLeavers != 0) ~ "",
-      HoHsMovedInLeavers != 0 & ProjectType != 3 ~ paste(
-        OwnHousing,
-        "exited to their own permanent housing /",
-        HoHsMovedInLeavers,
-        "heads of household leavers who moved into housing =",
-        percent(OwnHousingPercent, accuracy = 1)
-      )
-    ), 
-    OwnHousingPoints = if_else(
-      HoHsMovedInLeavers == 0 & ProjectType != 3,
-      10,
-      pe_score(Structure, OwnHousingPercent)
-    ),
-    OwnHousingPoints = if_else(is.nan(OwnHousingPercent) &
-                                 ProjectType != 3, 5, OwnHousingPoints),
-    OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
-                                 is.na(OwnHousingDQ) |
-                                   OwnHousingDQ == 0 ~ OwnHousingPoints),
-    OwnHousingPoints = if_else(is.na(OwnHousingPoints), 0, OwnHousingPoints),
-    OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
-    OwnHousingCohort = "HoHsMovedInLeavers"
-  ) %>%
-  select(ProjectType,
-         AltProjectName,
-         OwnHousingCohort,
-         OwnHousing,
-         OwnHousingMath,
-         OwnHousingPercent,
-         OwnHousingPoints,
-         OwnHousingPossible,
-         OwnHousingDQ)
+# # Housing Stability: Moved into Own Housing -------------------------------
+# # TH, SH, RRH
+# 
+# pe_own_housing <- pe_hohs_moved_in_leavers %>%
+#   right_join(pe_coc_funded %>% 
+#                select(ProjectType, AltProjectID, AltProjectName) %>%
+#                unique(), 
+#              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
+#   left_join(data_quality_flags, by = "AltProjectName") %>%
+#   filter(ProjectType != 3) %>%
+#   mutate(
+#     MeetsObjective = case_when(
+#       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 1,
+#       !Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ 0
+#     ),
+#     OwnHousingDQ = case_when(
+#       General_DQ == 1 ~ 1,
+#       TRUE ~ 0
+#     ),
+#     DestinationGroup = case_when(
+#       is.na(Destination) | ymd(ExitAdjust) > ymd(hc_project_eval_end) ~ 
+#         "Still in Program at Report End Date",
+#       Destination %in% c(1, 2, 12, 13, 14, 16, 18, 27) ~ "Temporary",
+#       Destination %in% c(3, 10:11, 19:21, 28, 31, 33:34) ~ "Household's Own Housing",
+#       Destination %in% c(22:23) ~ "Shared Housing",
+#       Destination %in% c(4:7, 15, 25:27, 29) ~ "Institutional",
+#       Destination %in% c(8, 9, 17, 30, 99, 32) ~ "Other",
+#       Destination == 24 ~ "Deceased"
+#     ),
+#     PersonalID = as.character(PersonalID)
+#   ) %>% 
+#   select(all_of(vars_to_the_apps), OwnHousingDQ, Destination, DestinationGroup)
+# 
+# summary_pe_own_housing <- pe_own_housing %>%
+#   group_by(ProjectType, AltProjectName, OwnHousingDQ) %>%
+#   summarise(OwnHousing = sum(MeetsObjective)) %>%
+#   ungroup() %>%
+#   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
+#   mutate(
+#     HoHsMovedInLeavers = HoHsMovedInLeavers - HoHDeaths,
+#     OwnHousing = if_else(is.na(OwnHousing), 0, OwnHousing),
+#     Structure = if_else(ProjectType != 3, "72_80_5", NULL),
+#     OwnHousingPercent = if_else(ProjectType != 3,
+#                                 OwnHousing / HoHsMovedInLeavers,
+#                                 NULL),
+#     OwnHousingMath = case_when(
+#       HoHsMovedInLeavers == 0 &
+#         ProjectType != 3 ~
+#         "All points granted because this project had 0 Heads of Household Leavers who Moved into Housing",
+#       ProjectType == 3 &
+#         (HoHsMovedInLeavers == 0 | HoHsMovedInLeavers != 0) ~ "",
+#       HoHsMovedInLeavers != 0 & ProjectType != 3 ~ paste(
+#         OwnHousing,
+#         "exited to their own permanent housing /",
+#         HoHsMovedInLeavers,
+#         "heads of household leavers who moved into housing =",
+#         percent(OwnHousingPercent, accuracy = 1)
+#       )
+#     ), 
+#     OwnHousingPoints = if_else(
+#       HoHsMovedInLeavers == 0 & ProjectType != 3,
+#       10,
+#       pe_score(Structure, OwnHousingPercent)
+#     ),
+#     OwnHousingPoints = if_else(is.nan(OwnHousingPercent) &
+#                                  ProjectType != 3, 5, OwnHousingPoints),
+#     OwnHousingPoints = case_when(OwnHousingDQ == 1 ~ 0, 
+#                                  is.na(OwnHousingDQ) |
+#                                    OwnHousingDQ == 0 ~ OwnHousingPoints),
+#     OwnHousingPoints = if_else(is.na(OwnHousingPoints), 0, OwnHousingPoints),
+#     OwnHousingPossible = if_else(ProjectType != 3, 5, NULL),
+#     OwnHousingCohort = "HoHsMovedInLeavers"
+#   ) %>%
+#   select(ProjectType,
+#          AltProjectName,
+#          OwnHousingCohort,
+#          OwnHousing,
+#          OwnHousingMath,
+#          OwnHousingPercent,
+#          OwnHousingPoints,
+#          OwnHousingPossible,
+#          OwnHousingDQ)
 
 # Accessing Mainstream Resources: Benefits -----------------------------------
 # PSH, TH, SH, RRH
@@ -981,12 +955,7 @@ pe_benefits_at_exit <- pe_adults_moved_in_leavers %>%
       case_when(
         (BenefitsFromAnySource == 1 |
            InsuranceFromAnySource == 1) ~ 1,
-        (
-          BenefitsFromAnySource != 1 |
-            is.na(BenefitsFromAnySource) &
-            (InsuranceFromAnySource != 1 |
-               is.na(InsuranceFromAnySource)) ~ 0
-        )
+        TRUE ~ 0
       ),
     BenefitsAtExitDQ = if_else(General_DQ == 1 |
                                  Benefits_DQ == 1, 1, 0),
@@ -1006,33 +975,41 @@ summary_pe_benefits_at_exit <- pe_benefits_at_exit %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     BenefitsAtExit = if_else(is.na(BenefitsAtExit), 0, BenefitsAtExit),
-    Structure = case_when(
-      ProjectType == 8 ~ "67_75_10",
-      ProjectType == 3 ~ "75_85_12", 
-      TRUE ~ "75_85_10"),
     BenefitsAtExitPercent = BenefitsAtExit / AdultMovedInLeavers,
-    BenefitsAtExitMath = if_else(
-      AdultMovedInLeavers == 0,
-      "All points granted because this project had no adult leavers who moved into the project's housing",
-      paste(
-        BenefitsAtExit,
-        "exited with benefits or health insurance /",
-        AdultMovedInLeavers,
-        "adult leavers who moved into the project's housing =",
-        percent(BenefitsAtExitPercent, accuracy = 1)
-      )
-    ), 
-    BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
-    BenefitsAtExitPoints = if_else(AdultMovedInLeavers == 0,
-                               if_else(ProjectType == 3, 12, 10),
-                               pe_score(Structure, BenefitsAtExit)),
-    BenefitsAtExitPossible = if_else(ProjectType == 3, 12, 10),
-    BenefitsAtExitPoints = case_when(
-      BenefitsAtExitDQ == 1 ~ 0,
-      is.na(BenefitsAtExitDQ) |
-        BenefitsAtExitDQ == 0 ~ BenefitsAtExitPoints
-    ), 
-    BenefitsAtExitCohort = "AdultMovedInLeavers"
+    BenefitsAtExitPercentJoin = if_else(is.na(BenefitsAtExitPercent), 0, BenefitsAtExitPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "benefits_at_exit"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(BenefitsAtExitPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= BenefitsAtExitPercentJoin &
+                   maximum > BenefitsAtExitPercentJoin,
+                 minimum < BenefitsAtExitPercentJoin &
+                   maximum >= BenefitsAtExitPercentJoin)) %>%
+  mutate(BenefitsAtExitMath = if_else(
+    AdultMovedInLeavers == 0,
+    "All points granted because this project had no adult leavers who moved into the project's housing",
+    paste(
+      BenefitsAtExit,
+      "exited with benefits or health insurance /",
+      AdultMovedInLeavers,
+      "adult leavers who moved into the project's housing =",
+      percent(BenefitsAtExitPercent, accuracy = 1)
+    )
+  ), 
+  BenefitsAtExitDQ = if_else(is.na(BenefitsAtExitDQ), 0, BenefitsAtExitDQ),
+  BenefitsAtExitPoints = case_when(
+    AdultMovedInLeavers == 0 ~ BenefitsAtExitPossible,
+    TRUE ~ points
+  ), 
+  BenefitsAtExitPoints = case_when(
+    BenefitsAtExitDQ == 1 ~ 0,
+    is.na(BenefitsAtExitDQ) |
+      BenefitsAtExitDQ == 0 ~ BenefitsAtExitPoints
+  ), 
+  BenefitsAtExitCohort = "AdultMovedInLeavers"
   ) %>%
   select(
     ProjectType,
@@ -1177,7 +1154,7 @@ pe_length_of_stay <- pe_hohs_moved_in_leavers %>%
                unique(), 
              by = c("AltProjectName", "ProjectType", "AltProjectID")) %>%
   left_join(data_quality_flags, by = "AltProjectName") %>%
-  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate)),
+  mutate(DaysInProject = difftime(ymd(ExitAdjust), ymd(EntryDate), units = "days"),
          PersonalID = as.character(PersonalID)) %>%
   select(ProjectType,
          AltProjectName,
@@ -1199,25 +1176,31 @@ summary_pe_length_of_stay <- pe_length_of_stay %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
-    Structure = case_when(
-      ProjectType == 2 ~ "200_280_10",
-      ProjectType == 8 ~ "260_340_10",
-      ProjectType == 13 ~ "0_730_10"
-    ),
+    AverageDaysJoin = if_else(is.na(AverageDays), 0, AverageDays)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "length_of_stay"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(AverageLoSPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= AverageDaysJoin &
+                   maximum > AverageDaysJoin,
+                 minimum < AverageDaysJoin &
+                   maximum >= AverageDaysJoin)) %>%
+  mutate(
     AverageLoSPoints = case_when(
       ClientsMovedInLeavers == 0 &
-        ProjectType != 3 ~ 10,
-      TRUE ~ pe_score(Structure, AverageDays)
+        ProjectType != 3 ~ AverageLoSPossible,
+      TRUE ~ points
     ),
     AverageLoSMath = if_else(
       ClientsMovedInLeavers == 0,
       "All points granted because this project had 0 leavers who moved into the project's housing",
       paste(as.integer(AverageDays), "average days")
     ), 
-    AverageLoSPossible = if_else(ProjectType %in% c(2, 8, 13), 10, NULL),
     AverageLoSDQ = case_when(
-      General_DQ == 1 & ProjectType %in% c(2, 8, 13) ~ 1,
-      General_DQ == 0 & ProjectType %in% c(2, 8, 13) ~ 0),
+      ProjectType %in% c(2, 8, 13) ~ General_DQ),
     AverageLoSPoints = case_when(
       AverageLoSDQ == 1 ~ 0, 
       AverageLoSDQ == 0 | is.na(AverageLoSDQ) ~ AverageLoSPoints),
@@ -1258,32 +1241,38 @@ summary_pe_res_prior <- pe_res_prior %>%
                     "AltProjectName")) %>%
   mutate(
     LHResPrior = if_else(is.na(LHResPrior), 0, LHResPrior),
-    Structure = case_when(
-      ProjectType %in% c(3, 13) ~ "75_85_10",
-      ProjectType == 2 ~ "67_75_10",
-      ProjectType == 8 ~ "0_100_10"
-    ),
     LHResPriorPercent = LHResPrior / AdultsEntered,
-    LHResPriorMath = if_else(
-      AdultsEntered == 0,
-      "All points granted because this project has 0 adults who entered the project",
-      paste(
-        LHResPrior,
-        "coming from shelter or streets (unsheltered) /",
-        AdultsEntered,
-        "adults who entered the project during the reporting period =",
-        percent(LHResPriorPercent, accuracy = 1)
-      )
-    ), 
-    LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
-    LHResPriorPoints = if_else(AdultsEntered == 0,
-                               10,
-                               pe_score(Structure, LHResPriorPercent)),
-    LHResPriorPoints = case_when(
-      LHResPriorDQ == 1 ~ 0, 
-      LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
-    LHResPriorPossible = 10,
-    LHResPriorCohort = "AdultsEntered"
+    LHResPriorPercentJoin = if_else(is.na(LHResPriorPercent), 0, LHResPriorPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "res_prior"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(LHResPriorPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= LHResPriorPercentJoin &
+                   maximum > LHResPriorPercentJoin,
+                 minimum < LHResPriorPercentJoin &
+                   maximum >= LHResPriorPercentJoin)) %>% 
+  mutate(LHResPriorMath = if_else(
+    AdultsEntered == 0,
+    "All points granted because this project has 0 adults who entered the project",
+    paste(
+      LHResPrior,
+      "coming from shelter or streets (unsheltered) /",
+      AdultsEntered,
+      "adults who entered the project during the reporting period =",
+      percent(LHResPriorPercent, accuracy = 1)
+    )
+  ), 
+  LHResPriorDQ = if_else(is.na(LHResPriorDQ), 0, LHResPriorDQ),
+  LHResPriorPoints = case_when(
+    AdultsEntered == 0 ~ LHResPriorPossible,
+    TRUE ~ points),
+  LHResPriorPoints = case_when(
+    LHResPriorDQ == 1 ~ 0, 
+    LHResPriorDQ == 0 | is.na(LHResPriorDQ) ~ LHResPriorPoints),
+  LHResPriorCohort = "AdultsEntered"
   ) %>%
   select(
     ProjectType,
@@ -1333,9 +1322,21 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
     NoIncomeAtEntry = if_else(is.na(NoIncomeAtEntry),
                               0,
                               NoIncomeAtEntry),
-    Structure = if_else(ProjectType != 2, "34_40_10", "24_30_10"),
     NoIncomeAtEntryDQ = if_else(is.na(NoIncomeAtEntryDQ), 0, NoIncomeAtEntryDQ),
     NoIncomeAtEntryPercent = NoIncomeAtEntry / AdultsEntered,
+    NoIncomeAtEntryPercentJoin = if_else(is.na(NoIncomeAtEntryPercent), 0, NoIncomeAtEntryPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "entries_no_income"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(NoIncomeAtEntryPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= NoIncomeAtEntryPercentJoin &
+                   maximum > NoIncomeAtEntryPercentJoin,
+                 minimum < NoIncomeAtEntryPercentJoin &
+                   maximum >= NoIncomeAtEntryPercentJoin)) %>%
+  mutate(
     NoIncomeAtEntryMath = if_else(
       AdultsEntered == 0,
       "All points granted because 0 adults entered this project during the reporting period",
@@ -1347,9 +1348,9 @@ summary_pe_entries_no_income <- pe_entries_no_income %>%
         percent(NoIncomeAtEntryPercent, accuracy = 1)
       )
     ), 
-    NoIncomeAtEntryPoints = if_else(AdultsEntered == 0, 10,
-                     pe_score(Structure, NoIncomeAtEntryPercent)),
-    NoIncomeAtEntryPossible = 10,
+    NoIncomeAtEntryPoints = case_when(
+      AdultsEntered == 0 ~ NoIncomeAtEntryPossible,
+      TRUE ~ points),
     NoIncomeAtEntryPoints = case_when(
       NoIncomeAtEntryDQ == 1 ~ 0,
       NoIncomeAtEntryDQ == 0 |
@@ -1422,7 +1423,7 @@ pe_homeless_history_index <- pe_adults_entered %>%
     ),
     HHI = if_else(DaysHomelessAtEntry >= 365, 7, 
                   score_matrix[cbind(NumMonthsLevel, TimesLevel)]),
-    
+    HHI = replace_na(HHI, 0), # when null I'm seeing client wasn't even eligible
     PersonalID = as.character(PersonalID)
   ) %>%
   select(-NumMonthsLevel, -TimesLevel)
@@ -1432,16 +1433,26 @@ summary_pe_homeless_history_index <- pe_homeless_history_index %>%
   summarise(MedHHI = median(HHI)) %>%
   ungroup() %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "homeless_history_index"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(MedianHHIPossible = max(points),
+         MedHHIJoin = if_else(is.na(MedHHI), 0, MedHHI)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= MedHHIJoin &
+                   maximum > MedHHIJoin,
+                 minimum < MedHHIJoin &
+                   maximum >= MedHHIJoin)) %>%
   mutate(
-    Structure = if_else(ProjectType != 3, "0_7_10", "0_7_10_PSH"),
     MedianHHIMath = if_else(
       AdultsEntered == 0,
       "All points granted since 0 adults entered this project during the reporting period",
       paste("Median Homeless History Index = ", MedHHI)
     ), 
-    MedianHHIPoints = if_else(AdultsEntered == 0, 10,
-                           pe_score(Structure, MedHHI)),
-    MedianHHIPossible = 10,
+    MedianHHIPoints = if_else(AdultsEntered == 0, MedianHHIPossible,
+                              points),
     MedianHHIDQ = if_else(General_DQ == 1, 1, 0),
     MedianHHIDQ = if_else(is.na(MedianHHIDQ), 0, MedianHHIDQ),
     MedianHHIPoints = case_when(MedianHHIDQ == 1 ~ 0, 
@@ -1537,12 +1548,24 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
   right_join(pe_validation_summary, by = c("ProjectType", "AltProjectName")) %>%
   mutate(
     LongTermHomeless = if_else(is.na(LongTermHomeless),
-                              0,     
-                              LongTermHomeless),
-    Structure = if_else(ProjectType == 3, "20_90_10", NULL),
+                               0,     
+                               LongTermHomeless),
     LongTermHomelessPercent = if_else(AdultsEntered > 0,
                                       LongTermHomeless / AdultsEntered,
-                                      NULL),    
+                                      NULL),
+    LongTermHomelessPercentJoin = if_else(is.na(LongTermHomelessPercent), 0, LongTermHomelessPercent)) %>%
+  right_join(scoring_rubric %>%
+               filter(metric == "long_term_homeless"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(LongTermHomelessPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= LongTermHomelessPercentJoin &
+                   maximum > LongTermHomelessPercentJoin,
+                 minimum < LongTermHomelessPercentJoin &
+                   maximum >= LongTermHomelessPercentJoin)) %>% 
+  mutate(
     LongTermHomelessMath = if_else(
       AdultsEntered == 0,
       "All points granted because 0 adults entered this project during the reporting period",
@@ -1555,14 +1578,13 @@ summary_pe_long_term_homeless <- pe_long_term_homeless %>%
       )
     ), 
     LongTermHomelessPoints = if_else(AdultsEntered == 0 &
-                                       ProjectType == 3, 10,
-                     pe_score(Structure, LongTermHomelessPercent)), 
+                                       ProjectType == 3, LongTermHomelessPossible,
+                                     points), 
     LongTermHomelessPoints = case_when(LTHomelessDQ == 0 |
                                          is.na(LTHomelessDQ) ~ LongTermHomelessPoints,
                                        LTHomelessDQ == 1 ~ 0), 
     LongTermHomelessPoints = if_else(is.na(LongTermHomelessPoints), 0, 
                                      LongTermHomelessPoints),
-    LongTermHomelessPossible = if_else(ProjectType == 3, 10, NULL),
     LongTermhomelessCohort = "AdultsEntered"
   ) %>%
   select(
@@ -1613,10 +1635,22 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntry = if_else(is.na(ScoredAtEntry),
                             0,
                             ScoredAtEntry), 
-    Structure = if_else(ProjectType %in% c(2, 3, 13), "90_100_5", NULL),
     ScoredAtEntryPercent = if_else(HoHsEntered > 0,
                                    ScoredAtEntry / HoHsEntered,
-                                   NULL),    
+                                   NULL),
+    ScoredAtEntryPercentJoin = if_else(is.na(ScoredAtEntryPercent), 0, ScoredAtEntryPercent)) %>%    
+  right_join(scoring_rubric %>%
+               filter(metric == "scored_at_ph_entry"), 
+             by = "ProjectType") %>%
+  group_by(ProjectType) %>%
+  mutate(ScoredAtEntryPossible = max(points)) %>%
+  ungroup() %>%
+  filter(if_else(goal_type == "max",
+                 minimum <= ScoredAtEntryPercentJoin &
+                   maximum > ScoredAtEntryPercentJoin,
+                 minimum < ScoredAtEntryPercentJoin &
+                   maximum >= ScoredAtEntryPercentJoin)) %>% 
+  mutate(
     ScoredAtEntryMath = if_else(
       HoHsEntered == 0,
       "All points granted because 0 households entered the project during the reporting period",
@@ -1629,10 +1663,8 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
       )
     ), 
     ScoredAtEntryPoints = case_when(
-      HoHsEntered == 0 &
-        ProjectType %in% c(2, 3, 13) ~ 5,
-      HoHsEntered > 0 &
-        ProjectType %in% c(2, 3, 13) ~ pe_score(Structure, ScoredAtEntryPercent)),
+      HoHsEntered == 0 ~ ScoredAtEntryPossible,
+      HoHsEntered > 0 ~ points),
     ScoredAtEntryPoints = case_when(
       ScoredAtEntryDQ == 0 ~ ScoredAtEntryPoints,
       ScoredAtEntryDQ == 1 ~ 0,
@@ -1640,7 +1672,6 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryPoints = if_else(is.na(ScoredAtEntryPoints), 
                                   0, 
                                   ScoredAtEntryPoints),
-    ScoredAtEntryPossible = if_else(ProjectType %in% c(2, 3, 13), 5, NULL),
     ScoredAtEntryCohort = "HoHsEntered"
   ) %>%
   select(
@@ -1653,7 +1684,7 @@ summary_pe_scored_at_ph_entry <- pe_scored_at_ph_entry %>%
     ScoredAtEntryCohort,
     ScoredAtEntryPossible,
     ScoredAtEntryDQ
-  ) 
+  )
 
 # Final Scoring -----------------------------------------------------------
 
@@ -1679,8 +1710,8 @@ summary_pe_final_scoring <-
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_benefits_at_exit,
             by = c("ProjectType", "AltProjectName")) %>%
-  left_join(summary_pe_own_housing,
-            by = c("ProjectType", "AltProjectName")) %>%
+  # left_join(summary_pe_own_housing,
+  #           by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_res_prior,
             by = c("ProjectType", "AltProjectName")) %>%
   left_join(summary_pe_coc_scoring, by = c("ProjectType", "AltProjectName"))
@@ -1690,6 +1721,8 @@ pe_final_scores <- summary_pe_final_scoring
 pe_final_scores$HousingFirstScore[is.na(pe_final_scores$HousingFirstScore)] <- 0
 pe_final_scores$ChronicPrioritizationScore[is.na(pe_final_scores$ChronicPrioritizationScore)] <- 0
 pe_final_scores$PrioritizationWorkgroupScore[is.na(pe_final_scores$PrioritizationWorkgroupScore)] <- 0
+pe_final_scores$AverageLoSPoints[is.na(pe_final_scores$AverageLoSPoints)] <- 0
+pe_final_scores$LongTermHomelessPoints[is.na(pe_final_scores$LongTermHomelessPoints)] <- 0
 
 pe_final_scores <- pe_final_scores %>%
   mutate(
@@ -1702,7 +1735,7 @@ pe_final_scores <- pe_final_scores %>%
       AverageLoSPoints +
       LongTermHomelessPoints +
       BenefitsAtExitPoints +
-      OwnHousingPoints +
+      # OwnHousingPoints +
       LHResPriorPoints +
       HousingFirstScore +
       ChronicPrioritizationScore +
@@ -1742,7 +1775,7 @@ rm(list = ls()[!(ls() %in% c(
   # 'pe_increase_income',
   'pe_length_of_stay',
   'pe_long_term_homeless',
-  'pe_own_housing',
+  # 'pe_own_housing',
   'pe_res_prior',
   'pe_scored_at_ph_entry',
   'pe_validation_summary',
@@ -1754,7 +1787,7 @@ rm(list = ls()[!(ls() %in% c(
   # 'summary_pe_increase_income',
   'summary_pe_length_of_stay',
   'summary_pe_long_term_homeless',
-  'summary_pe_own_housing',
+  # 'summary_pe_own_housing',
   'summary_pe_res_prior',
   'summary_pe_scored_at_ph_entry',
   'summary_pe_utilization',
@@ -1782,6 +1815,8 @@ write_csv(final_scores %>%
             select(OrganizationName,
                    AltProjectName,
                    TotalScore), "random_data/pe_final.csv")
+
+write_csv(pe_final_scores, "random_data/pe_final_all.csv")
 
 # saving old data to "current" image so it all carries to the apps
 

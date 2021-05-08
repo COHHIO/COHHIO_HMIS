@@ -14,7 +14,7 @@
 
 library(dplyr)
 
-#creates empty environment called rdata
+# creates empty environment called rdata
 rdata <- rlang::env(rlang::empty_env())
 
 #loads all images into rdata 
@@ -144,6 +144,7 @@ data_prep <- function(object_names, directory, environment, accessor) {
          "hc_data_goes_back_to",    
          "hc_project_eval_start",
          "hc_project_eval_end",
+         "hc_project_eval_docs_due",
          "hc_psh_started_collecting_move_in_date",
          "Mah_PIT",
          "meta_HUDCSV_Export_Date",               
@@ -214,11 +215,13 @@ data_prep <- function(object_names, directory, environment, accessor) {
           "dq_plot_warnings",
           "dq_providers",
           "enhanced_yes_no_translator",
-          "hc_began_collecting_covid_data",        
+          "hc_began_collecting_covid_data",  
+          "hc_bos_start_vaccine_data",
           "hc_check_dq_back_to",                   
           "hc_data_goes_back_to",  
           "hc_project_eval_start",
           "hc_project_eval_end",
+          "hc_project_eval_docs_due",
           "hc_psh_started_collecting_move_in_date",
           "HUD_specs",
           "living_situation",
@@ -235,7 +238,7 @@ data_prep <- function(object_names, directory, environment, accessor) {
           "pe_entries_no_income",
           "pe_long_term_homeless",
           "pe_res_prior",
-          "pe_own_housing",
+          # "pe_own_housing",
           "pe_validation_summary",
           "pe_scored_at_ph_entry",
           "project_type",
@@ -258,6 +261,7 @@ data_prep <- function(object_names, directory, environment, accessor) {
           "utilization",
           "utilization_bed",
           "vaccine_needs_second_dose",
+          "vaccine_status",
           "validation",
           "veteran_active_list" 
 ) %>% 
