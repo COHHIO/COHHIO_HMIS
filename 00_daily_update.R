@@ -44,7 +44,9 @@ req_pkgs <- c(
 loaded <- purrr::map_lgl(req_pkgs, ~rlang::exec(require, package = .x))
 
 if (!all(loaded)) {
-  stop_with_instructions("You are missing the following packages that are required to run this script:", req_pkgs[!loaded])
+  stop_with_instructions(
+    "You are missing the following packages that are required to run this script:", 
+    req_pkgs[!loaded])
 }
 
 library(dplyr)
