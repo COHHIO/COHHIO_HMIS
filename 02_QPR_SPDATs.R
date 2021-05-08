@@ -25,7 +25,7 @@ library(HMIS)
 # loading the COHHIOHMIS data, dropping unnecessary objects
 if (!exists("Enrollment")) {
   load("images/COHHIOHMIS.RData")
-  rlang::env_binding_lock(environment(), ls())
+  # rlang::env_binding_lock(environment(), ls())
 }
 
 # more paring down, only taking what variables I need from Enrollment

@@ -25,7 +25,7 @@ library(HMIS)
   load("pe_dataset_final/images/cohorts.RData")
   # hc_project_eval_start <- mdy("01012019") # for comparison purposes
   # hc_project_eval_end <- mdy("12312019")
-  rlang::env_binding_lock(environment(), ls())
+  # rlang::env_binding_lock(environment(), ls())
 
 # loading in scoring rubric
 
