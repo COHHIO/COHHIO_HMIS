@@ -142,7 +142,7 @@ source("09_covid.R", local = new.env())
 
 dir <- "pe_dataset_final"
 #files <- freeze_pe(dir)
-pe <- environment()
+pe <- rlang::new_environment(parent = baseenv())
 purrr::walk(list.files(file.path(dir, "images"), full.names = TRUE), ~{
   rlang::env_binding_unlock(pe, ls(pe, all.names = TRUE))
   load(.x, envir = pe)
