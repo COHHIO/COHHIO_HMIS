@@ -105,28 +105,29 @@ increment("Importing raw HMIS data\n")
 COHHIO_HMIS <- environment()
 source("00_get_Export_and_ART.R", local = COHHIO_HMIS)
 
-increment("working on Cohorts\n")
-Cohorts <- rlang::env(COHHIO_HMIS)
-rlang::env_binding_lock(COHHIO_HMIS, ls(COHHIO_HMIS))
-source("00_cohorts.R", local = Cohorts)
-rlang::env_binding_lock(Cohorts, ls(Cohorts))
+increment("working on Cohorts")
+Cohorts <- rlang::env(COHHIO_HMIS) # creating child environment
+# rlang::env_binding_lock(COHHIO_HMIS, ls(COHHIO_HMIS)) # locking COHHIO_HMIS
+source("00_cohorts.R", local = Cohorts) # populating Cohorts env
+# rlang::env_binding_lock(Cohorts, ls(Cohorts)) # locking Cohorts
 
 increment("working on Bed_Unit_Utilization")
-source("01_Bed_Unit_Utilization.R", local = rlang::env(Cohorts))
+source("01_Bed_Unit_Utilization.R", local = rlang::env(Cohorts)) # running inside a 
+# child environment OF Cohorts
 
 increment("working on QPR_SPDATs")
-source("02_QPR_SPDATs.R", local = rlang::env(COHHIO_HMIS))
+source("02_QPR_SPDATs.R", local = rlang::env(COHHIO_HMIS)) # doesn't need Cohorts here
 
 increment("working on QPR_EEs")
-source("02_QPR_EEs.R", local = rlang::env(Cohorts))
+source("02_QPR_EEs.R", local = rlang::env(Cohorts)) # these envs don't get saved in memory
 
 increment("working on Veterans data")
-source("03_Veterans.R", local = rlang::env(Cohorts))
+source("03_Veterans.R", local = rlang::env(Cohorts)) # 
 
 increment("working on Data Quality")
-DataQuality <- rlang::env(Cohorts)
-source("04_DataQuality.R", local = rlang::env(DataQuality))
-rlang::env_binding_lock(DataQuality, ls(DataQuality))
+DataQuality <- rlang::env(Cohorts) # creating a child env inside Cohorts env
+source("04_DataQuality.R", local = DataQuality)
+# rlang::env_binding_lock(DataQuality, ls(DataQuality))
 
 increment("working on Veterans Active List")
 source("05_Veterans_Active_List.R", local = rlang::env(Cohorts))
@@ -141,16 +142,17 @@ increment("getting covid vaccine data together")
 source("09_covid.R", local = new.env())
 
 dir <- "pe_dataset_final"
-#files <- freeze_pe(dir)
-pe <- environment()
-purrr::walk(list.files(file.path(dir, "images"), full.names = TRUE), ~{
-  rlang::env_binding_unlock(pe, ls(pe, all.names = TRUE))
-  load(.x, envir = pe)
-})
+# files <- freeze_pe(dir) # run on freeze day ONLY
+pe <- rlang::new_environment(list(dir = dir), parent = .BaseNamespaceEnv)
+
+load("pe_dataset_final/images/COHHIOHMIS.RData", envir = pe)
+load("pe_dataset_final/images/Data_Quality.RData", envir = pe)
+load("pe_dataset_final/images/cohorts.RData", envir = pe)
+
 increment("working on Project Evaluation")
 source("06_Project_Evaluation.R", local = pe)
 
-# increment("copying images to app directories")
+increment("copying images to app directories")
 rm(Cohorts, COHHIO_HMIS)
 source("00_copy_images.R", local = new.env())
 
