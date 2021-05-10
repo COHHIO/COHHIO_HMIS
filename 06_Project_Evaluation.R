@@ -719,6 +719,21 @@ summary_pe_coc_scoring <- pe_coc_funded %>%
     )
   ) 
 
+pt_adjustments_after_freeze <- summary_pe_coc_scoring %>%
+  mutate(
+    PrioritizationWorkgroupScore = case_when(
+      AltProjectID %in% c(1088, 730) ~ 1,
+      TRUE ~ PrioritizationWorkgroupScore
+    ),
+    ChronicPrioritizationScore = case_when(
+      AltProjectID == 1673 ~ 6,
+      AltProjectID == 719 ~ 10,
+      TRUE ~ ChronicPrioritizationScore
+    )
+  )
+
+summary_pe_coc_scoring <- pt_adjustments_after_freeze
+
 # 2 = Documents not yet received
 # 3 = Docs received, not yet scored
 # 4 = CoC Error
