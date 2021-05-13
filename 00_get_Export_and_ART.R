@@ -450,8 +450,9 @@ Offers <-
 # Users ------------------------------------------------------------------
 Users <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
                    sheet = 2,#
-                   range = cell_cols("A:G")) %>%
-  mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)")) %>%
+                   range = cell_cols("A:H")) %>%
+  mutate(DefaultProvider = str_remove(DefaultProvider, "\\(.*\\)"),
+         UserCreatedDate = ymd(as.Date(UserCreatedDate, origin = "1899-12-30"))) %>%
   left_join(provider_extras, by = c("DefaultProvider" = "ProjectName")) %>%
   select(
     UserCreating,
@@ -460,6 +461,7 @@ Users <- read_xlsx(paste0(directory, "/RMisc2.xlsx"),
     UserTelephone,
     UserEmail,
     UserActive,
+    UserCreatedDate,
     DefaultProvider,
     "UserCounty" = ProjectCounty,
     "UserRegion" = ProjectRegion
