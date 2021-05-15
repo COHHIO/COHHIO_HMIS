@@ -208,19 +208,21 @@ small_ees <- vet_ees %>%
 
 # stayers & people who exited in the past 90 days to a temp destination
 
-hh_size <- vet_ees %>%
-  select(HouseholdID, PersonalID) %>%
-  unique() %>%
-  count(HouseholdID)
-
-veteran_active_list <- vet_ees %>%
+active_list <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
-           VeteranStatus == 1 &
            (is.na(ExitDate) |
               (
                 !Destination %in% c(perm_destinations) &
                   ymd(ExitDate) >= today() - days(90)
-              ))) %>%
+              )))
+
+hh_size <- active_list %>%
+  select(HouseholdID, PersonalID) %>%
+  unique() %>%
+  count(HouseholdID)
+
+veteran_active_list <- active_list %>%
+  filter(VeteranStatus == 1) %>%
   left_join(hh_size, by = "HouseholdID") %>%
   rename("HouseholdSize" = n) %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
