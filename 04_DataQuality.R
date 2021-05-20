@@ -1795,9 +1795,11 @@ check_eligibility <- served_in_date_range %>%
           ) |
           (GrantType == "RHY" &
              !grepl("YHDP", ProjectName) &
+             !grepl("ODH", ProjectName) &
              EEType != "RHY") |
           (GrantType == "RHY" &
              grepl("YHDP", ProjectName) &
+             grepl("ODH", ProjectName) &
              EEType != "HUD") |
           (GrantType == "PATH" & EEType != "PATH") |
           (ProjectID == 1695 & EEType != "Standard")
