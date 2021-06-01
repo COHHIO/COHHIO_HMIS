@@ -225,6 +225,26 @@ veteran_active_list_enrollments <- active_list %>%
   filter(VeteranStatus == 1) %>%
   left_join(hh_size, by = "HouseholdID") %>%
   rename("HouseholdSize" = n) %>%
+  group_by(PersonalID) %>%
+  mutate(
+    DateVeteranIdentified = min(DateVeteranIdentified, na.rm = TRUE),
+    ActiveDate = case_when(
+      is.na(DateVeteranIdentified) ~ min(EntryDate),
+      ymd(DateVeteranIdentified) < ymd(min(EntryDate)) ~ DateVeteranIdentified,
+      TRUE ~ min(EntryDate)
+    ),
+    VAEligible = case_when(
+      VAEligible == "Veteran eligible for all VA homeless services" ~ 1,
+      VAEligible == "Veteran eligible for SSVF/GPD only" ~ 2,
+      VAEligible == "Veteran not eligible for VA services" ~ 3,
+      VAEligible == "VA eligibility unknown" ~ 4),
+    VAEligible = min(VAEligible, na.rm = TRUE),
+    VAEligible = case_when(
+      VAEligible == 1 ~ "Veteran eligible for all VA homeless services",
+      VAEligible == 2 ~ "Veteran eligible for SSVF/GPD only",
+      VAEligible == 3 ~ "Veteran not eligible for VA services",
+      VAEligible == 4 ~ "VA eligibility unknown")) %>%
+  ungroup() %>%
   mutate(EnrollType = case_when(
     ProjectType %in% lh_project_types ~ 1,
     ProjectType %in% ph_project_types ~ 2,
@@ -235,39 +255,55 @@ veteran_active_list_enrollments <- active_list %>%
   slice(1L) %>%
   ungroup()
 
-lh_veteran_active_list_enrollments <- veteran_active_list_enrollments %>%
-  filter(ProjectType %in% lh_project_types)
+enrollments_to_use <- veteran_active_list_enrollments %>%
+  mutate(ProjectName = if_else(ProjectName == "Unsheltered Clients - OUTREACH", 
+                               paste("Unsheltered in", County, "County"),
+                               ProjectName),
+    TimeInProject = if_else(
+           is.na(ExitDate),
+           paste("Since", format(ymd(EntryDate), "%m-%d-%Y")),
+           paste(
+             format(ymd(EntryDate), "%m-%d-%Y"),
+             "to",
+             format(ymd(ExitDate), "%m-%d-%Y")
+           )
+         )) %>%
+  select(PersonalID, ProjectName, TimeInProject, ProjectType)
 
-ph_veteran_active_list_enrollments <- veteran_active_list_enrollments %>%
-  filter(ProjectType %in% ph_project_types)
+lh_veteran_active_list_enrollments <- enrollments_to_use %>%
+  filter(ProjectType %in% lh_project_types) %>%
+  select(-ProjectType)
 
-o_veteran_active_list_enrollments <- veteran_active_list_enrollments %>%
+ph_veteran_active_list_enrollments <- enrollments_to_use %>%
+  filter(ProjectType %in% ph_project_types) %>%
+  select(-ProjectType)
+
+o_veteran_active_list_enrollments <- enrollments_to_use %>%
   filter(!ProjectType %in% lh_project_types &
-           !ProjectType %in% ph_project_types)
+           !ProjectType %in% ph_project_types) %>%
+  select(-ProjectType)
 
-veteran_active_list <- lh_veteran_active_list_enrollments
+colnames(lh_veteran_active_list_enrollments)[2:4] <- paste0("LH_", colnames(lh_veteran_active_list_enrollments))[2:4]
+colnames(ph_veteran_active_list_enrollments)[2:4] <- paste0("PH_", colnames(ph_veteran_active_list_enrollments))[2:4]
+colnames(o_veteran_active_list_enrollments)[2:4] <- paste0("O_", colnames(o_veteran_active_list_enrollments))[2:4]
 
+combined <- lh_veteran_active_list_enrollments %>%
+  full_join(ph_veteran_active_list_enrollments, by = "PersonalID") %>%
+  full_join(o_veteran_active_list_enrollments, by = "PersonalID")
+
+veteran_active_list <- veteran_active_list_enrollments %>%
+  select(PersonalID, ActiveDate, VAEligible, 
+         SSVFIneligible, PHTrack, ExpectedPHDate,
+         County, HOMESID, ListStatus) %>%
+  distinct() %>%
+  left_join(combined, by = "PersonalID") %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   left_join(small_CLS, by = "PersonalID") %>%
   mutate(
-    ActiveDate = case_when(
-      is.na(DateVeteranIdentified) ~ EntryDate,
-      ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
-      TRUE ~ EntryDate
-    ),
     ActiveDateDisplay = paste0(ActiveDate,
                                "<br>(",
                                difftime(today(), ymd(ActiveDate)),
                                " days)"),
-    TimeInProject = if_else(
-      is.na(ExitDate),
-      paste("Since", format(ymd(EntryDate), "%m-%d-%Y")),
-      paste(
-        format(ymd(EntryDate), "%m-%d-%Y"),
-        "to",
-        format(ymd(ExitDate), "%m-%d-%Y")
-      )
-    ),
     DaysActive = difftime(today(), ymd(ActiveDate)),
     Eligibility =
       if_else(
