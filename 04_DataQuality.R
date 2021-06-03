@@ -1788,8 +1788,9 @@ check_eligibility <- served_in_date_range %>%
             GrantType == "SSVF" |
               grepl("GPD", ProjectName) |
               grepl("HCHV", ProjectName) |
-              grepl("Veterans", ProjectName) &
-              grepl("VET", ProjectName)
+              grepl("Veterans", ProjectName) |
+              grepl("VET", ProjectName) |
+              grepl("VASH", ProjectName)
           ) &
             EEType != "VA"
           ) |
