@@ -225,26 +225,6 @@ veteran_active_list_enrollments <- active_list %>%
   filter(VeteranStatus == 1) %>%
   left_join(hh_size, by = "HouseholdID") %>%
   rename("HouseholdSize" = n) %>%
-  group_by(PersonalID) %>%
-  mutate(
-    DateVeteranIdentified = min(DateVeteranIdentified, na.rm = TRUE),
-    ActiveDate = case_when(
-      is.na(DateVeteranIdentified) ~ min(EntryDate),
-      ymd(DateVeteranIdentified) < ymd(min(EntryDate)) ~ DateVeteranIdentified,
-      TRUE ~ min(EntryDate)
-    ),
-    VAEligible = case_when(
-      VAEligible == "Veteran eligible for all VA homeless services" ~ 1,
-      VAEligible == "Veteran eligible for SSVF/GPD only" ~ 2,
-      VAEligible == "Veteran not eligible for VA services" ~ 3,
-      VAEligible == "VA eligibility unknown" ~ 4),
-    VAEligible = min(VAEligible, na.rm = TRUE),
-    VAEligible = case_when(
-      VAEligible == 1 ~ "Veteran eligible for all VA homeless services",
-      VAEligible == 2 ~ "Veteran eligible for SSVF/GPD only",
-      VAEligible == 3 ~ "Veteran not eligible for VA services",
-      VAEligible == 4 ~ "VA eligibility unknown")) %>%
-  ungroup() %>%
   mutate(EnrollType = case_when(
     ProjectType %in% lh_project_types ~ 1,
     ProjectType %in% ph_project_types ~ 2,
@@ -292,10 +272,19 @@ combined <- lh_veteran_active_list_enrollments %>%
   full_join(o_veteran_active_list_enrollments, by = "PersonalID")
 
 veteran_active_list <- veteran_active_list_enrollments %>%
-  select(PersonalID, ActiveDate, VAEligible, 
+  select(PersonalID, DateVeteranIdentified, VAEligible, 
          SSVFIneligible, PHTrack, ExpectedPHDate,
-         County, HOMESID, ListStatus) %>%
-  distinct() %>%
+         County, HOMESID, ListStatus, EntryDate) %>%
+  group_by(PersonalID, County) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L) %>%
+  ungroup() %>%
+  mutate(
+    ActiveDate = case_when(
+      is.na(DateVeteranIdentified) ~ EntryDate,
+      ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
+      TRUE ~ EntryDate
+    )) %>%
   left_join(combined, by = "PersonalID") %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   left_join(small_CLS, by = "PersonalID") %>%
@@ -349,27 +338,6 @@ veteran_active_list <- veteran_active_list_enrollments %>%
   ) %>%
   left_join(responsible_providers, by = "County") %>%
   unique()
-
-# veteran_active_list_display <- veteran_active_list %>%
-#   select(PersonalID,
-#          HOMESID,
-#          DateVeteranIdentified,
-#          ListStatus,
-#          VAEligible,
-#          SSVFIneligible,
-#          County,
-#          PHTrack,
-#          ExpectedPHDate,
-#          Eligibility,
-#          ActiveDateDisplay,
-#          ActiveDate,
-#          DaysActive,
-#          HouseholdSize,
-#          MostRecentOffer,
-#          HousingPlan,
-#          SSVFServiceArea) %>%
-#   left_join(small_ees, by = "PersonalID") %>%
-#   unique()
 
 # Currently Homeless Vets -------------------------------------------------
 
