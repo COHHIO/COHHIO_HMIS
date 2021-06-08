@@ -208,42 +208,91 @@ small_ees <- vet_ees %>%
 
 # stayers & people who exited in the past 90 days to a temp destination
 
-hh_size <- vet_ees %>%
-  select(HouseholdID, PersonalID) %>%
-  unique() %>%
-  count(HouseholdID)
-
-veteran_active_list <- vet_ees %>%
+active_list <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
-           VeteranStatus == 1 &
            (is.na(ExitDate) |
               (
                 !Destination %in% c(perm_destinations) &
                   ymd(ExitDate) >= today() - days(90)
-              ))) %>%
+              )))
+
+hh_size <- active_list %>%
+  select(HouseholdID, PersonalID) %>%
+  unique() %>%
+  count(HouseholdID)
+
+veteran_active_list_enrollments <- active_list %>%
+  filter(VeteranStatus == 1) %>%
   left_join(hh_size, by = "HouseholdID") %>%
   rename("HouseholdSize" = n) %>%
-  left_join(most_recent_offer, by = "PersonalID") %>%
-  left_join(small_CLS, by = "PersonalID") %>%
+  mutate(EnrollType = case_when(
+    ProjectType %in% lh_project_types ~ 1,
+    ProjectType %in% ph_project_types ~ 2,
+    TRUE ~ 3
+  )) %>%
+  group_by(PersonalID, EnrollType) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L) %>%
+  ungroup()
+
+enrollments_to_use <- veteran_active_list_enrollments %>%
+  mutate(ProjectName = if_else(ProjectName == "Unsheltered Clients - OUTREACH", 
+                               paste("Unsheltered in", County, "County"),
+                               ProjectName),
+    TimeInProject = if_else(
+           is.na(ExitDate),
+           paste("Since", format(ymd(EntryDate), "%m-%d-%Y")),
+           paste(
+             format(ymd(EntryDate), "%m-%d-%Y"),
+             "to",
+             format(ymd(ExitDate), "%m-%d-%Y")
+           )
+         )) %>%
+  select(PersonalID, ProjectName, TimeInProject, ProjectType)
+
+lh_veteran_active_list_enrollments <- enrollments_to_use %>%
+  filter(ProjectType %in% lh_project_types) %>%
+  select(-ProjectType)
+
+ph_veteran_active_list_enrollments <- enrollments_to_use %>%
+  filter(ProjectType %in% ph_project_types) %>%
+  select(-ProjectType)
+
+o_veteran_active_list_enrollments <- enrollments_to_use %>%
+  filter(!ProjectType %in% lh_project_types &
+           !ProjectType %in% ph_project_types) %>%
+  select(-ProjectType)
+
+colnames(lh_veteran_active_list_enrollments)[2:4] <- paste0("LH_", colnames(lh_veteran_active_list_enrollments))[2:4]
+colnames(ph_veteran_active_list_enrollments)[2:4] <- paste0("PH_", colnames(ph_veteran_active_list_enrollments))[2:4]
+colnames(o_veteran_active_list_enrollments)[2:4] <- paste0("O_", colnames(o_veteran_active_list_enrollments))[2:4]
+
+combined <- lh_veteran_active_list_enrollments %>%
+  full_join(ph_veteran_active_list_enrollments, by = "PersonalID") %>%
+  full_join(o_veteran_active_list_enrollments, by = "PersonalID")
+
+veteran_active_list <- veteran_active_list_enrollments %>%
+  select(PersonalID, DateVeteranIdentified, VAEligible, 
+         SSVFIneligible, PHTrack, ExpectedPHDate,
+         County, HOMESID, ListStatus, EntryDate) %>%
+  group_by(PersonalID, County) %>%
+  arrange(desc(EntryDate)) %>%
+  slice(1L) %>%
+  ungroup() %>%
   mutate(
     ActiveDate = case_when(
       is.na(DateVeteranIdentified) ~ EntryDate,
       ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
       TRUE ~ EntryDate
-    ),
+    )) %>%
+  left_join(combined, by = "PersonalID") %>%
+  left_join(most_recent_offer, by = "PersonalID") %>%
+  left_join(small_CLS, by = "PersonalID") %>%
+  mutate(
     ActiveDateDisplay = paste0(ActiveDate,
                                "<br>(",
                                difftime(today(), ymd(ActiveDate)),
                                " days)"),
-    TimeInProject = if_else(
-      is.na(ExitDate),
-      paste("Since", format(ymd(EntryDate), "%m-%d-%Y")),
-      paste(
-        format(ymd(EntryDate), "%m-%d-%Y"),
-        "to",
-        format(ymd(ExitDate), "%m-%d-%Y")
-      )
-    ),
     DaysActive = difftime(today(), ymd(ActiveDate)),
     Eligibility =
       if_else(
@@ -288,27 +337,6 @@ veteran_active_list <- vet_ees %>%
       )
   ) %>%
   left_join(responsible_providers, by = "County") %>%
-  unique()
-
-veteran_active_list_display <- veteran_active_list %>%
-  select(PersonalID,
-         HOMESID,
-         DateVeteranIdentified,
-         ListStatus,
-         VAEligible,
-         SSVFIneligible,
-         County,
-         PHTrack,
-         ExpectedPHDate,
-         Eligibility,
-         ActiveDateDisplay,
-         ActiveDate,
-         DaysActive,
-         HouseholdSize,
-         MostRecentOffer,
-         HousingPlan,
-         SSVFServiceArea) %>%
-  left_join(small_ees, by = "PersonalID") %>%
   unique()
 
 # Currently Homeless Vets -------------------------------------------------
