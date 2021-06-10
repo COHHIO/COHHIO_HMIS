@@ -208,7 +208,7 @@ small_ees <- vet_ees %>%
 
 # stayers & people who exited in the past 90 days to a temp destination
 
-active_list <- vet_ees %>%
+vet_active <- vet_ees %>%
   filter(!PersonalID %in% c(currently_housed_in_psh_rrh) &
            (is.na(ExitDate) |
               (
@@ -216,12 +216,12 @@ active_list <- vet_ees %>%
                   ymd(ExitDate) >= today() - days(90)
               )))
 
-hh_size <- active_list %>%
+hh_size <- vet_active %>%
   select(HouseholdID, PersonalID) %>%
   unique() %>%
   count(HouseholdID)
 
-veteran_active_list_enrollments <- active_list %>%
+veteran_active_list_enrollments <- vet_active %>%
   filter(VeteranStatus == 1) %>%
   left_join(hh_size, by = "HouseholdID") %>%
   rename("HouseholdSize" = n) %>%
@@ -398,7 +398,6 @@ new_gpd <- entered_past_90 %>%
 
 
 # New and Exited to PH ----------------------------------------------------
-
 
 
 # Save it out -------------------------------------------------------------
