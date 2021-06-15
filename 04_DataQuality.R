@@ -3485,7 +3485,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     
     rm(
       aps_with_ees,
-      CaseManagers,
       check_disability_ssi,
       check_eligibility,
       conflicting_disabilities,
