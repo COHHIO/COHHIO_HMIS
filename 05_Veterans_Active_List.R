@@ -274,7 +274,8 @@ combined <- lh_veteran_active_list_enrollments %>%
 veteran_active_list <- veteran_active_list_enrollments %>%
   select(PersonalID, DateVeteranIdentified, VAEligible, 
          SSVFIneligible, PHTrack, ExpectedPHDate,
-         County, HOMESID, ListStatus, EntryDate) %>%
+         County, HOMESID, ListStatus, EntryDate, 
+         AgeAtEntry, DisablingCondition) %>%
   group_by(PersonalID, County) %>%
   arrange(desc(EntryDate)) %>%
   slice(1L) %>%
