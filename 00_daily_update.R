@@ -59,8 +59,9 @@ library(dplyr)
                          recursive = FALSE)
 
   if (!rlang::is_empty(zip_file)) {
-    archive::archive_extract(zip_file, "data")
-    file.remove(zip_file)
+    # archive::archive_extract(zip_file, "data")
+    # file.remove(zip_file)
+    stop_with_instructions("Be sure to delete the .7z file! (It has PII.)")
   } else if (ncol(readr::read_csv("data/Client.csv")) != 33 &&
              readr::read_csv("data/Export.csv",
                       col_types = c("iicccccccTDDcciii")) %>%
