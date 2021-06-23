@@ -23,6 +23,14 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
   load(.x, envir = rdata)
 })
 
+# Dropbox dir check ----
+# Wed Jun 23 16:33:24 2021
+purrr::walk("shiny" %>% c(., file.path(., c("Rminor", "Rminor_elevated"))), ~{
+  if (!rdrop2::drop_exists(.x)) 
+    rdrop2::drop_create(.x)
+})
+
+
 # Function to copy image files to Rm and Rme ------------------------------
 
 #' @title Send data to the respective app directory
@@ -63,22 +71,31 @@ data_prep <- function(object_names, directory, environment, accessor) {
     accessor <- function(x = as.character(match.call()[[1]]),
                          path = "data/db",
                          ext = ".feather") {
-      feather::read_feather(
-        file.path(path, 
-                  paste0(x, 
-                         ifelse(grepl("^\\.", ext), ext, paste0(".", ext))
-                  )
-        )
+      .fp <- file.path(path, 
+                paste0(x, 
+                       ifelse(grepl("^\\.", ext), ext, paste0(".", ext))
+                )
       )
+      .int <- lubridate::interval(file.info(.fp)$mtime, Sys.time())
+      if (lubridate::`%within%`(lubridate::floor_date(Sys.time(), "day"), .int)) {
+        rdrop2::drop_get(
+          path = file.path("shiny", basename(directory), basename(.fp)),
+          local_file = .fp,
+          overwrite = TRUE
+        )
+      }
+      feather::read_feather(.fp)
     }
   } 
-  rlang::fn_env(accessor) <- rlang::env(baseenv())
+  rlang::fn_env(accessor) <- rlang::env(baseenv(), directory = directory)
   .is_df <- purrr::map_lgl(objects, is.data.frame)
   if (any(.is_df)) {
+    
     objects[.is_df] <- objects[.is_df] %>%
       # Write the feather files
       purrr::imap(~ {
         message(paste0("Saving ", .y, ".feather"))
+        rdrop2::drop_upload(file.path("shiny", basename(directory), paste0(.y, ".feather")))
         feather::write_feather(.x, file.path(.db, paste0(.y, ".feather")))
         .x
       }) %>%
@@ -90,37 +107,12 @@ data_prep <- function(object_names, directory, environment, accessor) {
     objects$df_nms <- names(objects)[.is_df]
     # Save the results
   }
-  #   .is_gg <- purrr::map_lgl(objects, ~inherits(.x, "ggplot"))
-  #   
-  # if (any(.is_gg)) {
-  #     objects[.is_gg] <- objects[.is_gg] %>%
-  #       # Write the images
-  #       purrr::imap( ~ {
-  #         message(paste0("Saving ", .y, ".jpg"))
-  #         .p <-
-  #           file.path(directory,
-  #                     purrr::when(
-  #                       grepl("Rminor$", directory),
-  #                       . ~ file.path("inst", "app", "www"),
-  #                       ~ "www"
-  #                     ),
-  #                     paste0(.y, ".jpg"))
-  #         ggplot2::ggsave(
-  #           .p,
-  #           .x,
-  #           width = 800 / 72,
-  #           height = 500 / 72,
-  #           device = "jpeg",
-  #           units = "in"
-  #         )
-  #         file.path("www", basename(.p))
-  #       })
-  #     objects$gg_nms <- names(objects)[.is_gg]
-  #   }
+  .fp_rds <- file.path(.dir, paste0(basename(directory), ".rds"))
   saveRDS(
     objects,
-    file = file.path(.dir, paste0(basename(directory), ".rds"))
+    file = .fp_rds
   )
+  rdrop2::drop_upload(file.path("shiny", basename(directory), basename(.fp_rds)))
 }
 
 ## to Rm:
