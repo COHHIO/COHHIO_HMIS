@@ -25,6 +25,7 @@ purrr::walk(list.files("images", pattern = ".RData", full.names = TRUE), ~{
 
 # Dropbox dir check ----
 # Wed Jun 23 16:33:24 2021
+rdrop2::drop_auth(rdstoken = "dropbox_auth_token.rds")
 purrr::walk("shiny" %>% c(., file.path(., c("Rminor", "Rminor_elevated"))), ~{
   if (!rdrop2::drop_exists(.x)) 
     rdrop2::drop_create(.x)
@@ -94,9 +95,10 @@ data_prep <- function(object_names, directory, environment, accessor) {
     objects[.is_df] <- objects[.is_df] %>%
       # Write the feather files
       purrr::imap(~ {
-        message(paste0("Saving ", .y, ".feather"))
-        rdrop2::drop_upload(file.path("shiny", basename(directory), paste0(.y, ".feather")))
-        feather::write_feather(.x, file.path(.db, paste0(.y, ".feather")))
+        .fp <- file.path(.db, paste0(.y, ".feather"))
+        message("Saving ", .fp)
+        feather::write_feather(.x, .fp)
+        rdrop2::drop_upload(.fp, file.path("shiny", basename(directory)))
         .x
       }) %>%
       # overwrite the DFs with an accessor function.
@@ -112,7 +114,7 @@ data_prep <- function(object_names, directory, environment, accessor) {
     objects,
     file = .fp_rds
   )
-  rdrop2::drop_upload(file.path("shiny", basename(directory), basename(.fp_rds)))
+  rdrop2::drop_upload(.fp_rds, file.path("shiny", basename(directory)))
 }
 
 ## to Rm:

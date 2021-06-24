@@ -26,7 +26,7 @@ pacman::p_load(char = c(
   "scales",
   "janitor",
   "devtools",
-  "",
+  "rdrop2",
   "sf",
   "choroplethrMaps",
   "plotly"
@@ -54,6 +54,7 @@ pacman::p_load(
     "plotly",
     "zoo",
     "DT",
+    "rdrop2",
     "packrat",
     "rsconnect",
     "golem"
@@ -74,6 +75,7 @@ pacman::p_load(
     "plotly",
     "zoo",
     "DT",
+    "rdrop2",
     "writexl",
     "viridis",
     "glue"

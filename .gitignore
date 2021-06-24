@@ -30,3 +30,4 @@ Reports/HMIS_Admin/*.csv
 random_data/
 7z.dll
 7z.exe
+*_auth_token.rds
