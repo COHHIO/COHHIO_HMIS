@@ -146,9 +146,7 @@ dir <- "pe_dataset_final"
 # files <- freeze_pe(dir) # run on freeze day ONLY
 pe <- rlang::new_environment(list(dir = dir), parent = .BaseNamespaceEnv)
 
-load("pe_dataset_final/images/COHHIOHMIS.RData", envir = pe)
-load("pe_dataset_final/images/Data_Quality.RData", envir = pe)
-load("pe_dataset_final/images/cohorts.RData", envir = pe)
+purrr::walk(c("Data_Quality", "cohorts"), ~load(paste0("pe_dataset_final/images/",.x,".RData"), envir = pe))
 
 increment("working on Project Evaluation")
 source("06_Project_Evaluation.R", local = pe)

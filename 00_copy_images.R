@@ -79,9 +79,9 @@ data_prep <- function(object_names, directory, environment, accessor) {
       )
       .int <- lubridate::interval(file.info(.fp)$mtime, Sys.time())
       if (lubridate::`%within%`(lubridate::floor_date(Sys.time(), "day"), .int)) {
-        rdrop2::drop_get(
+        rdrop2::drop_download(
           path = file.path("shiny", basename(directory), basename(.fp)),
-          local_file = .fp,
+          local_path = .fp,
           overwrite = TRUE
         )
       }
