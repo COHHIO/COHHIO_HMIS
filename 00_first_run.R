@@ -53,7 +53,10 @@ pacman::p_load(
     "shinyWidgets",
     "plotly",
     "zoo",
-    "DT"
+    "DT",
+    "packrat",
+    "rsconnect",
+    "golem"
   )
 )
 

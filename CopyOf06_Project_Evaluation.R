@@ -20,9 +20,9 @@ library(HMIS)
 
 # loading old data to freeze data as of the deadline
 
-  load("pe_dataset_final/images/COHHIOHMIS.RData")
-  load("pe_dataset_final/images/Data_Quality.RData")
-  load("pe_dataset_final/images/cohorts.RData")
+  load("images/COHHIOHMIS.RData")
+  load("images/Data_Quality.RData")
+  load("images/cohorts.RData")
   # hc_project_eval_start <- mdy("01012019") # for comparison purposes
   # hc_project_eval_end <- mdy("12312019")
   # rlang::env_binding_lock(environment(), ls())
@@ -57,7 +57,8 @@ coc_funded <- Funder %>%
            ProjectRegion != "Mahoning County CoC") %>%
   select(ProjectType,
          ProjectName,
-         ProjectID)
+         ProjectID) %>%
+  mutate(ProjectType = if_else(ProjectID == 2482, 3, ProjectType)) # PRETEND IT'S PSH
 
 # consolidated projects
 

@@ -59,9 +59,8 @@ library(dplyr)
                          recursive = FALSE)
 
   if (!rlang::is_empty(zip_file)) {
-    # archive::archive_extract(zip_file, "data")
-    # file.remove(zip_file)
-    stop_with_instructions("Be sure to delete the .7z file! (It has PII.)")
+    archive::archive_extract(zip_file, "data")
+    file.remove(zip_file)
   } else if (ncol(readr::read_csv("data/Client.csv")) != 33 &&
              readr::read_csv("data/Export.csv",
                       col_types = c("iicccccccTDDcciii")) %>%
@@ -146,12 +145,12 @@ dir <- "pe_dataset_final"
 # files <- freeze_pe(dir) # run on freeze day ONLY
 pe <- rlang::new_environment(list(dir = dir), parent = .BaseNamespaceEnv)
 
-load("pe_dataset_final/images/COHHIOHMIS.RData", envir = pe)
-load("pe_dataset_final/images/Data_Quality.RData", envir = pe)
-load("pe_dataset_final/images/cohorts.RData", envir = pe)
+load("images/COHHIOHMIS.RData", envir = pe)
+load("images/Data_Quality.RData", envir = pe)
+load("images/cohorts.RData", envir = pe)
 
 increment("working on Project Evaluation")
-source("06_Project_Evaluation.R", local = pe)
+source("CopyOf06_Project_Evaluation.R", local = pe)
 
 increment("copying images to app directories")
 rm(Cohorts, COHHIO_HMIS)

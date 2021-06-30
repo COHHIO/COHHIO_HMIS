@@ -22,7 +22,7 @@ library(HMIS)
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
 if (!exists("tay")) {
   load("images/cohorts.RData")
-  rlang::env_binding_lock(environment(), ls())
+  # rlang::env_binding_lock(environment(), ls())
 }
 
 # clients currently entered into a homeless project in our system

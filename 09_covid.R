@@ -28,7 +28,7 @@ if(!exists("dq_main"))
   load("images/Data_Quality.RData")
 if (!exists("tay")) {
   load("images/cohorts.RData")
-  rlang::env_binding_lock(environment(), ls())
+  # rlang::env_binding_lock(environment(), ls())
 }
 
 # ohio_counties <- st_read("Ohio/counties/REFER_COUNTY.shp")

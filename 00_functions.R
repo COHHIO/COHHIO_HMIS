@@ -305,6 +305,35 @@ translate_HUD_yes_no <- function(column_name){
   )
 }
 
+copy_lgl <- function(files, dir, overwrite) {
+  purrr::map_lgl(files, ~{
+    .c <- file.copy(.x, to = dir, overwrite = overwrite)
+    if (.c) message(.x, " copied to ", file.path(dir, basename(.x)))
+    else 
+      message(.x, " did not copy. Perhaps it already exists? Set overwrite = TRUE to overwrite.")
+    .c
+  })
+}
+
+freeze_pe <- function(dir, overwrite = FALSE) {
+  # if dir doesn't exist create it
+  dirs <- c(dir, file.path(dir, "images"))
+  if (any(!purrr::map_lgl(dirs, dir.exists))) purrr::walk(dirs, dir.create)
+  
+  files <- paste0(c("COHHIOHMIS", "Data_Quality", "cohorts"), ".Rdata")
+  .a <- utils::askYesNo(paste0("Have ", paste0(files, collapse = ", ")," been created with today's data?"))
+  if (.a) {
+    .d_files <- list.files("data", full.names = TRUE, pattern = "csv$|xlsx$")
+    .d_copied <- copy_lgl(.d_files, dirs[1], overwrite)
+    .rd_files <- grep(paste0(paste0("(?:",files,"$)"), collapse = "|"), list.files("images", full.names = TRUE), value = TRUE, ignore.case = TRUE, perl = TRUE)
+    .rd_copied <- copy_lgl(.rd_files, dirs[2], overwrite)
+    out <- list(data = file.path(dirs[1], basename(.d_files[.d_copied])),
+                rdata = file.path(dirs[2], basename(.rd_files[.rd_copied])))
+  } else {
+    out <- "No files copied. Ensure Rdata files have been created with today's data."
+  }
+  return(out)
+}
 # Experimental ------------------------------------------------------------
 
 # HUD_value_to_description <-

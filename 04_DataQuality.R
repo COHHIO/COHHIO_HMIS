@@ -22,7 +22,7 @@ source("04_Guidance.R", local = e)
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
 if (!exists("tay")) {
   load("images/cohorts.RData")
-  rlang::env_binding_lock(environment(), ls())
+  # rlang::env_binding_lock(environment(), ls())
 }
 
 va_funded <- Funder %>%
@@ -1788,16 +1788,19 @@ check_eligibility <- served_in_date_range %>%
             GrantType == "SSVF" |
               grepl("GPD", ProjectName) |
               grepl("HCHV", ProjectName) |
-              grepl("Veterans", ProjectName) &
-              grepl("VET", ProjectName)
+              grepl("Veterans", ProjectName) |
+              grepl("VET", ProjectName) |
+              grepl("VASH", ProjectName)
           ) &
             EEType != "VA"
           ) |
           (GrantType == "RHY" &
              !grepl("YHDP", ProjectName) &
+             !grepl("ODH", ProjectName) &
              EEType != "RHY") |
           (GrantType == "RHY" &
              grepl("YHDP", ProjectName) &
+             grepl("ODH", ProjectName) &
              EEType != "HUD") |
           (GrantType == "PATH" & EEType != "PATH") |
           (ProjectID == 1695 & EEType != "Standard")
@@ -3482,7 +3485,6 @@ unsheltered_by_month <- unsheltered_enrollments %>%
     
     rm(
       aps_with_ees,
-      CaseManagers,
       check_disability_ssi,
       check_eligibility,
       conflicting_disabilities,
