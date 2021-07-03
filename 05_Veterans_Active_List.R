@@ -276,17 +276,70 @@ veteran_active_list <- veteran_active_list_enrollments %>%
   select(PersonalID, DateVeteranIdentified, VAEligible, 
          SSVFIneligible, PHTrack, ExpectedPHDate,
          County, HOMESID, ListStatus, EntryDate, 
-         AgeAtEntry, DisablingCondition) %>%
+         AgeAtEntry, DisablingCondition,
+         DateToStreetESSH, TimesHomelessPastThreeYears, 
+         MonthsHomelessPastThreeYears, ExitAdjust, ProjectType) %>%
   group_by(PersonalID, County) %>%
   arrange(desc(EntryDate)) %>%
   slice(1L) %>%
   ungroup() %>%
-  mutate(
-    ActiveDate = case_when(
-      is.na(DateVeteranIdentified) ~ EntryDate,
-      ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
-      TRUE ~ EntryDate
+  mutate(DaysHomelessInProject = difftime(ymd(ExitAdjust),
+                                          ymd(EntryDate),
+                                          units = "days"),
+         DaysHomelessBeforeEntry = difftime(ymd(EntryDate),
+                                            if_else(
+                                              is.na(ymd(DateToStreetESSH)),
+                                              ymd(EntryDate),
+                                              ymd(DateToStreetESSH)
+                                            ),
+                                            units = "days"),
+         ChronicStatus =
+           case_when(
+             ((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
+                 !is.na(DateToStreetESSH)) |
+                (
+                  MonthsHomelessPastThreeYears %in% c(112, 113) &
+                    TimesHomelessPastThreeYears == 4 &
+                    !is.na(MonthsHomelessPastThreeYears) &
+                    !is.na(TimesHomelessPastThreeYears)
+                )
+             ) &
+               DisablingCondition == 1 &
+               !is.na(DisablingCondition) ~ "Chronic",
+             ProjectType %in% c(1, 8) &
+               ymd(DateToStreetESSH) + days(365) > ymd(EntryDate) &
+               !is.na(DateToStreetESSH) &
+               DaysHomelessBeforeEntry + DaysHomelessInProject >= 365 ~ "Aged In",
+             ((
+               ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
+                 !is.na(DateToStreetESSH)
+             ) |
+               (
+                 MonthsHomelessPastThreeYears %in% c(110:113) &
+                   TimesHomelessPastThreeYears%in% c(3, 4) &
+                   !is.na(MonthsHomelessPastThreeYears) &
+                   !is.na(TimesHomelessPastThreeYears)
+               )
+             ) &
+               DisablingCondition == 1 &
+               !is.na(DisablingCondition) ~ "Nearly Chronic",
+             TRUE ~ "Not Chronic"),
+         ChronicStatus = factor(
+           ChronicStatus,
+           levels = c(
+             "Chronic",
+             "Aged In",
+             "Nearly Chronic",
+             "Not Chronic"
+           )
+         ),
+         ActiveDate = case_when(
+           is.na(DateVeteranIdentified) ~ EntryDate,
+           ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
+           TRUE ~ EntryDate
     )) %>%
+  select(-c(DateToStreetESSH, TimesHomelessPastThreeYears, 
+            MonthsHomelessPastThreeYears, ExitAdjust, ProjectType)) %>%
   left_join(combined, by = "PersonalID") %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   left_join(small_CLS, by = "PersonalID") %>%
