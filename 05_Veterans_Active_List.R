@@ -15,6 +15,7 @@
 library(tidyverse)
 library(lubridate)
 library(HMIS)
+library(stringr)
 
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
 if (!exists("tay")) {
@@ -335,7 +336,12 @@ veteran_active_list <- veteran_active_list_enrollments %>%
         ),
       "<br><br>Notes:<br>",
       Notes)
-      )
+      ),
+    ListStatus = case_when(
+      str_detect(LH_TimeInProject, "Since") ~ "Active - ES/TH",
+      ListStatus == "Inactive (Uknown/Missing)" ~ "Inactive (Unknown/Missing)",
+      TRUE ~ ListStatus
+    )
   ) %>%
   left_join(responsible_providers, by = "County") %>%
   unique()
