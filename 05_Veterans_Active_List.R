@@ -16,6 +16,7 @@ library(tidyverse)
 library(lubridate)
 library(HMIS)
 library(stringr)
+source("00_functions.R")
 
 if (!exists("Enrollment")) load("images/COHHIOHMIS.RData")
 if (!exists("tay")) {
@@ -236,6 +237,26 @@ veteran_active_list_enrollments <- vet_active %>%
   slice(1L) %>%
   ungroup()
 
+non_hoh_vets <- veteran_active_list_enrollments %>%
+  filter(RelationshipToHoH != 1) %>%
+  select(PersonalID, HouseholdID, RelationshipToHoH)
+
+hoh_chronicity <- non_hoh_vets %>%
+  setNames(paste0("V_", names(.))) %>%
+  inner_join(vet_ees %>%
+               filter(RelationshipToHoH == 1 &
+                        HouseholdID %in% non_hoh_vets$HouseholdID) %>%
+               distinct() %>%
+               chronic_determination() %>%
+               rename(HoHChronicStatus = ChronicStatus),
+             by = c("V_HouseholdID" = "HouseholdID")) %>%
+  select(V_PersonalID, HoHChronicStatus) %>%
+  rename(PersonalID = V_PersonalID) %>%
+  arrange(HoHChronicStatus) %>%
+  group_by(PersonalID) %>%
+  slice(1L) %>%
+  ungroup()
+
 enrollments_to_use <- veteran_active_list_enrollments %>%
   mutate(ProjectName = if_else(ProjectName == "Unsheltered Clients - OUTREACH", 
                                paste("Unsheltered in", County, "County"),
@@ -251,26 +272,19 @@ enrollments_to_use <- veteran_active_list_enrollments %>%
          )) %>%
   select(PersonalID, ProjectName, TimeInProject, ProjectType)
 
-lh_veteran_active_list_enrollments <- enrollments_to_use %>%
+combined <- enrollments_to_use %>%
   filter(ProjectType %in% lh_project_types) %>%
-  select(-ProjectType)
-
-ph_veteran_active_list_enrollments <- enrollments_to_use %>%
-  filter(ProjectType %in% ph_project_types) %>%
-  select(-ProjectType)
-
-o_veteran_active_list_enrollments <- enrollments_to_use %>%
-  filter(!ProjectType %in% lh_project_types &
-           !ProjectType %in% ph_project_types) %>%
-  select(-ProjectType)
-
-colnames(lh_veteran_active_list_enrollments)[2:4] <- paste0("LH_", colnames(lh_veteran_active_list_enrollments))[2:4]
-colnames(ph_veteran_active_list_enrollments)[2:4] <- paste0("PH_", colnames(ph_veteran_active_list_enrollments))[2:4]
-colnames(o_veteran_active_list_enrollments)[2:4] <- paste0("O_", colnames(o_veteran_active_list_enrollments))[2:4]
-
-combined <- lh_veteran_active_list_enrollments %>%
-  full_join(ph_veteran_active_list_enrollments, by = "PersonalID") %>%
-  full_join(o_veteran_active_list_enrollments, by = "PersonalID")
+  setNames(c("PersonalID", paste0("LH_", names(.)[2:ncol(.)]))) %>%
+  full_join(enrollments_to_use %>%
+              filter(ProjectType %in% ph_project_types) %>%
+              setNames(c("PersonalID", paste0("PH_", names(.)[2:ncol(.)]))), 
+            by = "PersonalID") %>%
+  full_join(enrollments_to_use %>%
+              filter(!ProjectType %in% lh_project_types &
+                       !ProjectType %in% ph_project_types) %>%
+              setNames(c("PersonalID", paste0("O_", names(.)[2:ncol(.)]))), 
+            by = "PersonalID") %>%
+  select(!contains("ProjectType"))
 
 veteran_active_list <- veteran_active_list_enrollments %>%
   select(PersonalID, DateVeteranIdentified, VAEligible, 
@@ -283,57 +297,8 @@ veteran_active_list <- veteran_active_list_enrollments %>%
   arrange(desc(EntryDate)) %>%
   slice(1L) %>%
   ungroup() %>%
-  mutate(DaysHomelessInProject = difftime(ymd(ExitAdjust),
-                                          ymd(EntryDate),
-                                          units = "days"),
-         DaysHomelessBeforeEntry = difftime(ymd(EntryDate),
-                                            if_else(
-                                              is.na(ymd(DateToStreetESSH)),
-                                              ymd(EntryDate),
-                                              ymd(DateToStreetESSH)
-                                            ),
-                                            units = "days"),
-         ChronicStatus =
-           case_when(
-             ((ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
-                 !is.na(DateToStreetESSH)) |
-                (
-                  MonthsHomelessPastThreeYears %in% c(112, 113) &
-                    TimesHomelessPastThreeYears == 4 &
-                    !is.na(MonthsHomelessPastThreeYears) &
-                    !is.na(TimesHomelessPastThreeYears)
-                )
-             ) &
-               DisablingCondition == 1 &
-               !is.na(DisablingCondition) ~ "Chronic",
-             ProjectType %in% c(1, 8) &
-               ymd(DateToStreetESSH) + days(365) > ymd(EntryDate) &
-               !is.na(DateToStreetESSH) &
-               DaysHomelessBeforeEntry + DaysHomelessInProject >= 365 ~ "Aged In",
-             ((
-               ymd(DateToStreetESSH) + days(365) <= ymd(EntryDate) &
-                 !is.na(DateToStreetESSH)
-             ) |
-               (
-                 MonthsHomelessPastThreeYears %in% c(110:113) &
-                   TimesHomelessPastThreeYears%in% c(3, 4) &
-                   !is.na(MonthsHomelessPastThreeYears) &
-                   !is.na(TimesHomelessPastThreeYears)
-               )
-             ) &
-               DisablingCondition == 1 &
-               !is.na(DisablingCondition) ~ "Nearly Chronic",
-             TRUE ~ "Not Chronic"),
-         ChronicStatus = factor(
-           ChronicStatus,
-           levels = c(
-             "Chronic",
-             "Aged In",
-             "Nearly Chronic",
-             "Not Chronic"
-           )
-         ),
-         ActiveDate = case_when(
+  chronic_determination() %>%
+  mutate(ActiveDate = case_when(
            is.na(DateVeteranIdentified) ~ EntryDate,
            ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
            TRUE ~ EntryDate
@@ -343,6 +308,7 @@ veteran_active_list <- veteran_active_list_enrollments %>%
   left_join(combined, by = "PersonalID") %>%
   left_join(most_recent_offer, by = "PersonalID") %>%
   left_join(small_CLS, by = "PersonalID") %>%
+  left_join(hoh_chronicity, by = "PersonalID") %>%
   mutate(
     ActiveDateDisplay = paste0(ActiveDate,
                                "<br>(",
