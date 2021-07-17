@@ -54,43 +54,34 @@ hc_first_vaccine_administered_in_us <- mdy("12142020")
 
 # Dates from Metadata -----------------------------------------------------
 
-meta_HUDCSV_Export_Date <- read_csv(here("data/Export.csv"),
-                                col_types = c("iicccccccTDDcciii")) %>%
-  mutate(ExportDate = ymd_hms(ExportDate)) %>%
-  pull(ExportDate)
+Export <- fetch("Export")
 
-meta_HUDCSV_Export_Start <- read_csv(here("data/Export.csv"),
-                                     col_types = c("iicccccccTDDcciii")) %>%
-  mutate(ExportStartDate = ymd(ExportStartDate)) %>%
-  pull(ExportStartDate)
+meta_HUDCSV_Export_Date <- Export[["ExportDate"]][1]
+meta_HUDCSV_Export_Start <- Export[["ExportStartDate"]][1]
+meta_HUDCSV_Export_End <- Export[["ExportEndDate"]][1]
 
-meta_HUDCSV_Export_End <- read_csv(here("data/Export.csv"),
-                                   col_types = c("iicccccccTDDcciii")) %>%
-  mutate(ExportEndDate = ymd(ExportEndDate)) %>%
-  pull(ExportEndDate)
+
 
 meta_Rmisc_last_run_date <- floor_date(file.info(here("data/RMisc2.xlsx"))$mtime, 
                                        unit = "day")
 
 # Calculated Dates --------------------------------------------------------
-
+Exit <- fetch("Exit")
 calc_data_goes_back_to <-
-  read_csv(here("data/Exit.csv"),
-           col_types = "nnnDncnnnnnnnnnnnnnnnnnnnnnnnnnDnnnnnnTTnTn") %>%
-  mutate(ExitDate = ymd(ExitDate)) %>%
+  Exit %>%
   arrange(ExitDate) %>%
   head(1) %>% 
   pull(ExitDate)
 
-calc_full_date_range <- interval(ymd(meta_HUDCSV_Export_End),
-                                ymd(calc_data_goes_back_to))
+calc_full_date_range <- interval(meta_HUDCSV_Export_End,
+                                calc_data_goes_back_to)
 
 calc_2_yrs_prior_end <- floor_date(today(), "month") - days(1)
 calc_2_yrs_prior_start <-
-  floor_date(ymd(calc_2_yrs_prior_end), "month") - years(2) + months(1)
+  floor_date(calc_2_yrs_prior_end, "month") - years(2) + months(1)
 
-calc_2_yrs_prior_range <- interval(ymd(calc_2_yrs_prior_start),
-                                   ymd(calc_2_yrs_prior_end))
+calc_2_yrs_prior_range <- interval(calc_2_yrs_prior_start,
+                                   calc_2_yrs_prior_end)
 
 
 
