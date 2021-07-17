@@ -336,12 +336,16 @@ freeze_pe <- function(dir, overwrite = FALSE) {
 }
 
 
-chronic_determination <- function(.data) { 
+chronic_determination <- function(.data, aged_in = FALSE) { 
   
   needed_cols <- c("PersonalID", "EntryDate",
                    "AgeAtEntry", "DisablingCondition",
                    "DateToStreetESSH", "TimesHomelessPastThreeYears",
                    "MonthsHomelessPastThreeYears", "ExitAdjust", "ProjectType")
+  
+  chronicity_levels <- if(aged_in) {
+    c("Chronic", "Aged In", "Nearly Chronic", "Not Chronic")}
+  else {c("Chronic", "Nearly Chronic", "Not Chronic")}
   
   if (all((needed_cols) %in% colnames(.data))) {
     return(
@@ -387,13 +391,13 @@ chronic_determination <- function(.data) {
                      DisablingCondition == 1 &
                      !is.na(DisablingCondition) ~ "Nearly Chronic",
                    TRUE ~ "Not Chronic"),
+               ChronicStatus = case_when(aged_in ~ ChronicStatus,
+                                         TRUE ~ if_else(ChronicStatus == "Aged In",
+                                                        "Chronic",
+                                                        ChronicStatus)),
                ChronicStatus = factor(
                  ChronicStatus,
-                 levels = c(
-                   "Chronic",
-                   "Aged In",
-                   "Nearly Chronic",
-                   "Not Chronic"))))
+                 levels = chronicity_levels)))
   }
   
   else {
