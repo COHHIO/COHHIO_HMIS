@@ -310,6 +310,9 @@ veteran_active_list <- veteran_active_list_enrollments %>%
   left_join(small_CLS, by = "PersonalID") %>%
   left_join(hoh_chronicity, by = "PersonalID") %>%
   mutate(
+    ChronicStatus = if_else(!is.na(HoHChronicStatus) &
+                            HoHChronicStatus < ChronicStatus, 
+                          HoHChronicStatus, ChronicStatus),
     ActiveDateDisplay = paste0(ActiveDate,
                                "<br>(",
                                difftime(today(), ymd(ActiveDate)),

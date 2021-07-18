@@ -397,6 +397,7 @@ chronic_determination <- function(.data, aged_in = FALSE) {
                                                         ChronicStatus)),
                ChronicStatus = factor(
                  ChronicStatus,
+                 ordered = TRUE,
                  levels = chronicity_levels)))
   }
   
