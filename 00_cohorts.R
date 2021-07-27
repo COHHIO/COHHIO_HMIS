@@ -289,19 +289,19 @@ rm(list = ls(pattern = "summary_"))
 # PIT Counts --------------------------------------------------------------
 
 BoS_PIT <- dplyr::tribble(
-  ~Population, ~January2019Count, ~January2020Count,
-  "Total", 3479, 3577,
-  "Sheltered", 3479 - 814, 3577 - 986, # total minus unsheltered
-  "Veterans", 159, 162,
-  "Chronic", 330, 192
+  ~Population, ~January2020Count, ~January2021Count,
+  "Total", 3577, 2334,
+  "Sheltered", 2591, 2334,
+  "Veterans", 162, 87,
+  "Chronic", 192, 196
 )
 
 Mah_PIT <- dplyr::tribble(
-  ~Population, ~January2019Count, ~January2020Count,
-  "Total", 148, 100,
-  "Sheltered", 133, 78,
-  "Veterans", 3, 2,
-  "Chronic", 18, 6
+  ~Population, ~January2020Count, ~January2021Count,
+  "Total", 100, 62,
+  "Sheltered", 78, 62,
+  "Veterans", 2, 6,
+  "Chronic", 6, 3
 )
 
 
