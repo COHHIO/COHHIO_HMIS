@@ -298,6 +298,7 @@ veteran_active_list <- veteran_active_list_enrollments %>%
   slice(1L) %>%
   ungroup() %>%
   chronic_determination() %>%
+  long_term_homeless_determination() %>%
   mutate(ActiveDate = case_when(
            is.na(DateVeteranIdentified) ~ EntryDate,
            ymd(DateVeteranIdentified) < ymd(EntryDate) ~ DateVeteranIdentified,
