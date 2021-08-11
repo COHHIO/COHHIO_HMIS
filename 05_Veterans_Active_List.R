@@ -270,11 +270,14 @@ enrollments_to_use <- veteran_active_list_enrollments %>%
              format(ymd(ExitDate), "%m-%d-%Y")
            )
          )) %>%
-  select(PersonalID, ProjectName, TimeInProject, ProjectType)
+  select(PersonalID, ProjectName, TimeInProject, ProjectType, EntryDate)
 
 combined <- enrollments_to_use %>%
   filter(ProjectType %in% lh_project_types) %>%
   setNames(c("PersonalID", paste0("LH_", names(.)[2:ncol(.)]))) %>%
+  mutate(transitional_housing_entry = 
+           case_when(LH_ProjectType == 2 &
+                       grepl("Since", LH_TimeInProject) ~ LH_EntryDate)) %>%
   full_join(enrollments_to_use %>%
               filter(ProjectType %in% ph_project_types) %>%
               setNames(c("PersonalID", paste0("PH_", names(.)[2:ncol(.)]))), 
@@ -284,7 +287,7 @@ combined <- enrollments_to_use %>%
                        !ProjectType %in% ph_project_types) %>%
               setNames(c("PersonalID", paste0("O_", names(.)[2:ncol(.)]))), 
             by = "PersonalID") %>%
-  select(!contains("ProjectType"))
+  select(!contains(c("ProjectType", "EntryDate")))
 
 veteran_active_list <- veteran_active_list_enrollments %>%
   select(PersonalID, DateVeteranIdentified, VAEligible, 
@@ -375,12 +378,6 @@ veteran_active_list <- veteran_active_list_enrollments %>%
 # that have exited to a temporary destination. Not sure we'll need this actually
 # because we can just make it a widget on the report, to exclude those.
 
-# Entered in Past 90 Days -------------------------------------------------
-
-entered_past_90 <- vet_ees %>%
-  filter(entered_between(., format(today() - days(90), "%m%d%Y"),
-                         format(today(), "%m%d%Y")))
-
 
 # Veterans Missing Veteran Assessment -------------------------------------
 
@@ -413,11 +410,6 @@ entered_past_90 <- vet_ees %>%
 # I think it will be best to move the chronic code to cohorts, and the Returns
 # code can go there too.
 
-# New GPD -----------------------------------------------------------------
-
-new_gpd <- entered_past_90 %>%
-  filter(ProjectID %in% c(GPD_project_ids))
-
 # Offers ------------------------------------------------------------------
 
 # checking to be sure I'm not using "Most Recent Offer ..." data anywhere
@@ -426,9 +418,49 @@ new_gpd <- entered_past_90 %>%
 
 # Exited to PH ------------------------------------------------------------
 
+permanently_housed_vets <- vet_ees %>%
+  filter(VeteranStatus == 1 &
+           Destination %in% c(perm_destinations) &
+           ymd(ExitDate) >= today() - days(90)) %>%
+  mutate(EntryAdj = if_else(
+    !is.na(DateVeteranIdentified) & DateVeteranIdentified < EntryDate,
+    DateVeteranIdentified, EntryDate)) %>%
+  select(
+    PersonalID,
+    EntryAdj,
+    ExitDate,
+    County
+  ) %>%
+  unique() 
 
-# New and Exited to PH ----------------------------------------------------
+# Entered in Past 90 Days -------------------------------------------------
 
+entered_past_90_vets <- vet_ees %>%
+  filter((ProjectType %in% c(lh_project_types) |
+           (ProjectType %in% c(ph_project_types) &
+              is.na(MoveInDateAdjust))) &
+    (entered_between(., format(today() - days(90), "%m%d%Y"),
+                         format(today(), "%m%d%Y")) |
+       DateVeteranIdentified >= today() - days(90)))  %>%
+  select(
+    PersonalID, County
+  ) %>%
+  unique() %>%
+  mutate(housed_in_last_90 = if_else(
+    PersonalID %in% permanently_housed_vets$PersonalID, 1, 0
+  ))
+           
+# New GPD ----------------------------------------------------
+
+new_gpd_vets <- vet_ees %>%
+  filter(VeteranStatus == 1 &
+           entered_between(., format(today() - days(90), "%m%d%Y"),
+                           format(today(), "%m%d%Y")) &
+           grepl("GPD", ProjectName)) %>%
+  select(
+    PersonalID, County
+  ) %>%
+  unique() 
 
 # Save it out -------------------------------------------------------------
 
