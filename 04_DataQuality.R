@@ -2945,8 +2945,8 @@ unsheltered_by_month <- unsheltered_enrollments %>%
             IraqOIF %in% c(8, 9) |
             IraqOND %in% c(8, 9) |
             OtherTheater  %in% c(8, 9)  ~ "Don't Know/Refused War(s)",
-          MilitaryBranch %in% c(8, 9) ~ "Missing Military Branch",
-          DischargeStatus %in% c(8, 9) ~ "Missing Discharge Status"
+          MilitaryBranch %in% c(8, 9) ~ "Don't Know/Refused Military Branch",
+          DischargeStatus %in% c(8, 9) ~ "Don't Know/Refused Discharge Status"
         ),
         Type = "Warning",
         Guidance = guidance_dkr_data
