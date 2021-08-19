@@ -383,12 +383,6 @@ veteran_active_list <- veteran_active_list_enrollments %>%
 
 
 
-# Long Term -------------------------------------------------------
-
-# thinking of moving the code I already wrote for this in the Active List
-# up to cohorts.R so I can get this easily from there instead of having to
-# copy that code to here
-
 # Chronic ---------------------------------------------------------
 
 # thinking of moving the code I already wrote for this in the Active List
@@ -424,12 +418,16 @@ permanently_housed_vets <- vet_ees %>%
            ymd(ExitDate) >= today() - days(90)) %>%
   mutate(EntryAdj = if_else(
     !is.na(DateVeteranIdentified) & DateVeteranIdentified < EntryDate,
-    DateVeteranIdentified, EntryDate)) %>%
+    DateVeteranIdentified, EntryDate),
+    time_to_house = difftime(floor_date(ExitDate, unit = "day"),
+                             floor_date(EntryAdj, unit = "day"),
+                             units = "days")) %>%
   select(
     PersonalID,
     EntryAdj,
     ExitDate,
-    County
+    County,
+    time_to_house
   ) %>%
   unique() 
 
