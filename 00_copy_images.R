@@ -263,6 +263,9 @@ data_prep <- function(object_names, directory, environment, accessor) {
           "vaccine_needs_second_dose",
           "vaccine_status",
           "validation",
-          "veteran_active_list" 
+          "veteran_active_list",
+          "permanently_housed_vets",
+          "entered_past_90_vets",
+          "new_gpd_vets"
 ) %>% 
   data_prep("../Rminor_elevated", rdata)
